@@ -30,13 +30,14 @@ A data type of yours extends one of these classes, with two generic arguments: t
 | `PlainDatesType<VALUE_TYPE, TYPE_NAME>` | `ComparableType` | The parts of a date with the names of Temporal, like `month` (from 1), and `toPlainDateTime`; its values converted as `plainDate` |
 | `PlainTimesType<VALUE_TYPE, TYPE_NAME>` | `ComparableType` | The parts of a time with the names of Temporal, up to `microsecond`; its values converted as `plainTime` |
 | `PlainDateTimesType<VALUE_TYPE, TYPE_NAME>` | `ComparableType` | The parts of a date and a time, `toPlainDate` and `toPlainTime`; its values converted as `plainDateTime` |
+| `DurationsType<VALUE_TYPE, TYPE_NAME>` | `EqualableType` | Nothing more: compared for equality; its values converted as `duration` |
 | `LocalDatesType<VALUE_TYPE, TYPE_NAME>` | `ComparableType` | The parts of a date, like `getFullYear`; its values converted as `localDate` |
 | `LocalTimesType<VALUE_TYPE, TYPE_NAME>` | `ComparableType` | The parts of a time; its values converted as `localTime` |
 | `LocalDateTimesType<VALUE_TYPE, TYPE_NAME>` | `ComparableType` | The parts of a date and a time; its values converted as `localDateTime` |
 
 The methods of each family, with their signatures, are in the [Value expressions API](value-expressions.md); what each family is for, in [The families](../advanced/data-types/own-data-types.md#the-families).
 
-The types of the library are classes too, and a method that takes a type takes them where it takes the name: `BooleanType` (`'boolean'`), `IntType` (`'int'`), `DoubleType` (`'double'`), `BigintType` (`'bigint'`, an `IntegersType<bigint, 'bigint'>`), `StringType` (`'string'`), `UuidType` (`'uuid'`, a `UuidsType<string, 'uuid'>`), `StringDecimalType` (`'stringDecimal'`, a `DecimalsType<string, 'stringDecimal'>`), `PlainDateType`, `PlainTimeType` and `PlainDateTimeType` (`'plainDate'`, `'plainTime'`, `'plainDateTime'`, of the families of the dates with Temporal), `LocalDateType`, `LocalTimeType` and `LocalDateTimeType` (`'localDate'`, `'localTime'`, `'localDateTime'`, of the families of the dates with `Date`). An `int` and a `double` work together: each one takes the other as an operand.
+The types of the library are classes too, and a method that takes a type takes them where it takes the name: `BooleanType` (`'boolean'`), `IntType` (`'int'`), `DoubleType` (`'double'`), `BigintType` (`'bigint'`, an `IntegersType<bigint, 'bigint'>`), `StringType` (`'string'`), `UuidType` (`'uuid'`, a `UuidsType<string, 'uuid'>`), `StringDecimalType` (`'stringDecimal'`, a `DecimalsType<string, 'stringDecimal'>`), `PlainDateType`, `PlainTimeType` and `PlainDateTimeType` (`'plainDate'`, `'plainTime'`, `'plainDateTime'`, of the families of the dates with Temporal), `DurationType` (`'duration'`, a `DurationsType<Temporal.Duration, 'duration'>`), `LocalDateType`, `LocalTimeType` and `LocalDateTimeType` (`'localDate'`, `'localTime'`, `'localDateTime'`, of the families of the dates with `Date`). An `int` and a `double` work together: each one takes the other as an operand.
 
 ## The statics of a class of a data type
 

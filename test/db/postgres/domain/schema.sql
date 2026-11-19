@@ -165,6 +165,8 @@ CREATE TABLE project_release (
     signed_off_at TIMESTAMP,
     -- REQUIRED ownLocalDateTime twin of signed_off_at.
     published_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    -- The time the rollout of the release took (a duration, Temporal.Duration)
+    rollout_time INTERVAL,
     -- Plain-kind sources for the release_overview VIEW's per-kind read columns
     -- (boolean/bigint/double). uuid/localDate/localTime reuse signing_key/
     -- released_on/cutoff_time; the custom+adapter column reuses id.

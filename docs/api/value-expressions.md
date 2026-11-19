@@ -418,6 +418,14 @@ interface PlainDateTimeValueSource extends ComparableValueSource<Temporal.PlainD
 
 ```typescript
 /**
+ * Represents a duration (using a Temporal.Duration), only compared for equality; see Dates and times
+ */
+interface DurationValueSource extends EqualableValueSource<Temporal.Duration, 'duration'> {
+}
+```
+
+```typescript
+/**
  * Represents a local date without time (using a Date object). The getters give its parts in UTC, as the
  * getUTC… methods of the Date read
  */

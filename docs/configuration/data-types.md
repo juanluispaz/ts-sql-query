@@ -22,6 +22,7 @@ The same types are used for a [constant](../queries/basic-query-structure.md) an
 | `plainDate`                     | `Temporal.PlainDate` | Date without time, as a Temporal value                            |
 | `plainTime`                     | `Temporal.PlainTime` | Time without date, as a Temporal value                            |
 | `plainDateTime`                 | `Temporal.PlainDateTime` | Date with time, as a Temporal value                           |
+| `duration`                      | `Temporal.Duration`  | Length of time, as a Temporal value                               |
 | `localDate`                     | `Date`               | Date without time, as a `Date`                                    |
 | `localTime`                     | `Date`               | Time without date, as a `Date`                                    |
 | `localDateTime`                 | `Date`               | Date with time, as a `Date`                                       |
@@ -40,13 +41,14 @@ this.column('ColumnName', 'stringDecimal')
 this.column('ColumnName', 'plainDate')
 this.column('ColumnName', 'plainTime')
 this.column('ColumnName', 'plainDateTime')
+this.column('ColumnName', 'duration')
 this.column('ColumnName', 'localDate')
 this.column('ColumnName', 'localTime')
 this.column('ColumnName', 'localDateTime')
 this.column('ColumnName', MyCentsType)
 ```
 
-The types of the library have a class too, `BooleanType`, `IntType`, `BigintType`, `DoubleType`, `StringType`, `UuidType`, `StringDecimalType`, `PlainDateType`, `PlainTimeType`, `PlainDateTimeType`, `LocalDateType`, `LocalTimeType` and `LocalDateTimeType`, exported by `ts-sql-query`. A method that takes a type takes its class too, so `this.column('ColumnName', IntType)` is the same column as `this.column('ColumnName', 'int')`.
+The types of the library have a class too, `BooleanType`, `IntType`, `BigintType`, `DoubleType`, `StringType`, `UuidType`, `StringDecimalType`, `PlainDateType`, `PlainTimeType`, `PlainDateTimeType`, `DurationType`, `LocalDateType`, `LocalTimeType` and `LocalDateTimeType`, exported by `ts-sql-query`. A method that takes a type takes its class too, so `this.column('ColumnName', IntType)` is the same column as `this.column('ColumnName', 'int')`.
 
 !!! tip "Generating UUIDs"
 
@@ -73,6 +75,7 @@ Choose by the values your code handles, not only by the type of the column in th
 | A date with no time, like a birthday | `plainDate` | A `Temporal.PlainDate`, the date and nothing else, in any zone of your application. The types of [Dates and times](dates-and-times.md), recommended for dates and times: they need a runtime with `Temporal`, or a polyfill. |
 | A time with no date, like an opening time | `plainTime` | A `Temporal.PlainTime`, with every digit of the fraction of a second the database keeps. |
 | A date with time, like the moment something happened | `plainDateTime` | A `Temporal.PlainDateTime`, with the digits the database keeps; of a column that stores an instant, like `timestamptz` on PostgreSQL, the date and time it has in the zone of the database. |
+| A length of time, like how long a task took | `duration` | A `Temporal.Duration`, compared only for equality. PostgreSQL and Oracle keep it in an interval; the other databases as its text or its microseconds: see [Durations](dates-and-times.md#durations). |
 | A date with no time as a `Date` | `localDate` | A `Date` at 10:00 UTC of the day: read it with `getUTCFullYear`, `getUTCMonth` and `getUTCDate`. See [Read the values with the UTC getters](time-zones.md#read-the-values-with-the-utc-getters). |
 | A time as a `Date` | `localTime` | A `Date` on 1970-01-01: read it with `getUTCHours`, `getUTCMinutes` and `getUTCSeconds`. |
 | A date with time as a `Date` | `localDateTime` | A `Date` whose UTC getters are the stored digits, in any zone of your application. This is the type for a column that stores an instant too, like `timestamptz` on PostgreSQL, which gives the instant. See [Time zones](time-zones.md). |

@@ -34,7 +34,7 @@ The type name in the generic is the one TypeScript uses; `type` is the one the l
 
 The type name is part of the type of the column: another column or expression can be compared with it, or assigned to it, only when it has the same type name. Two classes with the same type name and different TypeScript types are a mistake that nothing detects: give each type a name of its own.
 
-The types of the library have a class too, `BooleanType`, `IntType`, `BigintType`, `DoubleType`, `StringType`, `UuidType`, `StringDecimalType`, `LocalDateType`, `LocalTimeType` and `LocalDateTimeType`, exported by `ts-sql-query` like the families. A method that takes a type takes its class too, so `this.column('ColumnName', IntType)` is the same column as `this.column('ColumnName', 'int')`.
+The types of the library have a class too, `BooleanType`, `IntType`, `BigintType`, `DoubleType`, `StringType`, `UuidType`, `StringDecimalType`, `PlainDateType`, `PlainTimeType`, `PlainDateTimeType`, `DurationType`, `LocalDateType`, `LocalTimeType` and `LocalDateTimeType`, exported by `ts-sql-query` like the families. A method that takes a type takes its class too, so `this.column('ColumnName', IntType)` is the same column as `this.column('ColumnName', 'int')`.
 
 Each of these classes has a type guard, `is`, that says whether a value source, like a column or an expression, is of its type: `MyIntDataType.is(value)`. A class with more than one type, like a family, says yes to any of its types: `IntegersType.is(value)` is true for a `bigint` and for every integer of yours. A condition made by an `*IfValue` method is a `boolean` there. The value source keeps its source and its optionality: from a union of value sources, `is` leaves the ones of its type, and a value source of a wider type, like a `NumberType` asked with `IntType.is`, becomes one of the type asked. A value that may not be a value source is asked with `instanceof` (`value instanceof IntType`), which says only its class.
 
@@ -51,7 +51,9 @@ The family the class extends says which operations the column offers in a query,
 | `MultipliableType` | Also multiplied | Not converted |
 | `DivisibleType` | Also divided | Not converted |
 | `UuidsType` | A UUID | `uuid` |
-| `LocalDatesType`, `LocalTimesType`, `LocalDateTimesType` | A date, a time, both | `localDate`, `localTime`, `localDateTime` |
+| `PlainDatesType`, `PlainTimesType`, `PlainDateTimesType` | A date, a time, both, as Temporal values | `plainDate`, `plainTime`, `plainDateTime` |
+| `DurationsType` | A length of time, as a `Temporal.Duration`, compared for equality | `duration` |
+| `LocalDatesType`, `LocalTimesType`, `LocalDateTimesType` | A date, a time, both, as a `Date` | `localDate`, `localTime`, `localDateTime` |
 | `EnumType` | One of a list of values, compared for equality | Not converted |
 | `EqualableType` | Compared for equality | Not converted |
 | `ComparableType` | Also ordered, like `lessThan` and `between` | Not converted |

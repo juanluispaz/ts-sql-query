@@ -1,7 +1,7 @@
 // Documentation snippets for the Dates and times page (docs/configuration/dates-and-times.md). The releases of the seed:
 // 1.2.0 released on 2024-01-15 (a Monday) with its cutoff at 17:00, published on 2024-01-16 at 09:00; 1.3.0-beta.1 on
 // 2024-02-20 (a Tuesday), 18:30, published on 2024-02-21 at 10:00; 0.9.0 on 2024-03-01 (a Friday), 16:00, published on
-// 2024-03-02 at 11:00.
+// 2024-03-02 at 11:00. Their rollouts took 1 day 12 hours, 45 minutes and 2 days.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -124,5 +124,54 @@ describe(ctx.label, () => {
         assertType<Exact<typeof now, Temporal.PlainDateTime>>()
         expect(today).toBeInstanceOf(Temporal.PlainDate)
         expect(now).toBeInstanceOf(Temporal.PlainDateTime)
+    })
+
+    test('docs:dates-and-times/durations-in-a-query', async () => {
+        ctx.mockNext([
+            { version: '0.9.0', rolloutTime: 'P2D' },
+            { version: '1.2.0', rolloutTime: 'P1DT12H' },
+            { version: '1.3.0-beta.1', rolloutTime: 'PT45M' },
+        ])
+        const connection = ctx.conn
+
+        // doc-start
+        const rollouts = sync(connection.selectFrom(tRelease)
+            .select({
+                version: tRelease.version,
+                rolloutTime: tRelease.rolloutTime,
+            })
+            .orderBy('version')
+            .executeSelectMany())
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as version, rollout_time as rolloutTime from project_release order by version"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rollouts, Array<{ version: string; rolloutTime?: Temporal.Duration }>>>()
+        expect(rollouts.map(release => [release.version, release.rolloutTime?.toString()])).toEqual([
+            ['0.9.0', 'P2D'],
+            ['1.2.0', 'P1DT12H'],
+            ['1.3.0-beta.1', 'PT45M'],
+        ])
+    })
+
+    test('docs:dates-and-times/durations-compared-for-equality', async () => {
+        ctx.mockNext([{ version: '1.3.0-beta.1' }])
+        const connection = ctx.conn
+
+        // doc-start
+        const quick = sync(connection.selectFrom(tRelease)
+            .where(tRelease.rolloutTime.equals(Temporal.Duration.from({ minutes: 45 })))
+            .select({ version: tRelease.version })
+            .executeSelectMany())
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as version from project_release where rollout_time = ?1"`)
+        expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
+          [
+            "PT45M",
+          ]
+        `)
+        assertType<Exact<typeof quick, Array<{ version: string }>>>()
+        expect(quick).toEqual([{ version: '1.3.0-beta.1' }])
     })
 })

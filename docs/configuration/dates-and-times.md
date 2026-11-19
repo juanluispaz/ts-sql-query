@@ -4,7 +4,7 @@ search:
 ---
 # Dates and times
 
-A date, a time of the day or both reach your code in one of two ways: as a [Temporal](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal) value of JavaScript, or as a `Date`. This page says what each one is, why Temporal is the one we recommend, what you need to use it, and what a query can do with these values: compare them, take their parts, and turn a date into a date and time. Where the zone of each value comes from, and how to set up the zones of your database and your application, is in [Time zones](time-zones.md).
+A date, a time of the day or both reach your code in one of two ways: as a [Temporal](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal) value of JavaScript, or as a `Date`. This page says what each one is, why Temporal is the one we recommend, what you need to use it, and what a query can do with these values: compare them, take their parts, and turn a date into a date and time. It also covers [durations](#durations), a length of time like the 45 minutes a task took, as a `Temporal.Duration`. Where the zone of each value comes from, and how to set up the zones of your database and your application, is in [Time zones](time-zones.md).
 
 ## The types
 
@@ -15,14 +15,16 @@ The same column of the database can be read either way; you choose with the type
 | `plainDate`      | `Temporal.PlainDate`     | A date without time, like a birthday  | `localDate`                   |
 | `plainTime`      | `Temporal.PlainTime`     | A time of the day, like an opening time | `localTime`                 |
 | `plainDateTime`  | `Temporal.PlainDateTime` | A date and a time of the day          | `localDateTime`               |
+| `duration`       | `Temporal.Duration`      | A length of time, like 1 day and 12 hours | None                      |
 
 ```typescriptreact
 releasedOn = this.column('released_on', 'plainDate')
 cutoffTime = this.column('cutoff_time', 'plainTime')
 publishedAt = this.column('published_at', 'plainDateTime')
+rolloutTime = this.optionalColumn('rollout_time', 'duration')
 ```
 
-Their classes are `PlainDateType`, `PlainTimeType` and `PlainDateTimeType`, exported by `ts-sql-query`, and a type of yours can extend their families, `PlainDatesType`, `PlainTimesType` and `PlainDateTimesType`, as in [Data types of your own](../advanced/data-types/own-data-types.md#the-families).
+Their classes are `PlainDateType`, `PlainTimeType`, `PlainDateTimeType` and `DurationType`, exported by `ts-sql-query`, and a type of yours can extend their families, `PlainDatesType`, `PlainTimesType`, `PlainDateTimesType` and `DurationsType`, as in [Data types of your own](../advanced/data-types/own-data-types.md#the-families).
 
 ## Why Temporal
 
@@ -388,6 +390,190 @@ The executed query is:
 
 The parameters are: `[]`
 
+## Durations
+
+A `duration` is a length of time: how long something took or lasts, like the 45 minutes a rollout took. It is a `Temporal.Duration`, with its fields from years to nanoseconds. It isn't a time of the day: 25 hours is a duration, and `plainTime` has no 25:00.
+
+The value is read and sent as a `Temporal.Duration`, here the time the rollout of each release took:
+
+```ts
+const rollouts = await connection.selectFrom(tRelease)
+    .select({
+        version: tRelease.version,
+        rolloutTime: tRelease.rolloutTime,
+    })
+    .orderBy('version')
+    .executeSelectMany()
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        version as version, 
+        rollout_time as rolloutTime 
+    from project_release 
+    order by version
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        version as version, 
+        rollout_time as rolloutTime 
+    from project_release 
+    order by version
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        version as "version", 
+        rollout_time as "rolloutTime" 
+    from project_release 
+    order by "version"
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        version as version, 
+        rollout_time as "rolloutTime" 
+    from project_release 
+    order by version
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        version as version, 
+        rollout_time as rolloutTime 
+    from project_release 
+    order by version
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        version as version, 
+        rollout_time as rolloutTime 
+    from project_release 
+    order by version
+    ```
+
+The parameters are: `[]`
+
+| version | rolloutTime |
+|---|---|
+| `'0.9.0'` | `P2D` |
+| `'1.2.0'` | `P1DT12H` |
+| `'1.3.0-beta.1'` | `PT45M` |
+
+### Comparing durations
+
+A duration is compared only for equality: `equals`, `notEquals`, `in`, `notIn` and the other operations of an `EqualableValueSource` in the [Value expressions API](../api/value-expressions.md), here the releases whose rollout took 45 minutes:
+
+```ts
+const quick = await connection.selectFrom(tRelease)
+    .where(tRelease.rolloutTime.equals(Temporal.Duration.from({ minutes: 45 })))
+    .select({ version: tRelease.version })
+    .executeSelectMany()
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select version as version 
+    from project_release 
+    where rollout_time = ?
+    ```
+=== "MySQL"
+    ```mysql
+    select version as version 
+    from project_release 
+    where rollout_time = ?
+    ```
+=== "Oracle"
+    ```oracle
+    select version as "version" 
+    from project_release 
+    where rollout_time = to_dsinterval(:0)
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select version as version 
+    from project_release 
+    where rollout_time = $1
+    ```
+=== "SQLite"
+    ```sqlite
+    select version as version 
+    from project_release 
+    where rollout_time = ?1
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select version as version 
+    from project_release 
+    where rollout_time = @0
+    ```
+
+The parameters are: `[ Duration PT45M ]` (on MariaDB and MySQL and SQLite and SQL Server: `[ 'PT45M' ]`)
+
+| version |
+|---|
+| `'1.3.0-beta.1'` |
+
+There is no `lessThan` or `greaterThan`: whether 1 month is longer than 30 days depends on the month, so Temporal doesn't order two durations without a date to count from, and neither does a query.
+
+Two durations of the same length written differently, like `P1D` and `PT24H`, are equal or not depending on how the column keeps them (see the next section):
+
+| How the column keeps it | `P1D` and `PT24H` | `PT90M` and `PT1H30M` |
+|---|---|---|
+| An `interval` of PostgreSQL | Equal; also `P1M` and `P30D`, and `P1Y` and `P360D`, as PostgreSQL compares a month as 30 days | Equal |
+| An `INTERVAL DAY TO SECOND` of Oracle | Equal | Equal |
+| Its ISO 8601 text | Different: the texts are compared | Different |
+| Its microseconds | Equal | Equal |
+
+### How each database keeps a duration
+
+PostgreSQL and Oracle have a type for a length of time, an interval; the other databases keep a duration as its ISO 8601 text, the default, or as its number of microseconds:
+
+| Database | The column | What it keeps | What is read back |
+|---|---|---|---|
+| PostgreSQL | `interval` | Each field as sent, the fraction of a second rounded to microseconds; weeks as days | `PT24H` as `PT24H`, `P2W` as `P14D` |
+| Oracle | `INTERVAL DAY TO SECOND` | Days to seconds, with the digits of the fraction of the column | `PT24H` as `P1D` |
+| Oracle | `INTERVAL YEAR TO MONTH`, when the column says it (below) | Years and months | `P14M` as `P1Y2M` |
+| MariaDB, MySQL, SQLite, SQL Server | A text, like `varchar(64)`; the default | The ISO 8601 text of the duration, all of it | The same text: `PT24H` as `PT24H` |
+| MariaDB, MySQL, SQLite, SQL Server | An integer, like `bigint`, with `'microseconds as integer'` | Its microseconds; the nanoseconds are dropped | Days and longer as hours: `P1D` as `PT24H`, `PT90M` as `PT1H30M` |
+
+On Oracle, declare the precision of the column: `INTERVAL DAY TO SECOND` keeps up to 99 days and six digits of fraction, and a duration of 100 days is rejected by Oracle; `INTERVAL DAY(9) TO SECOND(9)` keeps up to 999999999 days and nanoseconds. The same for the years of `INTERVAL YEAR(9) TO MONTH`.
+
+### Where there is no interval: `durationStrategy`
+
+On MariaDB, MySQL, SQLite and SQL Server the field `durationStrategy` of the connection says how its duration columns keep their values:
+
+- `'ISO 8601 text'`, the default: any duration, with all its fields, compared as text.
+- `'microseconds as integer'`: a duration without years nor months, a week being 7 days and a day 24 hours, compared by its length. A duration with years or months is rejected with `INVALID_VALUE_TO_SEND_TO_DATABASE`, because a month has no fixed number of microseconds.
+
+<!-- doc-code-snippet-template: mysql -->
+```ts
+import { MySqlConnection } from "ts-sql-query/mysql";
+
+class DBConnection extends MySqlConnection<'DBConnection'> {
+    protected override durationStrategy = 'microseconds as integer' as const
+}
+```
+
+### A column that keeps it in its own way
+
+A column can say how it keeps its durations with its [SQL data type](../advanced/data-types/sql-data-types.md), whatever the database and the strategy of the connection: a text keeps the ISO 8601 text, an exact integer the microseconds, and on Oracle an `INTERVAL YEAR TO MONTH` the years and months. `withSqlDataType` is exported by `ts-sql-query`:
+
+```typescriptreact
+spanText = this.column('span_text', 'duration', withSqlDataType({ family: 'character string', length: 64 }))
+spanMicros = this.column('span_micros', 'duration', withSqlDataType({ family: 'exact numeric', bytes: 8, scale: 0 }))
+spanCalendar = this.column('span_calendar', 'duration', withSqlDataType({ family: 'interval', fields: 'year to month' }))
+```
+
+An interval of Oracle holds either years and months or days to seconds, never both: a duration that doesn't fit the one of its column, like `P1M` for an `INTERVAL DAY TO SECOND` or `P1D` for an `INTERVAL YEAR TO MONTH`, is rejected with `INVALID_VALUE_TO_SEND_TO_DATABASE` instead of losing a part.
+
 ## The digits each database keeps
 
 A Temporal value goes to the database with all its digits, up to the nanosecond, and comes back with all the ones the column keeps. A value with more digits than the column keeps is rounded or cut by the database, as with any other way of sending it. Measured with a column of six digits of fraction, and seven on SQL Server, sending `23:59:58.123456789`:
@@ -406,4 +592,5 @@ A Temporal value goes to the database with all its digits, up to the nanosecond,
 - **Bun SQL** gives a `timestamp` (PostgreSQL) or a `datetime` (MySQL and MariaDB) as a `Date`, and has no way to give its text: a `plainDateTime` read through it stops at the millisecond. A `date` and a `time` keep all their digits. The other drivers of these databases read every digit.
 - **A year before 1.** In Temporal the year before 1 is 0 (1 BC), and the one before it -1. PostgreSQL and Oracle keep these dates, but `year()` gives the year as they number it, with no year 0: -1 for 1 BC and -44 for 44 BC, where the value read is `-000043-03-15`. SQL Server rejects a date before the year 1.
 - **Oracle has no type for a time of the day**: a `plainTime` is kept in a `DATE` or a `TIMESTAMP` on 1970-01-01, as a `localTime` is.
+- **An interval of PostgreSQL with fields of different signs**, like `-1 days +02:03:00` or `1 mon -1 days`, can't be a `Temporal.Duration`, whose fields have one sign: reading it is rejected with `INVALID_VALUE_RECEIVED_FROM_DATABASE`. The library never sends one.
 - **A column with a zone**, like `timestamptz` on PostgreSQL: a `plainDateTime` reads the date and time it has in the zone of the database. On SQL Server, a `datetimeoffset` is read, and its parts given, in UTC.

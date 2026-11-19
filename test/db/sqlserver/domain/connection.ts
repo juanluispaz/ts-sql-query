@@ -1217,6 +1217,7 @@ export const tRelease = new class TRelease extends Table<DBConnection, 'TRelease
     releasedOn  = this.column('released_on', 'plainDate')
     cutoffTime  = this.column('cutoff_time', 'plainTime')
     publishedAt = this.column('published_at', 'plainDateTime')
+    rolloutTime = this.optionalColumn('rollout_time', 'duration')
     constructor() { super('project_release') }
 }()
 

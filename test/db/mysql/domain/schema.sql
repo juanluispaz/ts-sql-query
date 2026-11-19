@@ -163,6 +163,8 @@ CREATE TABLE project_release (
     signed_off_at DATETIME NULL,
     -- REQUIRED ownLocalDateTime twin of signed_off_at.
     published_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    -- The time the rollout of the release took (a duration, Temporal.Duration)
+    rollout_time VARCHAR(64),
     is_signed TINYINT(1),
     download_count BIGINT,
     avg_rating DOUBLE,

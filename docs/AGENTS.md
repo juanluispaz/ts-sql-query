@@ -49,7 +49,7 @@ Start with the file of the area of your task. These files are written for you: o
 | To | Read | Tokens |
 |---|---|---|
 | Connect a driver | [`llms-connect.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-connect.txt), or only the page of your driver, listed in `llms.txt` | 34k |
-| Declare the connection, the tables and the types of their columns | [`llms-configuration-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-configuration-postgresql.txt), with `<database>` being `mariadb`, `mysql`, `oracle`, `postgresql`, `sqlite` or `sqlserver` | 36k |
+| Declare the connection, the tables and the types of their columns | [`llms-configuration-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-configuration-postgresql.txt), with `<database>` being `mariadb`, `mysql`, `oracle`, `postgresql`, `sqlite` or `sqlserver` | 37k |
 | Look up a method of a table or a view | [`llms-api-mapping.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-api-mapping.txt) | 3k |
 
 **Write queries**
@@ -102,7 +102,7 @@ Start with the file of the area of your task. These files are written for you: o
 | Find what writes a SQL keyword | [`llms-keywords.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-keywords.txt) | 12k |
 | Know what the library is, and what it can't do | [`llms-general.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-general.txt) | 8k |
 | Move a project from v1 to v2 | [`llms-migrating-from-v1.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-migrating-from-v1.txt) | 16k |
-| See what changed in a version | [`llms-changelog-v2.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-changelog-v2.txt), or `llms-changelog-v1.txt` | 42k |
+| See what changed in a version | [`llms-changelog-v2.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-changelog-v2.txt), or `llms-changelog-v1.txt` | 43k |
 
 The files with `<database>` also come with all the databases, like `llms-queries-all.txt`, to compare them or to move code between them. Otherwise use the one of your database, which is smaller.
 

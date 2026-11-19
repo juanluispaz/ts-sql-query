@@ -125,6 +125,7 @@ try {
 | `INVALID_CONFIGURATION` | `name`, `value` |
 | `DATA_TYPE_ALREADY_REGISTERED` | `typeName` |
 | `DATA_TYPE_WITHOUT_TYPE_NAME` | `className` |
+| `TEMPORAL_NOT_AVAILABLE` | `typeName` |
 | `QUERY_NOT_ALLOWED` | `query` |
 | `INVALID_MOCKED_VALUE` | `value`, `queryType`, `index` |
 | `EXPRESSION_IS_NOT_CONST` | none |

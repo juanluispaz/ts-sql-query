@@ -34,7 +34,7 @@ AREAS = [
         'configuration/query-runners/index.md', 'configuration/query-runners/recommended/*.md',
         'configuration/query-runners/combining-with-another-library.md',
     ], False),
-    ('configuration', 'Mapping and configuration', 'the connection, tables and views, the types of the columns, time zones, collations and each database', [
+    ('configuration', 'Mapping and configuration', 'the connection, tables and views, the types of the columns, dates and times (Temporal), time zones, collations and each database', [
         'configuration/*.md', 'configuration/supported-databases/mariadb.md', 'configuration/supported-databases/mysql.md',
         'configuration/supported-databases/oracle.md', 'configuration/supported-databases/postgresql.md',
         'configuration/supported-databases/sqlite.md', 'configuration/supported-databases/sqlserver.md',

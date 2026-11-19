@@ -19,9 +19,12 @@ The same types are used for a [constant](../queries/basic-query-structure.md) an
 | `string`                        | `string`             | String value                                                      |
 | `uuid`                          | `string`             | UUID value                                                        |
 | `stringDecimal`                 | `string`             | Exact decimal number, sent and read as its text                   |
-| `localDate`                     | `Date`               | Date without time                                                 |
-| `localTime`                     | `Date`               | Time without date                                                 |
-| `localDateTime`                 | `Date`               | Date with time                                                    |
+| `plainDate`                     | `Temporal.PlainDate` | Date without time, as a Temporal value                            |
+| `plainTime`                     | `Temporal.PlainTime` | Time without date, as a Temporal value                            |
+| `plainDateTime`                 | `Temporal.PlainDateTime` | Date with time, as a Temporal value                           |
+| `localDate`                     | `Date`               | Date without time, as a `Date`                                    |
+| `localTime`                     | `Date`               | Time without date, as a `Date`                                    |
+| `localDateTime`                 | `Date`               | Date with time, as a `Date`                                       |
 | A class of yours                | *yours*              | Your type, with the operations of the family it extends: see [Your own types](#your-own-types) |
 
 A column is defined with these types as follows, and each method of [Kinds of columns](mapping.md#kinds-of-columns) takes them in the same way:
@@ -34,13 +37,16 @@ this.column('ColumnName', 'double')
 this.column('ColumnName', 'string')
 this.column('ColumnName', 'uuid')
 this.column('ColumnName', 'stringDecimal')
+this.column('ColumnName', 'plainDate')
+this.column('ColumnName', 'plainTime')
+this.column('ColumnName', 'plainDateTime')
 this.column('ColumnName', 'localDate')
 this.column('ColumnName', 'localTime')
 this.column('ColumnName', 'localDateTime')
 this.column('ColumnName', MyCentsType)
 ```
 
-The types of the library have a class too, `BooleanType`, `IntType`, `BigintType`, `DoubleType`, `StringType`, `UuidType`, `StringDecimalType`, `LocalDateType`, `LocalTimeType` and `LocalDateTimeType`, exported by `ts-sql-query`. A method that takes a type takes its class too, so `this.column('ColumnName', IntType)` is the same column as `this.column('ColumnName', 'int')`.
+The types of the library have a class too, `BooleanType`, `IntType`, `BigintType`, `DoubleType`, `StringType`, `UuidType`, `StringDecimalType`, `PlainDateType`, `PlainTimeType`, `PlainDateTimeType`, `LocalDateType`, `LocalTimeType` and `LocalDateTimeType`, exported by `ts-sql-query`. A method that takes a type takes its class too, so `this.column('ColumnName', IntType)` is the same column as `this.column('ColumnName', 'int')`.
 
 !!! tip "Generating UUIDs"
 
@@ -64,9 +70,12 @@ Choose by the values your code handles, not only by the type of the column in th
 | Text | `string` | An empty string [has no value](connection.md#allowing-empty-string) by default. |
 | True or false | `boolean` | Oracle and SQL Server store it as a number or a bit, with `0` and `1`. For other representations, like `'Y'` and `'N'`, see [Custom booleans values](../advanced/data-types/custom-booleans-values.md). |
 | A UUID | `uuid` | It's a `string` in your code, and how it's stored depends on the database, as in the tip above. |
-| A date with no time, like a birthday | `localDate` | A `Date` at 10:00 UTC of the day: read it with `getUTCFullYear`, `getUTCMonth` and `getUTCDate`. See [Read the values with the UTC getters](time-zones.md#read-the-values-with-the-utc-getters). |
-| A time with no date, like an opening time | `localTime` | A `Date` on 1970-01-01: read it with `getUTCHours`, `getUTCMinutes` and `getUTCSeconds`. |
-| A date with time, like the moment something happened | `localDateTime` | A `Date` whose UTC getters are the stored digits, in any zone of your application. This is the type for a column that stores an instant too, like `timestamptz` on PostgreSQL, which gives the instant. See [Time zones](time-zones.md). |
+| A date with no time, like a birthday | `plainDate` | A `Temporal.PlainDate`, the date and nothing else, in any zone of your application. The types of [Dates and times](dates-and-times.md), recommended for dates and times: they need a runtime with `Temporal`, or a polyfill. |
+| A time with no date, like an opening time | `plainTime` | A `Temporal.PlainTime`, with every digit of the fraction of a second the database keeps. |
+| A date with time, like the moment something happened | `plainDateTime` | A `Temporal.PlainDateTime`, with the digits the database keeps; of a column that stores an instant, like `timestamptz` on PostgreSQL, the date and time it has in the zone of the database. |
+| A date with no time as a `Date` | `localDate` | A `Date` at 10:00 UTC of the day: read it with `getUTCFullYear`, `getUTCMonth` and `getUTCDate`. See [Read the values with the UTC getters](time-zones.md#read-the-values-with-the-utc-getters). |
+| A time as a `Date` | `localTime` | A `Date` on 1970-01-01: read it with `getUTCHours`, `getUTCMinutes` and `getUTCSeconds`. |
+| A date with time as a `Date` | `localDateTime` | A `Date` whose UTC getters are the stored digits, in any zone of your application. This is the type for a column that stores an instant too, like `timestamptz` on PostgreSQL, which gives the instant. See [Time zones](time-zones.md). |
 | One of a fixed list of values | `enum` | With a union of your values as its TypeScript type. |
 | A value your code gives a type of its own, like an id with a TypeScript brand | A class of the [family](../advanced/data-types/own-data-types.md#the-families) with the operations it needs | It's converted as its family says, like an `IntegersType` as an `int`. |
 | A value that only your code understands, like a JSON document | A class that extends `EqualableType`, or `ComparableType` if the database can order it | With the [conversion registered](../advanced/data-types/own-data-types.md#its-conversions-a-type-adapter-in-the-class). |

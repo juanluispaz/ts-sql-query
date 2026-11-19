@@ -349,6 +349,9 @@ type TsSqlErrorReason =
      */
     | /** Invalid configuration provided */
       { reason: 'INVALID_CONFIGURATION', name: string, value: unknown }
+    | /** A value of a data type whose values are Temporal values (plainDate, plainTime, plainDateTime) converted in a
+          runtime without Temporal: neither the runtime has it nor a polyfill installed it in the global object */
+      { reason: 'TEMPORAL_NOT_AVAILABLE', typeName: string }
     | /** A data type registered (registerDataType) with a type name another data type is already registered with */
       { reason: 'DATA_TYPE_ALREADY_REGISTERED', typeName: string }
     | /** A data type registered (registerDataType) whose class has no type name of its own (its static type) */

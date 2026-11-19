@@ -29,6 +29,16 @@ import { inspect } from 'node:util'
 // the database, the SQL and the parameters its snippet sent, instead of asserting.
 const SQL_TABS_LOG = process.env['DOC_CODE_SQL_TABS_LOG']
 
+// A Temporal value is written as its class and its text, `PlainDate 2024-02-01`: inspect gives only its class
+function readableTemporal(value: unknown): unknown {
+    const tag = value !== null && typeof value === 'object' ? (value as { [Symbol.toStringTag]?: unknown })[Symbol.toStringTag] : undefined
+    if (typeof tag === 'string' && tag.startsWith('Temporal.')) {
+        const text = tag.slice('Temporal.'.length) + ' ' + String(value)
+        return { [inspect.custom]: () => text }
+    }
+    return value
+}
+
 function recordForSqlTabs(runner: DocCodeMockRunner, expected: readonly string[]): boolean {
     if (!SQL_TABS_LOG) return false
     const id = /@@(.+?)@@/.exec(expected.join(' '))?.[1]
@@ -37,7 +47,7 @@ function recordForSqlTabs(runner: DocCodeMockRunner, expected: readonly string[]
         id,
         database: runner.database,
         sqls: runner.history,
-        params: runner.paramsHistory.map(p => inspect(p, { breakLength: Infinity, depth: 10 })),
+        params: runner.paramsHistory.map(p => inspect(Array.isArray(p) ? p.map(readableTemporal) : p, { breakLength: Infinity, depth: 10 })),
     }) + '\n')
     return true
 }

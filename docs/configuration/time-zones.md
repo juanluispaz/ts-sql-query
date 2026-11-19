@@ -14,6 +14,10 @@ ts-sql-query answers that with one rule: **every value in the database is in UTC
 - What still depends on a zone: the zone of the database, which must be UTC, and the zone of the session, which must stay the database's.
 - What each driver needs from its connection, the limits that remain, and what to do with data already written in another zone.
 
+!!! tip "A Temporal value has no zone to keep in mind"
+
+    With the `plainDate`, `plainTime` and `plainDateTime` types the value in your code is a `Temporal.PlainDate`, a `Temporal.PlainTime` or a `Temporal.PlainDateTime`: the digits of the column, not an instant, so no zone of your application takes part and there are no getters to choose. The zone of the database still says what a column with a zone, like `timestamptz`, gives: the date and time it has in that zone. See [Dates and times](dates-and-times.md).
+
 It is not about collations, the other setting of a session: see [Collations & case sensitivity](collations.md). On SQLite the library writes and reads the text or the number itself, with the strategy you choose; see [SQLite → Working with Date and Time](supported-databases/sqlite.md#working-with-date-and-time).
 
 ## The rule: every value in the database is in UTC

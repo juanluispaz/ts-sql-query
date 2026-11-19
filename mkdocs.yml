@@ -197,6 +197,7 @@ nav:
     - Connection: configuration/connection.md
     - Mapping: configuration/mapping.md
     - Data types: configuration/data-types.md
+    - Dates and times: configuration/dates-and-times.md
     - Time zones: configuration/time-zones.md
     - Collations: configuration/collations.md
     - Supported databases:

@@ -395,6 +395,34 @@ the rounding happens inside SQLite's date functions.
 `getTime-drops-the-digits-below-a-millisecond` is commented out with
 `// NOT-SUPPORTED:` in the `sqlite/*` cells.
 
+### Bun SQL reads a timestamp or a datetime only as a Date
+
+Bun SQL (`BunSqlPostgresQueryRunner`, `BunSqlMySqlQueryRunner`) gives a
+PostgreSQL `timestamp` and a MySQL / MariaDB `datetime` as a `Date`, which
+stops at the millisecond, and has no option to give its text: its `raw()`
+values are the binary protocol (measured on Bun 1.4.4). A `plainDateTime`
+read through it loses the digits below the millisecond, which every other
+driver keeps (pg and PGlite with text parsers per query, postgres.js `raw()`
+with the parser of each column, mysql2 / mariadb `dateStrings`). A `date`
+and a `time` keep all their digits.
+
+**Tests:** `column.plain-temporal.test.ts` —
+`a-plain-date-time-keeps-the-microseconds`,
+`a-plain-date-time-is-stored-with-the-digits-the-column-keeps` and, on
+PostgreSQL, `a-plain-date-before-the-year-1` are commented out with
+`// NOT-SUPPORTED:` in the `bun_sql_postgres` and `bun_sql_mysql` cells.
+
+### SQL Server's date and time types start at the year 1
+
+`date`, `datetime2` and `time` hold no value before 0001-01-01, and tedious
+rejects such a parameter before sending it (`Validation failed for parameter
+'0'. Out of range.`). PostgreSQL and Oracle keep a date before the year 1
+(see the year of such a date in `docs/configuration/dates-and-times.md`,
+Known limits).
+
+**Tests:** `column.plain-temporal.test.ts` — `a-plain-date-before-the-year-1`
+is commented out with `// NOT-SUPPORTED:` in the `sqlserver/*` cells.
+
 # 2. Engine version gates
 
 The dialect **does** support the feature — from a given release on. The

@@ -74,6 +74,9 @@ interface Connection {
     currentTime(): LocalTimeValueSource
     currentDateTime(): LocalDateTimeValueSource
     currentTimestamp(): LocalDateTimeValueSource
+    currentPlainDate(): PlainDateValueSource
+    currentPlainTime(): PlainTimeValueSource
+    currentPlainDateTime(): PlainDateTimeValueSource
     true(): BooleanValueSource
     false(): BooleanValueSource
 

@@ -530,45 +530,26 @@ Two durations of the same length written differently, like `P1D` and `PT24H`, ar
 | An `interval` of PostgreSQL | Equal; also `P1M` and `P30D`, and `P1Y` and `P360D`, as PostgreSQL compares a month as 30 days | Equal |
 | An `INTERVAL DAY TO SECOND` of Oracle | Equal | Equal |
 | Its ISO 8601 text | Different: the texts are compared | Different |
-| Its microseconds | Equal | Equal |
 
 ### How each database keeps a duration
 
-PostgreSQL and Oracle have a type for a length of time, an interval; the other databases keep a duration as its ISO 8601 text, the default, or as its number of microseconds:
+PostgreSQL and Oracle have a type for a length of time, an interval; the other databases keep a duration as its [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) text, the text Temporal gives it (`P1Y2M3DT4H5M6.789S`):
 
 | Database | The column | What it keeps | What is read back |
 |---|---|---|---|
 | PostgreSQL | `interval` | Each field as sent, the fraction of a second rounded to microseconds; weeks as days | `PT24H` as `PT24H`, `P2W` as `P14D` |
 | Oracle | `INTERVAL DAY TO SECOND` | Days to seconds, with the digits of the fraction of the column | `PT24H` as `P1D` |
 | Oracle | `INTERVAL YEAR TO MONTH`, when the column says it (below) | Years and months | `P14M` as `P1Y2M` |
-| MariaDB, MySQL, SQLite, SQL Server | A text, like `varchar(64)`; the default | The ISO 8601 text of the duration, all of it | The same text: `PT24H` as `PT24H` |
-| MariaDB, MySQL, SQLite, SQL Server | An integer, like `bigint`, with `'microseconds as integer'` | Its microseconds; the nanoseconds are dropped | Days and longer as hours: `P1D` as `PT24H`, `PT90M` as `PT1H30M` |
+| MariaDB, MySQL, SQLite, SQL Server | A text, like `varchar(64)` | The ISO 8601 text of the duration, all of it, up to the nanosecond | The same text: `PT24H` as `PT24H`, `P2W` as `P2W` |
 
 On Oracle, declare the precision of the column: `INTERVAL DAY TO SECOND` keeps up to 99 days and six digits of fraction, and a duration of 100 days is rejected by Oracle; `INTERVAL DAY(9) TO SECOND(9)` keeps up to 999999999 days and nanoseconds. The same for the years of `INTERVAL YEAR(9) TO MONTH`.
 
-### Where there is no interval: `durationStrategy`
-
-On MariaDB, MySQL, SQLite and SQL Server the field `durationStrategy` of the connection says how its duration columns keep their values:
-
-- `'ISO 8601 text'`, the default: any duration, with all its fields, compared as text.
-- `'microseconds as integer'`: a duration without years nor months, a week being 7 days and a day 24 hours, compared by its length. A duration with years or months is rejected with `INVALID_VALUE_TO_SEND_TO_DATABASE`, because a month has no fixed number of microseconds.
-
-<!-- doc-code-snippet-template: mysql -->
-```ts
-import { MySqlConnection } from "ts-sql-query/mysql";
-
-class DBConnection extends MySqlConnection<'DBConnection'> {
-    protected override durationStrategy = 'microseconds as integer' as const
-}
-```
-
 ### A column that keeps it in its own way
 
-A column can say how it keeps its durations with its [SQL data type](../advanced/data-types/sql-data-types.md), whatever the database and the strategy of the connection: a text keeps the ISO 8601 text, an exact integer the microseconds, and on Oracle an `INTERVAL YEAR TO MONTH` the years and months. `withSqlDataType` is exported by `ts-sql-query`:
+A column says how it keeps its durations with its [SQL data type](../advanced/data-types/sql-data-types.md): a text keeps the ISO 8601 text on any database, also on PostgreSQL and Oracle, where it holds what one interval of Oracle can't, like `P1M1D`; on Oracle an `INTERVAL YEAR TO MONTH` keeps the years and months. `withSqlDataType` is exported by `ts-sql-query`:
 
 ```typescriptreact
 spanText = this.column('span_text', 'duration', withSqlDataType({ family: 'character string', length: 64 }))
-spanMicros = this.column('span_micros', 'duration', withSqlDataType({ family: 'exact numeric', bytes: 8, scale: 0 }))
 spanCalendar = this.column('span_calendar', 'duration', withSqlDataType({ family: 'interval', fields: 'year to month' }))
 ```
 

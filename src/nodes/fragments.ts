@@ -8,12 +8,10 @@ import type { DBColumn } from '../utils/Column.js'
 import type { FragmentQueryBuilder } from '../queryBuilders/FragmentQueryBuilder.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
-import type { AnyValueSource, OptionalType, __AggregatedArrayColumns, __AggregatedArrayMode } from '../typeSystem/valueSource.js'
+import type { AnyValueSource, OptionalType } from '../typeSystem/valueSource.js'
 import { type NodeStrategy, valueSourceNode, type NodeValueSource, __asNodeValueSource, type InCreation } from './NodeStrategy.js'
 import { type ValueSourceConstructor } from './dataTypeClassOf.js'
-import { __adaptedTypeClassOf } from './adaptedTypeClass.js'
 import { __valueSourceTypeNameOf } from '../typeSystem/dataTypes.js'
-import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
 
 export interface FragmentValueSource extends NodeValueSource {
     readonly __operation: keyof SqlFragmentOperation

@@ -8,9 +8,8 @@ import type { operandTypeName, typeName } from '../utils/symbols.js'
 import { exposeFilterOperations, filterOperation } from './filterOperations.js'
 import { __newSqlOperation1ValueSourceIfValueOrNoop, __newSqlOperationInValueSourceIfValueOrNoop } from '../nodes/ifValue.js'
 import { getOptionalType2, getOptionalTypeN, getOptionalTypeOfIn } from '../nodes/operands.js'
-import { __newSqlOperation1NotOptionalValueSource, __newSqlOperation1ValueSource, __newSqlOperationInValueSource } from '../nodes/operations.js'
+import { __newSqlOperation1ValueSource, __newSqlOperationInValueSource } from '../nodes/operations.js'
 import { __internalDataType } from './dataTypeRegistry.js'
-import { __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
 
 /**
  * A data type whose values can be compared for equality. A data type of the user extends it with its type name, as a
@@ -59,7 +58,7 @@ export abstract class EqualableType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME 
     is(value: VALUE_TYPE | null | undefined): ValueSource<SourceOf<this>, BooleanType, 'required'>
     is<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, 'required'>
     is(value: any): any {
-        return __newSqlOperation1NotOptionalValueSource('_is', this, value, __internalDataType('condition'), 'required')
+        return __newSqlOperation1ValueSource('_is', this, value, __internalDataType('condition'), 'required')
     }
     isNotIfValue(value: VALUE_TYPE | null | undefined): IfValueSource<SourceOf<this>, 'required'>
     isNotIfValue(value: any): any {
@@ -68,7 +67,7 @@ export abstract class EqualableType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME 
     isNot(value: VALUE_TYPE | null | undefined): ValueSource<SourceOf<this>, BooleanType, 'required'>
     isNot<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, 'required'>
     isNot(value: any): any {
-        return __newSqlOperation1NotOptionalValueSource('_isNot', this, value, __internalDataType('condition'), 'required')
+        return __newSqlOperation1ValueSource('_isNot', this, value, __internalDataType('condition'), 'required')
     }
 
     inIfValue(values: readonly VALUE_TYPE[] | null | undefined): IfValueSource<SourceOf<this>, OptionalityOf<this>>

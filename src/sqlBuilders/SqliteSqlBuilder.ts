@@ -12,7 +12,7 @@ import { __isExactDecimalSql, __sqlFamilyOf, __valueSourceTypeNameOf } from '../
 import { isSqliteReservedWord } from '../utils/sqlite/sqliteReservedWords.js'
 import type { AnyValueSource, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
 import { __isLocalDateTimeValueSource, __isLocalDateValueSource, __isLocalTimeValueSource, __isUuidValueSource } from '../typeSystem/valueSource.js'
-import { __classOf, __typeAdapterOf, __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
+import { __classOf } from '../nodes/adaptedTypeClass.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
 import { __arithmeticOperandClassOf, __valueOperandClassOf } from '../typeSystem/dataTypeClasses.js'
 

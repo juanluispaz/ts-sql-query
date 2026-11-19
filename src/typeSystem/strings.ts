@@ -11,7 +11,7 @@ import { __typeClassOf } from '../nodes/dataTypeClassOf.js'
 import { __newSqlOperation1ValueSourceIfValueOrIgnore, __newSqlOperation1ValueSourceIfValueOrNoop, __newSqlOperation2ValueSourceIfValueOrIgnore } from '../nodes/ifValue.js'
 import { getOptionalType2, getOptionalType3, getRequiredType2 } from '../nodes/operands.js'
 import { __newSqlOperation1ValueSource, __newSqlOperation2ValueSource, __newSqlOperationCollateValueSource, __operation0 } from '../nodes/operations.js'
-import { __keptClassOf, __adaptedTypeClassOf, __computedClassOf, __computedTextClassOf } from '../nodes/adaptedTypeClass.js'
+import { __keptClassOf, __computedTextClassOf } from '../nodes/adaptedTypeClass.js'
 import { __asNodeValueSource } from '../nodes/NodeStrategy.js'
 
 

@@ -5,13 +5,11 @@ import { __getOldValues, __getValuesForInsert, __hasAggregation, __isAllowed, __
 import { __addWiths } from '../utils/ITableOrView.js'
 import type { DBColumn } from '../utils/Column.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
-import type { OptionalType, __AggregatedArrayColumns, __AggregatedArrayMode } from '../typeSystem/valueSource.js'
-import { type NodeStrategy, valueSourceNode, type NodeValueSource, __asNodeValueSource, type InCreation } from './NodeStrategy.js'
+import type { OptionalType } from '../typeSystem/valueSource.js'
+import { type NodeStrategy, valueSourceNode, type NodeValueSource, type InCreation } from './NodeStrategy.js'
 import { type ValueSourceConstructor } from './dataTypeClassOf.js'
 import { sqlOperation1ValueSourceNode, sqlOperation2ValueSourceNode, sqlOperationInValueSourceNode } from './operations.js'
-import { __adaptedTypeClassOf } from './adaptedTypeClass.js'
 import { type AnyType } from '../typeSystem/base.js'
-import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
 
 /** The value source of an operation that disappears without a value (`*IfValue`): the fields of its operation */
 interface IfValueOperation extends NodeValueSource {

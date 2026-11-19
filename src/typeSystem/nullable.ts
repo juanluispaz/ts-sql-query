@@ -14,7 +14,7 @@ import type { operandTypeName } from '../utils/symbols.js'
 import { exposeFilterOperations, filterOperation } from './filterOperations.js'
 import { __sameTypeClassOf, __typeClassOf } from '../nodes/dataTypeClassOf.js'
 import { getOptionalType2 } from '../nodes/operands.js'
-import { __newNoopValueSource, __newSqlOperation1ValueSource, __newSqlOperationIsNullValueSource, __newSqlOperationValueWhenNullValueSource } from '../nodes/operations.js'
+import { __newNoopValueSource, __newSqlOperation1ValueSource, __newSqlOperationIsNullValueSource } from '../nodes/operations.js'
 import { __asRequiredInOptionalObjectOf, __ignoreWhenAsNullOf, __onlyWhenOrNullOf } from '../nodes/valueSourceRoot.js'
 import { OracleDateAsTimestampTypeAdapter } from '../TypeAdapter.js'
 import { __adaptedTypeClassOf, __keptClassOf, __sqlDataTypeOf, __classOf, __computedClassOf } from '../nodes/adaptedTypeClass.js'
@@ -120,7 +120,7 @@ export abstract class NullableType</*in|out*/ VALUE_TYPE> extends ValueSourceBas
             // turned into a TIMESTAMP there. Two of them stay a DATE, and the result keeps the adapter
             resultClass = typeClass
         }
-        return __newSqlOperationValueWhenNullValueSource(vs, value, resultClass, getOptionalType2(vs, value))
+        return __newSqlOperation1ValueSource('_valueWhenNull', vs, value, resultClass, getOptionalType2(vs, value))
     }
     nullIfValue(value: VALUE_TYPE): ValueSource<SourceOf<this>, DataTypeOf<this>, 'optional'>
     nullIfValue<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, 'optional'>

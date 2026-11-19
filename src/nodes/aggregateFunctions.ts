@@ -5,11 +5,9 @@ import { __getOldValues, __getValuesForInsert, __hasAggregation, __isAllowed, __
 import { __addWiths } from '../utils/ITableOrView.js'
 import type { DBColumn } from '../utils/Column.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
-import type { OptionalType, __AggregatedArrayColumns, __AggregatedArrayMode } from '../typeSystem/valueSource.js'
-import { type NodeStrategy, valueSourceNode, type NodeValueSource, __asNodeValueSource, type InCreation } from './NodeStrategy.js'
+import type { OptionalType } from '../typeSystem/valueSource.js'
+import { type NodeStrategy, valueSourceNode, type NodeValueSource, type InCreation } from './NodeStrategy.js'
 import { type ValueSourceConstructor } from './dataTypeClassOf.js'
-import { __adaptedTypeClassOf } from './adaptedTypeClass.js'
-import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
 
 export interface AggregateFunctions0ValueSource extends NodeValueSource, HasOperation {
     readonly __operation: keyof AggregateFunctions0

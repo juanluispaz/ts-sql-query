@@ -1,35 +1,12 @@
-import { __getOldValues, __getValuesForInsert, __hasAggregation, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
-import { __addWiths } from '../utils/ITableOrView.js'
-import type { OptionalType, __AggregatedArrayColumns, __AggregatedArrayMode } from '../typeSystem/valueSource.js'
+import { type OptionalType, __mergeOptional } from '../typeSystem/valueSource.js'
 import { isSelectQuery } from './inlineSelect.js'
 import type { NodeValueSource } from './NodeStrategy.js'
 import { __asNodeValueSource, isValueSource } from './NodeStrategy.js'
 import { type AnyType } from '../typeSystem/base.js'
-import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
-
-export function mergeOptional(op1: OptionalType, op2: OptionalType): OptionalType {
-    if (op1 === 'required') {
-        return op2
-    } else if (op1 === 'requiredInOptionalObject') {
-        if (op2 === 'required') {
-            return 'requiredInOptionalObject'
-        } else {
-            return op2
-        }
-    } else if (op1 === 'originallyRequired') {
-        if (op2 === 'required' || op2 === 'requiredInOptionalObject') {
-            return 'originallyRequired'
-        } else {
-            return op2
-        }
-    } else {
-        return 'optional'
-    }
-}
 
 function mergeRequired(op1: OptionalType, op2: OptionalType): OptionalType {
-    // The dual of `mergeOptional`: keep the MORE strict option. See `MergeRequired` in
-    // expressions/values.ts for why an operation that reads NULL as the empty string merges
+    // The dual of `__mergeOptional`: keep the MORE strict option. See `MergeRequired` in
+    // typeSystem/valueSource.ts for why an operation that reads NULL as the empty string merges
     // this way.
     if (op1 === 'required' || op2 === 'required') {
         return 'required'
@@ -56,7 +33,7 @@ export function getRequiredType2(a: AnyType | NodeValueSource, b: any): Optional
 
 export function getOptionalType2(a: AnyType | NodeValueSource, b: any): OptionalType {
     if (isValueSource(b)) {
-        return mergeOptional((a as NodeValueSource).__optionalType, __asNodeValueSource(b).__optionalType)
+        return __mergeOptional((a as NodeValueSource).__optionalType, __asNodeValueSource(b).__optionalType)
     }
     return (a as NodeValueSource).__optionalType
 }
@@ -71,7 +48,7 @@ export function getOptionalTypeOfIn(a: AnyType | NodeValueSource, b: any): Optio
         }
         const column = select.__columns?.['result']
         if (isValueSource(column)) {
-            return mergeOptional((a as NodeValueSource).__optionalType, __asNodeValueSource(column).__optionalType)
+            return __mergeOptional((a as NodeValueSource).__optionalType, __asNodeValueSource(column).__optionalType)
         }
     }
     return getOptionalType2(a, b)
@@ -89,7 +66,7 @@ export function getOptionalTypeN(a: AnyType | NodeValueSource, values: any[]): O
     for (let i = 0, length = values.length; i < length; i++) {
         const value = values[i]
         if (isValueSource(value)) {
-            result = mergeOptional(result, __asNodeValueSource(value).__optionalType)
+            result = __mergeOptional(result, __asNodeValueSource(value).__optionalType)
         }
     }
     return result
@@ -98,10 +75,10 @@ export function getOptionalTypeN(a: AnyType | NodeValueSource, values: any[]): O
 export function getOptionalType3(a: AnyType | NodeValueSource, b: any, c: any): OptionalType {
     let result = (a as NodeValueSource).__optionalType
     if (isValueSource(b)) {
-        result = mergeOptional(result, __asNodeValueSource(b).__optionalType)
+        result = __mergeOptional(result, __asNodeValueSource(b).__optionalType)
     }
     if (isValueSource(c)) {
-        result = mergeOptional(result, __asNodeValueSource(c).__optionalType)
+        result = __mergeOptional(result, __asNodeValueSource(c).__optionalType)
     }
     return result
 }

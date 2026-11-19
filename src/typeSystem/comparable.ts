@@ -10,7 +10,6 @@ import { BooleanConditionType, BooleanType } from './logical.js'
 import { __newSqlOperation1ValueSourceIfValueOrNoop } from '../nodes/ifValue.js'
 import { getOptionalType2, getOptionalType3 } from '../nodes/operands.js'
 import { __newSqlOperation1ValueSource, __newSqlOperation2ValueSource } from '../nodes/operations.js'
-import { __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
 
 /** What a position that takes a value source of any data type with an order accepts (max, min) */
 export interface IAnyComparableValueSource</*in|out*/ SOURCE extends NSource> extends TypedValueSource<SOURCE, any, any> {

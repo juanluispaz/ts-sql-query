@@ -51,7 +51,7 @@ import { __dataTypeClassFrom } from '../typeSystem/dataTypeClasses.js'
 // Registers the data types of the library (the only module with side effects)
 import '../typeSystem/registerDataTypes.js'
 import { __typeClassOf } from '../typeSystem/valueSourceFactory.js'
-import { __classOf, __adaptedTypeClassOf, __keptClassOf, __computedClassOf } from '../nodes/adaptedTypeClass.js'
+import { __adaptedTypeClassOf, __keptClassOf, __computedClassOf } from '../nodes/adaptedTypeClass.js'
 import { NextTypeAdapter } from '../internal/TypeAdapterContextImpl.js'
 import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
 import { __inCreation } from '../utils/inCreation.js'

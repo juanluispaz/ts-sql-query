@@ -9,7 +9,7 @@ import { __typeClassOf } from '../nodes/dataTypeClassOf.js'
 import { getOptionalType2 } from '../nodes/operands.js'
 import { __newNoopValueSource, __newSqlOperation1ValueSource, __operation0, __operation1 } from '../nodes/operations.js'
 import type { SqlOperation1 } from '../sqlBuilders/SqlBuilder.js'
-import { __adaptedTypeClassOf, __computedClassOf, __keptClassOf } from '../nodes/adaptedTypeClass.js'
+import { __computedClassOf, __keptClassOf } from '../nodes/adaptedTypeClass.js'
 import { type AnyType } from './base.js'
 import { isValueSource, __asNodeValueSource } from '../nodes/NodeStrategy.js'
 

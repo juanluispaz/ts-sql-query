@@ -5,15 +5,14 @@ import { __getOldValues, __getValuesForInsert, __hasAggregation, __isAllowed, __
 import { __addWiths } from '../utils/ITableOrView.js'
 import type { DBColumn } from '../utils/Column.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
-import type { OptionalType, __AggregatedArrayColumns, __AggregatedArrayMode } from '../typeSystem/valueSource.js'
-import { type NodeStrategy, valueSourceNode, type NodeValueSource, __asNodeValueSource, type InCreation } from './NodeStrategy.js'
+import type { OptionalType } from '../typeSystem/valueSource.js'
+import { type NodeStrategy, valueSourceNode, type NodeValueSource, type InCreation } from './NodeStrategy.js'
 import { __typeClassOf, type ValueSourceConstructor } from './dataTypeClassOf.js'
 import { __addInlineQueryWiths, isSelectQuery } from './inlineSelect.js'
 import { getOptionalType2 } from './operands.js'
-import { __adaptedTypeClassOf, __keptClassOf } from './adaptedTypeClass.js'
+import { __keptClassOf } from './adaptedTypeClass.js'
 import { __classOf, __isComputedTextClass, __unadaptedClassOf } from '../nodes/adaptedTypeClass.js'
 import { type AnyType } from '../typeSystem/base.js'
-import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
 
 /**
  * The class the values given to an operation are converted with: the one of its result when it is of the data type of
@@ -341,100 +340,6 @@ export const sqlOperationInValueSourceNode: NodeStrategy<SqlOperationInValueSour
 export function __newSqlOperationInValueSource(operation: '_in' | '_notIn', valueSource: AnyType | NodeValueSource, value: any, typeClass: DataTypeClass, optionalType: OptionalType): SqlOperationInValueSource {
     const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as InCreation<SqlOperationInValueSource>
     vs.__node = sqlOperationInValueSourceNode
-
-    vs.__valueSource = valueSource as NodeValueSource
-    vs.__operation = operation
-    vs.__value = value
-    return vs
-}
-
-export interface SqlOperationValueWhenNullValueSource extends NodeValueSource, HasOperation {
-    readonly __valueSource: NodeValueSource
-    readonly __operation: keyof SqlOperation1
-    readonly __value: any
-}
-
-export const sqlOperationValueWhenNullValueSourceNode: NodeStrategy<SqlOperationValueWhenNullValueSource> = {
-    ...valueSourceNode,
-    __toSql(vs: SqlOperationValueWhenNullValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        return sqlBuilder[vs.__operation](context, sqlBuilder._typedOperand(vs.__valueSource, [vs.__value], vs.__operation), vs.__value, argumentClassOf(vs))
-    },
-    __addWiths(vs: SqlOperationValueWhenNullValueSource, sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
-        vs.__valueSource.__addWiths(sqlBuilder, withs)
-        __addWiths(vs.__value, sqlBuilder, withs)
-    },
-    __registerTableOrView(vs: SqlOperationValueWhenNullValueSource, sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
-        vs.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
-        __registerTableOrView(vs.__value, sqlBuilder, requiredTablesOrViews)
-    },
-    __registerRequiredColumn(vs: SqlOperationValueWhenNullValueSource, sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
-        vs.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
-        __registerRequiredColumn(vs.__value, sqlBuilder, requiredColumns, onlyForTablesOrViews)
-    },
-    __getOldValues(vs: SqlOperationValueWhenNullValueSource, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return vs.__valueSource.__getOldValues(sqlBuilder) || __getOldValues(vs.__value, sqlBuilder)
-    },
-    __getValuesForInsert(vs: SqlOperationValueWhenNullValueSource, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return vs.__valueSource.__getValuesForInsert(sqlBuilder) || __getValuesForInsert(vs.__value, sqlBuilder)
-    },
-    __isAllowed(vs: SqlOperationValueWhenNullValueSource, sqlBuilder: HasIsValue): boolean {
-        return vs.__valueSource.__isAllowed(sqlBuilder) && __isAllowed(vs.__value, sqlBuilder)
-    },
-    __hasAggregation(vs: SqlOperationValueWhenNullValueSource, sqlBuilder: HasIsValue): boolean {
-        return vs.__valueSource.__hasAggregation(sqlBuilder) || __hasAggregation(vs.__value, sqlBuilder)
-    },
-}
-
-export function __newSqlOperationValueWhenNullValueSource(valueSource: AnyType | NodeValueSource, value: any, typeClass: DataTypeClass, optionalType: OptionalType): SqlOperationValueWhenNullValueSource {
-    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as InCreation<SqlOperationValueWhenNullValueSource>
-    vs.__node = sqlOperationValueWhenNullValueSourceNode
-
-    vs.__valueSource = valueSource as NodeValueSource
-    vs.__operation = '_valueWhenNull'
-    vs.__value = value
-    return vs
-}
-
-export interface SqlOperation1NotOptionalValueSource extends NodeValueSource, HasOperation {
-    readonly __valueSource: NodeValueSource
-    readonly __operation: keyof SqlOperation1
-    readonly __value: any
-}
-
-export const sqlOperation1NotOptionalValueSourceNode: NodeStrategy<SqlOperation1NotOptionalValueSource> = {
-    ...valueSourceNode,
-    __toSql(vs: SqlOperation1NotOptionalValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, _forceTypeCast: boolean): string {
-        return sqlBuilder[vs.__operation](context, sqlBuilder._typedOperand(vs.__valueSource, [vs.__value], vs.__operation), vs.__value, argumentClassOf(vs))
-    },
-    __addWiths(vs: SqlOperation1NotOptionalValueSource, sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
-        vs.__valueSource.__addWiths(sqlBuilder, withs)
-        __addWiths(vs.__value, sqlBuilder, withs)
-    },
-    __registerTableOrView(vs: SqlOperation1NotOptionalValueSource, sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
-        vs.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
-        __registerTableOrView(vs.__value, sqlBuilder, requiredTablesOrViews)
-    },
-    __registerRequiredColumn(vs: SqlOperation1NotOptionalValueSource, sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
-        vs.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
-        __registerRequiredColumn(vs.__value, sqlBuilder, requiredColumns, onlyForTablesOrViews)
-    },
-    __getOldValues(vs: SqlOperation1NotOptionalValueSource, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return vs.__valueSource.__getOldValues(sqlBuilder) || __getOldValues(vs.__value, sqlBuilder)
-    },
-    __getValuesForInsert(vs: SqlOperation1NotOptionalValueSource, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
-        return vs.__valueSource.__getValuesForInsert(sqlBuilder) || __getValuesForInsert(vs.__value, sqlBuilder)
-    },
-    __isAllowed(vs: SqlOperation1NotOptionalValueSource, sqlBuilder: HasIsValue): boolean {
-        return vs.__valueSource.__isAllowed(sqlBuilder) && __isAllowed(vs.__value, sqlBuilder)
-    },
-    __hasAggregation(vs: SqlOperation1NotOptionalValueSource, sqlBuilder: HasIsValue): boolean {
-        return vs.__valueSource.__hasAggregation(sqlBuilder) || __hasAggregation(vs.__value, sqlBuilder)
-    },
-}
-
-export function __newSqlOperation1NotOptionalValueSource(operation: keyof SqlOperation1, valueSource: AnyType | NodeValueSource, value: any, typeClass: DataTypeClass, optionalType: OptionalType): SqlOperation1NotOptionalValueSource {
-    const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as InCreation<SqlOperation1NotOptionalValueSource>
-    vs.__node = sqlOperation1NotOptionalValueSourceNode
 
     vs.__valueSource = valueSource as NodeValueSource
     vs.__operation = operation

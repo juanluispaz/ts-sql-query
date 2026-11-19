@@ -7,9 +7,8 @@ import type { DBColumn } from '../utils/Column.js'
 import { isMariaDBReservedWord } from '../utils/mySqlMariaDB/mariaDBReservedWords.js'
 import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
 import { UuidTextType } from '../typeSystem/uuidText.js'
-import { __typeAdapterOf, __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
 import { __valueOperandClassOf } from '../typeSystem/dataTypeClasses.js'
-import { __asDBColumnValueSource, __asNodeValueSource, isValueSource } from '../typeSystem/valueSourceFactory.js'
+import { __asDBColumnValueSource, isValueSource } from '../typeSystem/valueSourceFactory.js'
 import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
 
 export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {

@@ -17,7 +17,6 @@ import type { ILogicalValueSource } from '../typeSystem/base.js'
 import type { AlwaysIfValueSource } from '../typeSystem/logical.js'
 import { asAlwaysIfValueSource } from '../typeSystem/logical.js'
 import { __isColumn, __asDBColumnValueSource, __asNodeValueSource, isValueSource } from '../typeSystem/valueSourceFactory.js'
-import { __classOf } from '../nodes/adaptedTypeClass.js'
 import { __valueSourceTypeNameOf } from '../typeSystem/dataTypes.js'
 import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
 

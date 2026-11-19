@@ -1,14 +1,14 @@
 import type { SqlDataType } from '../TypeAdapter.js'
 import { BaseType, type ConditionOfType, type ILogicalValue, type IValueWithType, type OptionalityOf, type SourceOf, type ValueSource } from './base.js'
 import { EqualableType } from './equalable.js'
-import type { CombinedOptionality, OptionalType } from './valueSource.js'
+import { type CombinedOptionality, type OptionalType, __mergeOptional } from './valueSource.js'
 import type { NSource } from '../utils/sourceName.js'
 import { computedType, operandTypeName, typeName } from '../utils/symbols.js'
 import { __sameTypeClassOf } from '../nodes/dataTypeClassOf.js'
 import { __newValueWhenNoValueValueSource, __newBooleanValueWhenNoValueValueSource, __newSqlOperationValueSourceIfValueAlwaysNoop } from '../nodes/ifValue.js'
-import { mergeOptional, getOptionalType2 } from '../nodes/operands.js'
+import { getOptionalType2 } from '../nodes/operands.js'
 import { __newSqlOperation1ValueSource, __operation0 } from '../nodes/operations.js'
-import { __adaptedTypeClassOf, __keptClassOf } from '../nodes/adaptedTypeClass.js'
+import { __keptClassOf } from '../nodes/adaptedTypeClass.js'
 import { __asNodeValueSource } from '../nodes/NodeStrategy.js'
 
 /*
@@ -97,7 +97,7 @@ export abstract class BooleanConditionType extends BooleanType {
             return this.falseWhenNoValue()
         }
 
-        return __newValueWhenNoValueValueSource(value, vs, __keptClassOf(vs, __sameTypeClassOf(vs)), mergeOptional(vs.__optionalType, __asNodeValueSource(value).__optionalType))
+        return __newValueWhenNoValueValueSource(value, vs, __keptClassOf(vs, __sameTypeClassOf(vs)), __mergeOptional(vs.__optionalType, __asNodeValueSource(value).__optionalType))
     }
 }
 

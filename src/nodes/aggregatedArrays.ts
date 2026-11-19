@@ -9,8 +9,7 @@ import type { AnyValueSource, OptionalType, __AggregatedArrayColumns, __Aggregat
 import { type NodeStrategy, valueSourceNode, type NodeValueSource, __asNodeValueSource, isValueSource, type InCreation } from './NodeStrategy.js'
 import { __sameTypeClassOf, type ValueSourceConstructor } from './dataTypeClassOf.js'
 import { __addInlineQueryWiths, type InlineSelectData } from './inlineSelect.js'
-import { __adaptedTypeClassOf, __classOf } from './adaptedTypeClass.js'
-import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
+import { __classOf } from './adaptedTypeClass.js'
 
 /*
  * The aggregates as array, a select used as an aggregated array (`forUseAsInlineAggregatedArrayValue`) and the

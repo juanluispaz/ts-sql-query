@@ -29,7 +29,7 @@ import type { ILogicalValueSource, IValueSource, ValueSource } from '../typeSyst
 import type { BooleanType } from '../typeSystem/logical.js'
 import type { EqualableType } from '../typeSystem/equalable.js'
 import { UuidTextType } from '../typeSystem/uuidText.js'
-import { __classOf, __typeAdapterOf, __adaptedTypeClassOf, __unadaptedClassOf, __sqlDataTypeOf } from '../nodes/adaptedTypeClass.js'
+import { __classOf, __adaptedTypeClassOf, __unadaptedClassOf, __sqlDataTypeOf } from '../nodes/adaptedTypeClass.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
 import { __arithmeticOperandClassOf, __valueOperandClassOf } from '../typeSystem/dataTypeClasses.js'
 import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
@@ -4297,7 +4297,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     /**
      * Shared min/max builder for the dialects whose native `least`/`greatest` (or
      * `iif`) IGNORES a NULL operand — PostgreSQL and SQL Server. `minValue`/`maxValue`
-     * compute their result optionality with `mergeOptional` (optional if EITHER operand
+     * compute their result optionality with `__mergeOptional` (optional if EITHER operand
      * is optional, the same rule `add`/`subtract`/`concat` use); that OR rule **is** the
      * NULL-propagates (poison) contract — a required receiver with an optional argument is
      * typed optional precisely because the library anticipates the argument's NULL reaching

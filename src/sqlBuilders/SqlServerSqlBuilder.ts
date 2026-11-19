@@ -17,7 +17,7 @@ import { __isBooleanValueSource, __isLocalDateTimeValueSource, __isUuidValueSour
 import { UuidTextType } from '../typeSystem/uuidText.js'
 import { __isCondition } from '../typeSystem/logical.js'
 import { __isColumn, __asDBColumnValueSource, __asNodeValueSource, isValueSource } from '../typeSystem/valueSourceFactory.js'
-import { __classOf, __typeAdapterOf, __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
+import { __classOf } from '../nodes/adaptedTypeClass.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
 import { __arithmeticOperandClassOf, __valueOperandClassOf } from '../typeSystem/dataTypeClasses.js'
 import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'

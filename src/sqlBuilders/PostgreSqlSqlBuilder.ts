@@ -14,7 +14,7 @@ import { isPostgreSqlReservedWord } from '../utils/postgreSql/postgreSqlReserved
 import type { AnyValueSource, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
 import { __isBooleanValueSource } from '../typeSystem/valueSource.js'
 import { __isColumn, __asDBColumnValueSource, __asNodeValueSource, isValueSource } from '../typeSystem/valueSourceFactory.js'
-import { __classOf, __typeAdapterOf, __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
+import { __classOf, __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
 import { __arithmeticOperandClassOf } from '../typeSystem/dataTypeClasses.js'
 import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'

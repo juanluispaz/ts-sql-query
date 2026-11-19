@@ -6,7 +6,7 @@ import { operandTypeName, typeName } from '../utils/symbols.js'
 import { __sameTypeClassOf } from '../nodes/dataTypeClassOf.js'
 import { __newNoopValueSource } from '../nodes/operations.js'
 import { __asRequiredInOptionalObjectOf, __ignoreWhenAsNullOf, __onlyWhenOrNullOf } from '../nodes/valueSourceRoot.js'
-import { __adaptedTypeClassOf, __keptClassOf } from '../nodes/adaptedTypeClass.js'
+import { __keptClassOf } from '../nodes/adaptedTypeClass.js'
 import { __asNodeValueSource, __keepAggregatedArrayShape } from '../nodes/NodeStrategy.js'
 
 /** The family of the arrays an aggregate as array gives: what every one offers */

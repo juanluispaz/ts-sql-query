@@ -1,7 +1,7 @@
 import type { HasIsValue, IWithView } from '../utils/ITableOrView.js'
 import type { AliasedTableOrView, AsAliasedForUseInLeftJoin, AsForUseInLeftJoin } from '../utils/tableOrViewUtils.js'
 import type { SelectData, SqlBuilder, WithSelectData } from '../sqlBuilders/SqlBuilder.js'
-import { createColumnsFrom, __asNodeValueSource } from '../typeSystem/valueSourceFactory.js'
+import { createColumnsFrom } from '../typeSystem/valueSourceFactory.js'
 import type { source, type } from '../utils/symbols.js'
 import { __setColumnsForLeftJoin } from '../utils/leftJoinUtils.js'
 import { TableOrViewRoot, __asTableOrViewRoot } from './TableOrViewRoot.js'

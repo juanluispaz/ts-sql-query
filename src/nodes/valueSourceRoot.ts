@@ -14,8 +14,7 @@ import { __newAllowWhenValueSource } from './allowWhen.js'
 import { __newNullValueSource } from './constants.js'
 import { __sameTypeClassOf, __typeClassOf } from './dataTypeClassOf.js'
 import { __newNoopValueSource } from './operations.js'
-import { typeAdapterOfClass, __adaptedTypeClassOf, __keptClassOf } from './adaptedTypeClass.js'
-import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
+import { typeAdapterOfClass, __keptClassOf } from './adaptedTypeClass.js'
 
 export class ValueSourceRoot implements NodeValueSource {
     /** The mark of a value source for TypeScript (AnyValueSource); nothing at run time */

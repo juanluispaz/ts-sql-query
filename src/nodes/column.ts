@@ -3,9 +3,7 @@ import { __registerTableOrView } from '../utils/ITableOrView.js'
 import type { DBColumn } from '../utils/Column.js'
 import { valueSourceNode, type NodeStrategy, type NodeValueSource, __copyOfValueSource, type InCreation } from './NodeStrategy.js'
 import { type ValueSourceConstructor } from './dataTypeClassOf.js'
-import { __projectedTypeClassOf } from '../typeSystem/dataTypeClasses.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
-import { __adaptedTypeClassOf } from './adaptedTypeClass.js'
 import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
 
 /**

@@ -63,7 +63,8 @@ export function durationOfReceivedValue(value: unknown, typeName: string): Tempo
     if (typeof value === 'string') {
         const text = value.trim()
         const iso = isoStyle.exec(text)
-        if (iso) {
+        // At least one field: `P` and `PT` aren't a duration
+        if (iso && /\d/.test(text)) {
             const outer = iso[1] === '-' ? -1 : 1
             const [, , years, months, weeks, days, hours, minutes, seconds, fraction] = iso
             const secondsNumber = seconds === undefined ? 0 : Number(seconds)

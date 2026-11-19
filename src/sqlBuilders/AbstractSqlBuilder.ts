@@ -24,6 +24,7 @@ import { isUtcTimeZoneName } from '../utils/processTimeZone.js'
 import { __isIntegerSql, __isJsonDocumentSql, __sqlFamilyOf, __temporalFieldsOf } from '../typeSystem/dataTypes.js'
 import { durationOfArgument, durationOfParts, durationPartsFor, isZeroDuration, type DurationParts, type DurationPartsSql } from '../utils/durationValues.js'
 import { plainTemporalFieldsOf } from '../utils/plainTemporalFields.js'
+import { plainTemporalRoundingOf, type PlainTemporalRounding } from '../utils/plainTemporalRounding.js'
 import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
 import { __getValueSourceOfObject, __isBooleanValueSource, __isStringValueSource } from '../typeSystem/valueSource.js'
 import type { AggregatedArrayType } from '../typeSystem/aggregatedArrays.js'
@@ -4166,6 +4167,65 @@ export class AbstractSqlBuilder implements SqlBuilder {
             return this._makeTime(context, hour, minute, second, nanoseconds)
         }
         return this._makeTimestamp(context, year, month, day, hour, minute, second, nanoseconds)
+    }
+    /**
+     * A time or a date and time rounded, as Temporal's `round` (see plainTemporalRoundingOf): the nanoseconds since
+     * midnight rounded to multiples of the step, and the time of them (going round at midnight) or the date plus them
+     * (the next day for the end of the day). The time since midnight is written again each time it appears: the
+     * parameters of MariaDB and MySQL are positional
+     */
+    _roundTemporal(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
+        const fields = this._temporalFieldsOfDurationOperation(typeClass)
+        const rounding = plainTemporalRoundingOf(value, fields)
+        if (!rounding) {
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: typeClass.type }, 'Invalid options to round a ' + typeClass.type + ': ' + JSON.stringify(value))
+        }
+        if (fields === 'time') {
+            return this._timeOfNanoseconds(context, this._roundedNanosecondsSinceMidnight(context, valueSource, rounding))
+        }
+        const date = this._dateOfValue(context, valueSource)
+        return this._dateTimeOfNanoseconds(context, date, this._roundedNanosecondsSinceMidnight(context, valueSource, rounding))
+    }
+    /** The nanoseconds since midnight of the value rounded to multiples of the step, in the mode given */
+    _roundedNanosecondsSinceMidnight(context: SqlBuildContext, valueSource: ToSql, rounding: PlainTemporalRounding): string {
+        const step = this._bigintLiteral(rounding.step)
+        const twoSteps = this._bigintLiteral(rounding.step * 2n)
+        switch (rounding.mode) {
+            case 'trunc':
+                return this._truncatedDivision(this._nanosecondsSinceMidnight(context, valueSource), step) + ' * ' + step
+            case 'ceil':
+                return this._truncatedDivision('(' + this._nanosecondsSinceMidnight(context, valueSource) + ' + ' + this._bigintLiteral(rounding.step - 1n) + ')', step) + ' * ' + step
+            case 'halfExpand':
+                return this._truncatedDivision('(2 * ' + this._nanosecondsSinceMidnight(context, valueSource) + ' + ' + step + ')', twoSteps) + ' * ' + step
+            case 'halfTrunc':
+                return this._truncatedDivision('(2 * ' + this._nanosecondsSinceMidnight(context, valueSource) + ' + ' + this._bigintLiteral(rounding.step - 1n) + ')', twoSteps) + ' * ' + step
+            case 'halfEven':
+                // Half way, to the even multiple; written left to right, as the parameters appear in the text
+                return '(' + this._truncatedDivision(this._nanosecondsSinceMidnight(context, valueSource), step)
+                    + ' + case when 2 * (' + this._nanosecondsSinceMidnight(context, valueSource) + ' - ' + this._truncatedDivision(this._nanosecondsSinceMidnight(context, valueSource), step) + ' * ' + step + ') > ' + step
+                    + ' or (2 * (' + this._nanosecondsSinceMidnight(context, valueSource) + ' - ' + this._truncatedDivision(this._nanosecondsSinceMidnight(context, valueSource), step) + ' * ' + step + ') = ' + step
+                    + ' and ' + this._integerRemainder(this._truncatedDivision(this._nanosecondsSinceMidnight(context, valueSource), step), '2') + ' = 1) then 1 else 0 end) * ' + step
+        }
+    }
+    /** An integer literal that the database takes as a bigint */
+    _bigintLiteral(value: bigint): string {
+        return String(value)
+    }
+    /** The nanoseconds since midnight of a time or a date and time, with the digits the database keeps */
+    _nanosecondsSinceMidnight(context: SqlBuildContext, valueSource: ToSql): string {
+        return '(round(extract(epoch from cast(' + this._appendSql(valueSource, context, false) + ' as time)) * 1000000)::bigint * 1000)'
+    }
+    /** The date of a date and time */
+    _dateOfValue(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'cast(' + this._appendSql(valueSource, context, false) + ' as date)'
+    }
+    /** The time of the day of a number of nanoseconds since midnight, going round at midnight */
+    _timeOfNanoseconds(_context: SqlBuildContext, nanoseconds: string): string {
+        return "time '00:00' + make_interval(secs => (" + nanoseconds + ') / 1000000000.0)'
+    }
+    /** The date plus a number of nanoseconds, a date and time */
+    _dateTimeOfNanoseconds(_context: SqlBuildContext, date: string, nanoseconds: string): string {
+        return date + ' + make_interval(secs => (' + nanoseconds + ') / 1000000000.0)'
     }
     /** A part of a date or a time as an integer (PostgreSQL's extract gives a numeric) */
     _integerPart(sql: string): string {

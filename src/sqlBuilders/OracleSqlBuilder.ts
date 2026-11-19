@@ -1539,6 +1539,20 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     override _makeTimestamp(context: SqlBuildContext, year: string, month: string, day: string, hour: string, minute: string, second: string, nanoseconds: string): string {
         return 'cast(' + this._makeDate(context, year, month, day) + ' as timestamp(9)) + numtodsinterval(' + oracleSecondsOfTheDay(hour, minute, second, nanoseconds) + ", 'second')"
     }
+    override _nanosecondsSinceMidnight(context: SqlBuildContext, valueSource: ToSql): string {
+        const value = this._appendSql(valueSource, context, false)
+        const sinceMidnight = '(cast(' + value + ' as timestamp(9)) - trunc(' + value + '))'
+        return '(extract(hour from ' + sinceMidnight + ') * 3600 + extract(minute from ' + sinceMidnight + ') * 60 + extract(second from ' + sinceMidnight + ')) * 1000000000'
+    }
+    override _dateOfValue(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'trunc(' + this._appendSql(valueSource, context, false) + ')'
+    }
+    override _timeOfNanoseconds(_context: SqlBuildContext, nanoseconds: string): string {
+        return "timestamp '1970-01-01 00:00:00' + numtodsinterval(mod(" + nanoseconds + ", 86400000000000) / 1000000000, 'second')"
+    }
+    override _dateTimeOfNanoseconds(_context: SqlBuildContext, date: string, nanoseconds: string): string {
+        return 'cast(' + date + ' as timestamp(9)) + numtodsinterval((' + nanoseconds + ") / 1000000000, 'second')"
+    }
     /** add_months of a DATE, its day kept in the month as Temporal keeps it: the days it moves past the day of the value taken back */
     _appendKeepingTheDay(date: string, months: string): string {
         const added = 'add_months(' + date + ', ' + months + ')'

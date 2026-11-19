@@ -1189,6 +1189,22 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _makeTimestamp(_context: SqlBuildContext, year: string, month: string, day: string, hour: string, minute: string, second: string, nanoseconds: string): string {
         return 'datetime2fromparts(' + year + ', ' + month + ', ' + day + ', ' + hour + ', ' + minute + ', ' + second + ', ' + nanoseconds + ' / 100, 7)'
     }
+    override _bigintLiteral(value: bigint): string {
+        // A literal beyond an int is a numeric, whose division keeps a fraction
+        return value > 2147483647n ? 'cast(' + value + ' as bigint)' : String(value)
+    }
+    override _nanosecondsSinceMidnight(context: SqlBuildContext, valueSource: ToSql): string {
+        return "(cast(datediff(second, cast('00:00' as time), cast(" + this._appendSql(valueSource, context, false) + ' as time)) as bigint) * 1000000000 + datepart(nanosecond, ' + this._appendSql(valueSource, context, false) + '))'
+    }
+    override _dateOfValue(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'cast(' + this._appendSql(valueSource, context, false) + ' as date)'
+    }
+    override _timeOfNanoseconds(_context: SqlBuildContext, nanoseconds: string): string {
+        return 'dateadd(nanosecond, (' + nanoseconds + ') % 1000000000, dateadd(second, (' + nanoseconds + ") / 1000000000 % 86400, cast('00:00' as time(7))))"
+    }
+    override _dateTimeOfNanoseconds(_context: SqlBuildContext, date: string, nanoseconds: string): string {
+        return 'dateadd(nanosecond, (' + nanoseconds + ') % 1000000000, dateadd(second, (' + nanoseconds + ') / 1000000000, cast(' + date + ' as datetime2)))'
+    }
     /** The type of the database of an operand, by the SQL data type of its column (withSqlDataType), if it says it */
     _nativeSqlDataTypeOfOperand(operand: ToSql): string | undefined {
         const sqlDataType = isValueSource(operand) ? __sqlDataTypeOf(__classOf(operand)) : undefined

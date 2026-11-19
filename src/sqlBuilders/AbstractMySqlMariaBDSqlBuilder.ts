@@ -1063,6 +1063,20 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         }
         return 'timestamp(' + date + ', ' + this._mySqlTimeWith(context, valueSource, given) + ')'
     }
+    override _nanosecondsSinceMidnight(context: SqlBuildContext, valueSource: ToSql): string {
+        // floor: MariaDB's time_to_sec keeps the fraction of the second, MySQL's drops it. time_to_sec takes the time
+        // of a date and time; time() of a text parameter is 00:00:00 through Bun SQL on MySQL 8 (measured)
+        return '(floor(time_to_sec(' + this._appendSql(valueSource, context, false) + ')) * 1000000 + microsecond(' + this._appendSql(valueSource, context, false) + ')) * 1000'
+    }
+    override _dateOfValue(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'date(' + this._appendSql(valueSource, context, false) + ')'
+    }
+    override _timeOfNanoseconds(_context: SqlBuildContext, nanoseconds: string): string {
+        return 'sec_to_time(mod(' + nanoseconds + ', 86400000000000) div 1000 * 0.000001)'
+    }
+    override _dateTimeOfNanoseconds(_context: SqlBuildContext, date: string, nanoseconds: string): string {
+        return 'date_add(' + date + ', interval (' + nanoseconds + ') div 1000 microsecond)'
+    }
     /** The first day of the month of the value with the year and the month given */
     _mySqlFirstOfMonthWith(context: SqlBuildContext, valueSource: ToSql, given: PlainTemporalFields): string {
         const year = given.year === undefined ? 'year(' + this._appendSql(valueSource, context, false) + ')' : String(given.year)

@@ -1364,6 +1364,20 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     override _makeTimestamp(_context: SqlBuildContext, year: string, month: string, day: string, hour: string, minute: string, second: string, nanoseconds: string): string {
         return this._sqliteTemporalIn('dateTime', "printf('%04d-%02d-%02d %02d:%02d:%02d.%03d', " + year + ', ' + month + ', ' + day + ', ' + hour + ', ' + minute + ', ' + second + ', ' + this._truncatedDivision(nanoseconds, '1000000') + ')')
     }
+    override _nanosecondsSinceMidnight(context: SqlBuildContext, valueSource: ToSql): string {
+        // The date functions keep milliseconds
+        const argument = this._dateFunctionArgument(context, valueSource)
+        return 'cast(round((julianday(' + argument + ') - julianday(date(' + argument + '))) * 86400000) as integer) * 1000000'
+    }
+    override _dateOfValue(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'date(' + this._dateFunctionArgument(context, valueSource) + ')'
+    }
+    override _timeOfNanoseconds(_context: SqlBuildContext, nanoseconds: string): string {
+        return this._sqliteTemporalIn('time', "'00:00:00', ((" + nanoseconds + ") / 1000000000.0) || ' seconds'")
+    }
+    override _dateTimeOfNanoseconds(_context: SqlBuildContext, date: string, nanoseconds: string): string {
+        return this._sqliteTemporalIn('dateTime', date + ', ((' + nanoseconds + ") / 1000000000.0) || ' seconds'")
+    }
     /**
      * A date, a time or a date and time in the format its type is kept in (getDateTimeFormat), from the arguments of a
      * date function of SQLite (a value and its modifiers): its text, with the seconds or the milliseconds the format

@@ -588,6 +588,15 @@ function _typeNegatives() {
     void tColMatrixPlain.mDate.with({ hour: 0 })
     // @ts-expect-error a time has no day
     void tColMatrixPlain.mTime.with({ day: 1 })
+    // round takes a unit of the type, or the options of Temporal
+    void tColMatrixPlain.mTime.round('minute')
+    void tColMatrixPlain.mDatetime.round({ smallestUnit: 'day' })
+    // @ts-expect-error a time has no day to round to
+    void tColMatrixPlain.mTime.round('day')
+    // @ts-expect-error a date has no time to round
+    void tColMatrixPlain.mDate.round('day')
+    // @ts-expect-error a mode Temporal hasn't
+    void tColMatrixPlain.mTime.round({ smallestUnit: 'minute', roundingMode: 'nearest' })
 }
 
 test('expressions-negative-types', () => {

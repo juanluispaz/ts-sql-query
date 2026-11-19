@@ -469,6 +469,11 @@ interface UuidsValueSource<T, TYPE_NAME extends string> extends ComparableValueS
     asString(): StringValueSource
 }
 
+/** A unit of a time, in the singular or the plural */
+type TimeUnit = 'hour' | 'minute' | 'second' | 'millisecond' | 'microsecond' | 'nanosecond' | 'hours' | 'minutes' | 'seconds' | 'milliseconds' | 'microseconds' | 'nanoseconds'
+/** How a value is rounded, as Temporal names it */
+type RoundingMode = 'ceil' | 'floor' | 'expand' | 'trunc' | 'halfCeil' | 'halfFloor' | 'halfExpand' | 'halfTrunc' | 'halfEven'
+
 /**
  * Represents a date without time and without zone (using a Temporal.PlainDate)
  */
@@ -513,6 +518,8 @@ interface PlainTimeValueSource extends ComparableValueSource<Temporal.PlainTime,
     subtract(duration: Temporal.Duration | Temporal.DurationLike | DurationValueSource): PlainTimeValueSource
     /** With the fields given in place of its own, as Temporal's with: each taken to its range, the day to the last one of the month */
     with(fields: { hour?: number, minute?: number, second?: number, millisecond?: number, microsecond?: number, nanosecond?: number }): PlainTimeValueSource
+    /** Rounded, as Temporal's round: to a unit, or to multiples of roundingIncrement of smallestUnit in a roundingMode (halfExpand by default) */
+    round(options: TimeUnit | { smallestUnit: TimeUnit, roundingIncrement?: number, roundingMode?: RoundingMode }): PlainTimeValueSource
 }
 
 /**
@@ -549,6 +556,8 @@ interface PlainDateTimeValueSource extends ComparableValueSource<Temporal.PlainD
     subtract(duration: Temporal.Duration | Temporal.DurationLike | DurationValueSource): PlainDateTimeValueSource
     /** With the fields given in place of its own, as Temporal's with: each taken to its range, the day to the last one of the month */
     with(fields: { year?: number, month?: number, monthCode?: string, day?: number, hour?: number, minute?: number, second?: number, millisecond?: number, microsecond?: number, nanosecond?: number }): PlainDateTimeValueSource
+    /** Rounded, as Temporal's round: to a unit, or to multiples of roundingIncrement of smallestUnit in a roundingMode (halfExpand by default) */
+    round(options: TimeUnit | 'day' | 'days' | { smallestUnit: TimeUnit | 'day' | 'days', roundingIncrement?: number, roundingMode?: RoundingMode }): PlainDateTimeValueSource
 }
 
 /**

@@ -1,7 +1,7 @@
 import type { SqlDataType } from '../TypeAdapter.js'
 import { ComparableType } from './comparable.js'
 import { localDateSqlDataType, localDateTimeSqlDataType, localTimeSqlDataType } from './localDates.js'
-import type { TemporalDuration, TemporalDurationLike, TemporalPlainDate, TemporalPlainDateFields, TemporalPlainDateTime, TemporalPlainTime, TemporalPlainTimeFields } from './temporal.js'
+import type { TemporalDuration, TemporalDurationLike, TemporalPlainDate, TemporalPlainDateFields, TemporalPlainDateTime, TemporalPlainTime, TemporalPlainTimeFields, TemporalRoundingOptions, TemporalTimeUnit } from './temporal.js'
 import type { DataTypeOf, IValueWithType, OptionalityOf, SourceOf, ValueSource } from './base.js'
 import type { CombinedOptionality } from './valueSource.js'
 import type { SqlFunction0 } from '../sqlBuilders/SqlBuilder.js'
@@ -18,6 +18,11 @@ function withDuration(valueSource: unknown, operation: '_addDuration' | '_subtra
 /** The value with the fields given, of the same data type */
 function withFields(valueSource: unknown, fields: unknown): any {
     return __operation1(valueSource as any, '_withFields', fields, __computedClassOf(valueSource as object, __typeClassOf(valueSource as any)))
+}
+
+/** The value rounded, of the same data type */
+function rounded(valueSource: unknown, options: unknown): any {
+    return __operation1(valueSource as any, '_roundTemporal', options, __computedClassOf(valueSource as object, __typeClassOf(valueSource as any)))
 }
 
 /** A part of a date or a time (its month, its microseconds, ...): an int */
@@ -173,6 +178,15 @@ export abstract class PlainTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME
     with(fields: unknown): any {
         return withFields(this, fields)
     }
+    /**
+     * The time rounded, as Temporal's `round`: to the unit given (`'minute'`), or with options, to multiples of
+     * `roundingIncrement` of `smallestUnit` (`{ smallestUnit: 'minute', roundingIncrement: 15 }`) in the
+     * `roundingMode` given (`'halfExpand'` by default: half up). A time goes round at midnight (23:59:59.5 to the second is 00:00:00)
+     */
+    round(options: TemporalTimeUnit | TemporalRoundingOptions<TemporalTimeUnit>): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    round(options: unknown): any {
+        return rounded(this, options)
+    }
 }
 
 /**
@@ -275,6 +289,15 @@ export abstract class PlainDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
     with(fields: TemporalPlainDateFields & TemporalPlainTimeFields): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     with(fields: unknown): any {
         return withFields(this, fields)
+    }
+    /**
+     * The date and time rounded, as Temporal's `round`: to the unit given (`'minute'`), or with options, to multiples of
+     * `roundingIncrement` of `smallestUnit` (`{ smallestUnit: 'minute', roundingIncrement: 15 }`) in the
+     * `roundingMode` given (`'halfExpand'` by default: half up). Rounded to a day it is the midnight before or after it
+     */
+    round(options: TemporalTimeUnit | 'day' | 'days' | TemporalRoundingOptions<TemporalTimeUnit | 'day' | 'days'>): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    round(options: unknown): any {
+        return rounded(this, options)
     }
 }
 

@@ -214,6 +214,15 @@ those functions with `ctx.mockOnlyConnection()`. `config.decimal-strategy.test.t
 covers the six strategies.
 
 
+### Bun SQL on MySQL 8: a text parameter converted to a TIME
+
+Through Bun SQL, MySQL 8 converts a text parameter to a TIME wrongly: `cast(? as time(6))` with `'10:07:30'` is
+`00:00:00`, with `'10:00:00.001'` `01:00:00` and with `'10:07:29.999'` the right time (measured with the driver's own
+`sql.unsafe`, MySQL 8.0 and the newest image; MySQL 5.7, MariaDB and mysql2 read every one right). A `plainTime`
+constant used inside an expression that takes its time, as `round` does, is another time there:
+`column.plain-temporal-round.test.ts` (`a-time-rounded-to-a-unit`, `a-time-rounded-with-an-increment-and-a-mode`) is
+`NOT-SUPPORTED` on the `bun_sql_mysql` cells of MySQL 8. A column is read right.
+
 ### A duration kept as text needs a function on SQLite
 
 A duration (`Temporal.Duration`) is kept as its ISO 8601 text on SQLite; adding one of a column to a date or a time

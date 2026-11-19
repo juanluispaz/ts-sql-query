@@ -28,6 +28,16 @@ export type TemporalPlainTime = InstanceOf<'PlainTime'>
 export type TemporalPlainDateTime = InstanceOf<'PlainDateTime'>
 /** `Temporal.Duration`: an amount of time, in years, months, weeks, days, hours ... nanoseconds */
 export type TemporalDuration = InstanceOf<'Duration'>
+/** A unit of a time to round to, as Temporal names it, in the singular or the plural */
+export type TemporalTimeUnit = 'hour' | 'minute' | 'second' | 'millisecond' | 'microsecond' | 'nanosecond' | 'hours' | 'minutes' | 'seconds' | 'milliseconds' | 'microseconds' | 'nanoseconds'
+/** How a value is rounded, as Temporal names it */
+export type TemporalRoundingMode = 'ceil' | 'floor' | 'expand' | 'trunc' | 'halfCeil' | 'halfFloor' | 'halfExpand' | 'halfTrunc' | 'halfEven'
+/** The options of `round` of Temporal: the unit, how many of it (dividing the next unit), and how */
+export interface TemporalRoundingOptions<UNIT extends string> {
+    readonly smallestUnit: UNIT
+    readonly roundingIncrement?: number | undefined
+    readonly roundingMode?: TemporalRoundingMode | undefined
+}
 /** The fields `with` of a Temporal.PlainDate takes: integers; the month also as its code (`'M02'`) */
 export interface TemporalPlainDateFields {
     readonly year?: number | undefined

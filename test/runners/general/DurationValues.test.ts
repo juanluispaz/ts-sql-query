@@ -13,6 +13,7 @@ import { postgreSqlDriverParams } from '../../../src/utils/postgreSql/postgreSql
 import { durationIsoTextWithoutWeeks, durationPartsFor } from '../../../src/utils/durationValues.js'
 import { sqliteScalarFunctions } from '../../../src/utils/sqlite/sqliteFunctions.js'
 import { plainTemporalFieldsOf } from '../../../src/utils/plainTemporalFields.js'
+import { plainTemporalRoundingOf } from '../../../src/utils/plainTemporalRounding.js'
 
 class PgConnection extends PostgreSqlConnection<'PgConnection'> {}
 class OraConnection extends OracleConnection<'OraConnection'> {}
@@ -255,5 +256,24 @@ describe('DurationValues', () => {
         expect(await withFields({ month: 2 })).toBe('sent')
         expect(await withFields({ day: 0 })).toBe('INVALID_VALUE_TO_SEND_TO_DATABASE')
         expect(await withFields({})).toBe('INVALID_VALUE_TO_SEND_TO_DATABASE')
+    })
+
+    test('the-options-of-round-are-read-as-temporal-reads-them', () => {
+        // Each case checked against Temporal's round of a PlainTime and a PlainDateTime
+        expect(plainTemporalRoundingOf('minute', 'time')).toEqual({ step: 60_000_000_000n, mode: 'halfExpand' })
+        expect(plainTemporalRoundingOf({ smallestUnit: 'hours', roundingIncrement: 12, roundingMode: 'floor' }, 'time')).toEqual({ step: 43_200_000_000_000n, mode: 'trunc' })
+        expect(plainTemporalRoundingOf({ smallestUnit: 'minute', roundingIncrement: 1.5 }, 'time')).toEqual({ step: 60_000_000_000n, mode: 'halfExpand' })
+        expect(plainTemporalRoundingOf({ smallestUnit: 'second', roundingMode: 'expand' }, 'time')?.mode).toBe('ceil')
+        expect(plainTemporalRoundingOf({ smallestUnit: 'second', roundingMode: 'halfCeil' }, 'time')?.mode).toBe('halfExpand')
+        expect(plainTemporalRoundingOf({ smallestUnit: 'second', roundingMode: 'halfFloor' }, 'time')?.mode).toBe('halfTrunc')
+        expect(plainTemporalRoundingOf('day', 'timestamp')).toEqual({ step: 86_400_000_000_000n, mode: 'halfExpand' })
+        // Rejected by Temporal: an increment that doesn't divide the next unit or isn't less than it, a day of a time,
+        // a day in more than one, no unit, an unknown mode
+        expect(plainTemporalRoundingOf({ smallestUnit: 'hour', roundingIncrement: 24 }, 'time')).toBeUndefined()
+        expect(plainTemporalRoundingOf({ smallestUnit: 'minute', roundingIncrement: 7 }, 'time')).toBeUndefined()
+        expect(plainTemporalRoundingOf('day', 'time')).toBeUndefined()
+        expect(plainTemporalRoundingOf({ smallestUnit: 'day', roundingIncrement: 2 }, 'timestamp')).toBeUndefined()
+        expect(plainTemporalRoundingOf({ roundingIncrement: 2 }, 'time')).toBeUndefined()
+        expect(plainTemporalRoundingOf({ smallestUnit: 'minute', roundingMode: 'nearest' }, 'time')).toBeUndefined()
     })
 })

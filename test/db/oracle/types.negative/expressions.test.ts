@@ -597,6 +597,11 @@ function _typeNegatives() {
     void tColMatrixPlain.mDate.round('day')
     // @ts-expect-error a mode Temporal hasn't
     void tColMatrixPlain.mTime.round({ smallestUnit: 'minute', roundingMode: 'nearest' })
+    // The overflow option of Temporal: constrain or reject
+    void tColMatrixPlain.mDate.add({ months: 1 }, { overflow: 'reject' })
+    void tColMatrixPlain.mDate.with({ day: 31 }, { overflow: 'constrain' })
+    // @ts-expect-error an overflow Temporal hasn't
+    void tColMatrixPlain.mDate.add({ months: 1 }, { overflow: 'clamp' })
 }
 
 test('expressions-negative-types', () => {

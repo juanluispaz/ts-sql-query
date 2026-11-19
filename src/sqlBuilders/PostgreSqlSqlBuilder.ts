@@ -152,6 +152,9 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
             case '_anyValue':
             // The parts of a const are taken with extract, which needs its type
             case '_withFields':
+            case '_withFieldsRejecting':
+            case '_addDurationRejecting':
+            case '_subtractDurationRejecting':
             case '_roundTemporal':
                 return true
             case '_divide':

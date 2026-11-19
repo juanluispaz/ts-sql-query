@@ -276,4 +276,17 @@ describe('DurationValues', () => {
         expect(plainTemporalRoundingOf({ roundingIncrement: 2 }, 'time')).toBeUndefined()
         expect(plainTemporalRoundingOf({ smallestUnit: 'minute', roundingMode: 'nearest' }, 'time')).toBeUndefined()
     })
+
+    test('reject-rejects-before-the-query-what-is-known-out-of-range', async () => {
+        // As Temporal's with with overflow 'reject': a field out of its range, and a day the month given hasn't
+        expect(plainTemporalFieldsOf({ month: 13 }, 'date', true)).toBeUndefined()
+        expect(plainTemporalFieldsOf({ year: 2023, month: 2, day: 29 }, 'date', true)).toBeUndefined()
+        expect(plainTemporalFieldsOf({ year: 2024, month: 2, day: 29 }, 'date', true)?.day).toBe(29)
+        expect(plainTemporalFieldsOf({ hour: 25 }, 'time', true)).toBeUndefined()
+        expect(plainTemporalFieldsOf({ minute: -1 }, 'time', true)).toBeUndefined()
+        rowsToReturn = [{ day: '2024-02-29' }]
+        const day = pg.const(Temporal.PlainDate.from('2024-01-31'), 'plainDate')
+        expect(await outcome(() => pg.selectFromNoTable().select({ day: day.with({ month: 13 }, { overflow: 'reject' }) }).executeSelectOne())).toBe('INVALID_VALUE_TO_SEND_TO_DATABASE')
+        expect(await outcome(async () => pg.selectFromNoTable().select({ day: day.add({ months: 1 }, { overflow: 'clamp' as 'reject' }) }).executeSelectOne())).toBe('INVALID_VALUE_TO_SEND_TO_DATABASE')
+    })
 })

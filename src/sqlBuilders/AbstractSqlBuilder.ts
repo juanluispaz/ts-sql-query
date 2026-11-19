@@ -4125,8 +4125,15 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * month appear twice when the day may not fit, and a parameter can't be repeated on every database
      */
     _withFields(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
+        return this._appendWithFields(context, valueSource, value, typeClass, false)
+    }
+    _withFieldsRejecting(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
+        return this._appendWithFields(context, valueSource, value, typeClass, true)
+    }
+    /** with, taking a day the month hasn't to its last day, or rejecting it (reject) as an error of the query */
+    _appendWithFields(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass, reject: boolean): string {
         const fields = this._temporalFieldsOfDurationOperation(typeClass)
-        const given = plainTemporalFieldsOf(value, fields)
+        const given = plainTemporalFieldsOf(value, fields, reject)
         if (!given) {
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: typeClass.type }, 'Invalid fields to put in a ' + typeClass.type + ': ' + JSON.stringify(value))
         }
@@ -4141,7 +4148,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             // value in another month
             const mayNotFit = given.day === undefined ? given.year !== undefined || given.month !== undefined : given.day > 28
             if (mayNotFit) {
-                day = this._leastOf(day, this._daysInMonth(context, year, month))
+                day = reject ? this._validDayOrError(context, year, month, day) : this._leastOf(day, this._daysInMonth(context, year, month))
             }
         }
         if (fields === 'date') {
@@ -4258,6 +4265,54 @@ export class AbstractSqlBuilder implements SqlBuilder {
     /** The date and time of its parts, which are in their ranges */
     _makeTimestamp(_context: SqlBuildContext, year: string, month: string, day: string, hour: string, minute: string, second: string, nanoseconds: string): string {
         return 'make_timestamp(' + year + ', ' + month + ', ' + day + ', ' + hour + ', ' + minute + ', ' + secondsWithFraction(second, nanoseconds) + ')'
+    }
+    _addDurationRejecting(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
+        return this._appendWithDurationRejecting(context, valueSource, value, typeClass, 1)
+    }
+    _subtractDurationRejecting(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
+        return this._appendWithDurationRejecting(context, valueSource, value, typeClass, -1)
+    }
+    /**
+     * A date or a date and time plus a duration rejecting, as an error of the query, a day the month it reaches hasn't
+     * (Temporal's overflow 'reject': only the months can reach one): the value plus the duration as always, shifted by
+     * the day of the value in that month, checked, minus the day of the value, which is no day. The month reached is
+     * year * 12 + month - 1 plus the months of the duration
+     */
+    _appendWithDurationRejecting(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass, sign: 1 | -1): string {
+        const fields = this._temporalFieldsOfDurationOperation(typeClass)
+        const result = this._appendWithDuration(context, valueSource, value, typeClass, sign)
+        if (fields === 'time' || !this._hasDurationMonths(value, typeClass, fields, sign)) {
+            return result
+        }
+        const monthIndex = '(' + this._integerPart(this._year(context, valueSource)) + ' * 12 + ' + this._integerPart(this._month(context, valueSource)) + ' - 1 + ' + this._durationMonthsSql(context, value, typeClass, fields, sign) + ')'
+        const checkedDay = this._validDayOrError(context, this._truncatedDivision(monthIndex, '12'), this._integerRemainder(monthIndex, '12') + ' + 1', this._integerPart(this._day(context, valueSource)))
+        return this._shiftDays(context, result, '(' + checkedDay + ' - ' + this._integerPart(this._day(context, valueSource)) + ')', fields)
+    }
+    /** Whether the duration may have months: a constant with them, or a value source (an interval of days to seconds of Oracle has none) */
+    _hasDurationMonths(value: unknown, typeClass: DataTypeClass, fields: 'date' | 'time' | 'timestamp', sign: 1 | -1): boolean {
+        const parts = this._constantDurationParts(value, typeClass, fields, sign)
+        return parts ? parts.months !== 0 : true
+    }
+    /** The months of a duration (multiplied by sign), with its years */
+    _durationMonthsSql(context: SqlBuildContext, value: unknown, typeClass: DataTypeClass, fields: 'date' | 'time' | 'timestamp', sign: 1 | -1): string {
+        const parts = this._constantDurationParts(value, typeClass, fields, sign)
+        if (parts) {
+            return this._appendValue(parts.months, context, __registeredDataType('int'), false)
+        }
+        const duration = __asNodeValueSource(value as AnyValueSource)
+        if (this._isDurationKeptAsText(duration)) {
+            return this._signedDurationTextPart(context, duration, 'M', sign)
+        }
+        const interval = this._appendSqlParenthesis(duration, context, false)
+        return (sign < 0 ? '-' : '') + 'cast(extract(year from ' + interval + ') * 12 + extract(month from ' + interval + ') as integer)'
+    }
+    /** The day given, that the month of the year has, or an error of the query when it hasn't: the day of a date of them */
+    _validDayOrError(_context: SqlBuildContext, year: string, month: string, day: string): string {
+        return 'extract(day from make_date(' + year + ', ' + month + ', ' + day + '))::integer'
+    }
+    /** A date or a date and time plus a number of days */
+    _shiftDays(_context: SqlBuildContext, value: string, days: string, fields: 'date' | 'time' | 'timestamp'): string {
+        return fields === 'date' ? value + ' + ' + days : value + ' + make_interval(days => ' + days + ')'
     }
     /** What a duration is added to: a date, a time, or a date and time (by the SQL data type of the result) */
     _temporalFieldsOfDurationOperation(typeClass: DataTypeClass): 'date' | 'time' | 'timestamp' {

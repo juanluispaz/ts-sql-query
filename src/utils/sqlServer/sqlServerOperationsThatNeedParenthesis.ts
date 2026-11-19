@@ -10,6 +10,8 @@ export const sqlServerOperationsThatNeedParenthesis: OperationsThatNeedParenthes
     // `dateadd(...)`
     _addDuration: false,
     _subtractDuration: false,
+    _addDurationRejecting: false,
+    _subtractDurationRejecting: false,
     // `_millisecond` is written as a self-contained call, so it never needs the wrapping the base's trailing
     // `% 1000` form asks for.
     _millisecond: false,

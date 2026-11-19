@@ -28,6 +28,13 @@ export type TemporalPlainTime = InstanceOf<'PlainTime'>
 export type TemporalPlainDateTime = InstanceOf<'PlainDateTime'>
 /** `Temporal.Duration`: an amount of time, in years, months, weeks, days, hours ... nanoseconds */
 export type TemporalDuration = InstanceOf<'Duration'>
+/**
+ * The option of Temporal's `add`, `subtract` and `with` of a date: a day that its month hasn't is taken to the last day
+ * of the month (`'constrain'`, the default) or rejected (`'reject'`)
+ */
+export interface TemporalOverflowOptions {
+    readonly overflow?: 'constrain' | 'reject' | undefined
+}
 /** A unit of a time to round to, as Temporal names it, in the singular or the plural */
 export type TemporalTimeUnit = 'hour' | 'minute' | 'second' | 'millisecond' | 'microsecond' | 'nanosecond' | 'hours' | 'minutes' | 'seconds' | 'milliseconds' | 'microseconds' | 'nanoseconds'
 /** How a value is rounded, as Temporal names it */

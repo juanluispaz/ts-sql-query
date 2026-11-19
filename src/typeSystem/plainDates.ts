@@ -1,7 +1,8 @@
 import type { SqlDataType } from '../TypeAdapter.js'
 import { ComparableType } from './comparable.js'
 import { localDateSqlDataType, localDateTimeSqlDataType, localTimeSqlDataType } from './localDates.js'
-import type { TemporalDuration, TemporalDurationLike, TemporalPlainDate, TemporalPlainDateFields, TemporalPlainDateTime, TemporalPlainTime, TemporalPlainTimeFields, TemporalRoundingOptions, TemporalTimeUnit } from './temporal.js'
+import type { TemporalDuration, TemporalDurationLike, TemporalPlainDate, TemporalPlainDateFields, TemporalPlainDateTime, TemporalPlainTime, TemporalPlainTimeFields, TemporalOverflowOptions, TemporalRoundingOptions, TemporalTimeUnit } from './temporal.js'
+import { TsSqlProcessingError } from '../TsSqlError.js'
 import type { DataTypeOf, IValueWithType, OptionalityOf, SourceOf, ValueSource } from './base.js'
 import type { CombinedOptionality } from './valueSource.js'
 import type { SqlFunction0 } from '../sqlBuilders/SqlBuilder.js'
@@ -11,13 +12,23 @@ import { __typeClassOf } from '../nodes/dataTypeClassOf.js'
 import { __computedClassOf } from '../nodes/adaptedTypeClass.js'
 
 /** The value plus or minus a duration, of the same data type */
-function withDuration(valueSource: unknown, operation: '_addDuration' | '_subtractDuration', duration: unknown): any {
-    return __operation1(valueSource as any, operation, duration, __computedClassOf(valueSource as object, __typeClassOf(valueSource as any)))
+function withDuration(valueSource: unknown, operation: '_addDuration' | '_subtractDuration', duration: unknown, options: unknown): any {
+    const rejecting = isRejecting(options)
+    return __operation1(valueSource as any, rejecting ? (operation === '_addDuration' ? '_addDurationRejecting' : '_subtractDurationRejecting') : operation, duration, __computedClassOf(valueSource as object, __typeClassOf(valueSource as any)))
+}
+
+/** Whether the options of Temporal ask to reject a day the month hasn't (overflow 'reject'); an error for another option */
+function isRejecting(options: unknown): boolean {
+    const overflow = options === undefined || options === null ? undefined : (options as { overflow?: unknown }).overflow
+    if (overflow !== undefined && overflow !== 'constrain' && overflow !== 'reject') {
+        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value: overflow, typeName: 'overflow' }, 'Invalid overflow option, it must be constrain or reject: ' + String(overflow))
+    }
+    return overflow === 'reject'
 }
 
 /** The value with the fields given, of the same data type */
-function withFields(valueSource: unknown, fields: unknown): any {
-    return __operation1(valueSource as any, '_withFields', fields, __computedClassOf(valueSource as object, __typeClassOf(valueSource as any)))
+function withFields(valueSource: unknown, fields: unknown, options: unknown): any {
+    return __operation1(valueSource as any, isRejecting(options) ? '_withFieldsRejecting' : '_withFields', fields, __computedClassOf(valueSource as object, __typeClassOf(valueSource as any)))
 }
 
 /** The value rounded, of the same data type */
@@ -89,28 +100,28 @@ export abstract class PlainDatesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME
      * The date plus the duration given, with the semantics of Temporal's `add`: the years and months first, keeping the day in the month (Jan 31 plus a month is Feb 29), then the days, and the whole days of the time (`PT36H` is one day). The duration is a
      * Temporal.Duration, its fields (`{ days: 3 }`), or a value of the type duration
      */
-    add(duration: TemporalDuration | TemporalDurationLike): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    add(duration: TemporalDuration | TemporalDurationLike, options?: TemporalOverflowOptions): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     /**
      * The date plus the duration given, with the semantics of Temporal's `add`: the years and months first, keeping the day in the month (Jan 31 plus a month is Feb 29), then the days, and the whole days of the time (`PT36H` is one day). The duration is a
      * Temporal.Duration, its fields (`{ days: 3 }`), or a value of the type duration
      */
-    add<VALUE extends IValueWithType<'type:duration:'>>(duration: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
-    add(duration: unknown): any {
-        return withDuration(this, '_addDuration', duration)
+    add<VALUE extends IValueWithType<'type:duration:'>>(duration: VALUE, options?: TemporalOverflowOptions): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    add(duration: unknown, options?: unknown): any {
+        return withDuration(this, '_addDuration', duration, options)
     }
-    /** The date minus the duration given, with the semantics of Temporal's `subtract`: the duration negated, added */
-    subtract(duration: TemporalDuration | TemporalDurationLike): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
-    /** The date minus the duration given, with the semantics of Temporal's `subtract`: the duration negated, added */
-    subtract<VALUE extends IValueWithType<'type:duration:'>>(duration: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
-    subtract(duration: unknown): any {
-        return withDuration(this, '_subtractDuration', duration)
+    /** The date minus the duration given, with the semantics of Temporal's `subtract`: the duration negated, added. With `{ overflow: 'reject' }` a day the month hasn't is rejected, as an error of the query */
+    subtract(duration: TemporalDuration | TemporalDurationLike, options?: TemporalOverflowOptions): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    /** The date minus the duration given, with the semantics of Temporal's `subtract`: the duration negated, added. With `{ overflow: 'reject' }` a day the month hasn't is rejected, as an error of the query */
+    subtract<VALUE extends IValueWithType<'type:duration:'>>(duration: VALUE, options?: TemporalOverflowOptions): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    subtract(duration: unknown, options?: unknown): any {
+        return withDuration(this, '_subtractDuration', duration, options)
     }
     /**
      * The date with the fields given in place of its own, as Temporal's `with`: a field out of its range is taken to the nearest value it can have, and the day to the last one of the month when the month has fewer (`with({ day: 31 })` in February is the 29th or 28th). The fields are integers
      */
-    with(fields: TemporalPlainDateFields): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
-    with(fields: unknown): any {
-        return withFields(this, fields)
+    with(fields: TemporalPlainDateFields, options?: TemporalOverflowOptions): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    with(fields: unknown, options?: unknown): any {
+        return withFields(this, fields, options)
     }
 }
 
@@ -155,28 +166,28 @@ export abstract class PlainTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME
      * The time plus the duration given, with the semantics of Temporal's `add`: only its time, going round at midnight (23:30 plus an hour is 00:30). The duration is a
      * Temporal.Duration, its fields (`{ days: 3 }`), or a value of the type duration
      */
-    add(duration: TemporalDuration | TemporalDurationLike): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    add(duration: TemporalDuration | TemporalDurationLike, options?: TemporalOverflowOptions): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     /**
      * The time plus the duration given, with the semantics of Temporal's `add`: only its time, going round at midnight (23:30 plus an hour is 00:30). The duration is a
      * Temporal.Duration, its fields (`{ days: 3 }`), or a value of the type duration
      */
-    add<VALUE extends IValueWithType<'type:duration:'>>(duration: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
-    add(duration: unknown): any {
-        return withDuration(this, '_addDuration', duration)
+    add<VALUE extends IValueWithType<'type:duration:'>>(duration: VALUE, options?: TemporalOverflowOptions): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    add(duration: unknown, options?: unknown): any {
+        return withDuration(this, '_addDuration', duration, options)
     }
-    /** The time minus the duration given, with the semantics of Temporal's `subtract`: the duration negated, added */
-    subtract(duration: TemporalDuration | TemporalDurationLike): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
-    /** The time minus the duration given, with the semantics of Temporal's `subtract`: the duration negated, added */
-    subtract<VALUE extends IValueWithType<'type:duration:'>>(duration: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
-    subtract(duration: unknown): any {
-        return withDuration(this, '_subtractDuration', duration)
+    /** The time minus the duration given, with the semantics of Temporal's `subtract`: the duration negated, added. With `{ overflow: 'reject' }` a day the month hasn't is rejected, as an error of the query */
+    subtract(duration: TemporalDuration | TemporalDurationLike, options?: TemporalOverflowOptions): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    /** The time minus the duration given, with the semantics of Temporal's `subtract`: the duration negated, added. With `{ overflow: 'reject' }` a day the month hasn't is rejected, as an error of the query */
+    subtract<VALUE extends IValueWithType<'type:duration:'>>(duration: VALUE, options?: TemporalOverflowOptions): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    subtract(duration: unknown, options?: unknown): any {
+        return withDuration(this, '_subtractDuration', duration, options)
     }
     /**
      * The time with the fields given in place of its own, as Temporal's `with`: a field out of its range is taken to the nearest value it can have (`with({ hour: 25 })` is 23). The fields are integers
      */
-    with(fields: TemporalPlainTimeFields): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
-    with(fields: unknown): any {
-        return withFields(this, fields)
+    with(fields: TemporalPlainTimeFields, options?: TemporalOverflowOptions): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    with(fields: unknown, options?: unknown): any {
+        return withFields(this, fields, options)
     }
     /**
      * The time rounded, as Temporal's `round`: to the unit given (`'minute'`), or with options, to multiples of
@@ -267,28 +278,28 @@ export abstract class PlainDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
      * The date and time plus the duration given, with the semantics of Temporal's `add`: the years and months first, keeping the day in the month (Jan 31 plus a month is Feb 29), then the days and the time. The duration is a
      * Temporal.Duration, its fields (`{ days: 3 }`), or a value of the type duration
      */
-    add(duration: TemporalDuration | TemporalDurationLike): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    add(duration: TemporalDuration | TemporalDurationLike, options?: TemporalOverflowOptions): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     /**
      * The date and time plus the duration given, with the semantics of Temporal's `add`: the years and months first, keeping the day in the month (Jan 31 plus a month is Feb 29), then the days and the time. The duration is a
      * Temporal.Duration, its fields (`{ days: 3 }`), or a value of the type duration
      */
-    add<VALUE extends IValueWithType<'type:duration:'>>(duration: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
-    add(duration: unknown): any {
-        return withDuration(this, '_addDuration', duration)
+    add<VALUE extends IValueWithType<'type:duration:'>>(duration: VALUE, options?: TemporalOverflowOptions): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    add(duration: unknown, options?: unknown): any {
+        return withDuration(this, '_addDuration', duration, options)
     }
-    /** The date and time minus the duration given, with the semantics of Temporal's `subtract`: the duration negated, added */
-    subtract(duration: TemporalDuration | TemporalDurationLike): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
-    /** The date and time minus the duration given, with the semantics of Temporal's `subtract`: the duration negated, added */
-    subtract<VALUE extends IValueWithType<'type:duration:'>>(duration: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
-    subtract(duration: unknown): any {
-        return withDuration(this, '_subtractDuration', duration)
+    /** The date and time minus the duration given, with the semantics of Temporal's `subtract`: the duration negated, added. With `{ overflow: 'reject' }` a day the month hasn't is rejected, as an error of the query */
+    subtract(duration: TemporalDuration | TemporalDurationLike, options?: TemporalOverflowOptions): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    /** The date and time minus the duration given, with the semantics of Temporal's `subtract`: the duration negated, added. With `{ overflow: 'reject' }` a day the month hasn't is rejected, as an error of the query */
+    subtract<VALUE extends IValueWithType<'type:duration:'>>(duration: VALUE, options?: TemporalOverflowOptions): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    subtract(duration: unknown, options?: unknown): any {
+        return withDuration(this, '_subtractDuration', duration, options)
     }
     /**
      * The date and time with the fields given in place of its own, as Temporal's `with`: a field out of its range is taken to the nearest value it can have, and the day to the last one of the month when the month has fewer. The fields are integers
      */
-    with(fields: TemporalPlainDateFields & TemporalPlainTimeFields): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
-    with(fields: unknown): any {
-        return withFields(this, fields)
+    with(fields: TemporalPlainDateFields & TemporalPlainTimeFields, options?: TemporalOverflowOptions): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    with(fields: unknown, options?: unknown): any {
+        return withFields(this, fields, options)
     }
     /**
      * The date and time rounded, as Temporal's `round`: to the unit given (`'minute'`), or with options, to multiples of

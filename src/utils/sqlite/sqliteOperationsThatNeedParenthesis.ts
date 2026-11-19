@@ -12,4 +12,6 @@ export const sqliteOperationsThatNeedParenthesis: OperationsThatNeedParenthesis 
     // A call of a date function of SQLite
     _addDuration: false,
     _subtractDuration: false,
+    _addDurationRejecting: false,
+    _subtractDurationRejecting: false,
 }

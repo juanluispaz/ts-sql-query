@@ -536,6 +536,10 @@ export interface SqlFunction1 {
     _subtractDuration(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
     // A date, a time or a date and time with the fields given, with the semantics of Temporal's with
     _withFields(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
+    // The same rejecting a day the month hasn't (Temporal's overflow 'reject') as an error of the query
+    _addDurationRejecting(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
+    _subtractDurationRejecting(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
+    _withFieldsRejecting(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
     // A time or a date and time rounded, with the semantics of Temporal's round
     _roundTemporal(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
 }

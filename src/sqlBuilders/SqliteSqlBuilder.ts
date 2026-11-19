@@ -1378,6 +1378,21 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     override _dateTimeOfNanoseconds(_context: SqlBuildContext, date: string, nanoseconds: string): string {
         return this._sqliteTemporalIn('dateTime', date + ', ((' + nanoseconds + ") / 1000000000.0) || ' seconds'")
     }
+    override _validDayOrError(context: SqlBuildContext, year: string, month: string, day: string): string {
+        // SQLite has no date that fails: an integer overflow is the error
+        return 'case when ' + day + ' > ' + this._daysInMonth(context, year, month) + ' then abs(-9223372036854775807 - 1) else ' + day + ' end'
+    }
+    /** The result, or an error of the query when the day of the value isn't in the month the duration reaches */
+    override _appendWithDurationRejecting(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass, sign: 1 | -1): string {
+        const fields = this._temporalFieldsOfDurationOperation(typeClass)
+        const result = this._appendWithDuration(context, valueSource, value, typeClass, sign)
+        if (fields === 'time' || !this._hasDurationMonths(value, typeClass, fields, sign)) {
+            return result
+        }
+        const monthIndex = '(' + this._year(context, valueSource) + ' * 12 + ' + this._month(context, valueSource) + ' - 1 + ' + this._durationMonthsSql(context, value, typeClass, fields, sign) + ')'
+        const days = this._daysInMonth(context, this._truncatedDivision(monthIndex, '12'), '(' + this._integerRemainder(monthIndex, '12') + ' + 1)')
+        return 'case when ' + this._day(context, valueSource) + ' > ' + days + ' then abs(-9223372036854775807 - 1) else ' + result + ' end'
+    }
     /**
      * A date, a time or a date and time in the format its type is kept in (getDateTimeFormat), from the arguments of a
      * date function of SQLite (a value and its modifiers): its text, with the seconds or the milliseconds the format

@@ -36,9 +36,11 @@ function constrained(value: number | undefined, max: number): number | undefined
 /**
  * The fields of the value given to `with` of a date ('date'), a time ('time') or both ('timestamp'), as Temporal's
  * `with` takes them; undefined when Temporal rejects them: not an object, none of the fields of the type, a field that
- * isn't a number, a month or a day below 1, a month code that isn't of the ISO calendar or that says another month
+ * isn't a number, a month or a day below 1, a month code that isn't of the ISO calendar or that says another month.
+ * With reject (overflow 'reject') a field out of its range is rejected too, and a day the month given hasn't, when the
+ * year and the month are given; a day the month of the value hasn't is rejected by the query
  */
-export function plainTemporalFieldsOf(value: unknown, fields: 'date' | 'time' | 'timestamp'): PlainTemporalFields | undefined {
+export function plainTemporalFieldsOf(value: unknown, fields: 'date' | 'time' | 'timestamp', reject: boolean = false): PlainTemporalFields | undefined {
     if (value === null || typeof value !== 'object') {
         return undefined
     }
@@ -67,7 +69,13 @@ export function plainTemporalFieldsOf(value: unknown, fields: 'date' | 'time' | 
             return undefined
         }
         if (month !== undefined && month > 12) {
+            if (reject) {
+                return undefined
+            }
             month = 12
+        }
+        if (reject && year !== undefined && month !== undefined && day !== undefined && day > daysInMonth(year, month)) {
+            return undefined
         }
     }
     let hour: number | undefined
@@ -86,10 +94,25 @@ export function plainTemporalFieldsOf(value: unknown, fields: 'date' | 'time' | 
         if ([hour, minute, second, millisecond, microsecond, nanosecond].some(Number.isNaN)) {
             return undefined
         }
+        if (reject && (outOf(hour, 23) || outOf(minute, 59) || outOf(second, 59) || outOf(millisecond, 999) || outOf(microsecond, 999) || outOf(nanosecond, 999))) {
+            return undefined
+        }
     }
     return {
         year, month, day,
         hour: constrained(hour, 23), minute: constrained(minute, 59), second: constrained(second, 59),
         millisecond: constrained(millisecond, 999), microsecond: constrained(microsecond, 999), nanosecond: constrained(nanosecond, 999),
     }
+}
+
+function outOf(value: number | undefined, max: number): boolean {
+    return value !== undefined && (value < 0 || value > max)
+}
+
+/** The days of a month of the ISO calendar */
+function daysInMonth(year: number, month: number): number {
+    if (month === 2) {
+        return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0 ? 29 : 28
+    }
+    return month === 4 || month === 6 || month === 9 || month === 11 ? 30 : 31
 }

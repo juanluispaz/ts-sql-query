@@ -20,4 +20,6 @@ export const mySqlMariaDBOperationsThatNeedParenthesis: OperationsThatNeedParent
     // `date_add(...)`, `sec_to_time(...)`
     _addDuration: false,
     _subtractDuration: false,
+    _addDurationRejecting: false,
+    _subtractDurationRejecting: false,
 }

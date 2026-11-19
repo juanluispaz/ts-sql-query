@@ -1553,6 +1553,20 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     override _dateTimeOfNanoseconds(_context: SqlBuildContext, date: string, nanoseconds: string): string {
         return 'cast(' + date + ' as timestamp(9)) + numtodsinterval((' + nanoseconds + ") / 1000000000, 'second')"
     }
+    override _validDayOrError(_context: SqlBuildContext, year: string, month: string, day: string): string {
+        // A text of numbers, read with a format of numbers: no setting of the session takes part
+        return "extract(day from to_date((" + year + ") || '-' || (" + month + ") || '-' || (" + day + "), 'YYYY-MM-DD'))"
+    }
+    override _shiftDays(_context: SqlBuildContext, value: string, days: string): string {
+        return value + ' + numtodsinterval(' + days + ", 'day')"
+    }
+    override _hasDurationMonths(value: unknown, typeClass: DataTypeClass, fields: 'date' | 'time' | 'timestamp', sign: 1 | -1): boolean {
+        // An interval of days to seconds has no months
+        if (isValueSource(value) && !this._isDurationKeptAsText(value as any) && !this._isYearToMonthDuration(value as any)) {
+            return false
+        }
+        return super._hasDurationMonths(value, typeClass, fields, sign)
+    }
     /** add_months of a DATE, its day kept in the month as Temporal keeps it: the days it moves past the day of the value taken back */
     _appendKeepingTheDay(date: string, months: string): string {
         const added = 'add_months(' + date + ', ' + months + ')'

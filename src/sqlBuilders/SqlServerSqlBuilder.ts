@@ -1205,6 +1205,12 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _dateTimeOfNanoseconds(_context: SqlBuildContext, date: string, nanoseconds: string): string {
         return 'dateadd(nanosecond, (' + nanoseconds + ') % 1000000000, dateadd(second, (' + nanoseconds + ') / 1000000000, cast(' + date + ' as datetime2)))'
     }
+    override _validDayOrError(_context: SqlBuildContext, year: string, month: string, day: string): string {
+        return 'day(datefromparts(' + year + ', ' + month + ', ' + day + '))'
+    }
+    override _shiftDays(_context: SqlBuildContext, value: string, days: string): string {
+        return 'dateadd(day, ' + days + ', ' + value + ')'
+    }
     /** The type of the database of an operand, by the SQL data type of its column (withSqlDataType), if it says it */
     _nativeSqlDataTypeOfOperand(operand: ToSql): string | undefined {
         const sqlDataType = isValueSource(operand) ? __sqlDataTypeOf(__classOf(operand)) : undefined

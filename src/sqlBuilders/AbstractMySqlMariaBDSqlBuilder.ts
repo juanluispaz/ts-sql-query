@@ -1044,9 +1044,9 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
      * The value with the fields given (see AbstractSqlBuilder._withFields). The parameters are positional: each part of
      * the value is written again, with its parameters, each time it appears, in the order of the text
      */
-    override _withFields(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
+    override _appendWithFields(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass, reject: boolean): string {
         const fields = this._temporalFieldsOfDurationOperation(typeClass)
-        const given = plainTemporalFieldsOf(value, fields)
+        const given = plainTemporalFieldsOf(value, fields, reject)
         if (!given) {
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: typeClass.type }, 'Invalid fields to put in a ' + typeClass.type + ': ' + JSON.stringify(value))
         }
@@ -1054,10 +1054,16 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
             return this._mySqlTimeWith(context, valueSource, given)
         }
         const mayNotFit = given.day === undefined ? given.year !== undefined || given.month !== undefined : given.day > 28
-        const day = given.day === undefined ? 'day(' + this._appendSql(valueSource, context, false) + ')' : String(given.day)
-        // The first day of the month, then the days after it, up to the last day of the month
+        // The first day of the month, then the days after it, up to the last day of the month; rejecting a day the month
+        // hasn't with an error of the query (MariaDB and MySQL have no date that fails): a subquery of two rows
         let date = 'date_add(' + this._mySqlFirstOfMonthWith(context, valueSource, given) + ', interval '
-        date += mayNotFit ? 'least(' + day + ', day(last_day(' + this._mySqlFirstOfMonthWith(context, valueSource, given) + '))) - 1 day)' : day + ' - 1 day)'
+        if (!mayNotFit) {
+            date += this._mySqlDayWith(context, valueSource, given) + ' - 1 day)'
+        } else if (reject) {
+            date += 'case when ' + this._mySqlDayWith(context, valueSource, given) + ' > day(last_day(' + this._mySqlFirstOfMonthWith(context, valueSource, given) + ')) then (select 1 union all select 1) else ' + this._mySqlDayWith(context, valueSource, given) + ' end - 1 day)'
+        } else {
+            date += 'least(' + this._mySqlDayWith(context, valueSource, given) + ', day(last_day(' + this._mySqlFirstOfMonthWith(context, valueSource, given) + '))) - 1 day)'
+        }
         if (fields === 'date') {
             return date
         }
@@ -1076,6 +1082,23 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     }
     override _dateTimeOfNanoseconds(_context: SqlBuildContext, date: string, nanoseconds: string): string {
         return 'date_add(' + date + ', interval (' + nanoseconds + ') div 1000 microsecond)'
+    }
+    /** The day of the value, or the one given */
+    _mySqlDayWith(context: SqlBuildContext, valueSource: ToSql, given: PlainTemporalFields): string {
+        return given.day === undefined ? 'day(' + this._appendSql(valueSource, context, false) + ')' : String(given.day)
+    }
+    /**
+     * The value plus the duration, or an error of the query when the day of the value isn't in the month the months of
+     * the duration reach (a subquery of two rows): each part written again where it appears, in the order of the text
+     */
+    override _appendWithDurationRejecting(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass, sign: 1 | -1): string {
+        const fields = this._temporalFieldsOfDurationOperation(typeClass)
+        if (fields === 'time' || !this._hasDurationMonths(value, typeClass, fields, sign)) {
+            return this._appendWithDuration(context, valueSource, value, typeClass, sign)
+        }
+        let result = 'case when day(' + this._appendSql(valueSource, context, false) + ') > day(last_day(date_add(' + this._appendSql(valueSource, context, false)
+        result += ', interval ' + this._durationMonthsSql(context, value, typeClass, fields, sign) + ' month))) then (select 1 union all select 1) else '
+        return result + this._appendWithDuration(context, valueSource, value, typeClass, sign) + ' end'
     }
     /** The first day of the month of the value with the year and the month given */
     _mySqlFirstOfMonthWith(context: SqlBuildContext, valueSource: ToSql, given: PlainTemporalFields): string {

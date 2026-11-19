@@ -110,7 +110,7 @@ database has to satisfy see [`PER_DATABASE_LAYOUT.md`](./PER_DATABASE_LAYOUT.md)
 
    ```bash
    bun run tests:audit          -- # symmetry ✓
-   bun run validate:tests:newest        # fast typecheck — single tsc program over the newest cells (roughly 14 GB RAM)
+   bun run validate:tests:newest        # fast typecheck — single tsc program over the newest cells (roughly 19 GB RAM)
    bun run validate:tests               # authoritative typecheck — CI gates this (tsc, one program per connector, roughly 8 GB peak)
    bun run tests                -- # no docker, fast sanity check
    bun run tests --docker --wasm  # full real matrix (Docker required)

@@ -413,8 +413,8 @@ program **per connector** (TypeScript 7, the Go-based compiler) — and is the
 > - **Inner edit loop → `bun run validate:tests:newest`** — a SINGLE tsc
 >   program (`test/tsconfig.newest.json`) narrowed to every db's `newest` +
 >   `types.negative` cells (drops the older version tiers + `domain/`, mirroring
->   `--run-versions newest`). It peaks roughly 14 GB — more than any slice of the full split —
->   so on a 16 GB box run it alone; for a narrow change `validate:tests <coord>` is cheaper.
+>   `--run-versions newest`). It peaks roughly 19 GB — more than any slice of the full split —
+>   so it doesn't fit on a 16 GB box, and elsewhere it runs alone; for a narrow change `validate:tests <coord>` is cheaper.
 >   A green newest run says nothing about the older tiers, so run
 >   the full `validate:tests` before pushing.
 >

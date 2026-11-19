@@ -7,11 +7,11 @@
     // db/general, each db's runners.ts) and src — and drops the older version tiers
     // (oldest/, 8_000_000/, …) and domain/.
     //
-    // A single program over the newest set fits in far less RAM than a single
-    // whole-matrix program (which peaks past 17 GB in tsc and OOMs — the reason the
-    // full `validate:tests` splits per connector): the older tiers + domain are
-    // exactly the bulk that pushes it over, so newest stays under it (~14 GB peak,
-    // more than any slice of the per-connector split). One invocation, one pass/fail: it's the fast inner typecheck loop. The
+    // A single program over the newest set leaves out the older tiers + domain, the
+    // bulk a single whole-matrix program adds (the reason the full `validate:tests`
+    // splits per connector). It still peaks ~19 GB with the default 4 checkers, which
+    // are also its fastest (more than any slice of the per-connector split): it doesn't
+    // fit on a 16 GB box. One invocation, one pass/fail: it's the fast inner typecheck loop. The
     // full `validate:tests` (per-connector split) stays the pre-push / CI gate.
     //
     // The newest set is expressed by INCLUDE, so a newly added version-tier folder

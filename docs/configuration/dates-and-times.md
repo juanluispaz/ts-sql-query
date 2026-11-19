@@ -555,6 +555,301 @@ spanCalendar = this.column('span_calendar', 'duration', withSqlDataType({ family
 
 An interval of Oracle holds either years and months or days to seconds, never both: a duration that doesn't fit the one of its column, like `P1M` for an `INTERVAL DAY TO SECOND` or `P1D` for an `INTERVAL YEAR TO MONTH`, is rejected with `INVALID_VALUE_TO_SEND_TO_DATABASE` instead of losing a part.
 
+## Adding and subtracting a duration
+
+`add` and `subtract` of a `plainDate`, a `plainTime` or a `plainDateTime` give the value plus or minus a duration, as Temporal's `add` and `subtract` do. The duration is a `Temporal.Duration`, its fields like `{ months: 18 }`, or a value of the type `duration`, like a column. Here the day the support of each release ends, 18 months after it was released, and the moment its rollout ended:
+
+```ts
+const releases = await connection.selectFrom(tRelease)
+    .select({
+        version: tRelease.version,
+        supportEndsOn: tRelease.releasedOn.add({ months: 18 }),
+        rolloutEndedAt: tRelease.publishedAt.add(tRelease.rolloutTime),
+    })
+    .orderBy('version')
+    .executeSelectMany()
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        version as version, 
+        date_add(released_on, interval ? month) as supportEndsOn, 
+        date_add(date_add(date_add(published_at, interval tsq_duration_part(rollout_time, 'M') month), interval tsq_duration_part(rollout_time, 'D') day), interval (tsq_duration_part(rollout_time, 'S') * 1000000 + tsq_duration_part(rollout_time, 'N') div 1000) microsecond) as rolloutEndedAt 
+    from project_release 
+    order by version
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        version as version, 
+        date_add(released_on, interval ? month) as supportEndsOn, 
+        date_add(date_add(date_add(published_at, interval tsq_duration_part(rollout_time, 'M') month), interval tsq_duration_part(rollout_time, 'D') day), interval (tsq_duration_part(rollout_time, 'S') * 1000000 + tsq_duration_part(rollout_time, 'N') div 1000) microsecond) as rolloutEndedAt 
+    from project_release 
+    order by version
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        version as "version", 
+        to_char((add_months(released_on, :0) - greatest(0, extract(day from add_months(released_on, :0)) - extract(day from released_on))), 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "supportEndsOn", 
+        to_char(cast(published_at + rollout_time as timestamp(9)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "rolloutEndedAt" 
+    from project_release 
+    order by "version"
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        version as version, 
+        cast(released_on + $1::interval as date) as "supportEndsOn", 
+        published_at + rollout_time as "rolloutEndedAt" 
+    from project_release 
+    order by version
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        version as version, 
+        date(date(released_on, 'start of month', ?1), (min(cast(strftime('%d', released_on) as integer), cast(strftime('%d', date(released_on, 'start of month', ?1), '+1 months', '-1 days') as integer)) - 1) || ' days') as supportEndsOn, 
+        strftime('%Y-%m-%dT%H:%M:%fZ', date(date(published_at, 'start of month', (tsq_duration_part(rollout_time, 'M')) || ' months'), (min(cast(strftime('%d', published_at) as integer), cast(strftime('%d', date(published_at, 'start of month', (tsq_duration_part(rollout_time, 'M')) || ' months'), '+1 months', '-1 days') as integer)) - 1) || ' days') || ' ' || strftime('%H:%M:%f', published_at), (tsq_duration_part(rollout_time, 'D')) || ' days', (tsq_duration_part(rollout_time, 'S') + tsq_duration_part(rollout_time, 'N') / 1000000000.0) || ' seconds') as rolloutEndedAt 
+    from project_release 
+    order by version
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        version as version, 
+        dateadd(month, @0, released_on) as supportEndsOn, 
+        dateadd(nanosecond, dbo.tsq_duration_part(rollout_time, 'N'), cast(dateadd(second, dbo.tsq_duration_part(rollout_time, 'S') % 86400, dateadd(day, (dbo.tsq_duration_part(rollout_time, 'D') + dbo.tsq_duration_part(rollout_time, 'S') / 86400), dateadd(month, dbo.tsq_duration_part(rollout_time, 'M'), published_at))) as datetime2)) as rolloutEndedAt 
+    from project_release 
+    order by version
+    ```
+
+The parameters are: `[ Duration P18M ]` (on MariaDB and MySQL and Oracle and SQL Server: `[ 18 ]`; on SQLite: `[ '18 months' ]`)
+
+| version | supportEndsOn | rolloutEndedAt |
+|---|---|---|
+| `'0.9.0'` | `2025-09-01` | `2024-03-04T11:00:00` |
+| `'1.2.0'` | `2025-07-15` | `2024-01-17T21:00:00` |
+| `'1.3.0-beta.1'` | `2025-08-20` | `2024-02-21T10:45:00` |
+
+The rules are the ones of Temporal, and the result is the same on every database: the years and months are added first, keeping the day in the month, then the weeks and days, then the time. `subtract` adds the duration negated.
+
+| Value | Operation | Result | Why |
+|---|---|---|---|
+| `2024-01-31` (`plainDate`) | `add({ months: 1 })` | `2024-02-29` | February has no 31st: the day is kept in the month |
+| `2024-02-29` | `add(Temporal.Duration.from('P1Y'))` | `2025-02-28` | The same in a year without February 29th |
+| `2024-03-31` | `subtract({ months: 1 })` | `2024-02-29` | |
+| `2024-03-01` (`plainDate`) | `add({ hours: 36 })` | `2024-03-02` | A date takes the whole days of the time: 36 hours are one day |
+| `2024-03-01` | `subtract({ hours: 36 })` | `2024-02-29` | Minus 36 hours is minus one day |
+| `23:30` (`plainTime`) | `add({ hours: 1 })` | `00:30` | A time goes round at midnight |
+| `10:00` | `add({ days: 1, hours: 2 })` | `12:00` | A time takes only the time of the duration |
+| `2024-02-28T23:00` (`plainDateTime`) | `add({ days: 1, hours: 2, minutes: 30 })` | `2024-03-01T01:30` | |
+
+The fields of a duration given as a value must be integers with one sign, as `Temporal.Duration.from` asks: `{ days: 1, hours: -1 }`, `{ days: 1.5 }` or `{}` are rejected with `INVALID_VALUE_TO_SEND_TO_DATABASE` before the query is sent. The result keeps the digits of the fraction of a second the database keeps (see [The digits each database keeps](#the-digits-each-database-keeps)); SQLite computes with milliseconds.
+
+### A duration kept as text: the function `tsq_duration_part`
+
+On MariaDB, MySQL, SQLite and SQL Server, and in a column of PostgreSQL or Oracle that keeps a duration as text, a duration is its ISO 8601 text. To add one that the database holds, like `tRelease.rolloutTime`, the query reads its parts with `tsq_duration_part`, a function of the library: create it once in the database. A duration given as a value doesn't need it, and neither does reading, writing or comparing a duration. Without the function, the query fails with the error of the database for a function that doesn't exist.
+
+=== "MariaDB"
+    ```sql
+    DROP FUNCTION IF EXISTS tsq_duration_part;
+    DELIMITER //
+    CREATE FUNCTION tsq_duration_part(d VARCHAR(100), part CHAR(1)) RETURNS BIGINT DETERMINISTIC NO SQL
+    BEGIN
+        DECLARE i INT DEFAULT 1;
+        DECLARE n INT;
+        DECLARE c CHAR(1);
+        DECLARE num VARCHAR(40) DEFAULT '';
+        DECLARE in_time BOOLEAN DEFAULT FALSE;
+        DECLARE sgn INT DEFAULT 1;
+        DECLARE r BIGINT DEFAULT 0;
+        IF d IS NULL THEN RETURN NULL; END IF;
+        SET d = UPPER(TRIM(d));
+        SET n = CHAR_LENGTH(d);
+        IF LEFT(d, 1) = '-' THEN SET sgn = -1, i = 2; ELSEIF LEFT(d, 1) = '+' THEN SET i = 2; END IF;
+        SET i = i + 1;
+        WHILE i <= n DO
+            SET c = SUBSTRING(d, i, 1);
+            IF c = 'T' THEN SET in_time = TRUE;
+            ELSEIF c BETWEEN '0' AND '9' OR c = '.' OR c = ',' THEN SET num = CONCAT(num, IF(c = ',', '.', c));
+            ELSE
+                IF part = 'M' AND NOT in_time AND c = 'Y' THEN SET r = r + 12 * CAST(num AS SIGNED);
+                ELSEIF part = 'M' AND NOT in_time AND c = 'M' THEN SET r = r + CAST(num AS SIGNED);
+                ELSEIF part = 'D' AND c = 'W' THEN SET r = r + 7 * CAST(num AS SIGNED);
+                ELSEIF part = 'D' AND c = 'D' THEN SET r = r + CAST(num AS SIGNED);
+                ELSEIF part = 'S' AND in_time AND c = 'H' THEN SET r = r + 3600 * CAST(num AS SIGNED);
+                ELSEIF part = 'S' AND in_time AND c = 'M' THEN SET r = r + 60 * CAST(num AS SIGNED);
+                ELSEIF part = 'S' AND c = 'S' THEN SET r = r + CAST(SUBSTRING_INDEX(num, '.', 1) AS SIGNED);
+                ELSEIF part = 'N' AND c = 'S' AND LOCATE('.', num) > 0 THEN SET r = CAST(RPAD(SUBSTRING_INDEX(num, '.', -1), 9, '0') AS SIGNED);
+                END IF;
+                SET num = '';
+            END IF;
+            SET i = i + 1;
+        END WHILE;
+        RETURN sgn * r;
+    END
+    //
+    DELIMITER ;
+    ```
+=== "MySQL"
+    ```sql
+    DROP FUNCTION IF EXISTS tsq_duration_part;
+    DELIMITER //
+    CREATE FUNCTION tsq_duration_part(d VARCHAR(100), part CHAR(1)) RETURNS BIGINT DETERMINISTIC NO SQL
+    BEGIN
+        DECLARE i INT DEFAULT 1;
+        DECLARE n INT;
+        DECLARE c CHAR(1);
+        DECLARE num VARCHAR(40) DEFAULT '';
+        DECLARE in_time BOOLEAN DEFAULT FALSE;
+        DECLARE sgn INT DEFAULT 1;
+        DECLARE r BIGINT DEFAULT 0;
+        IF d IS NULL THEN RETURN NULL; END IF;
+        SET d = UPPER(TRIM(d));
+        SET n = CHAR_LENGTH(d);
+        IF LEFT(d, 1) = '-' THEN SET sgn = -1, i = 2; ELSEIF LEFT(d, 1) = '+' THEN SET i = 2; END IF;
+        SET i = i + 1;
+        WHILE i <= n DO
+            SET c = SUBSTRING(d, i, 1);
+            IF c = 'T' THEN SET in_time = TRUE;
+            ELSEIF c BETWEEN '0' AND '9' OR c = '.' OR c = ',' THEN SET num = CONCAT(num, IF(c = ',', '.', c));
+            ELSE
+                IF part = 'M' AND NOT in_time AND c = 'Y' THEN SET r = r + 12 * CAST(num AS SIGNED);
+                ELSEIF part = 'M' AND NOT in_time AND c = 'M' THEN SET r = r + CAST(num AS SIGNED);
+                ELSEIF part = 'D' AND c = 'W' THEN SET r = r + 7 * CAST(num AS SIGNED);
+                ELSEIF part = 'D' AND c = 'D' THEN SET r = r + CAST(num AS SIGNED);
+                ELSEIF part = 'S' AND in_time AND c = 'H' THEN SET r = r + 3600 * CAST(num AS SIGNED);
+                ELSEIF part = 'S' AND in_time AND c = 'M' THEN SET r = r + 60 * CAST(num AS SIGNED);
+                ELSEIF part = 'S' AND c = 'S' THEN SET r = r + CAST(SUBSTRING_INDEX(num, '.', 1) AS SIGNED);
+                ELSEIF part = 'N' AND c = 'S' AND LOCATE('.', num) > 0 THEN SET r = CAST(RPAD(SUBSTRING_INDEX(num, '.', -1), 9, '0') AS SIGNED);
+                END IF;
+                SET num = '';
+            END IF;
+            SET i = i + 1;
+        END WHILE;
+        RETURN sgn * r;
+    END
+    //
+    DELIMITER ;
+    ```
+=== "Oracle"
+    ```sql
+    CREATE OR REPLACE FUNCTION tsq_duration_part(d IN VARCHAR2, part IN VARCHAR2) RETURN NUMBER DETERMINISTIC IS
+        s VARCHAR2(100);
+        i PLS_INTEGER := 1;
+        n PLS_INTEGER;
+        c VARCHAR2(1);
+        num VARCHAR2(40);
+        in_time BOOLEAN := FALSE;
+        sgn NUMBER := 1;
+        r NUMBER := 0;
+    BEGIN
+        IF d IS NULL THEN RETURN NULL; END IF;
+        s := UPPER(TRIM(d));
+        n := LENGTH(s);
+        IF SUBSTR(s, 1, 1) = '-' THEN sgn := -1; i := 2; ELSIF SUBSTR(s, 1, 1) = '+' THEN i := 2; END IF;
+        i := i + 1;
+        WHILE i <= n LOOP
+            c := SUBSTR(s, i, 1);
+            IF c = 'T' THEN in_time := TRUE;
+            ELSIF c BETWEEN '0' AND '9' OR c = '.' OR c = ',' THEN num := num || CASE WHEN c = ',' THEN '.' ELSE c END;
+            ELSE
+                IF part = 'M' AND NOT in_time AND c = 'Y' THEN r := r + 12 * TO_NUMBER(num);
+                ELSIF part = 'M' AND NOT in_time AND c = 'M' THEN r := r + TO_NUMBER(num);
+                ELSIF part = 'D' AND c = 'W' THEN r := r + 7 * TO_NUMBER(num);
+                ELSIF part = 'D' AND c = 'D' THEN r := r + TO_NUMBER(num);
+                ELSIF part = 'S' AND in_time AND c = 'H' THEN r := r + 3600 * TO_NUMBER(num);
+                ELSIF part = 'S' AND in_time AND c = 'M' THEN r := r + 60 * TO_NUMBER(num);
+                ELSIF part = 'S' AND c = 'S' THEN r := r + TO_NUMBER(CASE WHEN INSTR(num, '.') > 0 THEN SUBSTR(num, 1, INSTR(num, '.') - 1) ELSE num END);
+                ELSIF part = 'N' AND c = 'S' AND INSTR(num, '.') > 0 THEN r := TO_NUMBER(RPAD(SUBSTR(num, INSTR(num, '.') + 1), 9, '0'));
+                END IF;
+                num := NULL;
+            END IF;
+            i := i + 1;
+        END LOOP;
+        RETURN sgn * r;
+    END;
+    ```
+===+ "PostgreSQL"
+    ```sql
+    CREATE OR REPLACE FUNCTION tsq_duration_part(d text, part text) RETURNS bigint LANGUAGE plpgsql IMMUTABLE AS $$
+    DECLARE
+        s text;
+        i integer := 1;
+        n integer;
+        c text;
+        num text := '';
+        in_time boolean := false;
+        sgn integer := 1;
+        r bigint := 0;
+    BEGIN
+        IF d IS NULL THEN RETURN NULL; END IF;
+        s := upper(trim(d));
+        n := length(s);
+        IF substr(s, 1, 1) = '-' THEN sgn := -1; i := 2; ELSIF substr(s, 1, 1) = '+' THEN i := 2; END IF;
+        i := i + 1;
+        WHILE i <= n LOOP
+            c := substr(s, i, 1);
+            IF c = 'T' THEN in_time := true;
+            ELSIF position(c in '0123456789.,') > 0 THEN num := num || CASE WHEN c = ',' THEN '.' ELSE c END;
+            ELSE
+                IF part = 'M' AND NOT in_time AND c = 'Y' THEN r := r + 12 * num::bigint;
+                ELSIF part = 'M' AND NOT in_time AND c = 'M' THEN r := r + num::bigint;
+                ELSIF part = 'D' AND c = 'W' THEN r := r + 7 * num::bigint;
+                ELSIF part = 'D' AND c = 'D' THEN r := r + num::bigint;
+                ELSIF part = 'S' AND in_time AND c = 'H' THEN r := r + 3600 * num::bigint;
+                ELSIF part = 'S' AND in_time AND c = 'M' THEN r := r + 60 * num::bigint;
+                ELSIF part = 'S' AND c = 'S' THEN r := r + split_part(num, '.', 1)::bigint;
+                ELSIF part = 'N' AND c = 'S' AND position('.' in num) > 0 THEN r := rpad(split_part(num, '.', 2), 9, '0')::bigint;
+                END IF;
+                num := '';
+            END IF;
+            i := i + 1;
+        END LOOP;
+        RETURN sgn * r;
+    END;
+    $$;
+    ```
+=== "SQLite"
+    `registerSqliteFunctions` registers it, written in JavaScript, with the other functions of the library: see [The SQL functions of the library](query-runners/recommended/bun_sqlite.md#the-sql-functions-of-the-library). Bun SQL's SQLite has no way to register a function.
+=== "SQL Server"
+    ```sql
+    CREATE OR ALTER FUNCTION dbo.tsq_duration_part(@d NVARCHAR(100), @part CHAR(1)) RETURNS BIGINT WITH SCHEMABINDING AS
+    BEGIN
+        IF @d IS NULL RETURN NULL;
+        DECLARE @s NVARCHAR(100) = UPPER(LTRIM(RTRIM(@d))), @i INT = 1, @n INT, @c NCHAR(1), @num NVARCHAR(40) = N'', @inTime BIT = 0, @sign INT = 1, @r BIGINT = 0;
+        SET @n = LEN(@s);
+        IF LEFT(@s, 1) = N'-' BEGIN SET @sign = -1; SET @i = 2; END ELSE IF LEFT(@s, 1) = N'+' SET @i = 2;
+        SET @i = @i + 1;
+        WHILE @i <= @n
+        BEGIN
+            SET @c = SUBSTRING(@s, @i, 1);
+            IF @c = N'T' SET @inTime = 1;
+            ELSE IF @c LIKE N'[0-9]' OR @c = N'.' OR @c = N',' SET @num = @num + CASE WHEN @c = N',' THEN N'.' ELSE @c END;
+            ELSE
+            BEGIN
+                IF @part = 'M' AND @inTime = 0 AND @c = N'Y' SET @r = @r + 12 * CAST(@num AS BIGINT);
+                ELSE IF @part = 'M' AND @inTime = 0 AND @c = N'M' SET @r = @r + CAST(@num AS BIGINT);
+                ELSE IF @part = 'D' AND @c = N'W' SET @r = @r + 7 * CAST(@num AS BIGINT);
+                ELSE IF @part = 'D' AND @c = N'D' SET @r = @r + CAST(@num AS BIGINT);
+                ELSE IF @part = 'S' AND @inTime = 1 AND @c = N'H' SET @r = @r + 3600 * CAST(@num AS BIGINT);
+                ELSE IF @part = 'S' AND @inTime = 1 AND @c = N'M' SET @r = @r + 60 * CAST(@num AS BIGINT);
+                ELSE IF @part = 'S' AND @c = N'S' SET @r = @r + CAST(CASE WHEN CHARINDEX(N'.', @num) > 0 THEN LEFT(@num, CHARINDEX(N'.', @num) - 1) ELSE @num END AS BIGINT);
+                ELSE IF @part = 'N' AND @c = N'S' AND CHARINDEX(N'.', @num) > 0 SET @r = CAST(LEFT(SUBSTRING(@num, CHARINDEX(N'.', @num) + 1, 40) + N'000000000', 9) AS BIGINT);
+                SET @num = N'';
+            END
+            SET @i = @i + 1;
+        END
+        RETURN @sign * @r;
+    END
+    GO
+    ```
+
+
 ## The digits each database keeps
 
 A Temporal value goes to the database with all its digits, up to the nanosecond, and comes back with all the ones the column keeps. A value with more digits than the column keeps is rounded or cut by the database, as with any other way of sending it. Measured with a column of six digits of fraction, and seven on SQL Server, sending `23:59:58.123456789`:

@@ -3,6 +3,7 @@ import { exactDecimalDigitsOf, rejectExactDecimalParam } from '../exactDecimalPa
 import { __temporalFieldsOf, __typeSqlDataTypeOf } from '../../typeSystem/dataTypes.js'
 import { oracleDateParam, oracleZonedParam } from '../metadataSymbols.js'
 import { existingParamContextOf } from '../../internal/QueryContextImpl.js'
+import { __temporalIfAvailable, type TemporalPlainDateTime, type TemporalPlainTime } from '../../typeSystem/temporal.js'
 
 /**
  * Checks a parameter on Oracle, for every query runner of it: the number of the database keeps 38 significant
@@ -78,6 +79,12 @@ export function isOracleZonedParam(params: any[], index: number): boolean {
  * timestamp)))`. A null, or any other parameter, keeps the bare placeholder.
  */
 export function oraclePlaceholder(placeholder: string, params: any[], index: number, value: unknown): string {
+    const plain = oraclePlainTemporalForm(value, existingParamContextOf(params, index)?.getMetadata(oracleDateParam) === true)
+    if (plain !== undefined) {
+        // A Temporal value without zone is sent as its text, converted with a format of its own, whatever the formats
+        // and the language of the session (NLS_DATE_FORMAT, NLS_TIMESTAMP_FORMAT, NLS_DATE_LANGUAGE)
+        return plain.conversion + '(' + placeholder + ", '" + plain.format + "', 'NLS_DATE_LANGUAGE=AMERICAN')"
+    }
     if (!(value instanceof Date) || !isOracleZonedParam(params, index)) {
         return placeholder
     }
@@ -93,4 +100,51 @@ export function oraclePlaceholder(placeholder: string, params: any[], index: num
         return placeholder
     }
     return cast
+}
+
+/**
+ * How a Temporal value without zone is sent on Oracle: its text, and the conversion and the format that read it, with
+ * the era always written (`AD` or `BC`; Oracle has no year 0, the year 1 BC). A PlainDate is a DATE
+ * (`to_date(:0, 'YYYY-MM-DD BC')`); a PlainTime is a TIMESTAMP on 1970-01-01, the day a time of the day is kept on in
+ * Oracle, which has no TIME type; a PlainDateTime is a TIMESTAMP with all the digits of its fraction of a second
+ * (`to_timestamp(:0, 'YYYY-MM-DD HH24:MI:SS.FF9 BC')`), or a DATE when it is the value of a DATE column (`ofDate`) of
+ * whole seconds, which the column compares with as it is, so its index can be used. Undefined for any other value.
+ */
+export function oraclePlainTemporalForm(value: unknown, ofDate: boolean): { text: string, conversion: 'to_date' | 'to_timestamp', format: string } | undefined {
+    const temporal = __temporalIfAvailable()
+    if (!temporal || value === null || typeof value !== 'object') {
+        return undefined
+    }
+    if (value instanceof temporal.PlainDate) {
+        return { text: oracleDateText(value.year, value.month, value.day), conversion: 'to_date', format: 'YYYY-MM-DD BC' }
+    }
+    let date: string
+    let time: TemporalPlainTime | TemporalPlainDateTime
+    if (value instanceof temporal.PlainDateTime) {
+        date = oracleDateText(value.year, value.month, value.day)
+        time = value
+    } else if (value instanceof temporal.PlainTime) {
+        date = '1970-01-01 AD'
+        time = value
+    } else {
+        return undefined
+    }
+    const era = date.slice(-3)
+    const day = date.slice(0, -3)
+    const clock = pad(time.hour, 2) + ':' + pad(time.minute, 2) + ':' + pad(time.second, 2)
+    if (ofDate && time.millisecond === 0 && time.microsecond === 0 && time.nanosecond === 0) {
+        return { text: day + ' ' + clock + era, conversion: 'to_date', format: 'YYYY-MM-DD HH24:MI:SS BC' }
+    }
+    const fraction = pad(time.millisecond, 3) + pad(time.microsecond, 3) + pad(time.nanosecond, 3)
+    return { text: day + ' ' + clock + '.' + fraction + era, conversion: 'to_timestamp', format: 'YYYY-MM-DD HH24:MI:SS.FF9 BC' }
+}
+
+/** `YYYY-MM-DD AD`, or `YYYY-MM-DD BC` for a year before 1 (the year 0 is 1 BC) */
+function oracleDateText(year: number, month: number, day: number): string {
+    const bc = year < 1
+    return pad(bc ? 1 - year : year, 4) + '-' + pad(month, 2) + '-' + pad(day, 2) + (bc ? ' BC' : ' AD')
+}
+
+function pad(value: number, length: number): string {
+    return String(value).padStart(length, '0')
 }

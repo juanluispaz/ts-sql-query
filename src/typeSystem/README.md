@@ -373,7 +373,9 @@ extend them.
 | [`strings.ts`](./strings.ts) | `StringsType` and `StringType`: the comparisons and functions of a text |
 | [`uuids.ts`](./uuids.ts) | `UuidsType` and `UuidType`, with the operations of a text on the text of a uuid |
 | [`uuidText.ts`](./uuidText.ts) | `UuidTextType`, the text of a uuid, only for the run time |
-| [`localDates.ts`](./localDates.ts) | the families and the data types of the dates, the times and both |
+| [`localDates.ts`](./localDates.ts) | the families and the data types of the dates, the times and both, whose values are a `Date` |
+| [`plainDates.ts`](./plainDates.ts) | the families and the data types of the dates, the times and both whose values are Temporal values without zone (`plainDate`, `plainTime`, `plainDateTime`) |
+| [`temporal.ts`](./temporal.ts) | Temporal as the library reaches it: its types taken from the global object (so a declaration never names `Temporal`), and the object read at run time |
 | [`aggregatedArrays.ts`](./aggregatedArrays.ts) | `AggregatedArraysType` and its two data types, the arrays an aggregate as array gives |
 | [`valueSource.ts`](./valueSource.ts) | what every value source has whatever its data type: the optionality (`OptionalType`, `CombinedOptionality`, `__mergeOptional`, ...), `AnyValueSource`, `TypedValueSource`, the types of the value of a result (`ValueSourceValueType*`), the executable queries, and the questions the SQL builders ask about the value of a value source by its SQL data type (`__isBooleanValueSource`, ...) |
 | [`dataTypes.ts`](./dataTypes.ts) | the questions about the SQL data type of a class (`__sqlFamilyOf`, `__isExactDecimalSql`, ...), by which the run time decides what a value is |

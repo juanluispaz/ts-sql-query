@@ -4,6 +4,7 @@ import { SqlTransactionQueryRunner } from './SqlTransactionQueryRunner.js'
 import { PostgresTransactionOutcome } from '../utils/postgreSql/postgresTransactionOutcome.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { getPgLiteErrorReason, isPgLiteError } from './connectorErrorMappers/PgLiteErrorMapper.js'
+import { plainTemporalResultColumns } from '../utils/plainTemporalValues.js'
 import { isPostgreSqlZonedParam, postgreSqlDriverParams, postgreSqlParamType, postgreSqlParamTypeOfSqlDataType } from '../utils/postgreSql/postgreSqlParamTypes.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { parseUtcDateTimeTextOrKeepIt } from '../utils/utcDateTimeText.js'
@@ -91,7 +92,8 @@ export class PgLiteQueryRunner extends SqlTransactionQueryRunner {
                 paramTypes[i] = oid
             }
         }
-        return paramTypes ? { parsers: pgLiteParsers, paramTypes } : pgLiteQueryOptions
+        const parsers = plainTemporalResultColumns(params) ? pgLitePlainTemporalParsers : pgLiteParsers
+        return paramTypes ? { parsers, paramTypes } : parsers === pgLiteParsers ? pgLiteQueryOptions : pgLitePlainTemporalQueryOptions
     }
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
         return this.rejectWhenRolledBackByTheDatabase() || this.connection.query(query, postgreSqlDriverParams(params), this.queryOptions(params)).then((result) => result.rows, (error) => this.statementOfTheTransactionFailed(error))
@@ -154,7 +156,24 @@ export class PgLiteQueryRunner extends SqlTransactionQueryRunner {
  */
 const pgLiteParsers: NonNullable<QueryOptions['parsers']> = {
     1082: parseUtcDateTimeTextOrKeepIt,
-    1083: (text: string) => text,
+    1083: keepText,
     1114: parseUtcDateTimeTextOrKeepIt,
 }
 const pgLiteQueryOptions: QueryOptions = { parsers: pgLiteParsers }
+/**
+ * The parsers of a query with a Temporal value without zone among its result columns: a `date`, a `time`, a
+ * `timestamp` and a `timestamptz` (1184) are their text, with all their digits, which the connection reads, also for a
+ * localDate, a localTime or a localDateTime, the same way the parsers above do
+ */
+const pgLitePlainTemporalParsers: NonNullable<QueryOptions['parsers']> = {
+    1082: keepText,
+    1083: keepText,
+    1114: keepText,
+    1184: keepText,
+}
+const pgLitePlainTemporalQueryOptions: QueryOptions = { parsers: pgLitePlainTemporalParsers }
+
+/** The text of a value, as the database gives it */
+function keepText(text: string): string {
+    return text
+}

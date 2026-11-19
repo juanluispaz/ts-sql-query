@@ -129,6 +129,7 @@ describe(ctx.label, () => {
             'ForceTypeCast', 'IntType', 'IntegersType', 'InterceptorQueryRunner', 'LocalDateTimeType',
             'LocalDateTimesType', 'LocalDateType', 'LocalDatesType', 'LocalTimeType', 'LocalTimesType',
             'LoggingQueryRunner', 'MockQueryRunner', 'MultipliableType', 'NoExecutionQueryRunner', 'NoopQueryRunner',
+            'PlainDateTimeType', 'PlainDateTimesType', 'PlainDateType', 'PlainDatesType', 'PlainTimeType', 'PlainTimesType',
             'QueryExecutionSource', 'RealsType', 'StringDecimalType', 'StringType', 'Table', 'TsSqlError',
             'TsSqlProcessingError', 'TsSqlQueryExecutionError', 'UuidType', 'UuidsType', 'Values', 'View', 'deepOmit',
             'deepPick', 'dynamicPick', 'dynamicPickPaths', 'expandTypeFromDynamicPickPaths',

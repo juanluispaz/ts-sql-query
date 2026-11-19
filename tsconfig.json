@@ -10,6 +10,9 @@
     "module": "node20",
     "target": "es2023",
     "types": [],
+    // The default libraries of the target, and Temporal (src/typeSystem/temporal.ts): the declarations the library
+    // emits never name Temporal, so a user without it in their lib compiles them
+    "lib": ["es2023", "dom", "dom.iterable", "esnext.temporal"],
     // For nodejs:
     // "lib": ["esnext"],
     // "types": ["node"],

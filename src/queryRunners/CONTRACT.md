@@ -171,9 +171,11 @@ Every rejection is `INVALID_VALUE_TO_SEND_TO_DATABASE`.
 | `localDate` | a valid `Date` | invalid `Date`, non-Date | the `Date` as given (its UTC day is the value) |
 | `localTime` | a valid `Date` | invalid `Date`, non-Date | a new `Date` on 1970-01-01 UTC with the UTC time of the given one; with a database outside UTC, the instant of its own day (§7.3) |
 | `localDateTime` | a valid `Date` | invalid `Date`, non-Date | the `Date` as given (its UTC getters are the digits; the instant for a zoned column) |
+| `plainDate`, `plainTime`, `plainDateTime` | a `Temporal.PlainDate`, `Temporal.PlainTime`, `Temporal.PlainDateTime`, the one of its type | anything else (a `Date`, a text, a Temporal value of another type) | the Temporal value as given |
 | `aggregatedArray` | — | always | — |
 | a type of the user whose family converts nothing, no built-in type | anything | — | the value as given |
 | SQLite temporal | a valid `Date` | invalid `Date`, non-Date | text or number per `SqliteDateTimeFormat` |
+| SQLite `plainDate`, `plainTime`, `plainDateTime` | its Temporal value | as above | text or number per `SqliteDateTimeFormat`: its digits, with the seconds or the milliseconds of the format (the digits below dropped) |
 
 An unsafe integer or `NaN` passes `int` / `double` and reaches the driver; only `Sqlite3WasmOO1QueryRunner` guards the
 integers beyond 64 bits (§2.2).
@@ -184,7 +186,12 @@ Tests: `test/db/<db>/<version>/<connector>/marshalling.transform-validation.test
 only calls it through `next` if it wants), and its result is not validated again. So a runner receives the forms above
 for the built-in types without adapter, and anything for a value with an adapter or of
 a type of the user whose family converts nothing. Every runner is written for that: at execution it converts only a valid `Date` of a
-temporal type, and `addParam` checks a decimal only when it is plain decimal text; anything else is sent as it is.
+temporal type or a Temporal value without zone, and `addParam` checks a decimal only when it is plain decimal text; anything else is
+sent as it is.
+
+Every conversion of a Temporal value reads `Temporal` from the global object when the value is converted (the runtime's,
+or a polyfill's), never when a module is loaded; without it a value of `plainDate`, `plainTime` or `plainDateTime` is
+rejected with `TEMPORAL_NOT_AVAILABLE`.
 
 ### 2.2 `addParam`: placeholder, cast, checks
 
@@ -200,7 +207,7 @@ temporal type, and `addParam` checks a decimal only when it is plain decimal tex
 | `PostgresQueryRunner`, `PgLiteQueryRunner` | `$N`, no cast (the type goes with the param, §2.4); with a database outside UTC, `$N::time` on a `localTime` (§7.3) | — |
 | `MySql2QueryRunner`, `MySql2PoolQueryRunner`, `MariaDBQueryRunner`, `MariaDBPoolQueryRunner`, `BunSqlMySqlQueryRunner`; a mock on MySQL or MariaDB | `?`, or `cast(? as decimal(p, s))` for a decimal outside the value of a column; `BunSqlMySqlQueryRunner` also for a bigint beyond 64 bits, which it sends as text | a decimal with precision > 65 or scale > 30 |
 | `MssqlPoolQueryRunner`, `MssqlPoolPromiseQueryRunner`; a mock on SQL Server | `@N` (0-based), or `cast(@N as decimal(p, s))` for a decimal outside the value of a column | a decimal with precision > 38 |
-| `OracleDBQueryRunner`, `OracleDBPoolQueryRunner`, `OracleDBPoolPromiseQueryRunner`; a mock on Oracle | `:N` (0-based); with a database outside UTC, the casts of §7.3 | a decimal with > 38 significant digits |
+| `OracleDBQueryRunner`, `OracleDBPoolQueryRunner`, `OracleDBPoolPromiseQueryRunner`; a mock on Oracle | `:N` (0-based); with a database outside UTC, the casts of §7.3; a Temporal value without zone, its conversion with a format of its own (`to_date(:N, …)`, `to_timestamp(:N, …)`, §2.5) | a decimal with > 38 significant digits |
 | a mock on `noopDB` | `$N` (0-based) | — |
 
 A rejected decimal is `INVALID_VALUE_TO_SEND_TO_DATABASE` with its `paramIndex`. The digits of a decimal: `-0012.50`
@@ -275,7 +282,7 @@ What the drivers of each database receive, as a copy of the params when a value 
 | `MariaDBQueryRunner`, `MariaDBPoolQueryRunner` | `query({ ...queryOptions, sql }, params)` with the values above | — |
 | `BunSqlMySqlQueryRunner` | `sql.unsafe(query, params)` with the values above, a bigint beyond 64 bits (signed or unsigned), which Bun SQL can't bind, as its text | — |
 | `MssqlPoolQueryRunner`, `MssqlPoolPromiseQueryRunner` | `request.input('<i>', type, value)` for each param, then `request.query(query)`. Type: `driverTypeOf` (a factory or a type with arguments) → by its SQL data type → by its data type → a type of the user without a SQL data type infers it from the value (a string is `NVarChar`) → a param without type infers it from the value (a `Date` the library read keeps its data type for that). tedious writes a `Date` with the UTC getters (`useUTC`, true by default) | `ISqlTypeFactory` / `ISqlType` |
-| `OracleDBQueryRunner`, `OracleDBPoolQueryRunner`, `OracleDBPoolPromiseQueryRunner` | `execute(query, binds, options)`, binds by name `{ '0': …, '1': … }`: the type `driverTypeOf` gives → `{ val, type }`; in `executeProcedure`, or in any query with `booleanStorage: 'boolean'`, a boolean param (`1`/`0`/null, or a boolean) → `{ val: true/false/null, type: DB_TYPE_BOOLEAN }` (PL/SQL has BOOLEAN on every version); a boolean RETURNING OUT bind gets `DB_TYPE_BOOLEAN` only with `booleanStorage: 'boolean'` (with `'number'` it has no type and comes back as text); a temporal `Date` as above; a null of a number or temporal type → `{ val: null, type }`; else the value. `executeFunction` binds as any other query. RETURNING OUT binds (`{ dir: BIND_OUT, type }`): a declared type gets it with a `maxSize`; a temporal one `DB_TYPE_TIMESTAMP_TZ`; any other (a text, a number) no type and a `maxSize`, so it comes back as text. `maxSize` is the one `driverTypeOf` gives (`{ type, maxSize }`), else the `returningMaxSize` of the runner, else 32767. A `Lob` OUT value (a CLOB `driverTypeOf` gives) is read whole | `DbType` or `{ type, maxSize }`, also for OUT binds |
+| `OracleDBQueryRunner`, `OracleDBPoolQueryRunner`, `OracleDBPoolPromiseQueryRunner` | `execute(query, binds, options)`, binds by name `{ '0': …, '1': … }`: the type `driverTypeOf` gives → `{ val, type }`; in `executeProcedure`, or in any query with `booleanStorage: 'boolean'`, a boolean param (`1`/`0`/null, or a boolean) → `{ val: true/false/null, type: DB_TYPE_BOOLEAN }` (PL/SQL has BOOLEAN on every version); a boolean RETURNING OUT bind gets `DB_TYPE_BOOLEAN` only with `booleanStorage: 'boolean'` (with `'number'` it has no type and comes back as text); a temporal `Date` as above; a Temporal value without zone as its text (§2.5); a null of a number or temporal type → `{ val: null, type }`; else the value. `executeFunction` binds as any other query. RETURNING OUT binds (`{ dir: BIND_OUT, type }`): a declared type gets it with a `maxSize`; a temporal one `DB_TYPE_TIMESTAMP_TZ`; any other (a text, a number) no type and a `maxSize`, so it comes back as text. `maxSize` is the one `driverTypeOf` gives (`{ type, maxSize }`), else the `returningMaxSize` of the runner, else 32767. A `Lob` OUT value (a CLOB `driverTypeOf` gives) is read whole | `DbType` or `{ type, maxSize }`, also for OUT binds |
 | `BetterSqlite3QueryRunner` | `prepare(query).all/run({ 1: p0, 2: p1, … })` | — |
 | `BunSqliteQueryRunner` | `prepare(query).all/run(...params)` | — |
 | `NodeSqliteQueryRunner` | `prepare(query).all/run(...params)` | — |
@@ -304,6 +311,9 @@ After `transformValueToDB` without adapter, `addParam` and the work of execution
 | localDate | `YYYY-MM-DD` (UTC day); forced: `date` | `YYYY-MM-DD` (UTC day) | the Date, `Date` | `DATE` of the UTC day | per `SqliteDateTimeFormat` |
 | localTime | `HH:MM:SS.mmm` (UTC); forced: `time` | `HH:MM:SS.mmm` (UTC) | the Date on 1970-01-01 UTC, `Time` | `TIMESTAMP` on 1970-01-01, the UTC digits | per format |
 | localDateTime | `YYYY-MM-DD HH:MM:SS.mmm+00`; forced: `timestamp` | `YYYY-MM-DD HH:MM:SS.mmm` (UTC) | the Date, `DateTime2` | `TIMESTAMP`, the UTC digits | per format |
+| plainDate | `YYYY-MM-DD`, a year before 1 as `0044-03-15 BC`; forced: `date` | `YYYY-MM-DD` | a Date at 00:00 UTC of its day, `Date` | text `YYYY-MM-DD AD`, the placeholder `to_date(:N, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')` | per `SqliteDateTimeFormat` |
+| plainTime | `HH:MM:SS[.fffffffff]`, every digit it has; forced: `time` | `HH:MM:SS[.fffffffff]` | a Date on 1970-01-01 UTC with its `nanosecondDelta`, `Time` | text `1970-01-01 HH:MM:SS.fffffffff AD`, the placeholder `to_timestamp(:N, 'YYYY-MM-DD HH24:MI:SS.FF9 BC', …)` | per format |
+| plainDateTime | `YYYY-MM-DD HH:MM:SS[.fffffffff]`, without an offset (a wall clock: the database completes no zone); forced: `timestamp` | `YYYY-MM-DD HH:MM:SS[.fffffffff]` | a Date with its UTC getters and its `nanosecondDelta`, `DateTime2`; of a `datetime` or `smalldatetime` column, that type | text `YYYY-MM-DD HH:MM:SS.fffffffff AD` with `to_timestamp`, or, as the value of a DATE column of whole seconds, `YYYY-MM-DD HH:MM:SS AD` with `to_date(:N, 'YYYY-MM-DD HH24:MI:SS BC', …)` | per format |
 | a type of the user whose family converts nothing | as given; forced: type of the JS value or none | as given | a string `NVarChar`, otherwise inferred from the value | as given | as given (a boolean `1`/`0`, except bun:sqlite and Bun SQL) |
 | null of a built-in type (or of a family that converts) | forced: the type's cast/OID | null | the type's type | typed by its type (number, timestamp), otherwise untyped | null |
 
@@ -375,14 +385,14 @@ their own queries.
 
 | Runner | Per query / statement | Delivers | Tests |
 |---|---|---|---|
-| `PgQueryRunner`, `PgPoolQueryRunner` | `types`, built once per client: `date` (1082) and `timestamp` (1114) in text format parsed as a `Date` whose UTC getters are the digits (`infinity` stays text); every other type with the client's parser (the user's parsers apply) | `date`/`timestamp` as UTC Date; the rest as the client parses it (pg defaults: `int8`, `numeric`, `time`, `timetz` and a count as text; `timestamptz` an instant Date; `int4`, `float8` numbers; `bool` boolean) | `test/runners/postgres/DeliveredValues.test.ts`, `test/runners/postgres/DriverConfiguration.test.ts` (`a-date-and-a-timestamp-are-read-as-utc-and-the-other-parsers-of-the-client-apply`, `the-types-of-the-pool-apply-to-the-other-types`) |
-| `PostgresQueryRunner` | nothing for reading | postgres.js defaults; `date`/`timestamp` with UTC digits in any zone of the process, unless `infer` (§5) | `test/environments/postgres/LocalTemporalValuesInAnyZone.test.ts` |
-| `PgLiteQueryRunner` | `parsers` merged over the database's: `date` and `timestamp` as pg's above, `time` (1083) as its text | those three as above; any other type with PGlite's or the user's parser | `test/runners/postgres/DriverConfiguration.test.ts` (`a-date-a-time-and-a-timestamp-are-read-as-the-library-reads-them-and-the-other-parsers-apply`) |
-| `BunSqlPostgresQueryRunner`, `BunSqlMySqlQueryRunner` | nothing | Bun SQL defaults: UTC Dates (MySQL: Bun sets the session at `+00:00`, measured), text for times | the `LocalTemporalValuesInAnyZone` tests of PostgreSQL, MySQL and MariaDB |
+| `PgQueryRunner`, `PgPoolQueryRunner` | `types`, built once per client: `date` (1082) and `timestamp` (1114) in text format parsed as a `Date` whose UTC getters are the digits (`infinity` stays text); every other type with the client's parser (the user's parsers apply). In a query with a `plainDate`, `plainTime` or `plainDateTime` result column, `date`, `time`, `timestamp` and `timestamptz` as their text | `date`/`timestamp` as UTC Date; the rest as the client parses it (pg defaults: `int8`, `numeric`, `time`, `timetz` and a count as text; `timestamptz` an instant Date; `int4`, `float8` numbers; `bool` boolean) | `test/runners/postgres/DeliveredValues.test.ts`, `test/runners/postgres/DriverConfiguration.test.ts` (`a-date-and-a-timestamp-are-read-as-utc-and-the-other-parsers-of-the-client-apply`, `the-types-of-the-pool-apply-to-the-other-types`) |
+| `PostgresQueryRunner` | nothing for reading, except a query with a `plain…` result column: read `raw`, each value as its text, and each column through the parser postgres.js has for its type, except the `plain…` ones, which stay text | postgres.js defaults; `date`/`timestamp` with UTC digits in any zone of the process, unless `infer` (§5) | `test/environments/postgres/LocalTemporalValuesInAnyZone.test.ts` |
+| `PgLiteQueryRunner` | `parsers` merged over the database's: `date` and `timestamp` as pg's above, `time` (1083) as its text; in a query with a `plain…` result column, `date`, `time`, `timestamp` and `timestamptz` as their text | those three as above; any other type with PGlite's or the user's parser | `test/runners/postgres/DriverConfiguration.test.ts` (`a-date-a-time-and-a-timestamp-are-read-as-the-library-reads-them-and-the-other-parsers-apply`) |
+| `BunSqlPostgresQueryRunner`, `BunSqlMySqlQueryRunner` | nothing | Bun SQL defaults: UTC Dates (MySQL: Bun sets the session at `+00:00`, measured), text for times; a `plain…` column of a `timestamp` or a `datetime` loses the digits below the millisecond (Bun SQL gives a Date, and its `raw` values are binary): a limit of the driver | the `LocalTemporalValuesInAnyZone` tests of PostgreSQL, MySQL and MariaDB |
 | `BunSqlSqliteQueryRunner` | nothing | numbers, text; dates as stored per format (SQLite has no date types) | `test/runners/sqlite/BunSqlSqliteQueryRunner.test.ts` |
 | `MySql2QueryRunner`, `MySql2PoolQueryRunner` | `dateStrings: true`, `supportBigNumbers: true`, `bigNumberStrings: true`, `rowsAsArray: false`; and its own `typeCast` (DECIMAL/NEWDECIMAL as their text, else `next()`) when the connection has a `typeCast` function, `typeCast: false` or `decimalNumbers: true`, since a typeCast given with the query replaces the connection's | DATE/DATETIME/TIMESTAMP/TIME as text; BIGINT and DECIMAL as exact text; objects | `test/runners/mysql/DriverConfiguration.test.ts` (`a-connection-with-type-cast-false-doesnt-change-the-queries-of-the-runner`), `test/runners/mysql/DeliveredValues.test.ts` |
 | `MariaDBQueryRunner`, `MariaDBPoolQueryRunner` | `dateStrings: true`, `supportBigNumbers: false`, `bigIntAsNumber: false`, `decimalAsNumber: false`, `insertIdAsNumber: false`, `rowsAsArray: false`, `metaAsArray: false`, `nestTables: false`, `typeCast: undefined` (each replaces the connection's) | dates as text; BIGINT and insert id as `bigint`; DECIMAL as text; objects | `test/runners/mariadb/DriverConfiguration.test.ts`, `test/runners/mariadb/DeliveredValues.test.ts` |
-| `MssqlPoolQueryRunner`, `MssqlPoolPromiseQueryRunner` | `request.arrayRowMode = false` | tedious defaults: BIGINT as text, INT and DECIMAL as numbers (the connection converts decimal result columns to `nvarchar(41)`), BIT as a boolean; dates with the UTC getters (`useUTC`), the instant for `datetimeoffset` | `test/runners/sqlserver/DeliveredValues.test.ts`, `test/runners/sqlserver/DriverConfiguration.test.ts` (`the-rows-are-objects-with-array-row-mode-on-the-pool`) |
+| `MssqlPoolQueryRunner`, `MssqlPoolPromiseQueryRunner` | `request.arrayRowMode = false`; a `plain…` result column is given as the text of the Date tedious delivers with the digits below the millisecond it keeps apart (`nanosecondsDelta`): `YYYY-MM-DDTHH:MM:SS.fffffff` | tedious defaults: BIGINT as text, INT and DECIMAL as numbers (the connection converts decimal result columns to `nvarchar(41)`), BIT as a boolean; dates with the UTC getters (`useUTC`), the instant for `datetimeoffset` | `test/runners/sqlserver/DeliveredValues.test.ts`, `test/runners/sqlserver/DriverConfiguration.test.ts` (`the-rows-are-objects-with-array-row-mode-on-the-pool`) |
 | `OracleDBQueryRunner`, `OracleDBPoolQueryRunner`, `OracleDBPoolPromiseQueryRunner` | `outFormat: OUT_FORMAT_OBJECT`, `maxRows: 0`, a `fetchTypeHandler` answering every column: a result column of an exact decimal or of an integer wider than a number (by name, or the only column of an unnamed one-value result) → `DB_TYPE_VARCHAR`; `DATE`/`TIMESTAMP` → the `Date` rebuilt with its local getters as UTC; CLOB/NCLOB → string; BLOB → Buffer; else its own type | decimals and bigints as text; DATE/TIMESTAMP as UTC Date (exact except a wall clock skipped by summer time in the zone of the process, and years < 100 built as 19xx by oracledb); NUMBER as number; RETURNING OUT binds as in §2.4 | `test/runners/oracle/OracleDBResultTypes.test.ts`, `test/environments/oracle/LocalTemporalValuesInAnyZone.test.ts` |
 | `BetterSqlite3QueryRunner`, `BunSqliteQueryRunner` | nothing (`safeIntegers` not forced) | numbers, or `bigint` with the driver's big-integer mode; text; dates as stored per format | the tests of each runner in `test/runners/sqlite/` |
 | `NodeSqliteQueryRunner` | `setReturnArrays(false)` per statement, where the method exists (Node 22.16 and 24); `readBigInts` not forced | objects even on a database opened with `returnArrays: true`; numbers, or `bigint` with `readBigInts` | `test/runners/sqlite/NodeSqliteQueryRunner.test.ts` (`the-rows-are-objects-with-return-arrays-on-the-database`) |
@@ -436,9 +446,11 @@ Common: `undefined` and `null` → `null`; `''` → `null` unless `allowEmptyStr
 | `localDate` | valid Date, read with its UTC getters, or temporal text (§3.4) → a new Date at 10:00 UTC of the UTC day of the received one | — | anything else, invalid Date, unparsable text, text outside the calendar |
 | `localTime` | same inputs → a Date on 1970-01-01 with the UTC time of the received one; with a database outside UTC, the instant read, on its own day (§7.3) | — | same |
 | `localDateTime` | same inputs → the received Date (the parsed one for text) | — | same |
+| `plainDate`, `plainTime`, `plainDateTime` | its Temporal value as it is; a `Temporal.PlainDateTime` → its day (`plainDate`) or its time (`plainTime`); a `Temporal.PlainDate` → at 00:00 (`plainDateTime`); temporal text (§3.4) with every digit of its fraction up to the nanosecond, and with an offset the instant it gives in the zone of the database (the wall clock of the session that wrote it); a valid Date, by its UTC getters | — | anything else (a number too), invalid Date, unparsable text, text outside the calendar |
 | `aggregatedArray` | — (each leaf is converted by its own type, §1) | — | always |
 | other | as it is | — | — |
 | SQLite temporal | Date, text, number or bigint per `SqliteDateTimeFormat` and the `treatUnexpected*` options | — | other types, invalid result, text outside the calendar (§3.4) |
+| SQLite `plainDate`, `plainTime`, `plainDateTime` | a number or a bigint (or its text) read as a local temporal type reads it (a Julian day, a Unix time) and taken by its UTC digits; anything else as above | — | as above |
 
 A temporal `Date` the library returns keeps its data type, so `MssqlPoolQueryRunner` sends it back with its type when
 it is given without one.
@@ -458,6 +470,10 @@ offset = optional blanks, then Z | ±HH | ±HH[:]MM | ±HH[:]MM[:]SS
 - A date alone is at 00:00; a time alone is on 1970-01-01.
 - The fraction is truncated to milliseconds; every year is read as written (`0099` is 99); `BC` gives `1 - year`
   (`0044 BC` → −43).
+- For a `plainDate`, a `plainTime` or a `plainDateTime` the same grammar, with an era also as ` AD` (Oracle writes
+  it always): the fraction keeps every digit up to the nanosecond (the ones beyond are dropped), and with an offset the
+  result is the wall clock of the instant it gives in the zone of the database (`databaseTimeZone`), the wall clock of
+  the session that wrote it.
 - Rejected when the text doesn't match, or its digits are outside the calendar: month ∉ 1..12, a day the month doesn't
   have (`2024-02-30`, kept by MySQL/MariaDB with `ALLOW_INVALID_DATES`; a zero date `0000-00-00`), hours > 23 (the end
   of the day `24:00:00`, accepted by PostgreSQL `time` and MySQL/MariaDB `TIME`), minutes or seconds > 59. SQLite
@@ -642,8 +658,14 @@ with its offset (the `…+00` text of PostgreSQL) or as its UTC digits (MySQL, M
 or `TIMESTAMP` bind). Once stored in a column without zone, those digits mean that moment only when the database
 is in UTC (§7.3). The missing information is on the way back: a value the database holds without zone isn't anchored
 to a moment, and it has to fit in a `Date`, which is; what is missing is the zone it is completed with. Sending a value
-that the user means as unanchored (a wall clock of their own, one day a Temporal value) takes the user declaring that
-intent, never a choice of the library.
+that the user means as unanchored (a wall clock of their own) takes the user declaring that intent, never a choice of
+the library: the `plainDate`, `plainTime` and `plainDateTime` types declare it. Their values are Temporal values without
+zone (`Temporal.PlainDate`, `Temporal.PlainTime`, `Temporal.PlainDateTime`): they aren't anchored to a moment, so they
+travel as their digits, as text without an offset (or the form a driver needs with the same digits, §2.5), the database
+stores them as they are in a column without zone and completes them with the zone of its session where it needs one,
+and they come back as the digits the database gives, with every digit of the fraction of a second it keeps. No zone of
+the process nor UTC takes part, and `databaseTimeZone` only says which wall clock a text with an offset is read as
+(§3.4).
 
 The pieces in between face the same missing information: a driver that gets a value without zone and has to
 deliver a `Date` completes it somehow (with the zone of the process, of the session, or as UTC), and a database

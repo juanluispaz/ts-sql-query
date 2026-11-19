@@ -136,6 +136,15 @@ export {
 } from '../../typeSystem/localDates.js'
 
 export {
+    PlainDateTimeType,
+    PlainDateTimesType,
+    PlainDateType,
+    PlainDatesType,
+    PlainTimeType,
+    PlainTimesType,
+} from '../../typeSystem/plainDates.js'
+
+export {
     EnumType,
 } from '../../typeSystem/enum.js'
 

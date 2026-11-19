@@ -1138,6 +1138,21 @@ export const tTemporalPrecision = new class TTemporalPrecision extends Table<DBC
     constructor() { super('temporal_precision') }
 }()
 
+// The same temporal_precision and col_matrix columns read as Temporal values without zone (plainDate, plainTime,
+// plainDateTime), which keep every digit of the fraction of a second the database has
+export const tTemporalPrecisionPlain = new class TTemporalPrecisionPlain extends Table<DBConnection, 'TTemporalPrecisionPlain'> {
+    id         = this.primaryKey('id', 'int')
+    microStamp = this.column('micro_stamp', 'plainDateTime')
+    constructor() { super('temporal_precision') }
+}()
+export const tColMatrixPlain = new class TColMatrixPlain extends Table<DBConnection, 'TColMatrixPlain'> {
+    id        = this.primaryKey('id', 'int')
+    mDate     = this.column('m_date', 'plainDate')
+    mTime     = this.column('m_time', 'plainTime')
+    mDatetime = this.column('m_datetime', 'plainDateTime')
+    constructor() { super('col_matrix') }
+}()
+
 // Time-tracking worklog: surfaces the date-only / time-only / nullable
 // bigint / nullable plain-boolean / optional-with-default / plain-enum
 // column kinds the original four tables don't expose.

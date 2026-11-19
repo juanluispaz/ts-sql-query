@@ -13,7 +13,10 @@ import { __createAggregateFunction1, __createAggregateFunction1or2, __createAggr
 import type { QueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import type { SameDB } from '../utils/ITableOrView.js'
 import type { SqlDataType, SqlDataTypeNative, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
-import { __isBigintClass, __isLocalDateClass, __isLocalDateTimeClass, __isLocalTimeClass } from '../typeSystem/dataTypeQuestions.js'
+import { __isBigintClass, __isLocalDateClass, __isLocalDateTimeClass, __isLocalTimeClass, __isPlainDateClass, __isPlainTimeClass } from '../typeSystem/dataTypeQuestions.js'
+import { isPlainTemporalClass } from '../utils/plainTemporalValues.js'
+import { plainDateText } from '../utils/plainDateTimeText.js'
+import { __temporal, type TemporalPlainDate, type TemporalPlainDateTime, type TemporalPlainTime } from '../typeSystem/temporal.js'
 import { __isExactDecimalSql } from '../typeSystem/dataTypes.js'
 import { isDateTimeTextOutOfCalendar } from '../utils/utcDateTimeText.js'
 import type { TypedValueSource } from '../typeSystem/valueSource.js'
@@ -213,6 +216,16 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
 
     protected override transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext): unknown {
         if (value === undefined || value == null || (value === '' && !this.allowEmptyString)) {
+            return super.transformValueFromDB(value, context)
+        }
+        if (isPlainTemporalClass(context.requestedType)) {
+            // A Temporal value without zone kept as a number (a Julian day, a Unix time) is read as the digits of the
+            // UTC instant it gives; a text is read by the connection, with all its digits
+            const kind: SqliteDateTimeFormatType = __isPlainDateClass(context.requestedType) ? 'date' : __isPlainTimeClass(context.requestedType) ? 'time' : 'dateTime'
+            const number = typeof value === 'number' || typeof value === 'bigint' ? Number(value) : typeof value === 'string' && value.trim() !== '' && !isNaN(+value) ? +value : undefined
+            if (number !== undefined) {
+                return super.transformValueFromDB(new Date(this.__sqliteMillisecondsOfNumber(number, kind)), context)
+            }
             return super.transformValueFromDB(value, context)
         }
         if (__isLocalDateClass(context.requestedType)) {
@@ -480,6 +493,29 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
         }
         return super.transformValueFromDB(value, context)
     }
+    /**
+     * The milliseconds since 1970-01-01 UTC of a date or a time kept as a number, as a localDate, a localTime or a
+     * localDateTime reads it: a Julian day (of a time, the fraction of a day since midnight, or a Julian day near
+     * 1970-01-01), or a Unix time in seconds or milliseconds, by the format of its type; with a format that isn't a
+     * number, a number with a fraction is a Julian day, and an integer a Unix time (treatUnexpectedIntegerDateTimeAsJulian,
+     * unexpectedUnixDateTimeAreMilliseconds)
+     */
+    private __sqliteMillisecondsOfNumber(number: number, kind: SqliteDateTimeFormatType): number {
+        const dateTimeFormat = this.getDateTimeFormat(kind)
+        if (dateTimeFormat === 'Julian day as real number') {
+            return julianToMilliseconds(kind === 'time' ? number + 2440587.5 /* 1970-01-01 */ : number)
+        }
+        if (dateTimeFormat === 'Unix time seconds as integer') {
+            return number * 1000
+        }
+        if (dateTimeFormat === 'Unix time milliseconds as integer') {
+            return number
+        }
+        if (this.treatUnexpectedIntegerDateTimeAsJulian || !Number.isInteger(number)) {
+            return julianToMilliseconds(kind === 'time' && number >= -1 && number <= 1 ? number + 2440587.5 /* 1970-01-01 */ : number)
+        }
+        return this.unexpectedUnixDateTimeAreMilliseconds ? number : number * 1000
+    }
     protected override transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext): unknown {
         if (value === undefined || value == null || (value === '' && !this.allowEmptyString)) {
             return super.transformValueToDB(value, context)
@@ -490,7 +526,13 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
             if (typeof value === 'bigint') {
                 return value.toString()
             }
-            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: context.requestedType.type }, 'Invalid bigint value to send to the db: ' + value)
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: context.requestedType.type }, 'Invalid bigint value to send to the db: ' + String(value))
+        }
+        if (isPlainTemporalClass(context.requestedType)) {
+            // Checked by the connection: a Temporal value of the type, kept in the format of its type (getDateTimeFormat)
+            const checked = super.transformValueToDB(value, context)
+            const kind: SqliteDateTimeFormatType = __isPlainDateClass(context.requestedType) ? 'date' : __isPlainTimeClass(context.requestedType) ? 'time' : 'dateTime'
+            return sqlitePlainTemporalValue(checked as TemporalPlainDate | TemporalPlainTime | TemporalPlainDateTime, kind, this.getDateTimeFormat(kind))
         }
         if (__isLocalDateClass(context.requestedType)) {
             if (value instanceof Date && !isNaN(value.getTime())) {
@@ -683,4 +725,39 @@ function sqliteFamilyOf(nativeName: string): SqlDataType {
         case 'json': return { family: 'document', format: 'json' }
     }
     return { family: 'user-defined', name: nativeName.trim() }
+}
+
+/**
+ * A Temporal value without zone in the format SQLite keeps its type in (getDateTimeFormat): its digits as text, with
+ * the seconds or the milliseconds the format says (the digits below are dropped), the `T` separator and the `Z` of the
+ * format (a value without zone has the same digits in every zone); or the number of the instant its digits give in UTC:
+ * a Julian day (of a time, the fraction of a day since midnight), or a Unix time in seconds or milliseconds
+ */
+function sqlitePlainTemporalValue(value: TemporalPlainDate | TemporalPlainTime | TemporalPlainDateTime, kind: SqliteDateTimeFormatType, dateTimeFormat: SqliteDateTimeFormat): string | number {
+    const dateTime: TemporalPlainDateTime = kind === 'date' ? (value as TemporalPlainDate).toPlainDateTime() : kind === 'time' ? onTheEpochDay(value as TemporalPlainTime) : value as TemporalPlainDateTime
+    const milliseconds = dateTime.toZonedDateTime('UTC').epochMilliseconds
+    switch (dateTimeFormat) {
+        case 'Julian day as real number':
+            return kind === 'time' ? millisecondsToJulian(milliseconds) - 2440587.5 /* 1970-01-01 */ : millisecondsToJulian(milliseconds)
+        case 'Unix time seconds as integer':
+            return Math.trunc(milliseconds / 1000)
+        case 'Unix time milliseconds as integer':
+            return milliseconds
+        default:
+    }
+    const withMilliseconds = dateTimeFormat.includes('milliseconds')
+    const time = doubleDigit(dateTime.hour) + ':' + doubleDigit(dateTime.minute) + ':' + doubleDigit(dateTime.second) + (withMilliseconds ? '.' + tripleDigit(dateTime.millisecond) : '')
+    const zone = dateTimeFormat.includes('Z timezone') ? 'Z' : ''
+    if (kind === 'date') {
+        return plainDateText(dateTime)
+    }
+    if (kind === 'time') {
+        return time + zone
+    }
+    return plainDateText(dateTime) + (dateTimeFormat.includes('T separator') ? 'T' : ' ') + time + zone
+}
+
+/** The time of the day on 1970-01-01, the day a time kept as a number counts from */
+function onTheEpochDay(value: TemporalPlainTime): TemporalPlainDateTime {
+    return (__temporal('plainTime').PlainDate.from({ year: 1970, month: 1, day: 1 })).toPlainDateTime(value)
 }

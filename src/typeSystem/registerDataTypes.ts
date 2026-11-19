@@ -6,6 +6,7 @@ import { StringDecimalType } from './decimals.js'
 import { StringType } from './strings.js'
 import { UuidType } from './uuids.js'
 import { LocalDateTimeType, LocalDateType, LocalTimeType } from './localDates.js'
+import { PlainDateTimeType, PlainDateType, PlainTimeType } from './plainDates.js'
 
 // THE ONLY MODULE OF THE LIBRARY WITH SIDE EFFECTS (declared in `sideEffects` of package.json): it registers the data
 // types of the library in dataTypeRegistry.ts when it is loaded, the same way the user registers its own ones. The
@@ -24,4 +25,7 @@ __registerDataType('uuid', UuidType)
 __registerDataType('localDate', LocalDateType)
 __registerDataType('localTime', LocalTimeType)
 __registerDataType('localDateTime', LocalDateTimeType)
+__registerDataType('plainDate', PlainDateType)
+__registerDataType('plainTime', PlainTimeType)
+__registerDataType('plainDateTime', PlainDateTimeType)
 

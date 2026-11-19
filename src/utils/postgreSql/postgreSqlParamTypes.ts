@@ -2,6 +2,7 @@ import type { DataTypeClass } from '../../TypeAdapter.js'
 import { __sqlDataTypeDescribes, __temporalFieldsOf, __typeSqlDataTypeOf } from '../../typeSystem/dataTypes.js'
 import { connectionClassIdOf, keepDerivedOfSqlDataType, keptDerivedOfSqlDataType } from '../sqlDataTypeNames.js'
 import { utcDateText, utcTimeText } from '../utcDateTimeText.js'
+import { plainTemporalText } from '../plainTemporalValues.js'
 import { postgreSqlZonedParam } from '../metadataSymbols.js'
 import { existingParamContextOf, existingQueryContextOf } from '../../internal/QueryContextImpl.js'
 
@@ -235,13 +236,15 @@ export function postgreSqlDriverParams(params: any[]): any[] {
         const value = params[i]
         const param = existingParamContextOf(params, i)
         const requestedType = param?.requestedType
-        if (!(value instanceof Date) || requestedType === undefined) {
+        // A Temporal value without zone goes as its text, with all the digits of its fraction of a second
+        const plainText = plainTemporalText(value, true)
+        if (plainText === undefined && (!(value instanceof Date) || requestedType === undefined)) {
             continue
         }
         if (!result) {
             result = params.slice()
         }
-        result[i] = postgreSqlParamValue(value, requestedType, isPostgreSqlZonedParam(params, i))
+        result[i] = plainText ?? postgreSqlParamValue(value, requestedType, isPostgreSqlZonedParam(params, i))
     }
     return result ?? params
 }

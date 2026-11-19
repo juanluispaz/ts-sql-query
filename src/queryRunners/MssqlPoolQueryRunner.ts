@@ -6,6 +6,9 @@ import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from "../TsSq
 import { getMssqlErrorReason, isMssqlError } from './connectorErrorMappers/MssqlErrorMapper.js'
 import { isProcessInUtc } from '../utils/processTimeZone.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
+import { isPlainTemporalValue, plainTemporalResultColumns } from '../utils/plainTemporalValues.js'
+import { sqlServerTemporalDate, sqlServerTemporalText } from '../utils/sqlServer/sqlServerParamTypes.js'
+import { __temporalIfAvailable } from '../typeSystem/temporal.js'
 import { __sqlDataTypeDescribes, __typeSqlDataTypeOf } from '../typeSystem/dataTypes.js'
 import { existingParamContextOf, existingQueryContextOf } from '../internal/QueryContextImpl.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
@@ -101,6 +104,16 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
         return req.query(query).then((result) => {
             if (!result.recordset) {
                 return []
+            }
+            const plainTemporalColumns = plainTemporalResultColumns(params)
+            if (plainTemporalColumns) {
+                // A Temporal value without zone is read as its text, with the digits below the millisecond that
+                // tedious keeps apart
+                for (const row of result.recordset) {
+                    for (const name of plainTemporalColumns) {
+                        row[name] = sqlServerTemporalText(row[name])
+                    }
+                }
             }
             return result.recordset
         }, (error) => this.statementFailed(error))
@@ -324,7 +337,7 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
             const length = sqlDataType.length
             return TYPES.VarChar(length !== undefined && !sqlDataType.largeObject && value.length <= length ? length : mssql.MAX)
         }
-        if (sqlDataType.family === 'datetime' && sqlDataType.fields === 'timestamp' && (value instanceof Date || value === null)) {
+        if (sqlDataType.family === 'datetime' && sqlDataType.fields === 'timestamp' && (value instanceof Date || value === null || isPlainTemporalValue(value))) {
             const native = existingQueryContextOf(params)?.connectionConfiguration?.nativeSqlDataTypeOf(sqlDataType)
             if (native === 'datetime') {
                 return { type: TYPES.DateTime }
@@ -425,6 +438,10 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
                 default:
                     return TYPES.DateTime2; // Maybe: TYPES.DateTimeOffset
             }
+        } else if (isPlainTemporalValue(value)) {
+            // A Temporal value without zone: a PlainDate, a PlainTime or a PlainDateTime
+            const temporal = __temporalIfAvailable()!
+            return value instanceof temporal.PlainDate ? TYPES.Date : value instanceof temporal.PlainTime ? TYPES.Time : TYPES.DateTime2
         } else if (typeof value === 'string') {
             if (/^-?\d+$/.test(value)) {
                 if (value.length > 9) {
@@ -466,5 +483,6 @@ function driverValueOf(type: ISqlType, value: unknown): unknown {
     if ((typeof value === 'bigint' || typeof value === 'number') && type.type === TYPES.NVarChar) {
         return String(value)
     }
-    return value
+    // A Temporal value without zone goes as the Date tedious binds with all its digits
+    return sqlServerTemporalDate(value) ?? value
 }

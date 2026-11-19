@@ -10,7 +10,7 @@ import type { SameDB } from '../utils/ITableOrView.js'
 import type { Default } from '../expressions/Default.js'
 import { DefaultImpl } from '../expressions/Default.js'
 import type { SqlDataType, SqlDataTypeNative, TypeAdapterProjectionContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
-import { __isBooleanClass, __isLocalDateTimeClass, __isLocalTimeClass } from '../typeSystem/dataTypeQuestions.js'
+import { __isBooleanClass, __isLocalDateTimeClass, __isLocalTimeClass, __isPlainDateClass, __isPlainDateTimeClass, __isPlainTimeClass } from '../typeSystem/dataTypeQuestions.js'
 import { oracleZonedParam } from '../utils/metadataSymbols.js'
 import type { ValueSourceOf, TypedValueSource } from '../typeSystem/valueSource.js'
 import type { IValueSource, RemapValueSourceTypeWithOptionalType, ValueSource } from '../typeSystem/base.js'
@@ -216,6 +216,19 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
             const zoned = oracleZonedValueSql(sql, context.requestedType, this.localTimeReferenceDate)
             if (zoned) {
                 return zoned
+            }
+        }
+        if (context.output === 'resultColumn') {
+            // oracledb delivers a DATE or a TIMESTAMP as a Date, which drops the digits below the millisecond: a
+            // Temporal value without zone leaves the database as its text, with the era always written (Oracle has no
+            // year 0), in English whatever the language of the session. It compares like the value but doesn't order like it (a year BC)
+            if (__isPlainDateClass(context.requestedType)) {
+                context.comparison = 'equality'
+                return "to_char(" + sql + ", 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')"
+            }
+            if (__isPlainTimeClass(context.requestedType) || __isPlainDateTimeClass(context.requestedType)) {
+                context.comparison = 'equality'
+                return "to_char(cast(" + sql + " as timestamp(9)), 'YYYY-MM-DD\"T\"HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN')"
             }
         }
         return super.transformProjection(sql, context)

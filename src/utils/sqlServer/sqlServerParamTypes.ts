@@ -2,6 +2,8 @@ import type { DataTypeClass } from '../../TypeAdapter.js'
 import { exactDecimalDigitsOf, rejectExactDecimalParam } from '../exactDecimalParams.js'
 import { __typeSqlDataTypeOf } from '../../typeSystem/dataTypes.js'
 import { existingParamContextOf } from '../../internal/QueryContextImpl.js'
+import { __temporalIfAvailable, type TemporalPlainDateTime, type TemporalPlainTime } from '../../typeSystem/temporal.js'
+import { utcDateText, utcTimeText } from '../utcDateTimeText.js'
 
 /**
  * The placeholder of a parameter on SQL Server, for every query runner of it. An exact number sent as its text (a
@@ -30,4 +32,48 @@ export function sqlServerPlaceholder(placeholder: string, params: any[], index: 
         return placeholder
     }
     return 'cast(' + placeholder + ' as decimal(' + digits.precision + ', ' + digits.scale + '))'
+}
+
+/**
+ * The Date tedious binds a Temporal value without zone with, as a date, a time or a datetime2: the digits of the value
+ * in its UTC getters (the query runners bind with useUTC), and the digits below the millisecond in its
+ * `nanosecondDelta` (in seconds), which tedious adds to the value it writes, so a datetime2(7) and a time(7) get all of
+ * them. Undefined for any other value. Made when the query is executed: the params keep the Temporal value.
+ */
+export function sqlServerTemporalDate(value: unknown): Date | undefined {
+    const temporal = __temporalIfAvailable()
+    if (!temporal || value === null || typeof value !== 'object') {
+        return undefined
+    }
+    const result: any = new Date(0)
+    if (value instanceof temporal.PlainDate) {
+        result.setUTCFullYear(value.year, value.month - 1, value.day)
+        return result
+    }
+    let time: TemporalPlainTime | TemporalPlainDateTime
+    if (value instanceof temporal.PlainDateTime) {
+        result.setUTCFullYear(value.year, value.month - 1, value.day)
+        time = value
+    } else if (value instanceof temporal.PlainTime) {
+        time = value
+    } else {
+        return undefined
+    }
+    result.setUTCHours(time.hour, time.minute, time.second, time.millisecond)
+    result.nanosecondDelta = (time.microsecond * 1000 + time.nanosecond) / 1_000_000_000
+    return result
+}
+
+/**
+ * The text of a date, a time or a datetime2 that tedious delivers as a Date: its UTC getters, and the digits below the
+ * millisecond, which tedious keeps apart in its `nanosecondsDelta` (in seconds): `YYYY-MM-DDTHH:MM:SS.fffffff`, for a
+ * Temporal value without zone, which the connection reads with all its digits. Any other value is given as it is.
+ */
+export function sqlServerTemporalText(value: unknown): unknown {
+    if (!(value instanceof Date) || isNaN(value.getTime())) {
+        return value
+    }
+    const delta = (value as any).nanosecondsDelta
+    const hundredsOfNanoseconds = typeof delta === 'number' ? Math.round(delta * 10_000_000) : 0
+    return utcDateText(value) + 'T' + utcTimeText(value) + String(hundredsOfNanoseconds).padStart(4, '0')
 }

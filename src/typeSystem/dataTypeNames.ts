@@ -7,6 +7,7 @@ import type { StringDecimalType } from './decimals.js'
 import type { StringType } from './strings.js'
 import type { UuidType } from './uuids.js'
 import type { LocalDateTimeType, LocalDateType, LocalTimeType } from './localDates.js'
+import type { PlainDateTimeType, PlainDateType, PlainTimeType } from './plainDates.js'
 import type { AnyType, IValueSource, ValueSource, ValueTypeOf } from './base.js'
 import type { FragmentExpression } from './fragments.js'
 
@@ -37,6 +38,9 @@ export interface DataTypes {
     localDate: LocalDateType
     localTime: LocalTimeType
     localDateTime: LocalDateTimeType
+    plainDate: PlainDateType
+    plainTime: PlainTimeType
+    plainDateTime: PlainDateTimeType
 }
 
 /** The name of a data type known by name: a built-in one, or one of yours declared in DataTypes */

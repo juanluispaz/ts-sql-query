@@ -7,6 +7,7 @@ import { DecimalsType } from './decimals.js'
 import { StringType } from './strings.js'
 import { UuidsType } from './uuids.js'
 import { LocalDatesType, LocalDateTimesType, LocalTimesType } from './localDates.js'
+import { PlainDatesType, PlainDateTimesType, PlainTimesType } from './plainDates.js'
 import { AggregatedArraysType } from './aggregatedArrays.js'
 
 /*
@@ -60,6 +61,18 @@ export function __isLocalTimeClass(typeClass: DataTypeClass): boolean {
 }
 export function __isLocalDateTimeClass(typeClass: DataTypeClass): boolean {
     return isOf(typeClass, LocalDateTimesType)
+}
+/** A date whose value is like a Temporal.PlainDate: a plainDate, or a type of the user of its family */
+export function __isPlainDateClass(typeClass: DataTypeClass): boolean {
+    return isOf(typeClass, PlainDatesType)
+}
+/** A time whose value is like a Temporal.PlainTime: a plainTime, or a type of the user of its family */
+export function __isPlainTimeClass(typeClass: DataTypeClass): boolean {
+    return isOf(typeClass, PlainTimesType)
+}
+/** A date and a time whose value is like a Temporal.PlainDateTime: a plainDateTime, or a type of the user of its family */
+export function __isPlainDateTimeClass(typeClass: DataTypeClass): boolean {
+    return isOf(typeClass, PlainDateTimesType)
 }
 export function __isAggregatedArrayClass(typeClass: DataTypeClass): boolean {
     return isOf(typeClass, AggregatedArraysType)

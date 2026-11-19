@@ -9,6 +9,7 @@ import { parseUtcDateTimeTextOrKeepIt } from '../utils/utcDateTimeText.js'
 import { pgSessionTimeZone, requirePgTextMode } from '../utils/postgreSql/pgConfiguration.js'
 import { rejectSessionNotInDatabaseZone, type SessionTimeZone } from '../utils/processTimeZone.js'
 import { postgreSqlDriverParams } from '../utils/postgreSql/postgreSqlParamTypes.js'
+import { plainTemporalResultColumns } from '../utils/plainTemporalValues.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
 import type { DataTypeName } from '../typeSystem/dataTypeNames.js'
 
@@ -31,6 +32,8 @@ export class PgQueryRunner extends SqlTransactionQueryRunner {
     private config?: PgQueryRunnerConfig | undefined
     /** The parsers of the values received, given to every query of the library (see pgQueryTypes) */
     private readonly types: CustomTypesConfig
+    /** The parsers of a query with a Temporal value without zone among its result columns (see pgQueryTypes) */
+    private readonly plainTemporalTypes: CustomTypesConfig
     /** The zone the options of pg give the session, checked for each query */
     private readonly sessionTimeZone: SessionTimeZone | undefined
 
@@ -39,7 +42,8 @@ export class PgQueryRunner extends SqlTransactionQueryRunner {
         requirePgTextMode(connection, 'PgQueryRunner')
         this.sessionTimeZone = pgSessionTimeZone(connection, 'PgQueryRunner')
         this.connection = connection
-        this.types = pgQueryTypes(connection)
+        this.types = pgQueryTypes(connection, false)
+        this.plainTemporalTypes = pgQueryTypes(connection, true)
         this.database = 'postgreSql'
         this.config = config
     }
@@ -63,7 +67,7 @@ export class PgQueryRunner extends SqlTransactionQueryRunner {
     }
 
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
-        return this.rejectWhenRolledBackByTheDatabase() || rejectSessionNotInDatabaseZone(this.sessionTimeZone, params) || this.connection.query({ text: query, values: postgreSqlDriverParams(params), types: this.types }).then((result) => result.rows, (error) => this.statementOfTheTransactionFailed(error))
+        return this.rejectWhenRolledBackByTheDatabase() || rejectSessionNotInDatabaseZone(this.sessionTimeZone, params) || this.connection.query({ text: query, values: postgreSqlDriverParams(params), types: plainTemporalResultColumns(params) ? this.plainTemporalTypes : this.types }).then((result) => result.rows, (error) => this.statementOfTheTransactionFailed(error))
     }
     protected executeMutation(query: string, params: any[]): Promise<number> {
         return this.rejectWhenRolledBackByTheDatabase() || rejectSessionNotInDatabaseZone(this.sessionTimeZone, params) || this.connection.query({ text: query, values: postgreSqlDriverParams(params), types: this.types }).then((result) => result.rowCount || 0, (error) => this.statementOfTheTransactionFailed(error))
@@ -111,9 +115,15 @@ export class PgQueryRunner extends SqlTransactionQueryRunner {
  * The parsers pg uses for the values of a query of the library: a `date` (1082) and a `timestamp` (1114) are the Date
  * whose UTC getters are their digits, the values in the database being in UTC (the parsers of pg build that Date with
  * the zone of the process); every other type is parsed as the client parses it, with the parsers the user registered.
+ * In a query with a Temporal value without zone among its result columns (`asText`), a `date`, a `time` (1083), a
+ * `timestamp` and a `timestamptz` (1184) are their text, with all their digits, which the connection reads, also for a
+ * localDate, a localTime or a localDateTime, the same way the parser above does.
  */
-function pgQueryTypes(connection: ClientBase): CustomTypesConfig {
+function pgQueryTypes(connection: ClientBase, asText: boolean): CustomTypesConfig {
     const getTypeParser = (oid: number, format?: 'text' | 'binary'): any => {
+        if (asText && (oid === 1082 || oid === 1083 || oid === 1114 || oid === 1184) && format !== 'binary') {
+            return keepText
+        }
         if ((oid === 1082 || oid === 1114) && format !== 'binary') {
             return parseUtcDateTimeTextOrKeepIt
         }
@@ -122,3 +132,7 @@ function pgQueryTypes(connection: ClientBase): CustomTypesConfig {
     return { getTypeParser: getTypeParser as CustomTypesConfig['getTypeParser'] }
 }
 
+/** The text of a value, as the database gives it */
+function keepText(text: string): string {
+    return text
+}

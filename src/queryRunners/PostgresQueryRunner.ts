@@ -5,6 +5,7 @@ import { PostgresTransactionOutcome } from '../utils/postgreSql/postgresTransact
 import type { BeginTransactionOpts, DatabaseType, QueryRunner } from './QueryRunner.js'
 import type { Sql, ReservedSql, TransactionSql, Parameter } from 'postgres'
 import { getPostgresJsErrorReason, isPostgresJsError } from './connectorErrorMappers/PostgresErrorMapper.js'
+import { plainTemporalResultColumns } from '../utils/plainTemporalValues.js'
 import { isPostgreSqlZonedParam, postgreSqlDriverParams, postgreSqlParamType, postgreSqlParamTypeOfSqlDataType } from '../utils/postgreSql/postgreSqlParamTypes.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { isProcessInUtc, rejectSessionNotInDatabaseZone, type SessionTimeZone } from '../utils/processTimeZone.js'
@@ -135,6 +136,13 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
         } catch (error) {
             // driverTypeOf failed: nothing was sent
             return this.createRejectedPromise(error)
+        }
+        const plainTemporalColumns = plainTemporalResultColumns(params)
+        if (plainTemporalColumns) {
+            // A query with a Temporal value without zone among its result columns is read as the text of each value
+            // (raw), which keeps all the digits of its fraction of a second: the parser of each column gives the
+            // others what postgres.js would
+            return sql.unsafe(query, driverParams).raw().then((result) => getResult(rowsOfRawResult(result, plainTemporalColumns)), (error) => this.statementOfTheTransactionFailed(error))
         }
         // then is called to ensure the query is executed
         return sql.unsafe(query, driverParams).then(getResult, (error) => this.statementOfTheTransactionFailed(error))
@@ -350,4 +358,33 @@ function postgresJsSessionTimeZone(connection: unknown): SessionTimeZone | undef
         }
     }
     return session
+}
+
+/** The decoder of the text of a raw value */
+const utf8 = new TextDecoder()
+
+/**
+ * The rows of a result read raw (the text of each value, as a Buffer, in an array per row), as postgres.js gives them
+ * otherwise: an object per row with each column by its name, parsed by the parser postgres.js has for its type, except
+ * the Temporal values without zone, which stay their text. The count of a mutation is kept.
+ */
+function rowsOfRawResult(result: any, plainTemporalColumns: string[]): any {
+    const columns: { name: string, parser?: ((text: string) => unknown) | null | undefined }[] = result.columns ?? []
+    const rows: any = []
+    for (const raw of result as unknown[][]) {
+        const row: any = {}
+        for (let i = 0, length = columns.length; i < length; i++) {
+            const column = columns[i]!
+            const value = raw[i]
+            if (value === null || value === undefined) {
+                row[column.name] = null
+                continue
+            }
+            const text = utf8.decode(value as Uint8Array)
+            row[column.name] = column.parser && !plainTemporalColumns.includes(column.name) ? column.parser(text) : text
+        }
+        rows.push(row)
+    }
+    rows.count = result.count
+    return rows
 }

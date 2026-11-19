@@ -173,4 +173,37 @@ describe(ctx.label, () => {
         assertType<Exact<typeof quick, Array<{ version: string }>>>()
         expect(quick).toEqual([{ version: '1.3.0-beta.1' }])
     })
+
+    test('docs:dates-and-times/adding-and-subtracting-a-duration', async () => {
+        ctx.mockNext([
+            { version: '0.9.0', supportEndsOn: '2025-09-01', rolloutEndedAt: '2024-03-04 11:00:00' },
+            { version: '1.2.0', supportEndsOn: '2025-07-15', rolloutEndedAt: '2024-01-17 21:00:00' },
+            { version: '1.3.0-beta.1', supportEndsOn: '2025-08-20', rolloutEndedAt: '2024-02-21 10:45:00' },
+        ])
+        const connection = ctx.conn
+
+        // doc-start
+        const releases = await connection.selectFrom(tRelease)
+            .select({
+                version: tRelease.version,
+                supportEndsOn: tRelease.releasedOn.add({ months: 18 }),
+                rolloutEndedAt: tRelease.publishedAt.add(tRelease.rolloutTime),
+            })
+            .orderBy('version')
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as version, date(date(released_on, 'start of month', ?1), (min(cast(strftime('%d', released_on) as integer), cast(strftime('%d', date(released_on, 'start of month', ?1), '+1 months', '-1 days') as integer)) - 1) || ' days') as supportEndsOn, strftime('%Y-%m-%d %H:%M:%f', date(date(published_at, 'start of month', (tsq_duration_part(rollout_time, 'M')) || ' months'), (min(cast(strftime('%d', published_at) as integer), cast(strftime('%d', date(published_at, 'start of month', (tsq_duration_part(rollout_time, 'M')) || ' months'), '+1 months', '-1 days') as integer)) - 1) || ' days') || ' ' || strftime('%H:%M:%f', published_at), (tsq_duration_part(rollout_time, 'D')) || ' days', (tsq_duration_part(rollout_time, 'S') + tsq_duration_part(rollout_time, 'N') / 1000000000.0) || ' seconds') as rolloutEndedAt from project_release order by version"`)
+        expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
+          [
+            "18 months",
+          ]
+        `)
+        assertType<Exact<typeof releases, Array<{ version: string; supportEndsOn: Temporal.PlainDate; rolloutEndedAt?: Temporal.PlainDateTime }>>>()
+        expect(releases.map(release => [release.version, release.supportEndsOn.toString(), release.rolloutEndedAt?.toString()])).toEqual([
+            ['0.9.0', '2025-09-01', '2024-03-04T11:00:00'],
+            ['1.2.0', '2025-07-15', '2024-01-17T21:00:00'],
+            ['1.3.0-beta.1', '2025-08-20', '2024-02-21T10:45:00'],
+        ])
+    })
 })

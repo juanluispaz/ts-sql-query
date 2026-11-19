@@ -1116,7 +1116,8 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     /**
      * `dateadd` adds the months keeping the day in the month (Jan 31 plus a month is Feb 29), then the days, the
      * seconds and the nanoseconds, as Temporal does; a time goes round at midnight. dateadd takes an int: the days of
-     * the seconds are added as days. A datetime or a smalldatetime has no nanoseconds: their milliseconds are added
+     * the seconds are added as days. dateadd takes no nanoseconds on a datetime or a smalldatetime: a value that isn't
+     * known to be a datetime2 (a parameter is one) is taken to a datetime2, which keeps its fraction, to add them
      */
     override _appendWithDuration(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass, sign: 1 | -1): string {
         const fields = this._temporalFieldsOfDurationOperation(typeClass)
@@ -1158,10 +1159,10 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             result = 'dateadd(second, ' + seconds + ', ' + result + ')'
         }
         if (nanoseconds !== undefined) {
-            const native = this._nativeSqlDataTypeOfOperand(valueSource)
-            result = native === 'datetime' || native === 'smalldatetime'
-                ? 'dateadd(millisecond, ' + nanoseconds + ' / 1000000, ' + result + ')'
-                : 'dateadd(nanosecond, ' + nanoseconds + ', ' + result + ')'
+            if (fields === 'timestamp' && !this._isConstOperand(valueSource) && this._nativeSqlDataTypeOfOperand(valueSource)?.startsWith('datetime2') !== true) {
+                result = 'cast(' + result + ' as datetime2)'
+            }
+            result = 'dateadd(nanosecond, ' + nanoseconds + ', ' + result + ')'
         }
         return result
     }

@@ -219,7 +219,8 @@ covers the six strategies.
 A duration (`Temporal.Duration`) is kept as its ISO 8601 text on SQLite; adding one of a column to a date or a time
 calls `tsq_duration_part`, which `registerSqliteFunctions` registers. Bun SQL's sqlite adapter has no
 user-defined-function API, so on the `bun_sql_sqlite` cells
-`column.plain-temporal-arithmetic.test.ts` (`a-duration-of-a-column-is-added-and-subtracted`) is `NOT-SUPPORTED`; a
+`column.plain-temporal-arithmetic.test.ts` (`a-duration-of-a-column-is-added-and-subtracted`) and
+`docs.configuration.dates-and-times.test.ts` (`docs:dates-and-times/adding-and-subtracting-a-duration`) are `NOT-SUPPORTED`; a
 duration given as a value adds without the function there.
 
 ### SQLite RETURNING can only reference the table being modified, not a FROM/JOIN-ed column

@@ -173,4 +173,36 @@ describe(ctx.label, () => {
         assertType<Exact<typeof quick, Array<{ version: string }>>>()
         expect(quick).toEqual([{ version: '1.3.0-beta.1' }])
     })
+
+    // NOT-SUPPORTED: Bun SQL's sqlite adapter exposes neither a user-defined-function API nor its bun:sqlite `Database`, so the tsq_duration_part UDF can't be registered
+    /*
+    test('docs:dates-and-times/adding-and-subtracting-a-duration', async () => {
+        ctx.mockNext([
+            { version: '0.9.0', supportEndsOn: '2025-09-01', rolloutEndedAt: '2024-03-04 11:00:00' },
+            { version: '1.2.0', supportEndsOn: '2025-07-15', rolloutEndedAt: '2024-01-17 21:00:00' },
+            { version: '1.3.0-beta.1', supportEndsOn: '2025-08-20', rolloutEndedAt: '2024-02-21 10:45:00' },
+        ])
+        const connection = ctx.conn
+
+        // doc-start
+        const releases = await connection.selectFrom(tRelease)
+            .select({
+                version: tRelease.version,
+                supportEndsOn: tRelease.releasedOn.add({ months: 18 }),
+                rolloutEndedAt: tRelease.publishedAt.add(tRelease.rolloutTime),
+            })
+            .orderBy('version')
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams.map(String)).toMatchInlineSnapshot()
+        assertType<Exact<typeof releases, Array<{ version: string; supportEndsOn: Temporal.PlainDate; rolloutEndedAt?: Temporal.PlainDateTime }>>>()
+        expect(releases.map(release => [release.version, release.supportEndsOn.toString(), release.rolloutEndedAt?.toString()])).toEqual([
+            ['0.9.0', '2025-09-01', '2024-03-04T11:00:00'],
+            ['1.2.0', '2025-07-15', '2024-01-17T21:00:00'],
+            ['1.3.0-beta.1', '2025-08-20', '2024-02-21T10:45:00'],
+        ])
+    })
+    */
 })

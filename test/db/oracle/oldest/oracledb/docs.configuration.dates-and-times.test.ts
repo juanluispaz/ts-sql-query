@@ -173,4 +173,37 @@ describe(ctx.label, () => {
         assertType<Exact<typeof quick, Array<{ version: string }>>>()
         expect(quick).toEqual([{ version: '1.3.0-beta.1' }])
     })
+
+    test('docs:dates-and-times/adding-and-subtracting-a-duration', async () => {
+        ctx.mockNext([
+            { version: '0.9.0', supportEndsOn: '2025-09-01', rolloutEndedAt: '2024-03-04 11:00:00' },
+            { version: '1.2.0', supportEndsOn: '2025-07-15', rolloutEndedAt: '2024-01-17 21:00:00' },
+            { version: '1.3.0-beta.1', supportEndsOn: '2025-08-20', rolloutEndedAt: '2024-02-21 10:45:00' },
+        ])
+        const connection = ctx.conn
+
+        // doc-start
+        const releases = await connection.selectFrom(tRelease)
+            .select({
+                version: tRelease.version,
+                supportEndsOn: tRelease.releasedOn.add({ months: 18 }),
+                rolloutEndedAt: tRelease.publishedAt.add(tRelease.rolloutTime),
+            })
+            .orderBy('version')
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as "version", to_char((add_months(released_on, :0) - greatest(0, extract(day from add_months(released_on, :0)) - extract(day from released_on))), 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "supportEndsOn", to_char(cast(published_at + rollout_time as timestamp(9)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "rolloutEndedAt" from project_release order by "version""`)
+        expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
+          [
+            "18",
+          ]
+        `)
+        assertType<Exact<typeof releases, Array<{ version: string; supportEndsOn: Temporal.PlainDate; rolloutEndedAt?: Temporal.PlainDateTime }>>>()
+        expect(releases.map(release => [release.version, release.supportEndsOn.toString(), release.rolloutEndedAt?.toString()])).toEqual([
+            ['0.9.0', '2025-09-01', '2024-03-04T11:00:00'],
+            ['1.2.0', '2025-07-15', '2024-01-17T21:00:00'],
+            ['1.3.0-beta.1', '2025-08-20', '2024-02-21T10:45:00'],
+        ])
+    })
 })

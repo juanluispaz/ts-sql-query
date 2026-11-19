@@ -10,6 +10,7 @@ import { oracleOutParam, queryRunnerParamBindings } from '../utils/queryRunnerPa
 import type { DataTypeClass, SqlDataType } from '../TypeAdapter.js'
 import { __sqlDataTypeDescribes, __temporalFieldsOf, __typeSqlDataTypeOf } from '../typeSystem/dataTypes.js'
 import { isOracleZonedParam, oraclePlainTemporalForm, oracleTemporalBind } from '../utils/oracle/oracleParamTypes.js'
+import { durationIsoTextWithoutWeeks, isDurationValue } from '../utils/durationValues.js'
 import { oracleDateParam } from '../utils/metadataSymbols.js'
 import type { QueryParamContext } from '../QueryContext.js'
 import { existingParamContextOf, existingQueryContextOf } from '../internal/QueryContextImpl.js'
@@ -241,6 +242,11 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
             // and the offset of DBTIMEZONE, whatever the zone of the process (NJS-201 when DBTIMEZONE is a region)
             if (value instanceof Date && !isNaN(value.getTime()) && isOracleZonedParam(params, i)) {
                 result[i] = { val: value, type: oracleDb.DB_TYPE_TIMESTAMP_LTZ }
+                continue
+            }
+            // A duration is bound as its ISO 8601 text, which its placeholder converts to an interval (Oracle has no weeks)
+            if (isDurationValue(value)) {
+                result[i] = durationIsoTextWithoutWeeks(value, false)
                 continue
             }
             // A Temporal value without zone is bound as its text, which its placeholder converts (see oraclePlaceholder)

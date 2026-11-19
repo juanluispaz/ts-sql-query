@@ -3,6 +3,7 @@ import { __sqlDataTypeDescribes, __temporalFieldsOf, __typeSqlDataTypeOf } from 
 import { connectionClassIdOf, keepDerivedOfSqlDataType, keptDerivedOfSqlDataType } from '../sqlDataTypeNames.js'
 import { utcDateText, utcTimeText } from '../utcDateTimeText.js'
 import { plainTemporalText } from '../plainTemporalValues.js'
+import { durationIsoTextWithoutWeeks, isDurationValue } from '../durationValues.js'
 import { postgreSqlZonedParam } from '../metadataSymbols.js'
 import { existingParamContextOf, existingQueryContextOf } from '../../internal/QueryContextImpl.js'
 
@@ -28,6 +29,7 @@ const date: PostgreSqlParamType = { cast: 'date', oid: 1082 }
 const time: PostgreSqlParamType = { cast: 'time', oid: 1083 }
 const timestamp: PostgreSqlParamType = { cast: 'timestamp', oid: 1114 }
 const timestamptz: PostgreSqlParamType = { cast: 'timestamptz', oid: 1184 }
+const interval: PostgreSqlParamType = { cast: 'interval', oid: 1186 }
 
 /** The oids of the types of PostgreSQL that have a fixed one, by the name nativeSqlDataTypeOf gives without its arguments */
 const fixedOids: { readonly [cast: string]: number | undefined } = {
@@ -134,6 +136,8 @@ export function postgreSqlParamType(requestedType: DataTypeClass | undefined, va
                 return text
             case 'uuid':
                 return uuid
+            case 'interval':
+                return interval
             case 'datetime':
                 if (sqlDataType.fields === 'date') {
                     return date
@@ -236,8 +240,10 @@ export function postgreSqlDriverParams(params: any[]): any[] {
         const value = params[i]
         const param = existingParamContextOf(params, i)
         const requestedType = param?.requestedType
-        // A Temporal value without zone goes as its text, with all the digits of its fraction of a second
-        const plainText = plainTemporalText(value, true)
+        // A Temporal value without zone goes as its text, with all the digits of its fraction of a second; a duration
+        // as its ISO 8601 text, with the sign of a negative one in each field and its weeks as days (PostgreSQL rejects
+        // `-P1D`, and has no weeks)
+        const plainText = plainTemporalText(value, true) ?? (isDurationValue(value) ? durationIsoTextWithoutWeeks(value, true) : undefined)
         if (plainText === undefined && (!(value instanceof Date) || requestedType === undefined)) {
             continue
         }

@@ -145,6 +145,11 @@ export {
 } from '../../typeSystem/plainDates.js'
 
 export {
+    DurationType,
+    DurationsType,
+} from '../../typeSystem/durations.js'
+
+export {
     EnumType,
 } from '../../typeSystem/enum.js'
 

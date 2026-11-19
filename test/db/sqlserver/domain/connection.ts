@@ -8,7 +8,7 @@ import type { QueryRunner } from '../../../../src/queryRunners/QueryRunner.js'
 import { Table } from '../../../../src/Table.js'
 import { View } from '../../../../src/View.js'
 import { CustomBooleanTypeAdapter, type TypeAdapter, type TypeAdapterValueFromDBContext } from '../../../../src/TypeAdapter.js'
-import { EnumType } from '../../../../src/exports/v2/index.js'
+import { EnumType, withSqlDataType } from '../../../../src/exports/v2/index.js'
 import { ComparableType, EqualableType, IntegersType, LocalDateTimesType, LocalDatesType, LocalTimesType, RealsType, UuidsType } from '../../../../src/exports/v2/index.js'
 
 // The data types of the values of the user, each one a class of the family of its values
@@ -1218,6 +1218,16 @@ export const tRelease = new class TRelease extends Table<DBConnection, 'TRelease
     cutoffTime  = this.column('cutoff_time', 'plainTime')
     publishedAt = this.column('published_at', 'plainDateTime')
     constructor() { super('project_release') }
+}()
+
+// duration_value: durations (Temporal.Duration) in the interval of the database, or its ISO 8601 text where it has none
+// (span, span_calendar, which has years and months), and as a number of microseconds (span_micros, a bigint)
+export const tDurationValue = new class TDurationValue extends Table<DBConnection, 'TDurationValue'> {
+    id           = this.primaryKey('id', 'int')
+    span         = this.column('span', 'duration')
+    spanCalendar = this.optionalColumn('span_calendar', 'duration')
+    spanMicros   = this.optionalColumn('span_micros', 'duration', withSqlDataType({ family: 'exact numeric', bytes: 8, scale: 0 }))
+    constructor() { super('duration_value') }
 }()
 
 // Time-tracking worklog: surfaces the date-only / time-only / nullable

@@ -29,7 +29,7 @@ import type { NAggregate, NDB, NNoTableOrViewRequired, NNotNestedAggregate, NSou
 import type { DataToProject, GetDataToProjectSource } from '../complexProjections/dataToProject.js'
 import type { ResultObjectValuesForAggregatedArray } from '../complexProjections/resultWithOptionalsAsUndefined.js'
 import type { ResultObjectValuesProjectedAsNullableForAggregatedArray } from '../complexProjections/resultWithOptionalsAsNull.js'
-import { __isAggregatedArrayClass, __isBigintClass, __isBooleanClass, __isDoubleClass, __isExactDecimalClass, __isIntClass, __isLocalDateClass, __isLocalDateTimeClass, __isLocalTimeClass, __isPlainDateClass, __isPlainDateTimeClass, __isPlainTimeClass, __isStringClass, __isUuidClass } from '../typeSystem/dataTypeQuestions.js'
+import { __isAggregatedArrayClass, __isBigintClass, __isBooleanClass, __isDoubleClass, __isExactDecimalClass, __isIntClass, __isLocalDateClass, __isLocalDateTimeClass, __isLocalTimeClass, __isPlainDateClass, __isPlainDateTimeClass, __isPlainTimeClass, __isStringClass, __isDurationClass, __isUuidClass } from '../typeSystem/dataTypeQuestions.js'
 import { parseUtcDateTimeText } from '../utils/utcDateTimeText.js'
 import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, ValueSourceOf, TypedValueSource } from '../typeSystem/valueSource.js'
 import type { DataTypeName, DataTypeOfName, DataTypeValueOfName, DataTypeValueSources, DataTypeFragments } from '../typeSystem/dataTypeNames.js'
@@ -46,6 +46,7 @@ import { LocalDateTimeType, LocalTimeType, LocalDateType } from '../typeSystem/l
 import { __temporal, type TemporalPlainDateTime } from '../typeSystem/temporal.js'
 import { PlainDateTimeType, PlainDateType, PlainTimeType } from '../typeSystem/plainDates.js'
 import { parsePlainDateTimeText, plainDateTimeOfUtcDate } from '../utils/plainDateTimeText.js'
+import { durationMicroseconds, durationOfReceivedValue, isDurationValue } from '../utils/durationValues.js'
 import type { NumberType } from '../typeSystem/number.js'
 import type { BigintType } from '../typeSystem/bigint.js'
 import type { StringDecimalType } from '../typeSystem/decimals.js'
@@ -64,6 +65,31 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
 
     protected __sqlBuilder: SqlBuilder
     protected allowEmptyString: boolean = false
+    /**
+     * How a duration (a Temporal.Duration) is kept in a database without a type for it (MariaDB, MySQL, SQLite, SQL
+     * Server), unless the SQL data type of its column says otherwise (a text, or an exact number): as its ISO 8601 text
+     * (`'ISO 8601 text'`, the default; any duration, compared as text), or as the number of its microseconds
+     * (`'microseconds as integer'`; a duration without years nor months, compared and computed as a number).
+     * PostgreSQL and Oracle keep it in their intervals.
+     */
+    protected durationStrategy: 'ISO 8601 text' | 'microseconds as integer' = 'ISO 8601 text'
+    /** Whether the database keeps a duration in an interval of its own (PostgreSQL, Oracle) */
+    protected hasNativeDurations(): boolean {
+        return false
+    }
+    /**
+     * How a duration is kept, by the SQL data type of its column: a text, its ISO 8601 text; an exact number, its
+     * microseconds; an interval (the default of a duration), the interval of the database, or the durationStrategy
+     */
+    protected durationStorageOf(sqlDataType: SqlDataType | undefined): 'interval' | 'ISO 8601 text' | 'microseconds as integer' {
+        if (sqlDataType?.family === 'character string') {
+            return 'ISO 8601 text'
+        }
+        if (sqlDataType?.family === 'exact numeric') {
+            return 'microseconds as integer'
+        }
+        return this.hasNativeDurations() ? 'interval' : this.durationStrategy
+    }
     protected insensitiveCollation?: string | undefined
     /**
      * Minimum database version the generated SQL must support, encoded as a single
@@ -1239,6 +1265,16 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             }
             return received
         }
+        if (__isDurationClass(context.requestedType)) {
+            // Its ISO text, the text of a PostgreSQL interval, an interval of oracledb or the number of its
+            // microseconds, whatever the storage: a duration whose fields mix signs (PostgreSQL's `-1 days +02:03:00`)
+            // can't be a Temporal.Duration
+            const received = durationOfReceivedValue(value, type)
+            if (!received) {
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid duration value received from the db: ' + String(value))
+            }
+            return received
+        }
         if (__isAggregatedArrayClass(context.requestedType)) {
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'This would not happened, something went wrong handling aggregate arrays coming from the database')
         }
@@ -1378,6 +1414,25 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 return value
             }
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid plainDateTime value to send to the db: ' + String(value))
+        }
+        if (__isDurationClass(context.requestedType)) {
+            if (!isDurationValue(value)) {
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid duration value to send to the db: ' + String(value))
+            }
+            const storage = this.durationStorageOf(context.requestedSqlDataType)
+            if (storage === 'ISO 8601 text') {
+                return value.toString()
+            }
+            if (storage === 'microseconds as integer') {
+                const microseconds = durationMicroseconds(value)
+                if (microseconds === undefined) {
+                    // Years and months have no fixed length: a number of microseconds can't keep them
+                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid duration value to send to the db, kept as microseconds: ' + String(value) + ' has years or months')
+                }
+                return microseconds
+            }
+            // An interval of the database: each query runner gives its driver the form it needs
+            return value
         }
         if (__isAggregatedArrayClass(context.requestedType)) {
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'This would not happened, something went wrong handling aggregate arrays, aggregated arrays cannot be sent to the database')

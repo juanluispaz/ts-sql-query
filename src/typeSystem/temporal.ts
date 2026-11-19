@@ -26,6 +26,8 @@ export type TemporalPlainDate = InstanceOf<'PlainDate'>
 export type TemporalPlainTime = InstanceOf<'PlainTime'>
 /** `Temporal.PlainDateTime`: a date and a time of the day without a zone */
 export type TemporalPlainDateTime = InstanceOf<'PlainDateTime'>
+/** `Temporal.Duration`: an amount of time, in years, months, weeks, days, hours ... nanoseconds */
+export type TemporalDuration = InstanceOf<'Duration'>
 
 /** The Temporal object of the runtime, or of a polyfill installed in the global object; an error for a type without it */
 export function __temporal(typeName: string): TemporalObject {

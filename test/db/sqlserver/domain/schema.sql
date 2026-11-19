@@ -16,6 +16,7 @@ IF OBJECT_ID('ledger_entry', 'U') IS NOT NULL DROP TABLE ledger_entry;
 IF OBJECT_ID('issue_worklog', 'U') IS NOT NULL DROP TABLE issue_worklog;
 IF OBJECT_ID('col_matrix', 'U') IS NOT NULL DROP TABLE col_matrix;
 IF OBJECT_ID('temporal_precision', 'U') IS NOT NULL DROP TABLE temporal_precision;
+IF OBJECT_ID('duration_value', 'U') IS NOT NULL DROP TABLE duration_value;
 IF OBJECT_ID('flight_leg', 'U') IS NOT NULL DROP TABLE flight_leg;
 IF OBJECT_ID('country', 'U') IS NOT NULL DROP TABLE country;
 IF OBJECT_ID('issue', 'U') IS NOT NULL DROP TABLE issue;
@@ -407,6 +408,15 @@ GO
 CREATE TABLE temporal_precision (
     id INT PRIMARY KEY,
     micro_stamp DATETIME2(7) NOT NULL
+);
+
+-- duration_value: durations (Temporal.Duration) kept as the database can: span in its interval (of days to
+-- seconds on Oracle) or ISO 8601 text, span_calendar with years and months, span_micros as a number of microseconds.
+CREATE TABLE duration_value (
+    id INT PRIMARY KEY,
+    span NVARCHAR(64) NOT NULL,
+    span_calendar NVARCHAR(64),
+    span_micros BIGINT
 );
 GO
 

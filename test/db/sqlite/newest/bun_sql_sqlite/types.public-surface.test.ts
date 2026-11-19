@@ -128,7 +128,7 @@ describe(ctx.label, () => {
     test('root-entry-values-are-the-subpath-objects', () => {
         expect(Object.keys(root).sort()).toEqual([
             'AdditiveType', 'ArithmeticType', 'BigintType', 'BooleanType', 'ComparableType', 'ConsoleLogQueryRunner',
-            'CustomBooleanTypeAdapter', 'DecimalsType', 'DivisibleType', 'DoubleType', 'EnumType', 'EqualableType',
+            'CustomBooleanTypeAdapter', 'DecimalsType', 'DivisibleType', 'DoubleType', 'DurationType', 'DurationsType', 'EnumType', 'EqualableType',
             'ForceTypeCast', 'IntType', 'IntegersType', 'InterceptorQueryRunner', 'LocalDateTimeType',
             'LocalDateTimesType', 'LocalDateType', 'LocalDatesType', 'LocalTimeType', 'LocalTimesType',
             'LoggingQueryRunner', 'MockQueryRunner', 'MultipliableType', 'NoExecutionQueryRunner', 'NoopQueryRunner',

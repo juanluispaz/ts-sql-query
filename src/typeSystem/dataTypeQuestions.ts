@@ -8,6 +8,7 @@ import { StringType } from './strings.js'
 import { UuidsType } from './uuids.js'
 import { LocalDatesType, LocalDateTimesType, LocalTimesType } from './localDates.js'
 import { PlainDatesType, PlainDateTimesType, PlainTimesType } from './plainDates.js'
+import { DurationsType } from './durations.js'
 import { AggregatedArraysType } from './aggregatedArrays.js'
 
 /*
@@ -73,6 +74,10 @@ export function __isPlainTimeClass(typeClass: DataTypeClass): boolean {
 /** A date and a time whose value is like a Temporal.PlainDateTime: a plainDateTime, or a type of the user of its family */
 export function __isPlainDateTimeClass(typeClass: DataTypeClass): boolean {
     return isOf(typeClass, PlainDateTimesType)
+}
+/** A duration whose value is like a Temporal.Duration: a duration, or a type of the user of its family */
+export function __isDurationClass(typeClass: DataTypeClass): boolean {
+    return isOf(typeClass, DurationsType)
 }
 export function __isAggregatedArrayClass(typeClass: DataTypeClass): boolean {
     return isOf(typeClass, AggregatedArraysType)

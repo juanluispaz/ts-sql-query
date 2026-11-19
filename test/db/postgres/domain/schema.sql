@@ -16,6 +16,7 @@ DROP TABLE IF EXISTS ledger_entry CASCADE;
 DROP TABLE IF EXISTS issue_worklog CASCADE;
 DROP TABLE IF EXISTS col_matrix CASCADE;
 DROP TABLE IF EXISTS temporal_precision CASCADE;
+DROP TABLE IF EXISTS duration_value CASCADE;
 DROP TABLE IF EXISTS country CASCADE;
 DROP TABLE IF EXISTS issue CASCADE;
 DROP TABLE IF EXISTS project CASCADE;
@@ -391,6 +392,15 @@ CREATE TABLE col_matrix (
 CREATE TABLE temporal_precision (
     id INTEGER PRIMARY KEY,
     micro_stamp TIMESTAMP NOT NULL
+);
+
+-- duration_value: durations (Temporal.Duration) kept as the database can: span in its interval (of days to
+-- seconds on Oracle) or ISO 8601 text, span_calendar with years and months, span_micros as a number of microseconds.
+CREATE TABLE duration_value (
+    id INTEGER PRIMARY KEY,
+    span INTERVAL NOT NULL,
+    span_calendar INTERVAL,
+    span_micros BIGINT
 );
 
 -- View side of col_matrix — surfaces the same per-kind read marshalling through

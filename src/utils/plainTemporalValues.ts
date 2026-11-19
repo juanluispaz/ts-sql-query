@@ -3,7 +3,7 @@
 
 import type { DataTypeClass } from '../TypeAdapter.js'
 import { existingQueryContextOf } from '../internal/QueryContextImpl.js'
-import { __isPlainDateClass, __isPlainDateTimeClass, __isPlainTimeClass } from '../typeSystem/dataTypeQuestions.js'
+import { __isDurationClass, __isPlainDateClass, __isPlainDateTimeClass, __isPlainTimeClass } from '../typeSystem/dataTypeQuestions.js'
 import { __temporalIfAvailable, type TemporalPlainDateTime } from '../typeSystem/temporal.js'
 import { plainDateText, plainTimeText } from './plainDateTimeText.js'
 
@@ -50,9 +50,14 @@ export function isPlainTemporalClass(typeClass: DataTypeClass | undefined): bool
     return typeClass !== undefined && (__isPlainDateClass(typeClass) || __isPlainTimeClass(typeClass) || __isPlainDateTimeClass(typeClass))
 }
 
+/** Whether the class is one of a Temporal value a query runner reads as text: a Temporal value without zone or a duration */
+function isReadAsTextClass(typeClass: DataTypeClass | undefined): boolean {
+    return typeClass !== undefined && (isPlainTemporalClass(typeClass) || __isDurationClass(typeClass))
+}
+
 /**
  * The names (keys in the row) of the result columns of the query with these params that are Temporal values without
- * zone, which the query runner reads as text; undefined when there is none, or the query wasn't built by the library
+ * zone or durations, which the query runner reads as text; undefined when there is none, or the query wasn't built by the library
  */
 export function plainTemporalResultColumns(params: any[]): string[] | undefined {
     const columns = existingQueryContextOf(params)?.resultColumns
@@ -61,7 +66,7 @@ export function plainTemporalResultColumns(params: any[]): string[] | undefined 
     }
     let result: string[] | undefined = undefined
     for (const column of columns) {
-        if (isPlainTemporalClass(column.requestedType)) {
+        if (isReadAsTextClass(column.requestedType)) {
             if (!result) {
                 result = []
             }

@@ -55,6 +55,10 @@ export abstract class PostgreSqlConnection<NAME extends string> extends Abstract
      *   Below this breakpoint, the FROM-subquery is used to capture pre-update
      *   values and the updated table is aliased as `_new_`.
      */
+    /** Durations are kept in the intervals of the database */
+    protected override hasNativeDurations(): boolean {
+        return true
+    }
     protected override compatibilityVersion: number = Number.POSITIVE_INFINITY
 
     /**

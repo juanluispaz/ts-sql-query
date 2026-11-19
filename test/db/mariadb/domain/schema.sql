@@ -16,6 +16,7 @@ DROP TABLE IF EXISTS ledger_entry;
 DROP TABLE IF EXISTS issue_worklog;
 DROP TABLE IF EXISTS col_matrix;
 DROP TABLE IF EXISTS temporal_precision;
+DROP TABLE IF EXISTS duration_value;
 DROP TABLE IF EXISTS country;
 DROP TABLE IF EXISTS issue;
 DROP TABLE IF EXISTS project;
@@ -330,6 +331,15 @@ CREATE TABLE col_matrix (
 CREATE TABLE temporal_precision (
     id INT PRIMARY KEY,
     micro_stamp DATETIME(6) NOT NULL
+);
+
+-- duration_value: durations (Temporal.Duration) kept as the database can: span in its interval (of days to
+-- seconds on Oracle) or ISO 8601 text, span_calendar with years and months, span_micros as a number of microseconds.
+CREATE TABLE duration_value (
+    id INT PRIMARY KEY,
+    span VARCHAR(64) NOT NULL,
+    span_calendar VARCHAR(64),
+    span_micros BIGINT
 );
 
 CREATE VIEW col_matrix_view AS

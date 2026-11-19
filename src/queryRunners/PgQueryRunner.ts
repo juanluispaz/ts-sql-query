@@ -116,12 +116,12 @@ export class PgQueryRunner extends SqlTransactionQueryRunner {
  * whose UTC getters are their digits, the values in the database being in UTC (the parsers of pg build that Date with
  * the zone of the process); every other type is parsed as the client parses it, with the parsers the user registered.
  * In a query with a Temporal value without zone among its result columns (`asText`), a `date`, a `time` (1083), a
- * `timestamp` and a `timestamptz` (1184) are their text, with all their digits, which the connection reads, also for a
+ * `timestamp`, a `timestamptz` (1184) and an `interval` (1186) are their text, with all their digits, which the connection reads, also for a
  * localDate, a localTime or a localDateTime, the same way the parser above does.
  */
 function pgQueryTypes(connection: ClientBase, asText: boolean): CustomTypesConfig {
     const getTypeParser = (oid: number, format?: 'text' | 'binary'): any => {
-        if (asText && (oid === 1082 || oid === 1083 || oid === 1114 || oid === 1184) && format !== 'binary') {
+        if (asText && (oid === 1082 || oid === 1083 || oid === 1114 || oid === 1184 || oid === 1186) && format !== 'binary') {
             return keepText
         }
         if ((oid === 1082 || oid === 1114) && format !== 'binary') {

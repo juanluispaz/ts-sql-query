@@ -10,7 +10,9 @@ import type { SameDB } from '../utils/ITableOrView.js'
 import type { Default } from '../expressions/Default.js'
 import { DefaultImpl } from '../expressions/Default.js'
 import type { SqlDataType, SqlDataTypeNative, TypeAdapterProjectionContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
-import { __isBooleanClass, __isLocalDateTimeClass, __isLocalTimeClass, __isPlainDateClass, __isPlainDateTimeClass, __isPlainTimeClass } from '../typeSystem/dataTypeQuestions.js'
+import { __isBooleanClass, __isDurationClass, __isLocalDateTimeClass, __isLocalTimeClass, __isPlainDateClass, __isPlainDateTimeClass, __isPlainTimeClass } from '../typeSystem/dataTypeQuestions.js'
+import { isDurationValue } from '../utils/durationValues.js'
+import { TsSqlProcessingError } from '../TsSqlError.js'
 import { oracleZonedParam } from '../utils/metadataSymbols.js'
 import type { ValueSourceOf, TypedValueSource } from '../typeSystem/valueSource.js'
 import type { IValueSource, RemapValueSourceTypeWithOptionalType, ValueSource } from '../typeSystem/base.js'
@@ -158,6 +160,10 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
      * `LISTAGG(DISTINCT …)`, which requires Oracle Database 19c or later (the
      * `DISTINCT` keyword inside `LISTAGG` was added in 19c).
      */
+    /** Durations are kept in the intervals of the database */
+    protected override hasNativeDurations(): boolean {
+        return true
+    }
     protected override compatibilityVersion: number = Number.POSITIVE_INFINITY
 
     constructor(queryRunner: QueryRunner, sqlBuilder = new OracleSqlBuilder()) {
@@ -198,6 +204,17 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
     protected override transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext): unknown {
         if ((__isLocalDateTimeClass(context.requestedType) || __isLocalTimeClass(context.requestedType)) && this.isDatabaseOutsideUtc()) {
             context.setMetadata(oracleZonedParam, true)
+        }
+        if (__isDurationClass(context.requestedType) && isDurationValue(value) && this.durationStorageOf(context.requestedSqlDataType) === 'interval') {
+            // An interval of Oracle holds years and months, or days to seconds, never both: a duration that doesn't fit
+            // the one of its column (days to seconds unless it says years to month) would lose a part
+            const yearToMonth = context.requestedSqlDataType?.family === 'interval' && context.requestedSqlDataType.fields === 'year to month'
+            const fits = yearToMonth
+                ? value.weeks === 0 && value.days === 0 && value.hours === 0 && value.minutes === 0 && value.seconds === 0 && value.milliseconds === 0 && value.microseconds === 0 && value.nanoseconds === 0
+                : value.years === 0 && value.months === 0
+            if (!fits) {
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: context.requestedType.type }, 'Invalid duration value to send to the db: ' + String(value) + ' doesn\'t fit an interval ' + (yearToMonth ? 'year to month' : 'day to second'))
+            }
         }
         if (__isBooleanClass(context.requestedType) && typeof value === 'boolean' && this.booleanStorage !== 'boolean') {
             // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number#number_coercion

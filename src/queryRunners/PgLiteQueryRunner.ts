@@ -170,6 +170,7 @@ const pgLitePlainTemporalParsers: NonNullable<QueryOptions['parsers']> = {
     1083: keepText,
     1114: keepText,
     1184: keepText,
+    1186: keepText,
 }
 const pgLitePlainTemporalQueryOptions: QueryOptions = { parsers: pgLitePlainTemporalParsers }
 

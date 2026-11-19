@@ -3,6 +3,7 @@ import { exactDecimalDigitsOf, rejectExactDecimalParam } from '../exactDecimalPa
 import { __temporalFieldsOf, __typeSqlDataTypeOf } from '../../typeSystem/dataTypes.js'
 import { oracleDateParam, oracleZonedParam } from '../metadataSymbols.js'
 import { existingParamContextOf } from '../../internal/QueryContextImpl.js'
+import { isDurationValue } from '../durationValues.js'
 import { __temporalIfAvailable, type TemporalPlainDateTime, type TemporalPlainTime } from '../../typeSystem/temporal.js'
 
 /**
@@ -85,6 +86,11 @@ export function oraclePlaceholder(placeholder: string, params: any[], index: num
         // and the language of the session (NLS_DATE_FORMAT, NLS_TIMESTAMP_FORMAT, NLS_DATE_LANGUAGE)
         return plain.conversion + '(' + placeholder + ", '" + plain.format + "', 'NLS_DATE_LANGUAGE=AMERICAN')"
     }
+    if (isDurationValue(value)) {
+        // A duration is sent as its ISO 8601 text, converted to the interval of its column: of years to months when the
+        // column says it, of days to seconds otherwise
+        return (isYearToMonthParam(params, index) ? 'to_yminterval(' : 'to_dsinterval(') + placeholder + ')'
+    }
     if (!(value instanceof Date) || !isOracleZonedParam(params, index)) {
         return placeholder
     }
@@ -147,4 +153,10 @@ function oracleDateText(year: number, month: number, day: number): string {
 
 function pad(value: number, length: number): string {
     return String(value).padStart(length, '0')
+}
+
+/** Whether the parameter at that index is a duration of an interval of years to months (its requested SQL data type) */
+export function isYearToMonthParam(params: any[], index: number): boolean {
+    const sqlDataType = existingParamContextOf(params, index)?.requestedSqlDataType
+    return sqlDataType?.family === 'interval' && sqlDataType.fields === 'year to month'
 }

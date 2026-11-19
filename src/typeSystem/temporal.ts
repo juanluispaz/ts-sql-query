@@ -28,6 +28,22 @@ export type TemporalPlainTime = InstanceOf<'PlainTime'>
 export type TemporalPlainDateTime = InstanceOf<'PlainDateTime'>
 /** `Temporal.Duration`: an amount of time, in years, months, weeks, days, hours ... nanoseconds */
 export type TemporalDuration = InstanceOf<'Duration'>
+/** The fields `with` of a Temporal.PlainDate takes: integers; the month also as its code (`'M02'`) */
+export interface TemporalPlainDateFields {
+    readonly year?: number | undefined
+    readonly month?: number | undefined
+    readonly monthCode?: string | undefined
+    readonly day?: number | undefined
+}
+/** The fields `with` of a Temporal.PlainTime takes: integers */
+export interface TemporalPlainTimeFields {
+    readonly hour?: number | undefined
+    readonly minute?: number | undefined
+    readonly second?: number | undefined
+    readonly millisecond?: number | undefined
+    readonly microsecond?: number | undefined
+    readonly nanosecond?: number | undefined
+}
 /**
  * The fields of a duration as `Temporal.Duration.from` takes them, like `{ days: 3 }`: integers with one sign. Written
  * here, not taken from Temporal, so it is the same with and without its types

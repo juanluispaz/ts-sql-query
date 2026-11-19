@@ -12,6 +12,7 @@ import { Table, TsSqlError, withSqlDataType } from '../../../src/exports/v2/inde
 import { postgreSqlDriverParams } from '../../../src/utils/postgreSql/postgreSqlParamTypes.js'
 import { durationIsoTextWithoutWeeks, durationPartsFor } from '../../../src/utils/durationValues.js'
 import { sqliteScalarFunctions } from '../../../src/utils/sqlite/sqliteFunctions.js'
+import { plainTemporalFieldsOf } from '../../../src/utils/plainTemporalFields.js'
 
 class PgConnection extends PostgreSqlConnection<'PgConnection'> {}
 class OraConnection extends OracleConnection<'OraConnection'> {}
@@ -224,5 +225,35 @@ describe('DurationValues', () => {
         expect(await add({ days: 1.5 })).toBe('INVALID_VALUE_TO_SEND_TO_DATABASE')
         expect(await add({})).toBe('INVALID_VALUE_TO_SEND_TO_DATABASE')
         expect(await add('P1D')).toBe('INVALID_VALUE_TO_SEND_TO_DATABASE')
+    })
+
+    test('the-fields-of-with-are-read-as-temporal-reads-them', () => {
+        // Each case checked against Temporal's with of 2024-01-31 and 10:20:30.123456789
+        const date = (fields: object) => { const result = plainTemporalFieldsOf(fields, 'date'); return result && [result.year, result.month, result.day] }
+        const time = (fields: object) => { const result = plainTemporalFieldsOf(fields, 'time'); return result && [result.hour, result.minute, result.second, result.millisecond, result.microsecond, result.nanosecond] }
+        expect(date({ month: 13 })).toEqual([undefined, 12, undefined])
+        expect(date({ day: 1.7 })).toEqual([undefined, undefined, 1])
+        expect(date({ day: '3' })).toEqual([undefined, undefined, 3])
+        expect(date({ monthCode: 'M02' })).toEqual([undefined, 2, undefined])
+        expect(time({ hour: 25, minute: -1, nanosecond: 1000 })).toEqual([23, 0, undefined, undefined, undefined, 999])
+        // Rejected by Temporal: a day or a month below 1, a month code of another calendar or of another month, no
+        // field of the type, a field that isn't a number
+        expect(date({ day: 0 })).toBeUndefined()
+        expect(date({ month: 0 })).toBeUndefined()
+        expect(date({ monthCode: 'M13' })).toBeUndefined()
+        expect(date({ month: 2, monthCode: 'M03' })).toBeUndefined()
+        expect(date({})).toBeUndefined()
+        expect(date({ hour: 3 })).toBeUndefined()
+        expect(date({ day: Infinity })).toBeUndefined()
+        expect(time({ minute: 'x' })).toBeUndefined()
+    })
+
+    test('with-rejects-the-fields-temporal-rejects', async () => {
+        rowsToReturn = [{ day: '2024-02-29' }]
+        const day = pg.const(Temporal.PlainDate.from('2024-01-31'), 'plainDate')
+        const withFields = (fields: unknown) => outcome(() => pg.selectFromNoTable().select({ day: day.with(fields as { day: number }) }).executeSelectOne())
+        expect(await withFields({ month: 2 })).toBe('sent')
+        expect(await withFields({ day: 0 })).toBe('INVALID_VALUE_TO_SEND_TO_DATABASE')
+        expect(await withFields({})).toBe('INVALID_VALUE_TO_SEND_TO_DATABASE')
     })
 })

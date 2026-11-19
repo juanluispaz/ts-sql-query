@@ -1,7 +1,7 @@
 import type { SqlDataType } from '../TypeAdapter.js'
 import { ComparableType } from './comparable.js'
 import { localDateSqlDataType, localDateTimeSqlDataType, localTimeSqlDataType } from './localDates.js'
-import type { TemporalDuration, TemporalDurationLike, TemporalPlainDate, TemporalPlainDateTime, TemporalPlainTime } from './temporal.js'
+import type { TemporalDuration, TemporalDurationLike, TemporalPlainDate, TemporalPlainDateFields, TemporalPlainDateTime, TemporalPlainTime, TemporalPlainTimeFields } from './temporal.js'
 import type { DataTypeOf, IValueWithType, OptionalityOf, SourceOf, ValueSource } from './base.js'
 import type { CombinedOptionality } from './valueSource.js'
 import type { SqlFunction0 } from '../sqlBuilders/SqlBuilder.js'
@@ -13,6 +13,11 @@ import { __computedClassOf } from '../nodes/adaptedTypeClass.js'
 /** The value plus or minus a duration, of the same data type */
 function withDuration(valueSource: unknown, operation: '_addDuration' | '_subtractDuration', duration: unknown): any {
     return __operation1(valueSource as any, operation, duration, __computedClassOf(valueSource as object, __typeClassOf(valueSource as any)))
+}
+
+/** The value with the fields given, of the same data type */
+function withFields(valueSource: unknown, fields: unknown): any {
+    return __operation1(valueSource as any, '_withFields', fields, __computedClassOf(valueSource as object, __typeClassOf(valueSource as any)))
 }
 
 /** A part of a date or a time (its month, its microseconds, ...): an int */
@@ -95,6 +100,13 @@ export abstract class PlainDatesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME
     subtract(duration: unknown): any {
         return withDuration(this, '_subtractDuration', duration)
     }
+    /**
+     * The date with the fields given in place of its own, as Temporal's `with`: a field out of its range is taken to the nearest value it can have, and the day to the last one of the month when the month has fewer (`with({ day: 31 })` in February is the 29th or 28th). The fields are integers
+     */
+    with(fields: TemporalPlainDateFields): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    with(fields: unknown): any {
+        return withFields(this, fields)
+    }
 }
 
 /**
@@ -153,6 +165,13 @@ export abstract class PlainTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME
     subtract<VALUE extends IValueWithType<'type:duration:'>>(duration: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     subtract(duration: unknown): any {
         return withDuration(this, '_subtractDuration', duration)
+    }
+    /**
+     * The time with the fields given in place of its own, as Temporal's `with`: a field out of its range is taken to the nearest value it can have (`with({ hour: 25 })` is 23). The fields are integers
+     */
+    with(fields: TemporalPlainTimeFields): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    with(fields: unknown): any {
+        return withFields(this, fields)
     }
 }
 
@@ -249,6 +268,13 @@ export abstract class PlainDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
     subtract<VALUE extends IValueWithType<'type:duration:'>>(duration: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     subtract(duration: unknown): any {
         return withDuration(this, '_subtractDuration', duration)
+    }
+    /**
+     * The date and time with the fields given in place of its own, as Temporal's `with`: a field out of its range is taken to the nearest value it can have, and the day to the last one of the month when the month has fewer. The fields are integers
+     */
+    with(fields: TemporalPlainDateFields & TemporalPlainTimeFields): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    with(fields: unknown): any {
+        return withFields(this, fields)
     }
 }
 

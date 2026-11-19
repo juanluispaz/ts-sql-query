@@ -1342,6 +1342,28 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         const modifiers = (days === undefined ? '' : ', ' + days) + (seconds === undefined ? '' : ', ' + seconds)
         return this._sqliteTemporalIn(fields === 'date' ? 'date' : 'dateTime', date + modifiers)
     }
+    override _integerPart(sql: string): string {
+        return sql
+    }
+    override _leastOf(value: string, other: string): string {
+        return 'min(' + value + ', ' + other + ')'
+    }
+    override _daysInMonth(_context: SqlBuildContext, year: string, month: string): string {
+        return "cast(strftime('%d', printf('%04d-%02d-01', " + year + ', ' + month + "), '+1 months', '-1 days') as integer)"
+    }
+    override _makeDate(_context: SqlBuildContext, year: string, month: string, day: string): string {
+        return this._sqliteTemporalIn('date', "printf('%04d-%02d-%02d', " + year + ', ' + month + ', ' + day + ')')
+    }
+    override _nanosecondOfSecond(context: SqlBuildContext, valueSource: ToSql): string {
+        // The date functions of SQLite keep milliseconds
+        return '(' + this._millisecond(context, valueSource) + ') * 1000000'
+    }
+    override _makeTime(_context: SqlBuildContext, hour: string, minute: string, second: string, nanoseconds: string): string {
+        return this._sqliteTemporalIn('time', "printf('%02d:%02d:%02d.%03d', " + hour + ', ' + minute + ', ' + second + ', ' + this._truncatedDivision(nanoseconds, '1000000') + ')')
+    }
+    override _makeTimestamp(_context: SqlBuildContext, year: string, month: string, day: string, hour: string, minute: string, second: string, nanoseconds: string): string {
+        return this._sqliteTemporalIn('dateTime', "printf('%04d-%02d-%02d %02d:%02d:%02d.%03d', " + year + ', ' + month + ', ' + day + ', ' + hour + ', ' + minute + ', ' + second + ', ' + this._truncatedDivision(nanoseconds, '1000000') + ')')
+    }
     /**
      * A date, a time or a date and time in the format its type is kept in (getDateTimeFormat), from the arguments of a
      * date function of SQLite (a value and its modifiers): its text, with the seconds or the milliseconds the format

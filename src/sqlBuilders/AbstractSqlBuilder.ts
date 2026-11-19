@@ -23,6 +23,7 @@ import { TsSqlError, TsSqlProcessingError } from '../TsSqlError.js'
 import { isUtcTimeZoneName } from '../utils/processTimeZone.js'
 import { __isIntegerSql, __isJsonDocumentSql, __sqlFamilyOf, __temporalFieldsOf } from '../typeSystem/dataTypes.js'
 import { durationOfArgument, durationOfParts, durationPartsFor, isZeroDuration, type DurationParts, type DurationPartsSql } from '../utils/durationValues.js'
+import { plainTemporalFieldsOf } from '../utils/plainTemporalFields.js'
 import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
 import { __getValueSourceOfObject, __isBooleanValueSource, __isStringValueSource } from '../typeSystem/valueSource.js'
 import type { AggregatedArrayType } from '../typeSystem/aggregatedArrays.js'
@@ -4108,13 +4109,95 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _signedDurationTextPart(context: SqlBuildContext, valueSource: ToSql, part: 'M' | 'D' | 'S' | 'N', sign: 1 | -1): string {
         return (sign < 0 ? '-' : '') + this._durationTextPart(context, valueSource, part)
     }
-    /** An integer division that truncates toward zero, as Temporal balances a time into days */
+    /** An integer division that truncates toward zero, as Temporal balances a time into days: a division of integers */
     _truncatedDivision(dividend: string, divisor: string): string {
-        return 'trunc(' + dividend + ' / ' + divisor + ')'
+        return '(' + dividend + ' / ' + divisor + ')'
     }
     /** Whether the operand is a const, a parameter */
     _isConstOperand(operand: ToSql): boolean {
         return isValueSource(operand) && __asNodeValueSource(operand).isConstValue()
+    }
+    /**
+     * A date, a time or a date and time with the fields given in place of its own, as Temporal's `with` (see
+     * plainTemporalFieldsOf): built from its parts, each the one given or the one of the value, the day taken to the
+     * last one of the month when the month has fewer. The fields are written as integers, checked here: the year and the
+     * month appear twice when the day may not fit, and a parameter can't be repeated on every database
+     */
+    _withFields(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
+        const fields = this._temporalFieldsOfDurationOperation(typeClass)
+        const given = plainTemporalFieldsOf(value, fields)
+        if (!given) {
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: typeClass.type }, 'Invalid fields to put in a ' + typeClass.type + ': ' + JSON.stringify(value))
+        }
+        let year = ''
+        let month = ''
+        let day = ''
+        if (fields !== 'time') {
+            year = given.year === undefined ? this._integerPart(this._year(context, valueSource)) : String(given.year)
+            month = given.month === undefined ? this._integerPart(this._month(context, valueSource)) : String(given.month)
+            day = given.day === undefined ? this._integerPart(this._day(context, valueSource)) : String(given.day)
+            // Only a day that may not fit in the month is taken to its last day: one given above 28, or the one of the
+            // value in another month
+            const mayNotFit = given.day === undefined ? given.year !== undefined || given.month !== undefined : given.day > 28
+            if (mayNotFit) {
+                day = this._leastOf(day, this._daysInMonth(context, year, month))
+            }
+        }
+        if (fields === 'date') {
+            return this._makeDate(context, year, month, day)
+        }
+        const hour = given.hour === undefined ? this._integerPart(this._hour(context, valueSource)) : String(given.hour)
+        const minute = given.minute === undefined ? this._integerPart(this._minute(context, valueSource)) : String(given.minute)
+        const second = given.second === undefined ? this._integerPart(this._second(context, valueSource)) : String(given.second)
+        let nanoseconds: string
+        if (given.millisecond === undefined && given.microsecond === undefined && given.nanosecond === undefined) {
+            nanoseconds = this._nanosecondOfSecond(context, valueSource)
+        } else if (given.millisecond !== undefined && given.microsecond !== undefined && given.nanosecond !== undefined) {
+            nanoseconds = String(given.millisecond * 1_000_000 + given.microsecond * 1000 + given.nanosecond)
+        } else {
+            // The parts of the fraction not given are the ones of the value
+            const ofTheValue = this._nanosecondOfSecond(context, valueSource)
+            const milliseconds = given.millisecond === undefined ? this._truncatedDivision(ofTheValue, '1000000') : String(given.millisecond)
+            const microseconds = given.microsecond === undefined ? this._integerRemainder(this._truncatedDivision(ofTheValue, '1000'), '1000') : String(given.microsecond)
+            const ofTheMicrosecond = given.nanosecond === undefined ? this._integerRemainder(ofTheValue, '1000') : String(given.nanosecond)
+            nanoseconds = '(' + milliseconds + ' * 1000000 + ' + microseconds + ' * 1000 + ' + ofTheMicrosecond + ')'
+        }
+        if (fields === 'time') {
+            return this._makeTime(context, hour, minute, second, nanoseconds)
+        }
+        return this._makeTimestamp(context, year, month, day, hour, minute, second, nanoseconds)
+    }
+    /** A part of a date or a time as an integer (PostgreSQL's extract gives a numeric) */
+    _integerPart(sql: string): string {
+        return 'cast(' + sql + ' as integer)'
+    }
+    /** The remainder of the division of two integers, with the sign of the dividend */
+    _integerRemainder(dividend: string, divisor: string): string {
+        return dividend + ' % ' + divisor
+    }
+    /** The smaller of two integers */
+    _leastOf(value: string, other: string): string {
+        return 'least(' + value + ', ' + other + ')'
+    }
+    /** The days of the month of the year */
+    _daysInMonth(_context: SqlBuildContext, year: string, month: string): string {
+        return 'extract(day from make_date(' + year + ', ' + month + ", 1) + interval '1 month - 1 day')::integer"
+    }
+    /** The date of its parts, which are in their ranges */
+    _makeDate(_context: SqlBuildContext, year: string, month: string, day: string): string {
+        return 'make_date(' + year + ', ' + month + ', ' + day + ')'
+    }
+    /** The nanoseconds of the second of a time, with the digits the database keeps */
+    _nanosecondOfSecond(context: SqlBuildContext, valueSource: ToSql): string {
+        return '(trunc(extract(microseconds from ' + this._appendSqlForDatePartArgument(valueSource, context) + '))::integer % 1000000 * 1000)'
+    }
+    /** The time of its parts, which are in their ranges */
+    _makeTime(_context: SqlBuildContext, hour: string, minute: string, second: string, nanoseconds: string): string {
+        return 'make_time(' + hour + ', ' + minute + ', ' + secondsWithFraction(second, nanoseconds) + ')'
+    }
+    /** The date and time of its parts, which are in their ranges */
+    _makeTimestamp(_context: SqlBuildContext, year: string, month: string, day: string, hour: string, minute: string, second: string, nanoseconds: string): string {
+        return 'make_timestamp(' + year + ', ' + month + ', ' + day + ', ' + hour + ', ' + minute + ', ' + secondsWithFraction(second, nanoseconds) + ')'
     }
     /** What a duration is added to: a date, a time, or a date and time (by the SQL data type of the result) */
     _temporalFieldsOfDurationOperation(typeClass: DataTypeClass): 'date' | 'time' | 'timestamp' {
@@ -4963,4 +5046,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
             return 'json_agg(json_build_object(' + result + '))'
         }
     }
+}
+
+/** The seconds and the nanoseconds of a second, as seconds with a fraction: the seconds alone when there are none */
+function secondsWithFraction(seconds: string, nanoseconds: string): string {
+    return nanoseconds === '0' ? seconds : seconds + ' + ' + nanoseconds + ' / 1000000000.0'
 }

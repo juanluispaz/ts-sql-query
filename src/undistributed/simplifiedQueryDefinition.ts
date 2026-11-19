@@ -489,6 +489,8 @@ interface PlainDateValueSource extends ComparableValueSource<Temporal.PlainDate,
     add(duration: Temporal.Duration | Temporal.DurationLike | DurationValueSource): PlainDateValueSource
     /** The date minus a duration, as Temporal's subtract */
     subtract(duration: Temporal.Duration | Temporal.DurationLike | DurationValueSource): PlainDateValueSource
+    /** With the fields given in place of its own, as Temporal's with: each taken to its range, the day to the last one of the month */
+    with(fields: { year?: number, month?: number, monthCode?: string, day?: number }): PlainDateValueSource
 }
 
 /**
@@ -509,6 +511,8 @@ interface PlainTimeValueSource extends ComparableValueSource<Temporal.PlainTime,
     add(duration: Temporal.Duration | Temporal.DurationLike | DurationValueSource): PlainTimeValueSource
     /** The time minus a duration, as Temporal's subtract */
     subtract(duration: Temporal.Duration | Temporal.DurationLike | DurationValueSource): PlainTimeValueSource
+    /** With the fields given in place of its own, as Temporal's with: each taken to its range, the day to the last one of the month */
+    with(fields: { hour?: number, minute?: number, second?: number, millisecond?: number, microsecond?: number, nanosecond?: number }): PlainTimeValueSource
 }
 
 /**
@@ -543,6 +547,8 @@ interface PlainDateTimeValueSource extends ComparableValueSource<Temporal.PlainD
     add(duration: Temporal.Duration | Temporal.DurationLike | DurationValueSource): PlainDateTimeValueSource
     /** The date and time minus a duration, as Temporal's subtract */
     subtract(duration: Temporal.Duration | Temporal.DurationLike | DurationValueSource): PlainDateTimeValueSource
+    /** With the fields given in place of its own, as Temporal's with: each taken to its range, the day to the last one of the month */
+    with(fields: { year?: number, month?: number, monthCode?: string, day?: number, hour?: number, minute?: number, second?: number, millisecond?: number, microsecond?: number, nanosecond?: number }): PlainDateTimeValueSource
 }
 
 /**

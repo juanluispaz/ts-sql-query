@@ -581,6 +581,13 @@ function _typeNegatives() {
     void tColMatrixPlain.mDatetime.add(tColMatrixPlain.mTime)
     // @ts-expect-error a field a duration doesn't have
     void tColMatrixPlain.mDate.subtract({ decades: 1 })
+    // with takes the fields of the type
+    void tColMatrixPlain.mDate.with({ day: 1 })
+    void tColMatrixPlain.mDatetime.with({ month: 2, hour: 0 })
+    // @ts-expect-error a date has no hour
+    void tColMatrixPlain.mDate.with({ hour: 0 })
+    // @ts-expect-error a time has no day
+    void tColMatrixPlain.mTime.with({ day: 1 })
 }
 
 test('expressions-negative-types', () => {

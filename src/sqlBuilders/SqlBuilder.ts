@@ -534,6 +534,8 @@ export interface SqlFunction1 {
     // A date, a time or a date and time plus or minus a duration, with the semantics of Temporal
     _addDuration(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
     _subtractDuration(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
+    // A date, a time or a date and time with the fields given, with the semantics of Temporal's with
+    _withFields(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
 }
 // avg, count, max, median, min,
 // greatest, least

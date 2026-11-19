@@ -150,6 +150,8 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
             case '_average':
             case '_averageDistinct':
             case '_anyValue':
+            // The parts of a const are taken with extract, which needs its type
+            case '_withFields':
                 return true
             case '_divide':
                 // An exact division casts the dividend to double itself

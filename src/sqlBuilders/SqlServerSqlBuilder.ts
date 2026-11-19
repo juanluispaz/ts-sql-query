@@ -1166,6 +1166,29 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         }
         return result
     }
+    override _integerPart(sql: string): string {
+        return sql
+    }
+    override _leastOf(value: string, other: string): string {
+        // least came in SQL Server 2022
+        return 'case when ' + value + ' < ' + other + ' then ' + value + ' else ' + other + ' end'
+    }
+    override _daysInMonth(_context: SqlBuildContext, year: string, month: string): string {
+        return 'day(eomonth(datefromparts(' + year + ', ' + month + ', 1)))'
+    }
+    override _makeDate(_context: SqlBuildContext, year: string, month: string, day: string): string {
+        return 'datefromparts(' + year + ', ' + month + ', ' + day + ')'
+    }
+    override _nanosecondOfSecond(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'datepart(nanosecond, ' + this._appendSql(valueSource, context, false) + ')'
+    }
+    override _makeTime(_context: SqlBuildContext, hour: string, minute: string, second: string, nanoseconds: string): string {
+        // The fraction in hundreds of nanoseconds, the digits a time(7) keeps
+        return 'timefromparts(' + hour + ', ' + minute + ', ' + second + ', ' + nanoseconds + ' / 100, 7)'
+    }
+    override _makeTimestamp(_context: SqlBuildContext, year: string, month: string, day: string, hour: string, minute: string, second: string, nanoseconds: string): string {
+        return 'datetime2fromparts(' + year + ', ' + month + ', ' + day + ', ' + hour + ', ' + minute + ', ' + second + ', ' + nanoseconds + ' / 100, 7)'
+    }
     /** The type of the database of an operand, by the SQL data type of its column (withSqlDataType), if it says it */
     _nativeSqlDataTypeOfOperand(operand: ToSql): string | undefined {
         const sqlDataType = isValueSource(operand) ? __sqlDataTypeOf(__classOf(operand)) : undefined

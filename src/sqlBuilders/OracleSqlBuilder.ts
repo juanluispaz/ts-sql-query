@@ -1512,6 +1512,33 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         }
         return result
     }
+    override _truncatedDivision(dividend: string, divisor: string): string {
+        // A division of numbers keeps the fraction
+        return 'trunc(' + dividend + ' / ' + divisor + ')'
+    }
+    override _integerPart(sql: string): string {
+        return sql
+    }
+    override _integerRemainder(dividend: string, divisor: string): string {
+        return 'mod(' + dividend + ', ' + divisor + ')'
+    }
+    override _daysInMonth(context: SqlBuildContext, year: string, month: string): string {
+        return 'extract(day from last_day(' + this._makeDate(context, year, month, '1') + '))'
+    }
+    override _makeDate(_context: SqlBuildContext, year: string, month: string, day: string): string {
+        // The months and days from January 1st of the year 1: no text, so no format of the session takes part
+        return "(add_months(date '0001-01-01', (" + year + ' - 1) * 12 + ' + month + ' - 1) + ' + day + ' - 1)'
+    }
+    override _nanosecondOfSecond(context: SqlBuildContext, valueSource: ToSql): string {
+        return "to_number(to_char(" + this._appendTimestampForTimeGetter(context, valueSource) + ", 'FF9'))"
+    }
+    override _makeTime(_context: SqlBuildContext, hour: string, minute: string, second: string, nanoseconds: string): string {
+        // Oracle has no TIME type: a time of the day is a TIMESTAMP on 1970-01-01
+        return "timestamp '1970-01-01 00:00:00' + numtodsinterval(" + oracleSecondsOfTheDay(hour, minute, second, nanoseconds) + ", 'second')"
+    }
+    override _makeTimestamp(context: SqlBuildContext, year: string, month: string, day: string, hour: string, minute: string, second: string, nanoseconds: string): string {
+        return 'cast(' + this._makeDate(context, year, month, day) + ' as timestamp(9)) + numtodsinterval(' + oracleSecondsOfTheDay(hour, minute, second, nanoseconds) + ", 'second')"
+    }
     /** add_months of a DATE, its day kept in the month as Temporal keeps it: the days it moves past the day of the value taken back */
     _appendKeepingTheDay(date: string, months: string): string {
         const added = 'add_months(' + date + ', ' + months + ')'
@@ -1676,4 +1703,9 @@ export function oracleZonedValueSql(sql: string, typeClass: DataTypeClass, local
         return 'cast(' + day + ' + (' + sql + ' - trunc(' + sql + ')) as timestamp with time zone)'
     }
     return undefined
+}
+
+/** The seconds since midnight of a time of its parts, with their fraction */
+function oracleSecondsOfTheDay(hour: string, minute: string, second: string, nanoseconds: string): string {
+    return hour + ' * 3600 + ' + minute + ' * 60 + ' + second + (nanoseconds === '0' ? '' : ' + ' + nanoseconds + ' / 1000000000')
 }

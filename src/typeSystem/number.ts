@@ -51,142 +51,260 @@ export abstract class NumberType extends ArithmeticType<number, string> {
     declare [typeName]: `type:${string}:number:`
     declare [operandTypeName]: `type:${string}:number:`
 
-    /** The number as an int: it is rounded, as a number of JavaScript (an int stays as it is, IntType) */
+    /**
+     * The number as an int: rounded to the nearest integer and cast to an integer type of the database; ties go away
+     * from zero (2.5 gives 3, -2.5 gives -3), unless the connection sets `usePlatformDependentRound`
+     */
     asInt(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     asInt(): any {
         return __operation0(this, '_asInt', IntType)
     }
-    /** The number as a double: a number of JavaScript is one already (an int is converted, IntType) */
+    /** The number as a double: a double is kept as it is, and an int is cast to a floating point type */
     asDouble(): ValueSource<SourceOf<this>, DoubleType, OptionalityOf<this>>
     asDouble(): any {
         const vs = __asNodeValueSource(this)
         return __newNoopValueSource(vs, DoubleType, vs.__optionalType)
     }
-    /** The number as a bigint: it is rounded, as a number of JavaScript (an int stays as it is, IntType) */
+    /**
+     * The number as a bigint: rounded to the nearest integer and cast to an integer type of the database; ties go away
+     * from zero (2.5 gives 3, -2.5 gives -3), unless the connection sets `usePlatformDependentRound`
+     */
     asBigint(): ValueSource<SourceOf<this>, BigintType, OptionalityOf<this>>
     asBigint(): any {
         return __operation0(this, '_asBigint', BigintType)
     }
+    /** The absolute value of the number, `abs(x)`, of the same data type */
     abs(): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     abs(): any {
         return __operation0(this, '_abs', __computedClassOf(this, __typeClassOf(this)))
     }
+    /** The smallest integer greater than or equal to the number, `ceil(x)` (`ceiling` on SQL Server), as an int */
     ceil(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     ceil(): any {
         return __operation0(this, '_ceil', IntType)
     }
+    /** The greatest integer less than or equal to the number, `floor(x)`, as an int */
     floor(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     floor(): any {
         return __operation0(this, '_floor', IntType)
     }
+    /**
+     * The number rounded to the nearest integer, `round(x)`, as an int; ties go away from zero (2.5 gives 3, -2.5 gives
+     * -3), unless the connection sets `usePlatformDependentRound`
+     */
     round(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     round(): any {
         return __operation0(this, '_round', IntType)
     }
+    /** e raised to the number, `exp(x)`, as a double */
     exp(): ValueSource<SourceOf<this>, DoubleType, OptionalityOf<this>>
     exp(): any {
         return __operation0(this, '_exp', DoubleType)
     }
+    /** The natural logarithm (base e) of the number, `ln(x)`, as a double */
     ln(): ValueSource<SourceOf<this>, DoubleType, OptionalityOf<this>>
     ln(): any {
         return __operation0(this, '_ln', DoubleType)
     }
+    /** The logarithm in base 10 of the number, as a double */
     log10(): ValueSource<SourceOf<this>, DoubleType, OptionalityOf<this>>
     log10(): any {
         return __operation0(this, '_log10', DoubleType)
     }
+    /** The square root of the number, `sqrt(x)`, as a double */
     sqrt(): ValueSource<SourceOf<this>, DoubleType, OptionalityOf<this>>
     sqrt(): any {
         return __operation0(this, '_sqrt', DoubleType)
     }
+    /**
+     * The cube root of the number, as a double; a negative number has one too: it is written as
+     * `sign(x) * power(abs(x), 1.0e0 / 3.0e0)`
+     */
     cbrt(): ValueSource<SourceOf<this>, DoubleType, OptionalityOf<this>>
     cbrt(): any {
         return __operation0(this, '_cbrt', DoubleType)
     }
+    /** The sign of the number, `sign(x)`: -1, 0 or 1, as an int */
     sign(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     sign(): any {
         return __operation0(this, '_sign', IntType)
     }
+    /** The arc cosine of the number, in radians, `acos(x)`, as a double */
     acos(): ValueSource<SourceOf<this>, DoubleType, OptionalityOf<this>>
     acos(): any {
         return __operation0(this, '_acos', DoubleType)
     }
+    /** The arc sine of the number, in radians, `asin(x)`, as a double */
     asin(): ValueSource<SourceOf<this>, DoubleType, OptionalityOf<this>>
     asin(): any {
         return __operation0(this, '_asin', DoubleType)
     }
+    /** The arc tangent of the number, in radians, `atan(x)`, as a double */
     atan(): ValueSource<SourceOf<this>, DoubleType, OptionalityOf<this>>
     atan(): any {
         return __operation0(this, '_atan', DoubleType)
     }
+    /** The cosine of the number, an angle in radians, `cos(x)`, as a double */
     cos(): ValueSource<SourceOf<this>, DoubleType, OptionalityOf<this>>
     cos(): any {
         return __operation0(this, '_cos', DoubleType)
     }
+    /** The cotangent of the number, an angle in radians, `cot(x)`, as a double */
     cot(): ValueSource<SourceOf<this>, DoubleType, OptionalityOf<this>>
     cot(): any {
         return __operation0(this, '_cot', DoubleType)
     }
+    /** The sine of the number, an angle in radians, `sin(x)`, as a double */
     sin(): ValueSource<SourceOf<this>, DoubleType, OptionalityOf<this>>
     sin(): any {
         return __operation0(this, '_sin', DoubleType)
     }
+    /** The tangent of the number, an angle in radians, `tan(x)`, as a double */
     tan(): ValueSource<SourceOf<this>, DoubleType, OptionalityOf<this>>
     tan(): any {
         return __operation0(this, '_tan', DoubleType)
     }
+    /** The number raised to the power given, `power(x, value)`, as a double; null when either is null */
     power(value: number): ValueSource<SourceOf<this>, DoubleType, OptionalityOf<this>>
+    /** The number raised to the power given, `power(x, value)`, as a double; null when either is null */
     power<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DoubleType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     power(value: any): any {
         return __operation1(this, '_power', value, DoubleType)
     }
+    /**
+     * The logarithm of the number in the base given, `log(base, x)` (`log(x, base)` on SQL Server), as a double; null
+     * when either is null
+     */
     logn(value: number): ValueSource<SourceOf<this>, DoubleType, OptionalityOf<this>>
+    /**
+     * The logarithm of the number in the base given, `log(base, x)` (`log(x, base)` on SQL Server), as a double; null
+     * when either is null
+     */
     logn<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DoubleType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     logn(value: any): any {
         return __operation1(this, '_logn', value, DoubleType)
     }
+    /**
+     * The number rounded to the decimals given, `round(x, decimals)`, as a double; ties go away from zero (2.5 gives 3,
+     * -2.5 gives -3), unless the connection sets `usePlatformDependentRound`. A number of decimals given with a
+     * fraction is rounded to an integer; null when either is null
+     */
     roundn(value: number): ValueSource<SourceOf<this>, DoubleType, OptionalityOf<this>>
+    /**
+     * The number rounded to the decimals given, `round(x, decimals)`, as a double; ties go away from zero (2.5 gives 3,
+     * -2.5 gives -3), unless the connection sets `usePlatformDependentRound`. A number of decimals given with a
+     * fraction is rounded to an integer; null when either is null
+     */
     roundn<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DoubleType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     roundn(value: any): any {
         return __operation1(this, '_roundn', value, DoubleType)
     }
-    /** The value, but at least the one given: the greater of the two (and maxValue, at most: the smaller) */
+    /**
+     * The number, but at least the one given: the greater of the two, `greatest(x, value)` (a lower bound); null when
+     * either is null. An int with a double gives a double; a number given as a value is an int when it is an integer
+     * and a double otherwise
+     */
     minValue(value: number): ValueSource<SourceOf<this>, PromotedNumberType<DataTypeOf<this>, NumberType>, OptionalityOf<this>>
+    /**
+     * The number, but at least the one given: the greater of the two, `greatest(x, value)` (a lower bound); null when
+     * either is null. An int with a double gives a double; a number given as a value is an int when it is an integer
+     * and a double otherwise
+     */
     minValue<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, PromotedNumberType<DataTypeOf<this>, DataTypeOf<VALUE>>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     minValue(value: any): any {
         return promotedNumberOperation(this, value, '_maximumBetweenTwoValues')
     }
+    /**
+     * The number, but at most the one given: the smaller of the two, `least(x, value)` (an upper bound); null when
+     * either is null. An int with a double gives a double; a number given as a value is an int when it is an integer
+     * and a double otherwise
+     */
     maxValue(value: number): ValueSource<SourceOf<this>, PromotedNumberType<DataTypeOf<this>, NumberType>, OptionalityOf<this>>
+    /**
+     * The number, but at most the one given: the smaller of the two, `least(x, value)` (an upper bound); null when
+     * either is null. An int with a double gives a double; a number given as a value is an int when it is an integer
+     * and a double otherwise
+     */
     maxValue<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, PromotedNumberType<DataTypeOf<this>, DataTypeOf<VALUE>>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     maxValue(value: any): any {
         return promotedNumberOperation(this, value, '_minimumBetweenTwoValues')
     }
+    /**
+     * The sum of the number and the one given, `x + value`; null when either is null. An int with a double gives a
+     * double; a number given as a value is an int when it is an integer and a double otherwise
+     */
     add(value: number): ValueSource<SourceOf<this>, PromotedNumberType<DataTypeOf<this>, NumberType>, OptionalityOf<this>>
+    /**
+     * The sum of the number and the one given, `x + value`; null when either is null. An int with a double gives a
+     * double; a number given as a value is an int when it is an integer and a double otherwise
+     */
     add<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, PromotedNumberType<DataTypeOf<this>, DataTypeOf<VALUE>>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     add(value: any): any {
         return promotedNumberOperation(this, value, '_add')
     }
+    /**
+     * The number minus the one given, `x - value`; null when either is null. An int with a double gives a double; a
+     * number given as a value is an int when it is an integer and a double otherwise
+     */
     subtract(value: number): ValueSource<SourceOf<this>, PromotedNumberType<DataTypeOf<this>, NumberType>, OptionalityOf<this>>
+    /**
+     * The number minus the one given, `x - value`; null when either is null. An int with a double gives a double; a
+     * number given as a value is an int when it is an integer and a double otherwise
+     */
     subtract<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, PromotedNumberType<DataTypeOf<this>, DataTypeOf<VALUE>>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     subtract(value: any): any {
         return promotedNumberOperation(this, value, '_subtract')
     }
+    /**
+     * The product of the number and the one given, `x * value`; null when either is null. An int with a double gives a
+     * double; a number given as a value is an int when it is an integer and a double otherwise
+     */
     multiply(value: number): ValueSource<SourceOf<this>, PromotedNumberType<DataTypeOf<this>, NumberType>, OptionalityOf<this>>
+    /**
+     * The product of the number and the one given, `x * value`; null when either is null. An int with a double gives a
+     * double; a number given as a value is an int when it is an integer and a double otherwise
+     */
     multiply<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, PromotedNumberType<DataTypeOf<this>, DataTypeOf<VALUE>>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     multiply(value: any): any {
         return promotedNumberOperation(this, value, '_multiply')
     }
+    /**
+     * The number divided by the one given, `x / value`, always a double, as `/` in JavaScript: there is no integer
+     * division (`5 / 2` gives 2.5); null when either is null
+     */
     divide(value: number): ValueSource<SourceOf<this>, DoubleType, OptionalityOf<this>>
+    /**
+     * The number divided by the one given, `x / value`, always a double, as `/` in JavaScript: there is no integer
+     * division (`5 / 2` gives 2.5); null when either is null
+     */
     divide<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DoubleType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     divide(value: any): any {
         return __operation1(this, '_divide', value, DoubleType)
     }
+    /**
+     * The remainder of dividing the number by the one given, `x % value` (`mod(x, value)` on Oracle), with the sign of
+     * the number, as `%` in JavaScript; null when either is null. An int with a double gives a double; a number given
+     * as a value is an int when it is an integer and a double otherwise
+     */
     modulo(value: number): ValueSource<SourceOf<this>, PromotedNumberType<DataTypeOf<this>, NumberType>, OptionalityOf<this>>
+    /**
+     * The remainder of dividing the number by the one given, `x % value` (`mod(x, value)` on Oracle), with the sign of
+     * the number, as `%` in JavaScript; null when either is null. An int with a double gives a double; a number given
+     * as a value is an int when it is an integer and a double otherwise
+     */
     modulo<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, PromotedNumberType<DataTypeOf<this>, DataTypeOf<VALUE>>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     modulo(value: any): any {
         return promotedNumberOperation(this, value, '_modulo')
     }
+    /**
+     * The arc tangent of the number divided by the one given, `atan2(x, value)` (`atn2` on SQL Server), in radians and
+     * in the quadrant of the signs of both, as a double; null when either is null
+     */
     atan2(value: number): ValueSource<SourceOf<this>, DoubleType, OptionalityOf<this>>
+    /**
+     * The arc tangent of the number divided by the one given, `atan2(x, value)` (`atn2` on SQL Server), in radians and
+     * in the quadrant of the signs of both, as a double; null when either is null
+     */
     atan2<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DoubleType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     atan2(value: any): any {
         return __operation1(this, '_atan2', value, DoubleType)

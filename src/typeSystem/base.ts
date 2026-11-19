@@ -76,8 +76,10 @@ export abstract class BaseType</*in|out*/ VALUE_TYPE> extends ValueSourceRuntime
 
     /** The operations the data type exposes to a dynamic filter: none at the root */
     static readonly [filterOperation] = exposeFilterOperations(this, undefined, [])
+    /** The operations the data type exposes to a dynamic filter, for TypeScript */
     declare [filterOperation]: (typeof BaseType)[typeof filterOperation]
 
+    /** The type of the value of the data type in JavaScript, for TypeScript only */
     declare [valueType]: VALUE_TYPE
     /** The NType of the data type */
     declare [typeName]: string
@@ -90,12 +92,14 @@ export type AnyType = BaseType<any>
 
 /** A class of a data type, as the methods that take a data type receive it */
 export interface TypeClass</*in|out*/ TYPE extends AnyType> {
+    /** The data type the class describes */
     readonly prototype: TYPE
     /**
      * A class of a data type has its type name in its NType; a class without one (a family, a group such as
      * NumberType) has no place where a data type goes
      */
     readonly name: [TypeNameOf<TYPE>] extends [never] ? never : string
+    /** The type name of the data type (`'int'`, `'Money'`) */
     readonly type: string
 }
 
@@ -106,10 +110,12 @@ export interface TypeClass</*in|out*/ TYPE extends AnyType> {
  */
 export type TypeNameOf<TYPE> = TYPE extends { [typeName]: `type:${infer NAME}:${string}` } ? (string extends NAME ? never : `${any}` extends NAME ? never : NAME) : never
 
+/** Any class of a data type */
 export type AnyTypeClass = TypeClass<AnyType>
 
 /** What a value source adds to its data type: its source and its optionality */
 export interface ValueSourceOfType</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE extends AnyType, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends TypedValueSource<SOURCE, TYPE[typeof valueType], OPTIONAL_TYPE> {
+    /** The data type of the value source, for TypeScript only */
     [valueSourceType]: TYPE
 }
 

@@ -8,6 +8,7 @@ import type { DataTypeClass } from '../TypeAdapter.js'
 import { type NodeStrategy, valueSourceNode, type NodeValueSource, __keepAggregatedArrayShape, type InCreation } from './NodeStrategy.js'
 import { type ValueSourceConstructor } from './dataTypeClassOf.js'
 
+/** A value source guarded by `allowWhen` / `disallowWhen`: its SQL throws its error when it isn't allowed */
 export interface AllowWhenValueSource extends NodeValueSource {
     readonly __valueSource: NodeValueSource
     readonly __allowed: boolean

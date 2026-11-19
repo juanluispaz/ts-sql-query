@@ -25,10 +25,38 @@ export abstract class ValueSourceBaseType</*in|out*/ VALUE_TYPE> extends BaseTyp
         return value instanceof (this as unknown as abstract new (...args: any) => unknown)
     }
 
+    /**
+     * Whether this value source is a constant: a value of JavaScript given as it is to the query
+     * (as `const` and `optionalConst` of the connection make), not a column or an expression
+     */
     abstract isConstValue(): boolean
+    /**
+     * The value of JavaScript of a constant (`isConstValue` is true); for any other value source
+     * it throws an error
+     */
     abstract getConstValue(): VALUE_TYPE
+    /**
+     * This same value when `when` is true. When it is false, a query that uses this value is not
+     * sent: the execute method rejects with the error (a text becomes an error of the library),
+     * and `query()` and `params()` throw it
+     */
     abstract allowWhen(when: boolean, errorMessage: string): this
+    /**
+     * This same value when `when` is true. When it is false, a query that uses this value is not
+     * sent: the execute method rejects with the error (a text becomes an error of the library),
+     * and `query()` and `params()` throw it
+     */
     abstract allowWhen(when: boolean, error: Error): this
+    /**
+     * This same value when `when` is false. When it is true, a query that uses this value is not
+     * sent: the execute method rejects with the error (a text becomes an error of the library),
+     * and `query()` and `params()` throw it
+     */
     abstract disallowWhen(when: boolean, errorMessage: string): this
+    /**
+     * This same value when `when` is false. When it is true, a query that uses this value is not
+     * sent: the execute method rejects with the error (a text becomes an error of the library),
+     * and `query()` and `params()` throw it
+     */
     abstract disallowWhen(when: boolean, error: Error): this
 }

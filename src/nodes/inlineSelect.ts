@@ -13,6 +13,7 @@ import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
 
 // The node of a select used as a value, and the withs it brings to the query that holds it.
 
+/** What a select used as a value, or as the operand of an `in`, gives the node: the data of the select, which says its SQL and what it reaches */
 export type InlineSelectData = SelectData & IQueryDataDiscovery
 
 /** A select of one column used as a value */

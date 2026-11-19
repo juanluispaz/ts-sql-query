@@ -28,6 +28,7 @@ export class ValueSourceRoot implements NodeValueSource {
     declare readonly [isValueSourceObject]: true
     readonly __optionalType: OptionalType
 
+    /** A value source with the given optionality */
     constructor(optionalType: OptionalType) {
         this.__optionalType = optionalType
     }
@@ -64,12 +65,21 @@ export class ValueSourceRoot implements NodeValueSource {
     __hasAggregation(sqlBuilder: HasIsValue): boolean {
         return this.__node.__hasAggregation(this, sqlBuilder)
     }
+    /**
+     * Whether the value source is a value given from JavaScript that the query sends as a parameter, as
+     * `connection.const(...)` and `connection.optionalConst(...)` make
+     */
     isConstValue(): boolean {
         return this.__node.isConstValue(this)
     }
+    /** The value given from JavaScript of a value source that `isConstValue()`; it throws when the value source isn't one */
     getConstValue(): any {
         return this.__node.getConstValue(this)
     }
+    /**
+     * Makes the query fail when it uses the value source and the argument is false: `execute*` rejects the promise with
+     * the error, and `query()` and `params()` throw it. A message is thrown as an error with that message
+     */
     allowWhen(when: boolean, error: string | Error): any {
         const nodeAllowWhen = this.__node.allowWhen
         if (nodeAllowWhen) {
@@ -83,6 +93,10 @@ export class ValueSourceRoot implements NodeValueSource {
         }
         return result
     }
+    /**
+     * Makes the query fail when it uses the value source and the argument is true: `execute*` rejects the promise with
+     * the error, and `query()` and `params()` throw it. A message is thrown as an error with that message
+     */
     disallowWhen(when: boolean, error: string | Error): any {
         const nodeAllowWhen = this.__node.allowWhen
         if (nodeAllowWhen) {

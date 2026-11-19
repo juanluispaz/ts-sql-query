@@ -10,18 +10,27 @@ import { valueSourceType } from '../utils/symbols.js'
  * it can be null, and whether it takes only a value or a value source too.
  */
 
+/** Whether an argument of a fragment can be null: `'optional'`, or never: `'required'` */
 export type ArgumentOptionalType = 'required' | 'optional'
+/**
+ * What an argument of a fragment takes: `'value'` only a value from JavaScript (`valueArg`), `'combined'` a value or a
+ * value source (`arg`)
+ */
 export type ArgumentMode = 'value' | 'combined'
 
-/** An argument of a fragment, of its data type */
+/** An argument of a fragment built with arguments, of its data type: what `arg` and `valueArg` of the connection give */
 export class Argument</*in|out*/ TYPE extends AnyType, /*in|out*/ OPTIONAL_TYPE extends ArgumentOptionalType, /*in|out*/ MODE extends ArgumentMode> {
     /** The class of its data type */
     readonly typeClass: DataTypeClass
+    /** Whether the argument can be null: `'required'` or `'optional'` */
     readonly optionalType: OPTIONAL_TYPE
+    /** Whether the argument takes only a value (`'value'`) or a value or a value source (`'combined'`) */
     readonly mode: MODE
+    /** The type adapter of the argument's value, when it has one */
     readonly adapter?: TypeAdapter | undefined
     declare [valueSourceType]: TYPE
 
+    /** An argument of the data type, optionality and mode given, with its type adapter; `arg` and `valueArg` of the connection create it */
     constructor (typeClass: DataTypeClass, optionalType: OPTIONAL_TYPE, mode: MODE, adapter?: TypeAdapter) {
         this.typeClass = typeClass
         this.optionalType = optionalType

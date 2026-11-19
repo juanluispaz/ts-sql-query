@@ -84,6 +84,7 @@ function ifValueNode<VS extends IfValueOperation>(node: NodeStrategy<VS>, whenNo
     }
 }
 
+/** A condition that becomes `true` or `false` when it is the neutral (`trueWhenNoValue`, `falseWhenNoValue`) */
 export interface BooleanValueWhenNoValueValueSource extends NodeValueSource, HasOperation {
     readonly __valueSource: NodeValueSource
     readonly __operation: '_true' | '_false'
@@ -145,6 +146,7 @@ export function __newBooleanValueWhenNoValueValueSource(operation: '_true' | '_f
     return vs
 }
 
+/** A condition replaced by another one when it is the neutral (`valueWhenNoValue`) */
 export interface ValueWhenNoValueValueSource extends NodeValueSource {
     readonly __valueSource: NodeValueSource
     readonly __valueWhenNoValue: NodeValueSource & ToSql
@@ -205,6 +207,7 @@ export function __newValueWhenNoValueValueSource(valueWhenNoValue: NodeValueSour
     return vs
 }
 
+/** An operation of one operand that becomes the neutral without a value (`equalsIfValue`, `containsIfValue`, ...) */
 export interface SqlOperation1ValueSourceIfValueOrNoop extends NodeValueSource, HasOperation {
     readonly __valueSource: NodeValueSource
     readonly __operation: keyof SqlOperation1
@@ -223,6 +226,7 @@ export function __newSqlOperation1ValueSourceIfValueOrNoop(operation: keyof SqlO
     return vs
 }
 
+/** `inIfValue` / `notInIfValue`: the neutral without a value */
 export interface SqlOperationInValueSourceIfValueOrNoop extends NodeValueSource, HasOperation {
     readonly __valueSource: NodeValueSource
     readonly __operation: '_in' | '_notIn'
@@ -241,6 +245,7 @@ export function __newSqlOperationInValueSourceIfValueOrNoop(operation: '_in' | '
     return vs
 }
 
+/** The neutral itself: no condition (`noValueBoolean()`, the start of a dynamic condition) */
 export interface SqlOperationValueSourceIfValueAlwaysNoop extends NodeValueSource {
 }
 
@@ -285,6 +290,7 @@ export function __newSqlOperationValueSourceIfValueAlwaysNoop(typeClass: DataTyp
     return vs
 }
 
+/** An operation of one operand that gives its receiver unchanged without a value (`concatIfValue`, ...) */
 export interface SqlOperation1ValueSourceIfValueOrIgnore extends NodeValueSource, HasOperation {
     readonly __valueSource: NodeValueSource
     readonly __operation: keyof SqlOperation1
@@ -303,6 +309,7 @@ export function __newSqlOperation1ValueSourceIfValueOrIgnore(operation: keyof Sq
     return vs
 }
 
+/** An operation of two operands that gives its receiver unchanged without a value (`replaceAllIfValue`, ...) */
 export interface SqlOperation2ValueSourceIfValueOrIgnore extends NodeValueSource, HasOperation {
     readonly __valueSource: NodeValueSource
     readonly __operation: keyof SqlOperation2

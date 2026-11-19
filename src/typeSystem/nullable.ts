@@ -68,17 +68,29 @@ export abstract class NullableType</*in|out*/ VALUE_TYPE> extends ValueSourceBas
         return __createConst(value, __adaptedTypeClassOf(__dataTypeClassFrom(type), adapter), 'optional')
     }
 
+    /** Whether this value is null, SQL `is null`. The result is never null */
     isNull(): ValueSource<SourceOf<this>, BooleanType, 'required'>
     isNull(): any {
         const vs = __asNodeValueSource(this)
         return __newSqlOperationIsNullValueSource('_isNull', vs, __internalDataType('condition'), 'required')
     }
+    /** Whether this value is not null, SQL `is not null`. The result is never null */
     isNotNull(): ValueSource<SourceOf<this>, BooleanType, 'required'>
     isNotNull(): any {
         const vs = __asNodeValueSource(this)
         return __newSqlOperationIsNullValueSource('_isNotNull', vs, __internalDataType('condition'), 'required')
     }
+    /**
+     * This value, or the one given when it is null: SQL `coalesce` (or the function of the
+     * database that does the same, like `nvl` on Oracle). The result is optional only if the
+     * value given is. An int with a fallback with decimals is a double
+     */
     valueWhenNull(value: VALUE_TYPE): ValueSource<SourceOf<this>, CoalesceTypeOf<this, 'value'>, 'required'>
+    /**
+     * This value, or the one given when it is null: SQL `coalesce` (or the function of the
+     * database that does the same, like `nvl` on Oracle). The result is optional only if the
+     * value given is. An int with a fallback with decimals is a double
+     */
     valueWhenNull<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, CoalesceTypeOf<this, DataTypeOf<VALUE>>, OptionalityOf<VALUE>>
     valueWhenNull(value: any): any {
         const vs = __asNodeValueSource(this)
@@ -113,25 +125,50 @@ export abstract class NullableType</*in|out*/ VALUE_TYPE> extends ValueSourceBas
         }
         return __newSqlOperation1ValueSource('_valueWhenNull', vs, value, resultClass, getOptionalType2(vs, value))
     }
+    /**
+     * Null when this value is equal to the one given, and this value otherwise: SQL `nullif`.
+     * The result is optional
+     */
     nullIfValue(value: VALUE_TYPE): ValueSource<SourceOf<this>, DataTypeOf<this>, 'optional'>
+    /**
+     * Null when this value is equal to the one given, and this value otherwise: SQL `nullif`.
+     * The result is optional
+     */
     nullIfValue<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, 'optional'>
     nullIfValue(value: any): any {
         return __newSqlOperation1ValueSource('_nullIfValue', this, value, __keptClassOf(this, __typeClassOf(this)), 'optional')
     }
+    /**
+     * This same value, typed as optional (it can be null). The SQL doesn't change: use it to
+     * match the optionality of another value, as in the selects of a compound select
+     */
     asOptional(): ValueSource<SourceOf<this>, DataTypeOf<this>, 'optional'>
     asOptional(): any {
         const vs = __asNodeValueSource(this)
         const result = __newNoopValueSource(vs, __keptClassOf(vs, __sameTypeClassOf(vs)), 'optional')
         return result
     }
+    /**
+     * This same value, required inside an optional nested object of a select:
+     * when it is null, the whole object is left out of the result. The SQL
+     * doesn't change
+     */
     asRequiredInOptionalObject(): ValueSource<SourceOf<this>, DataTypeOf<this>, 'requiredInOptionalObject'> & ColumnMarkersOf<this>
     asRequiredInOptionalObject(): any {
         return __asRequiredInOptionalObjectOf(this)
     }
+    /**
+     * This value when `when` is true; otherwise a null in its place, so the query keeps the
+     * column. The result is optional
+     */
     onlyWhenOrNull(when: boolean): ValueSource<SourceOf<this>, DataTypeOf<this>, 'optional'>
     onlyWhenOrNull(when: boolean): any {
         return __onlyWhenOrNullOf(this, when)
     }
+    /**
+     * A null in place of this value when `when` is true, and this value otherwise, so the
+     * query keeps the column. The result is optional
+     */
     ignoreWhenAsNull(when: boolean): ValueSource<SourceOf<this>, DataTypeOf<this>, 'optional'>
     ignoreWhenAsNull(when: boolean): any {
         return __ignoreWhenAsNullOf(this, when)

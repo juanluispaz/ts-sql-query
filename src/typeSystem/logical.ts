@@ -30,20 +30,41 @@ export abstract class BooleanType extends EqualableType<boolean, string> {
     declare [typeName]: 'type:boolean:logical:'
     declare [operandTypeName]: 'type:boolean:logical:'
 
+    /** The opposite of this boolean, SQL `not`: a null stays null */
     negate(): ValueSource<SourceOf<this>, BooleanType, OptionalityOf<this>>
     negate(): any {
         return __operation0(this, '_negate', BooleanConditionType)
     }
+    /**
+     * Both booleans, SQL `and`. A condition without a value (of an `*IfValue` method, `onlyWhen` or
+     * `ignoreWhen`) is left out, and the result is this boolean
+     */
     and(value: boolean): ValueSource<SourceOf<this>, BooleanType, OptionalityOf<this>>
+    /**
+     * Both booleans, SQL `and`. A condition without a value (of an `*IfValue` method, `onlyWhen` or
+     * `ignoreWhen`) is left out, and the result is this boolean
+     */
     and<VALUE extends ILogicalValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     and(value: any): any {
         return __newSqlOperation1ValueSource('_and', this, value, BooleanConditionType, getOptionalType2(this, value))
     }
+    /**
+     * Either boolean, SQL `or`. A condition without a value (of an `*IfValue` method, `onlyWhen` or
+     * `ignoreWhen`) is left out, and the result is this boolean
+     */
     or(value: boolean): ValueSource<SourceOf<this>, BooleanType, OptionalityOf<this>>
+    /**
+     * Either boolean, SQL `or`. A condition without a value (of an `*IfValue` method, `onlyWhen` or
+     * `ignoreWhen`) is left out, and the result is this boolean
+     */
     or<VALUE extends ILogicalValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     or(value: any): any {
         return __newSqlOperation1ValueSource('_or', this, value, BooleanConditionType, getOptionalType2(this, value))
     }
+    /**
+     * This boolean as a condition when `condition` is true; when it is false, no condition: `and` and
+     * `or` give the other side, and a `where` with only it is not written
+     */
     onlyWhen(condition: boolean): IfValueSource<SourceOf<this>, OptionalityOf<this>>
     onlyWhen(condition: boolean): any {
         const vs = __asNodeValueSource(this)
@@ -53,6 +74,10 @@ export abstract class BooleanType extends EqualableType<boolean, string> {
             return __newSqlOperationValueSourceIfValueAlwaysNoop(BooleanConditionType, vs.__optionalType)
         }
     }
+    /**
+     * This boolean as a condition when `condition` is false; when it is true, no condition: `and`
+     * and `or` give the other side, and a `where` with only it is not written
+     */
     ignoreWhen(condition: boolean): IfValueSource<SourceOf<this>, OptionalityOf<this>>
     ignoreWhen(condition: boolean): any {
         const vs = __asNodeValueSource(this)
@@ -76,14 +101,17 @@ export abstract class BooleanConditionType extends BooleanType {
     /** A value computed from the boolean of a condition is a boolean */
     static readonly [computedType] = BooleanType
 
+    /** The implementation of `trueWhenNoValue` of a condition, declared in `IfType` and `AlwaysIfType`: a condition is a boolean at run time */
     trueWhenNoValue(): any {
         const vs = __asNodeValueSource(this)
         return __newBooleanValueWhenNoValueValueSource('_true', vs, __keptClassOf(vs, __sameTypeClassOf(vs)), vs.__optionalType)
     }
+    /** The implementation of `falseWhenNoValue` of a condition, declared in `IfType` and `AlwaysIfType`: a condition is a boolean at run time */
     falseWhenNoValue(): any {
         const vs = __asNodeValueSource(this)
         return __newBooleanValueWhenNoValueValueSource('_false', vs, __keptClassOf(vs, __sameTypeClassOf(vs)), vs.__optionalType)
     }
+    /** The implementation of `valueWhenNoValue` of a condition, declared in `IfType` and `AlwaysIfType`: a condition is a boolean at run time */
     valueWhenNoValue(value: any): any {
         const vs = __asNodeValueSource(this)
         const nodeValueWhenNoValue = vs.__node.valueWhenNoValue
@@ -119,19 +147,77 @@ export abstract class IfType extends ConditionType {
     declare [typeName]: 'type:if:logical:'
     declare [operandTypeName]: 'type:if:logical:'
 
+    /** The opposite of this condition, SQL `not`. Without a value it stays without a value */
     abstract negate(): IfValueSource<SourceOf<this>, OptionalityOf<this>>
+    /**
+     * Both conditions, SQL `and`. A side without a value is left out: the result is the other side, and
+     * with no value on either side, no condition. With `true`, `false` or a boolean value the result is a
+     * boolean value, which always has one
+     */
     abstract and(value: boolean): ValueSource<SourceOf<this>, BooleanType, OptionalityOf<this>>
+    /**
+     * Both conditions, SQL `and`. A side without a value is left out: the result is the other side, and
+     * with no value on either side, no condition. With `true`, `false` or a boolean value the result is a
+     * boolean value, which always has one
+     */
     abstract and<VALUE extends IBooleanValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    /**
+     * Both conditions, SQL `and`. A side without a value is left out: the result is the other side, and
+     * with no value on either side, no condition. With `true`, `false` or a boolean value the result is a
+     * boolean value, which always has one
+     */
     abstract and<VALUE extends ILogicalValue>(value: VALUE): IfValueSource<SourceOf<this> | SourceOf<VALUE>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    /**
+     * Either condition, SQL `or`. A side without a value is left out: the result is the other side, and
+     * with no value on either side, no condition. With `true`, `false` or a boolean value the result is a
+     * boolean value, which always has one
+     */
     abstract or(value: boolean): ValueSource<SourceOf<this>, BooleanType, OptionalityOf<this>>
+    /**
+     * Either condition, SQL `or`. A side without a value is left out: the result is the other side, and
+     * with no value on either side, no condition. With `true`, `false` or a boolean value the result is a
+     * boolean value, which always has one
+     */
     abstract or<VALUE extends IBooleanValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    /**
+     * Either condition, SQL `or`. A side without a value is left out: the result is the other side, and
+     * with no value on either side, no condition. With `true`, `false` or a boolean value the result is a
+     * boolean value, which always has one
+     */
     abstract or<VALUE extends ILogicalValue>(value: VALUE): IfValueSource<SourceOf<this> | SourceOf<VALUE>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    /** This condition when `condition` is true; when it is false, no condition */
     abstract onlyWhen(condition: boolean): IfValueSource<SourceOf<this>, OptionalityOf<this>>
+    /** This condition when `condition` is false; when it is true, no condition */
     abstract ignoreWhen(condition: boolean): IfValueSource<SourceOf<this>, OptionalityOf<this>>
+    /**
+     * This condition, or `true` when it has no value (an `*IfValue` method without a value,
+     * `onlyWhen(false)`, `ignoreWhen(true)`); without a value, a `where` with it matches every
+     * row. The result is a boolean value, which can be selected
+     */
     abstract trueWhenNoValue(): ValueSource<SourceOf<this>, BooleanType, OptionalityOf<this>>
+    /**
+     * This condition, or `false` when it has no value (an `*IfValue` method without a value,
+     * `onlyWhen(false)`, `ignoreWhen(true)`); without a value, a `where` with it matches no
+     * rows. The result is a boolean value, which can be selected
+     */
     abstract falseWhenNoValue(): ValueSource<SourceOf<this>, BooleanType, OptionalityOf<this>>
+    /**
+     * This condition, or the one given when it has no value. With `true`, `false` or a boolean
+     * value the result is a boolean value; with a condition, a condition that can still have
+     * no value
+     */
     abstract valueWhenNoValue(value: boolean): ValueSource<SourceOf<this>, BooleanType, OptionalityOf<this>>
+    /**
+     * This condition, or the one given when it has no value. With `true`, `false` or a boolean
+     * value the result is a boolean value; with a condition, a condition that can still have
+     * no value
+     */
     abstract valueWhenNoValue<VALUE extends IBooleanValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    /**
+     * This condition, or the one given when it has no value. With `true`, `false` or a boolean
+     * value the result is a boolean value; with a condition, a condition that can still have
+     * no value
+     */
     abstract valueWhenNoValue<VALUE extends ILogicalValue>(value: VALUE): IfValueSource<SourceOf<this> | SourceOf<VALUE>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
 }
 
@@ -140,20 +226,54 @@ export abstract class AlwaysIfType extends ConditionType {
     declare [typeName]: 'type:alwaysIf:logical:'
     declare [operandTypeName]: 'type:alwaysIf:logical:'
 
+    /** The opposite of this condition, SQL `not`. Without a value it stays without a value */
     abstract negate(): AlwaysIfValueSource<SourceOf<this>, OptionalityOf<this>>
+    /**
+     * Both conditions, SQL `and`. A side without a value is left out: the result is the other side, and
+     * with no value on either side, no condition
+     */
     abstract and(value: boolean): AlwaysIfValueSource<SourceOf<this>, OptionalityOf<this>>
+    /**
+     * Both conditions, SQL `and`. A side without a value is left out: the result is the other side, and
+     * with no value on either side, no condition
+     */
     abstract and<VALUE extends ILogicalValue>(value: VALUE): AlwaysIfValueSource<SourceOf<this> | SourceOf<VALUE>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    /**
+     * Either condition, SQL `or`. A side without a value is left out: the result is the other side, and
+     * with no value on either side, no condition
+     */
     abstract or(value: boolean): AlwaysIfValueSource<SourceOf<this>, OptionalityOf<this>>
+    /**
+     * Either condition, SQL `or`. A side without a value is left out: the result is the other side, and
+     * with no value on either side, no condition
+     */
     abstract or<VALUE extends ILogicalValue>(value: VALUE): AlwaysIfValueSource<SourceOf<this> | SourceOf<VALUE>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    /** This condition when `condition` is true; when it is false, no condition */
     abstract onlyWhen(condition: boolean): AlwaysIfValueSource<SourceOf<this>, OptionalityOf<this>>
+    /** This condition when `condition` is false; when it is true, no condition */
     abstract ignoreWhen(condition: boolean): AlwaysIfValueSource<SourceOf<this>, OptionalityOf<this>>
+    /** This condition, or `true` when it has no value */
     abstract trueWhenNoValue(): AlwaysIfValueSource<SourceOf<this>, OptionalityOf<this>>
+    /** This condition, or `false` when it has no value */
     abstract falseWhenNoValue(): AlwaysIfValueSource<SourceOf<this>, OptionalityOf<this>>
+    /** This condition, or the value given when it has no value */
     abstract valueWhenNoValue(value: boolean): AlwaysIfValueSource<SourceOf<this>, OptionalityOf<this>>
+    /** This condition, or the value given when it has no value */
     abstract valueWhenNoValue<VALUE extends ILogicalValue>(value: VALUE): AlwaysIfValueSource<SourceOf<this> | SourceOf<VALUE>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
 }
 
+/**
+ * A condition that can have no value: the result of an `*IfValue` method, `onlyWhen` or
+ * `ignoreWhen`. Without a value it is left out: `and` and `or` give the other side, and a
+ * `where` with only it is not written. It can't be selected: `trueWhenNoValue` or
+ * `falseWhenNoValue` make it a boolean value
+ */
 export type IfValueSource<SOURCE extends NSource, OPTIONAL_TYPE extends OptionalType> = IfType & ConditionOfType<SOURCE, IfType, OPTIONAL_TYPE>
+/**
+ * A condition whose methods all give this same type, so a variable can be reassigned while
+ * a condition is built (the result of `dynamicBooleanExpressionUsing`). Like an
+ * `IfValueSource`, it can have no value
+ */
 export type AlwaysIfValueSource<SOURCE extends NSource, OPTIONAL_TYPE extends OptionalType> = AlwaysIfType & ConditionOfType<SOURCE, AlwaysIfType, OPTIONAL_TYPE>
 
 /** A condition, or a boolean value, used as a condition that always applies (the where of a query, the on of a join) */

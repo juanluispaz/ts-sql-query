@@ -16,9 +16,11 @@ function datePartOf(valueSource: AnyType, operation: keyof SqlFunction0): any {
     return __operation0(valueSource, operation, IntType)
 }
 
-/** The types in the database of a localDate, a localTime and a localDateTime */
+/** The type in the database of a localDate: a date without a time and without a zone */
 export const localDateSqlDataType: SqlDataType = { family: 'datetime', fields: 'date' }
+/** The type in the database of a localTime: a time of the day without a date and without a zone */
 export const localTimeSqlDataType: SqlDataType = { family: 'datetime', fields: 'time' }
+/** The type in the database of a localDateTime: a date and a time of the day without a zone */
 export const localDateTimeSqlDataType: SqlDataType = { family: 'datetime', fields: 'timestamp' }
 
 /**
@@ -28,18 +30,28 @@ export const localDateTimeSqlDataType: SqlDataType = { family: 'datetime', field
 export abstract class LocalDatesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends ComparableType<VALUE_TYPE, TYPE_NAME> {
     static override readonly sqlDataType: SqlDataType | undefined = localDateSqlDataType
 
+    /** The day of the month, as an int from 1 to 31: what `getUTCDate()` of the Date read gives */
     getDate(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getDate(): any {
         return datePartOf(this, '_getDate')
     }
+    /**
+     * The day of the week, as an int from 0 (Sunday) to 6 (Saturday), like `getUTCDay()` of the Date read, on every
+     * database
+     */
     getDay(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getDay(): any {
         return datePartOf(this, '_getDay')
     }
+    /** The year, as an int: what `getUTCFullYear()` of the Date read gives */
     getFullYear(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getFullYear(): any {
         return datePartOf(this, '_getFullYear')
     }
+    /**
+     * The month, as an int from 0 (January) to 11 (December), like `getUTCMonth()` of the Date read; the SQL
+     * subtracts 1 from the month of the database
+     */
     getMonth(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getMonth(): any {
         return datePartOf(this, '_getMonth')
@@ -54,18 +66,28 @@ export abstract class LocalDatesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME
 export abstract class LocalTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends ComparableType<VALUE_TYPE, TYPE_NAME> {
     static override readonly sqlDataType: SqlDataType | undefined = localTimeSqlDataType
 
+    /** The hours, as an int from 0 to 23: what `getUTCHours()` of the Date read gives */
     getHours(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getHours(): any {
         return datePartOf(this, '_getHours')
     }
+    /**
+     * The milliseconds of the second, as an int from 0 to 999; the digits below a millisecond are dropped: what
+     * `getUTCMilliseconds()` of the Date read gives
+     */
     getMilliseconds(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getMilliseconds(): any {
         return datePartOf(this, '_getMilliseconds')
     }
+    /** The minutes, as an int from 0 to 59: what `getUTCMinutes()` of the Date read gives */
     getMinutes(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getMinutes(): any {
         return datePartOf(this, '_getMinutes')
     }
+    /**
+     * The seconds, as an int from 0 to 59, without the fraction of a second: what `getUTCSeconds()` of the Date
+     * read gives
+     */
     getSeconds(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getSeconds(): any {
         return datePartOf(this, '_getSeconds')
@@ -80,38 +102,62 @@ export abstract class LocalTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME
 export abstract class LocalDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends ComparableType<VALUE_TYPE, TYPE_NAME> {
     static override readonly sqlDataType: SqlDataType | undefined = localDateTimeSqlDataType
 
+    /** The day of the month, as an int from 1 to 31: what `getUTCDate()` of the Date read gives */
     getDate(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getDate(): any {
         return datePartOf(this, '_getDate')
     }
+    /**
+     * The day of the week, as an int from 0 (Sunday) to 6 (Saturday), like `getUTCDay()` of the Date read, on every
+     * database
+     */
     getDay(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getDay(): any {
         return datePartOf(this, '_getDay')
     }
+    /** The year, as an int: what `getUTCFullYear()` of the Date read gives */
     getFullYear(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getFullYear(): any {
         return datePartOf(this, '_getFullYear')
     }
+    /**
+     * The month, as an int from 0 (January) to 11 (December), like `getUTCMonth()` of the Date read; the SQL
+     * subtracts 1 from the month of the database
+     */
     getMonth(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getMonth(): any {
         return datePartOf(this, '_getMonth')
     }
+    /** The hours, as an int from 0 to 23: what `getUTCHours()` of the Date read gives */
     getHours(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getHours(): any {
         return datePartOf(this, '_getHours')
     }
+    /**
+     * The milliseconds of the second, as an int from 0 to 999; the digits below a millisecond are dropped: what
+     * `getUTCMilliseconds()` of the Date read gives
+     */
     getMilliseconds(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getMilliseconds(): any {
         return datePartOf(this, '_getMilliseconds')
     }
+    /** The minutes, as an int from 0 to 59: what `getUTCMinutes()` of the Date read gives */
     getMinutes(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getMinutes(): any {
         return datePartOf(this, '_getMinutes')
     }
+    /**
+     * The seconds, as an int from 0 to 59, without the fraction of a second: what `getUTCSeconds()` of the Date
+     * read gives
+     */
     getSeconds(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getSeconds(): any {
         return datePartOf(this, '_getSeconds')
     }
+    /**
+     * The milliseconds since 1970-01-01 00:00, as an int, counting the date and the time as UTC: what `getTime()` of
+     * the Date read gives. The digits below a millisecond are dropped
+     */
     getTime(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getTime(): any {
         return datePartOf(this, '_getTime')

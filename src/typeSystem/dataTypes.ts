@@ -1,12 +1,13 @@
 import type { DataTypeClass, SqlDataType } from '../TypeAdapter.js'
 
+// Questions about what a value is, asked with the SQL data type of the class of its data type: the SQL builders, the
+// query runners and the connections decide by them, never by knowing the class. Also the type name of a value source,
+// for the messages of the errors.
+
 /** The type name of the data type of a value source, for the messages of the errors */
 export function __valueSourceTypeNameOf(valueSource: object): string {
     return (valueSource.constructor as unknown as DataTypeClass).type
 }
-
-// Questions about what a value is, asked with the SQL data type of the class of its data type: the SQL builders, the
-// query runners and the connections decide by them, never by knowing the class.
 
 /**
  * The SQL data type a data type gives its values: the `sqlDataType` of its class; undefined for one whose values only

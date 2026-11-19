@@ -9,6 +9,9 @@ import type { OptionalType } from '../typeSystem/valueSource.js'
 import { type NodeStrategy, valueSourceNode, type NodeValueSource, type InCreation } from './NodeStrategy.js'
 import { type ValueSourceConstructor } from './dataTypeClassOf.js'
 
+// The nodes of the aggregate functions: each one marks the query as an aggregation.
+
+/** An aggregate function without a value: `count(*)` */
 export interface AggregateFunctions0ValueSource extends NodeValueSource, HasOperation {
     readonly __operation: keyof AggregateFunctions0
 }
@@ -32,6 +35,7 @@ export function __newAggregateFunctions0ValueSource(operation: keyof AggregateFu
     return vs
 }
 
+/** An aggregate function of a value: `count`, `sum`, `max`, ... */
 export interface AggregateFunctions1ValueSource extends NodeValueSource, HasOperation {
     readonly __operation: keyof AggregateFunctions1
     readonly __value: any
@@ -75,6 +79,7 @@ export function __newAggregateFunctions1ValueSource(operation: keyof AggregateFu
     return vs
 }
 
+/** `stringConcat`, with its optional separator */
 export interface AggregateFunctions1or2ValueSource extends NodeValueSource, HasOperation {
     readonly __operation: keyof AggregateFunctions1or2
     readonly __value: any

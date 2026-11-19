@@ -4,6 +4,10 @@ import type { NodeValueSource } from './NodeStrategy.js'
 import { __asNodeValueSource, isValueSource } from './NodeStrategy.js'
 import { type AnyType } from '../typeSystem/base.js'
 
+// The optionality of the result of an operation from those of its operands, at run time: the counterpart of
+// CombinedOptionality and MergeRequired of typeSystem/valueSource.ts. A value given as a JavaScript value is never
+// null, so only an operand that is a value source can make the result optional.
+
 function mergeRequired(op1: OptionalType, op2: OptionalType): OptionalType {
     // The dual of `__mergeOptional`: keep the MORE strict option. See `MergeRequired` in
     // typeSystem/valueSource.ts for why an operation that reads NULL as the empty string merges
@@ -20,6 +24,7 @@ function mergeRequired(op1: OptionalType, op2: OptionalType): OptionalType {
     return 'optional'
 }
 
+/** The optionality of an operation that reads a null operand as the empty string (concatIgnoringNull): the more strict of the two; a JavaScript value makes it required */
 export function getRequiredType2(a: AnyType | NodeValueSource, b: any): OptionalType {
     if (isValueSource(b)) {
         return mergeRequired((a as NodeValueSource).__optionalType, __asNodeValueSource(b).__optionalType)
@@ -31,6 +36,7 @@ export function getRequiredType2(a: AnyType | NodeValueSource, b: any): Optional
     return 'required'
 }
 
+/** The optionality of an operation of the receiver with one operand */
 export function getOptionalType2(a: AnyType | NodeValueSource, b: any): OptionalType {
     if (isValueSource(b)) {
         return __mergeOptional((a as NodeValueSource).__optionalType, __asNodeValueSource(b).__optionalType)
@@ -38,6 +44,7 @@ export function getOptionalType2(a: AnyType | NodeValueSource, b: any): Optional
     return (a as NodeValueSource).__optionalType
 }
 
+/** The optionality of `in` / `notIn`: the one of the receiver, merged with the one of the column of a select, or of a value source given */
 export function getOptionalTypeOfIn(a: AnyType | NodeValueSource, b: any): OptionalType {
     // A subquery on an optional column can return a NULL, and `<x> in (1, NULL)` is NULL, not false, when no
     // element matches, as the declared type says.
@@ -54,6 +61,7 @@ export function getOptionalTypeOfIn(a: AnyType | NodeValueSource, b: any): Optio
     return getOptionalType2(a, b)
 }
 
+/** The optionality of an operation of the receiver with a list of operands */
 export function getOptionalTypeN(a: AnyType | NodeValueSource, values: any[]): OptionalType {
     // The varargs counterpart of `getOptionalType2`, for `inN` / `notInN`. Their operand is the
     // ARRAY the varargs collected, not a value source, so `getOptionalType2` would find no value
@@ -72,6 +80,7 @@ export function getOptionalTypeN(a: AnyType | NodeValueSource, values: any[]): O
     return result
 }
 
+/** The optionality of an operation of the receiver with two operands */
 export function getOptionalType3(a: AnyType | NodeValueSource, b: any, c: any): OptionalType {
     let result = (a as NodeValueSource).__optionalType
     if (isValueSource(b)) {

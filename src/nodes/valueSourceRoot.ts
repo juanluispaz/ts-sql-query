@@ -16,6 +16,13 @@ import { __sameTypeClassOf, __typeClassOf } from './dataTypeClassOf.js'
 import { __newNoopValueSource } from './operations.js'
 import { typeAdapterOfClass, __keptClassOf } from './adaptedTypeClass.js'
 
+/**
+ * What every value source has at run time: its optionality, its node, the delegation of each method of the node to it,
+ * and the methods every value source has (isConstValue, getConstValue, allowWhen, disallowWhen). The class of each data
+ * type extends it through a cast TypeScript doesn't see (typeSystem/base.ts), so a value source is an instance of the
+ * class of its data type; the name or the alias of a table in a raw fragment, which has no data type, is an instance of
+ * this class itself
+ */
 export class ValueSourceRoot implements NodeValueSource {
     /** The mark of a value source for TypeScript (AnyValueSource); nothing at run time */
     declare readonly [isValueSourceObject]: true
@@ -89,22 +96,6 @@ export class ValueSourceRoot implements NodeValueSource {
         }
         return result
     }
-    // SqlComparator0
-    // SqlComparator1
-    // SqlComparator2
-    // SqlFunctionStatic: never used here
-    // SqlFunction0
-    // Boolean
-    // String
-    // Number functions
-    // Trigonometric Functions
-    // Date & Time Functions
-    // SqlFunction1
-    // Trigonometric Functions
-    // String Functions
-    // Number
-    // Number operators
-    // SqlFunction2
 }
 
 /** What `asRequiredInOptionalObject` gives, for every data type that has it (the nullable ones, the aggregated arrays) */

@@ -83,21 +83,12 @@ export abstract class NullableType</*in|out*/ VALUE_TYPE> extends ValueSourceBas
     valueWhenNull(value: any): any {
         const vs = __asNodeValueSource(this)
         let typeClass = __typeClassOf(vs)
-        // Promote the declared numeric type from the fallback operand, the same way the
-        // operations of the group number do (promotedNumberOperation in number.ts): an `int`
-        // receiver with a `double` fallback emits `coalesce(<int>, <double>)`, which the
-        // engine resolves to the wider `double`, so a NULL int row legitimately returns the
-        // double's fraction. Without vs promotion the result is still declared `int` and
-        // the marshaller's int arm rejects that valid value (INVALID_VALUE_RECEIVED_FROM_DATABASE).
-        // Only a plain `int` receiver needs widening — a double, a bigint or a number of the user
-        // receiver already carries the wider-or-matching type, and the compile-time signature
-        // only admits a same-`typeName` operand.
-        //
-        // A fractional NUMBER LITERAL widens for exactly the same reason. TypeScript cannot tell
-        // `2` from `2.5` — both are `number`, there is no integer literal type — so vs decision
-        // belongs to the runtime half, which has the value in hand; the int binds the operand with
-        // the matching type, and the two have to agree or the fraction is rejected
-        // on one of the two crossings.
+        // An int with a fallback that is a double gives a double, as the operations of the group number do
+        // (promotedNumberOperation in number.ts): the database computes coalesce(<int>, <double>) as a double, so a row
+        // where the int is null gives the fraction of the fallback, which an int would reject. TypeScript can't tell 2
+        // from 2.5, so a number given as the fallback decides here, by its value: with a fraction it is a double, and it
+        // is sent as one. Only an int widens: a double, a bigint or a number of the user is already its own data type,
+        // and the types accept only a fallback of it.
         if (vs instanceof (__registeredDataType('int') as unknown as abstract new () => unknown)) {
             if (isValueSource(value)) {
                 if (value instanceof (__registeredDataType('double') as unknown as abstract new () => unknown)) {

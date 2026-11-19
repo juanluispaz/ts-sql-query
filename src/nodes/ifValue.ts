@@ -276,9 +276,8 @@ export const sqlOperationValueSourceIfValueAlwaysNoopNode: NodeStrategy<SqlOpera
  * the initial value of a dynamic boolean expression), no null is possible yet, and 'required' (the identity of the
  * optional type merge) is the one that steps aside as soon as a real expression joins the expression.
  *
- * It has no default on purpose: dropping the optional type of the neutralised expression is precisely the mistake
- * this parameter exists to prevent, and a default would let the next construction site make it again in silence.
- * Each site says which of the two cases it is.
+ * It has no default on purpose: each caller says which of the two cases it is, because a default would drop the
+ * optional type of the neutralised expression without anyone noticing.
  */
 export function __newSqlOperationValueSourceIfValueAlwaysNoop(typeClass: DataTypeClass, optionalType: OptionalType): SqlOperationValueSourceIfValueAlwaysNoop {
     const vs = new (typeClass as unknown as ValueSourceConstructor)(optionalType) as InCreation<SqlOperationValueSourceIfValueAlwaysNoop>

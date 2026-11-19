@@ -22,8 +22,6 @@ export interface IAnyComparableValueSource</*in|out*/ SOURCE extends NSource> ex
  * `class VersionType extends ComparableType<Version, 'Version'> { static override readonly type = 'Version' }`
  */
 export abstract class ComparableType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends EqualableType<VALUE_TYPE, TYPE_NAME> {
-    /** The boolean and the condition the comparisons give (the classes of the bases can't import them) */
-
     declare [comparableValueSource]: 'ComparableValueSource'
     static override readonly [filterOperation] = exposeFilterOperations(this, EqualableType, [
         'lessThanIfValue', 'lessThan', 'greaterThanIfValue', 'greaterThan', 'lessOrEqualIfValue', 'lessOrEqual',

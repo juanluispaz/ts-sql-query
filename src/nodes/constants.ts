@@ -10,6 +10,10 @@ import { type NodeStrategy, valueSourceNode, type NodeValueSource, type InCreati
 import { type ValueSourceConstructor } from './dataTypeClassOf.js'
 import { __classOf } from '../nodes/adaptedTypeClass.js'
 
+// The nodes of a value source without a receiver: a constant, a function or a value of the database without one, a
+// sequence, and the null of a data type.
+
+/** A function or a constant of the database without operands (`currentDate`, ...) */
 export interface SqlOperationStatic0ValueSource extends NodeValueSource, HasOperation {
     readonly __operation: keyof SqlOperationStatic0
 }
@@ -29,6 +33,7 @@ export function __newSqlOperationStatic0ValueSource(operation: keyof SqlOperatio
     return vs
 }
 
+/** `true` or `false`: a value, and a condition where a condition goes */
 export interface SqlOperationStaticBooleanValueSource extends NodeValueSource, HasOperation {
     readonly __operation: keyof SqlOperationStatic0
 }
@@ -55,6 +60,7 @@ export function __newSqlOperationStaticBooleanValueSource(operation: '_true' | '
     return vs
 }
 
+/** A function of the database of one value, without a receiver */
 export interface SqlOperationStatic1ValueSource extends NodeValueSource, HasOperation {
     readonly __operation: keyof SqlOperationStatic1
     readonly __value: any
@@ -97,6 +103,7 @@ export function __newSqlOperationStatic1ValueSource(operation: keyof SqlOperatio
     return vs
 }
 
+/** A value of JavaScript sent as a parameter: the only node that is a constant (`isConstValue`), and the only one that can ask for the type of its parameter (`__forceTypeCast`) */
 export interface SqlOperationConstValueSource extends NodeValueSource, HasOperation {
     readonly __operation: keyof SqlOperationStatic1
     readonly __value: any
@@ -156,6 +163,7 @@ export function __newSqlOperationConstValueSource(value: any, typeClass: DataTyp
     return vs
 }
 
+/** The next or the current value of a sequence */
 export interface SequenceValueSource extends NodeValueSource {
     readonly __operation: keyof SqlSequenceOperation
     readonly __sequenceName: string
@@ -177,6 +185,7 @@ export function __newSequenceValueSource(operation: keyof SqlSequenceOperation, 
     return vs
 }
 
+/** The null of a data type (`onlyWhenOrNull`, `ignoreWhenAsNull`): it reaches nothing */
 export interface NullValueSource extends NodeValueSource, HasOperation {
     readonly __operation: '_asNullValue'
 }

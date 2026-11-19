@@ -16,35 +16,10 @@ export interface AllowWhenValueSource extends NodeValueSource {
 
 export const allowWhenValueSourceNode: NodeStrategy<AllowWhenValueSource> = {
     ...valueSourceNode,
-    // `allowWhen` / `disallowWhen` runtime enforcement. This `__toSql`
-    // is the active throw point today: the error fires during SQL
-    // construction (`query()` / `executeXxx()`) and propagates through
-    // every composite path because each composite (subquery-as-value
-    // via `_inlineSelectAsValue`, fragment via `FragmentValueSource`,
-    // aggregate via `AggregateSelectValueSource`, CTE via
-    // `WithViewImpl` + `_buildSelect`, plain joins / where / having /
-    // groupBy / orderBy) renders via its own `__toSql` that recurses
-    // into ours. See `test/db/<dialect>/<v>/<connector>/select.allow-when.composition.test.ts`
-    // for the path-by-path coverage and
-    // `docs/queries/extreme-dynamic-queries.md` § Restrict access to
-    // values for the public contract.
-    //
-    // The parallel `__isAllowed` web threaded through the query
-    // builders, the nodes of the value sources, `Table`, `View`, `Values`,
-    // `RawFragmentImpl`, `WithViewImpl` and the
-    // `ITableOrView` dispatcher (~48 methods, grep `__isAllowed` in
-    // `src/`) is the scaffolding for a planned **query introspection
-    // API** — non-destructive walkers paralleling `__toSql` that let a
-    // consumer (e.g. an HTTP layer auto-generating OpenAPI) ask the
-    // built query "is every gate open?" without triggering the throw.
-    // The intended public surface (something like `query.isAllowed()`
-    // alongside a future `query.resultSchema()` for OpenAPI-style
-    // emission) is not yet exposed; no `execute*` / `query()` /
-    // `_build*` calls `__isAllowed` today. The recursion is
-    // structurally complete and **must be kept in sync with `__toSql`
-    // when new value-source / table-or-view / query-builder shapes
-    // are added** so that the feature lands working when the public
-    // surface is wired up.
+    // A value source that is not allowed throws its error when its SQL is written: every composite (a select used as a
+    // value, a fragment, an aggregate, a with, the clauses of a query) writes its parts through their __toSql, so the
+    // error reaches the query wherever the value source is. __isAllowed answers the same question without throwing; no
+    // execution asks it, it exists for the introspection of a built query, and it must reach everything __toSql writes.
     __toSql(vs: AllowWhenValueSource, sqlBuilder: SqlBuilder, context: SqlBuildContext, forceTypeCast: boolean): string {
         if (!vs.__allowed) {
             throw vs.__error

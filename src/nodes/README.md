@@ -14,10 +14,13 @@ The two axes don't depend on each other: `price.add(1)` and `quantity.add(1)` ha
 types, and `price` and `price.abs()` the same data type with different nodes. Read the README of the type system
 first; this one says how the nodes are made and why.
 
-Nothing outside [`src/typeSystem/valueSourceFactory.ts`](../typeSystem/valueSourceFactory.ts), the classes of the data
-types and [`src/internal/columnsFrom.ts`](../internal/columnsFrom.ts) (the columns of a `with` or of a compound select)
-imports this folder: the factory creates the value sources and recognises their nodes for the rest of the library (the
-SQL builders, the query builders, the connections).
+Outside this folder, the nodes are reached only through
+[`src/typeSystem/valueSourceFactory.ts`](../typeSystem/valueSourceFactory.ts), the classes of the data types and
+[`src/internal/columnsFrom.ts`](../internal/columnsFrom.ts) (the columns of a `with` or of a compound select): the
+factory creates the value sources and recognises their nodes for the rest of the library (the SQL builders, the query
+builders, the connections). The one exception is [`adaptedTypeClass.ts`](./adaptedTypeClass.ts), the class of a value
+source with its type adapter, which the tables, the connections, the query builders and the SQL builders import
+directly to give a value its class.
 
 ## A node is a strategy
 
@@ -33,6 +36,11 @@ A node is a `NodeStrategy` ([`NodeStrategy.ts`](./NodeStrategy.ts)): **one objec
 every value source of that kind and without state.** Each of its methods receives the value source, which has the
 fields of its node (`__operation`, `__valueSource`, `__value`, ...) and its node in `__node`. A value source asks its
 node for everything: `vs.__toSql(sqlBuilder, context)` is `vs.__node.__toSql(vs, sqlBuilder, context)`.
+
+One value source writes itself without its node: the reference to a column of a select, used in the `having`
+(`__createSelectColumnReferences` of the select). It is an object whose prototype is the column, with its own `__toSql`
+and `__toSqlForCondition`, which write the column of the select, and `__selectColumnReference`, the column it refers
+to: it is written as the select list writes it, a value also when the column is a condition (`__isCondition`).
 
 So the data type and the node can be combined freely without a class for each pair: the class of the value source is
 the one of its data type, and its node is a field. A strategy is created once, when its module is loaded (a constant of
@@ -84,7 +92,8 @@ A few methods of a value source depend on its node and not only on its data type
 |---|---|---|
 | `valueWhenNoValue` | the neutral condition | `valueWhenNoValue` |
 | `asRequiredInOptionalObject` | a column (it stays a column), an aggregate as array | `asRequiredInOptionalObject` |
-| `withOptionalType`, `asNull`, `allowWhen`, `projectingOptionalValuesAsNullable` | the aggregates as array | `useEmptyArrayForNoValue`, `asOptionalNonEmptyArray`, `onlyWhenOrNull`, `ignoreWhenAsNull`, `allowWhen`, `disallowWhen`, `projectingOptionalValuesAsNullable` |
+| `withOptionalType`, `asNull`, `projectingOptionalValuesAsNullable` | the aggregates as array | `useEmptyArrayForNoValue`, `asOptionalNonEmptyArray`, `onlyWhenOrNull`, `ignoreWhenAsNull`, `projectingOptionalValuesAsNullable` |
+| `allowWhen` | the aggregates as array, and the name of a table in a raw fragment | `allowWhen`, `disallowWhen` |
 
 ## The root: `ValueSourceRoot`
 
@@ -181,10 +190,8 @@ receiver, without its type adapter.
   ([`valueSourceRoot.ts`](./valueSourceRoot.ts)), and `__priorOf` (`operations.ts`).
 
 A method that passes a field of the receiver itself (its optionality or its type adapter where no function above takes
-them, its node for a hook, its type to decide a promotion) still reads it with `const vs = __asNodeValueSource(this)`: `collate`, `isNull`, `isNotNull`, `asOptional`, `valueWhenNull`, `onlyWhen`, `ignoreWhen`,
-`trueWhenNoValue`, `falseWhenNoValue`, `valueWhenNoValue`, `asInt` and `asBigint` of a number, and
-`useEmptyArrayForNoValue`, `asOptionalNonEmptyArray` and `projectingOptionalValuesAsNullable` of an aggregated array;
-and `promotedNumberOperation` of `src/typeSystem/number.ts`, whose int keeps only the type adapter of the receiver.
+them, its node for a hook, its type to decide a promotion) reads it with `const vs = __asNodeValueSource(this)`:
+`asOptional` and `valueWhenNull` of `NullableType` are examples.
 
 ## The files
 
@@ -193,10 +200,10 @@ and `promotedNumberOperation` of `src/typeSystem/number.ts`, whose int keeps onl
 | [`NodeStrategy.ts`](./NodeStrategy.ts) | `NodeStrategy`, `NodeValueSource` (a value source at run time), `__asNodeValueSource`, `isValueSource` and `valueSourceNode` |
 | [`valueSourceRoot.ts`](./valueSourceRoot.ts) | `ValueSourceRoot`, and the functions of the methods two families share |
 | [`dataTypeClassOf.ts`](./dataTypeClassOf.ts) | the class of the data type of a value source, and how a class creates one |
-| [`adaptedTypeClass.ts`](./adaptedTypeClass.ts) | the subclass of the class of a data type that carries a type adapter, kept in the adapter, and the conversions of the values of a class |
+| [`adaptedTypeClass.ts`](./adaptedTypeClass.ts) | the subclass of the class of a data type that carries a type adapter, kept in the adapter; the class of a result that keeps the adapter of its receiver (`__keptClassOf`) or only its conversions (`__computedClassOf`), and of a text computed from a large object or a national text (`__computedTextClassOf`) |
 | [`operands.ts`](./operands.ts) | the optionality and the type adapter of an operation from those of its operands |
 | [`constants.ts`](./constants.ts) | a constant, the functions without operands (`currentDate`, `true`, `exists`, ...), a sequence, a null |
-| [`operations.ts`](./operations.ts) | the functions and the operators of a value source with zero, one or two operands, `in`, `collate`, `isNull`, `valueWhenNull`, the no-op of `asOptional`, `__operation0` / `__operation1` (an operation of the receiver with the class of its result) |
+| [`operations.ts`](./operations.ts) | the functions and the operators of a value source with zero, one or two operands (`valueWhenNull`, `is` and `isNot` too), `in`, `collate`, `isNull`, the no-op of `asOptional`, `__operation0` / `__operation1` (an operation of the receiver with the class of its result) |
 | [`ifValue.ts`](./ifValue.ts) | the operations that disappear without a value (`*IfValue`), the neutral, and `valueWhenNoValue` / `trueWhenNoValue` / `falseWhenNoValue` |
 | [`allowWhen.ts`](./allowWhen.ts) | a value source guarded by `allowWhen` / `disallowWhen` |
 | [`fragments.ts`](./fragments.ts) | a fragment of SQL, a call to a function of the database, a virtual column made with a fragment |
@@ -219,7 +226,9 @@ operation it is and passes its parts, and never writes the SQL of a database.
   changes a copy (`__copyOfValueSource`). The compiler keeps it: the fields of `NodeValueSource` and of every node are
   `readonly`, a creation writes them through `InCreation<VS>` (`new typeClass(...) as InCreation<...>`), and what
   finishes a creation made elsewhere says it with `__inCreation(vs)` (the marks of a column, the columns of a copy of a
-  table or of a `with`).
+  table or of a `with`). The one exception is a virtual column made with a fragment (`ValueSourceFromBuilder`): its
+  builder runs the first time the column is written, not when it is created, so it can use the columns declared after
+  it in the table, and it keeps what it gives in `__builderOutput`.
 - **A node never imports a class of a data type, nor `ValueSourceRoot`.** It types a value source as a
   `NodeValueSource` and creates it with the class it receives. `ValueSourceRoot` and the classes of the data types
   import the nodes, never the other way round, and the files of this folder don't import each other in a cycle.

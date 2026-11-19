@@ -99,7 +99,7 @@ export interface NodeStrategy<VS extends NodeValueSource> {
     withOptionalType?(vs: VS, optionalType: OptionalType): any
     /** Only an aggregate as array changes it: what replaces it by null (`onlyWhenOrNull`, `ignoreWhenAsNull`) */
     asNull?(vs: VS): any
-    /** Only an aggregate as array changes it: what `allowWhen` and `disallowWhen` give */
+    /** An aggregate as array and the name of a table in a raw fragment change it: what `allowWhen` and `disallowWhen` give */
     allowWhen?(vs: VS, allowed: boolean, error: Error): any
     /** Only an aggregate as array changes it: what `projectingOptionalValuesAsNullable` gives */
     projectingOptionalValuesAsNullable?(vs: VS): any

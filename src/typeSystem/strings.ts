@@ -18,10 +18,10 @@ import { __asNodeValueSource } from '../nodes/NodeStrategy.js'
 /** What a position that takes a text accepts */
 export type IStringValue = IValueWithType<'type:string:'>
 
-/** The family of the texts: what every text offers */
 /** The type in the database of a text */
 export const stringSqlDataType: SqlDataType = { family: 'character string' }
 
+/** The family of the texts: what every text offers. Its only data type is StringType; a data type of the user doesn't extend it */
 export abstract class StringsType</*in|out*/ VALUE_TYPE> extends ComparableType<VALUE_TYPE, string> {
     static override readonly [filterOperation] = exposeFilterOperations(this, ComparableType, [
         'equalsInsensitiveIfValue', 'equalsInsensitive', 'notEqualsInsensitiveIfValue', 'notEqualsInsensitive',
@@ -35,7 +35,7 @@ export abstract class StringsType</*in|out*/ VALUE_TYPE> extends ComparableType<
     ])
     declare [filterOperation]: (typeof StringsType)[typeof filterOperation]
 
-    // SqlComparator 1
+    // Comparisons of texts
     equalsInsensitiveIfValue(value: string | null | undefined): IfValueSource<SourceOf<this>, OptionalityOf<this>>
     equalsInsensitiveIfValue(value: any): any {
         return __newSqlOperation1ValueSourceIfValueOrNoop('_equalsInsensitive', this, value, BooleanConditionType, getOptionalType2(this, value))
@@ -198,10 +198,10 @@ export abstract class StringsType</*in|out*/ VALUE_TYPE> extends ComparableType<
     notContainsInsensitive(value: any): any {
         return __newSqlOperation1ValueSource('_notContainsInsensitive', this, value, BooleanConditionType, getOptionalType2(this, value))
     }
-    // SqlFunction0
+    // Functions of a text
     /**
      * Emits `(<this> collate <collation>)`, forcing a specific collation on this string
-     * expression. The result is a `StringValueSource` of the same type, usable on either
+     * expression. The result is a value source of the same data type, with the type adapter of the receiver, usable on either
      * operand of a comparison, on a projected/grouped/ordered column, or as a `replaceAll`
      * argument. `collation` is a raw dialect collation name (like `insensitiveCollation`),
      * so it is not portable across databases.
@@ -248,7 +248,6 @@ export abstract class StringsType</*in|out*/ VALUE_TYPE> extends ComparableType<
     reverse(): any {
         return __operation0(this, '_reverse', __computedTextClassOf(__typeClassOf(this), this))
     }
-    // SqlFunction1
     concatIfValue(value: string | null | undefined): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     concatIfValue(value: any): any {
         return __newSqlOperation1ValueSourceIfValueOrIgnore('_concat', this, value, __computedTextClassOf(__typeClassOf(this), this, value), getOptionalType2(this, value))
@@ -272,7 +271,7 @@ export abstract class StringsType</*in|out*/ VALUE_TYPE> extends ComparableType<
         // The optionality is the RECEIVER's (`getOptionalType2` with a plain value), not the
         // stricter one `concatIgnoringNull` computes: an ABSENT value leaves the receiver alone,
         // and whether it is absent is a run-time fact. Absence also depends on the connection's
-        // `allowEmptyString`, which vs constructor cannot see.
+        // `allowEmptyString`, which only the connection knows, when the SQL is written.
         return __newSqlOperation1ValueSourceIfValueOrIgnore('_concatIgnoringNull', this, value, __computedTextClassOf(__typeClassOf(this), this, value), getOptionalType2(this, value))
     }
     /**
@@ -305,7 +304,6 @@ export abstract class StringsType</*in|out*/ VALUE_TYPE> extends ComparableType<
     substringToEnd(start: any): any {
         return __newSqlOperation1ValueSource('_substringToEnd', this, start, __computedTextClassOf(__typeClassOf(this), this), getOptionalType2(this, start))
     }
-    // SqlFunction2
     substr(start: number, count: number): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     substr<VALUE2 extends INumberValue>(start: number, count: VALUE2): ValueSource<SourceOf<this> | SourceOf<VALUE2>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE2>>>
     substr<VALUE extends INumberValue>(start: VALUE, count: number): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
@@ -346,7 +344,6 @@ export abstract class StringsType</*in|out*/ VALUE_TYPE> extends ComparableType<
     replaceAllInsensitive(findString: any, replaceWith: any): any {
         return __newSqlOperation2ValueSource('_replaceAllInsensitive', this, findString, replaceWith, __computedTextClassOf(__typeClassOf(this), this, replaceWith), getOptionalType3(this, findString, replaceWith))
     }
-    // Redefined methods
 }
 
 /** A text, a JavaScript string */

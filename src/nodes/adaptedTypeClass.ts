@@ -60,6 +60,8 @@ export function __adaptedTypeClassOf(typeClass: DataTypeClass, typeAdapter: Type
     }
     const adapted = createAdaptedClass(base, typeAdapter, withSqlDataType)
     if (!classes) {
+        // An adapter that can't take a property (a frozen object of the user) can't keep its subclasses: one is
+        // created on each call
         if (!Object.isExtensible(adapter)) {
             return adapted
         }

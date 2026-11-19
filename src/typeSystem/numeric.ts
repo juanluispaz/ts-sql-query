@@ -54,6 +54,7 @@ export abstract class AdditiveType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME e
     sign(): any {
         return __operation0(this, '_sign', __registeredDataType('int'))
     }
+    /** The value, but at least the one given: the greater of the two (and maxValue, at most: the smaller) */
     minValue(value: VALUE_TYPE): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     minValue<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     minValue(value: any): any {

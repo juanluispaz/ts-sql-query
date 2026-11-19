@@ -9,10 +9,10 @@ import { __asRequiredInOptionalObjectOf, __ignoreWhenAsNullOf, __onlyWhenOrNullO
 import { __keptClassOf } from '../nodes/adaptedTypeClass.js'
 import { __asNodeValueSource, __keepAggregatedArrayShape } from '../nodes/NodeStrategy.js'
 
-/** The family of the arrays an aggregate as array gives: what every one offers */
 /** The type in the database of an aggregated array: a JSON document */
 const aggregatedArraySqlDataType: SqlDataType = { family: 'document', format: 'json' }
 
+/** The family of the arrays an aggregate as array gives: what every one offers */
 export abstract class AggregatedArraysType</*in|out*/ VALUE_TYPE> extends ValueSourceBaseType<VALUE_TYPE> {
     static override readonly sqlDataType: SqlDataType = aggregatedArraySqlDataType
 

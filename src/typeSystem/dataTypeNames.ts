@@ -53,10 +53,10 @@ export type DataTypeValueOfName<NAME extends DataTypeName> = ValueTypeOf<DataTyp
  * expression; a method that takes a type name reads them as `DataTypeValueSources<SOURCE, OPTIONAL_TYPE>[TYPE]`. Every
  * entry is the same generic type (`ValueSource<SOURCE, DataTypeOfName<TYPE>, OPTIONAL_TYPE>`), so they look like a
  * wrapper that could be written directly, but they are not: indexing a map with a union of names (`t: 'int' | 'string'`)
- * gives the union of its entries, a union of value sources, the type of the value at run time, which is one of them (the
- * maintainer's decision: a union in, a union out). Written directly, the union goes inside, `ValueSource<SOURCE,
- * IntType | StringType, ...>`: one value source with the methods of both data types and a value `number | string`,
- * which no value at run time is. Keep the maps.
+ * gives the union of its entries, a union of value sources, which is what the value is at run time: one of them. A union
+ * in gives a union out, by design. Written directly, the union goes inside, `ValueSource<SOURCE, IntType | StringType,
+ * ...>`: one value source with the methods of both data types and a value `number | string`, which no value at run time
+ * is. Keep the maps.
  */
 
 /** The value source of each type name */

@@ -11,8 +11,11 @@ import { type NodeStrategy, valueSourceNode, type NodeValueSource, __asNodeValue
 import { type ValueSourceConstructor } from './dataTypeClassOf.js'
 import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
 
+// The node of a select used as a value, and the withs it brings to the query that holds it.
+
 export type InlineSelectData = SelectData & IQueryDataDiscovery
 
+/** A select of one column used as a value */
 export interface InlineSelectValueSource extends NodeValueSource, HasOperation {
     readonly __operation: '_inlineSelectAsValue'
     readonly __selectData: InlineSelectData
@@ -60,6 +63,11 @@ export function __newInlineSelectValueSource(selectData: InlineSelectData, requi
     return vs
 }
 
+/**
+ * The withs a select used as a value brings to the query that holds it: the ones it uses, except the ones it takes from
+ * the outer query (subSelectUsing), the ones already there, and the ones that depend on the outer query
+ * (__hasExternalDependencies), which stay inside the select
+ */
 export function __addInlineQueryWiths(sqlBuilder: HasIsValue, withs: IWithView<any>[], selectData: InlineSelectData): void {
     const withViews: IWithView<any>[] = []
     const subSelectUsing = selectData.__subSelectUsing || []
@@ -80,6 +88,7 @@ export function __addInlineQueryWiths(sqlBuilder: HasIsValue, withs: IWithView<a
     }
 }
 
+/** Whether a value is a select (the data of one): the operand of an `in` can be one */
 export function isSelectQuery(value: any): value is InlineSelectData {
     if (value === undefined || value === null) {
         return false

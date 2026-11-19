@@ -90,9 +90,8 @@ export function __asOptionalColumn(column: InCreation<DBColumnValueSource>): any
 }
 
 export function __asOptional(column: InCreation<DBColumnValueSource>): any {
-    // View counterpart to `__asOptionalColumn`: marks the optional type without flipping `__writable`. Views are
-    // read-only, so their columns must not be treated as writable internally (the `extras/utils` helpers also
-    // filter by table type, but column keeps the column's runtime state coherent with its public type).
+    // The optional column of a view: optional, but not writable. A view is read only, so its columns never receive a
+    // value; the state of the column at run time matches its public type.
     column.__optionalType = 'optional'
     return column
 }

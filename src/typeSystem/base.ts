@@ -19,9 +19,10 @@ import { ValueSourceRoot } from '../nodes/valueSourceRoot.js'
  */
 
 /**
- * While the methods of the value sources still live in ValueSourceRoot, the classes of the data types extend it at run
- * time, so a value source is an instance of the class of its data type and has those methods. TypeScript sees nothing
- * of it: the methods are those the classes declare
+ * The classes of the data types extend ValueSourceRoot at run time: a value source is an instance of the class of its
+ * data type, and ValueSourceRoot gives it what every value source has at run time (its optionality, its node, the
+ * delegation to the node, isConstValue, getConstValue, allowWhen, disallowWhen). The cast hides it from TypeScript,
+ * so the public types and the .d.ts have only what the classes declare
  */
 const ValueSourceRuntime = ValueSourceRoot as unknown as abstract new () => object
 
@@ -84,6 +85,7 @@ export abstract class BaseType</*in|out*/ VALUE_TYPE> extends ValueSourceRuntime
     declare [operandTypeName]: string
 }
 
+/** Any data type: what TypeScript sees in a method of a class (this), and what the functions of the nodes take for it */
 export type AnyType = BaseType<any>
 
 /** A class of a data type, as the methods that take a data type receive it */
@@ -186,4 +188,5 @@ export type SourceOf<X> = 0 extends (1 & X) ? any : X extends { [source]: infer 
 export type OptionalityOf<X> = 0 extends (1 & X) ? any : X extends { [optionalType]: infer OPTIONAL_TYPE extends OptionalType } ? OPTIONAL_TYPE : never
 /** The data type of a value source (or the data type itself) */
 export type DataTypeOf<X> = 0 extends (1 & X) ? any : X extends { [valueSourceType]: infer TYPE extends AnyType } ? TYPE : X
+/** The type of the value of a value source or of a data type */
 export type ValueTypeOf<X> = 0 extends (1 & X) ? any : X extends { [valueType]: infer VALUE_TYPE } ? VALUE_TYPE : never

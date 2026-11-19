@@ -14,10 +14,10 @@ import { type AnyType } from './base.js'
 import { isValueSource, __asNodeValueSource } from '../nodes/NodeStrategy.js'
 
 /*
- * The numbers of JavaScript and the custom ones of them. int and double are the numbers of JavaScript and work
- * together, in the group `number`: an operand of one can be the other, and an operation of an int with a double gives a
- * double. NumberType, the data type of both, is what a result is when TypeScript can't know which of them it is. bigint,
- * the JavaScript bigint, and the custom numbers work only with themselves (numeric.ts).
+ * The numbers of JavaScript: int and double work together, in the group `number`: an operand of one can be the other,
+ * and an operation of an int with a double gives a double. NumberType, the data type of both, is what a result is when
+ * TypeScript can't know which of them it is. The other numbers (bigint, the exact decimals, the ones of the user) work
+ * only with themselves (numeric.ts, bigint.ts, decimals.ts).
  */
 
 /**
@@ -150,6 +150,7 @@ export abstract class NumberType extends ArithmeticType<number, string> {
     roundn(value: any): any {
         return __operation1(this, '_roundn', value, DoubleType)
     }
+    /** The value, but at least the one given: the greater of the two (and maxValue, at most: the smaller) */
     minValue(value: number): ValueSource<SourceOf<this>, PromotedNumberType<DataTypeOf<this>, NumberType>, OptionalityOf<this>>
     minValue<VALUE extends INumberValue>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, PromotedNumberType<DataTypeOf<this>, DataTypeOf<VALUE>>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     minValue(value: any): any {
@@ -248,15 +249,15 @@ function hasFraction(value: unknown): boolean {
 }
 
 /**
- * An operation of an int or a double with another number (add, minValue, ...): a double with a double; an int with an
- * int, a double with a double. A number given as a value is an int when it is an integer (TypeScript can't tell 2 from
- * 2.5: the value decides it)
+ * An operation of an int or a double with another number (add, minValue, ...): a double when the receiver is a double;
+ * an int when the operand is an int too (a number given as a value is an int when it is an integer: TypeScript can't
+ * tell 2 from 2.5, the value decides); a double otherwise
  */
 function promotedNumberOperation(valueSource: AnyType, value: any, operation: keyof SqlOperation1): any {
     const vs = __asNodeValueSource(valueSource)
-    // A number computed from the receiver keeps the conversions of its type adapter; an int that becomes a double
-    // changes its data type, and has none
-    // (the minimum or the maximum of two values is one of them, with the SQL data type of the receiver)
+    // The result keeps the conversions of the type adapter of the receiver while it keeps its data type. The minimum and
+    // the maximum of two values are one of them, so they also keep its SQL data type (__keptClassOf); a value computed
+    // from it doesn't (__computedClassOf). An int that becomes a double has neither
     const sameType = operation === '_minimumBetweenTwoValues' || operation === '_maximumBetweenTwoValues' ? __keptClassOf : __computedClassOf
     if (vs instanceof DoubleType) {
         return __operation1(vs, operation, value, sameType(vs, DoubleType))

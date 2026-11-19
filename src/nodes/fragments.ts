@@ -13,6 +13,10 @@ import { type NodeStrategy, valueSourceNode, type NodeValueSource, __asNodeValue
 import { type ValueSourceConstructor } from './dataTypeClassOf.js'
 import { __valueSourceTypeNameOf } from '../typeSystem/dataTypes.js'
 
+// The nodes of SQL the user writes: a fragment, a call to a function of the database, and a virtual column made with
+// a fragment.
+
+/** A fragment of SQL with the value sources it embeds; an aggregate fragment says it in `__isAggregate` */
 export interface FragmentValueSource extends NodeValueSource {
     readonly __operation: keyof SqlFragmentOperation
     readonly __sql: TemplateStringsArray
@@ -145,6 +149,8 @@ function __builderOutputPrivateOf(vs: ValueSourceFromBuilder): NodeValueSource {
     return __asNodeValueSource(__builderOutputOf(vs))
 }
 
+/** A virtual column made with a fragment: its builder runs the first time the column is written, so it can use the
+ * columns declared after it in the table */
 export interface ValueSourceFromBuilder extends NodeValueSource {
     __builder: (fragmentBuilder: FragmentQueryBuilder) => AnyValueSource
     __fragmentBuilder: FragmentQueryBuilder

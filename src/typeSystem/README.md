@@ -15,8 +15,9 @@ Read this before changing anything here. The code is the reference; this file sa
   (a `BooleanConditionType`), which has them.
 - **A value source is an instance of the class of its data type**: `column('price', MoneyType)` is a `MoneyType`,
   `int.add(0.5)` a `DoubleType`, a comparison a `BooleanType` (a condition too). The library creates it with
-  `new typeClass(...)` (the `abstract` is only for TypeScript). The run time knows a data type by its class: what a value is, by the SQL data type of the class (below), and how the connection converts it, by the family
-  the class extends (`instanceof`, in [`dataTypeQuestions.ts`](./dataTypeQuestions.ts), which only the connections ask).
+  `new typeClass(...)` (the `abstract` is only for TypeScript). The run time knows a data type by its class: what a
+  value is, by the SQL data type of the class (below), and how the connection converts it, by the family the class
+  extends (`instanceof`, in [`dataTypeQuestions.ts`](./dataTypeQuestions.ts), which only the connections ask).
   **Nothing at run time reads the NType** below: it exists only for TypeScript.
 - **The conversions of the values of a data type** are statics of its class, with the names and parameters of a type
   adapter (`transformValueFromDB`, `transformValueToDB`, `transformPlaceholder`, `transformProjection`), in `BaseType`:
@@ -31,8 +32,9 @@ Read this before changing anything here. The code is the reference; this file sa
   see (`ValueSourceRoot as unknown as abstract new () => object`), so the types and the `.d.ts` are only those of the
   classes. A method doesn't read those fields: it passes `this` to the functions of the nodes, which take it as its data
   type (`AnyType`) and read the fields with `__asNodeValueSource` (see the README of the nodes).
-- A method gives a value source of the same data type with `this.constructor`. A base can't import at run time the
-  data types that extend it (see below): it asks the registry of the data types for them when the method is called
+- A method gives a value source of the same data type with `__typeClassOf(this)` (or `__sameTypeClassOf(this)` when the
+  result keeps the SQL of the receiver): the class of its data type, without the subclass that carries a type adapter.
+  A base can't import at run time the data types that extend it (see below): it asks the registry of the data types for them when the method is called
   (`__internalDataType('condition')`, the boolean of a condition its comparisons give; `'int'` for `sign`; `'double'`
   for `valueWhenNull` of an int with a double). A class that extends a base, also one of the user, needs nothing more.
   A family that can import a data type imports it (`StringsType` the `IntType` of `length`).
@@ -72,7 +74,8 @@ Read this before changing anything here. The code is the reference; this file sa
   the data type: a method that takes a data type turns a name of a built-in one into its class once, with
   `__dataTypeClassFrom` of [`dataTypeClasses.ts`](./dataTypeClasses.ts), and a value source of the data type of another
   one takes its class (`__typeClassOf`). `dataTypeClasses.ts` also gives the class a value given to an operation is sent
-  with (see "The class of a value given to an operation"). No class of a data type imports it.
+  with (see "The class of a value given to an operation"). Among the classes, only `NullableType` imports it, for the
+  methods a data type of the user writes its own methods with (`fragmentWithType`, `const`, `optionalConst`).
 
 ## The operations that disappear without a value (`*IfValue`)
 
@@ -138,7 +141,9 @@ type ValueSource<SOURCE, TYPE, OPTIONAL_TYPE> = TYPE & ValueSourceOfType<SOURCE,
   carries the methods, the type of the value (`[valueType]`), the NType (`[typeName]`) and the operand NType
   (`[operandTypeName]`).
 - `ValueSourceOfType` adds what places the value in a query: its source (`[source]`, an `NSource`), its optionality
-  (`[optionalType]`) and a back reference to its data type (`[valueSourceType]`). It extends `TypedValueSource` of
+  (`[optionalType]`: `required`, `requiredInOptionalObject`, `originallyRequired` for a required column reached with a
+  left join, or `optional`; see `OptionalType` in [`valueSource.ts`](./valueSource.ts)) and a back reference to its
+  data type (`[valueSourceType]`). It extends `TypedValueSource` of
   [`valueSource.ts`](./valueSource.ts), the base every value source has whatever its data type.
 - The readers `SourceOf<X>`, `OptionalityOf<X>`, `DataTypeOf<X>` and `ValueTypeOf<X>` of [`base.ts`](./base.ts) take those axes
   out of a value source. Each answers `any` for `any` (`0 extends (1 & X) ? any : ...`): a conditional type over `any`
@@ -193,23 +198,24 @@ abstract equals<VALUE extends IValueWithType<this[typeof operandTypeName]>>(valu
     ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
 ```
 
-**No file depends at run time on a file that depends on it; for the types it may.** A cycle of imports at run time
-breaks depending on which module is loaded first: a class that extends one not yet evaluated throws a
-`ReferenceError`. An `import type` is erased from the JavaScript, so a cycle of types only is safe, and the types name
-the data types directly: the comparisons of `NullableType` and `EqualableType` give a `BooleanType` (an
-`EqualableType`) with `import type { BooleanType } from './logical.js'`, `AdditiveType.sign()` gives an `IntType`, and
-`CoalesceTypeOf` asks whether the data type is a `NumberType`. At run time a base never imports a data type that
-extends it: it asks the registry for the classes it needs (above). That is why the numbers are in several files: the
-bases ([`numeric.ts`](./numeric.ts)), the numbers of JavaScript ([`number.ts`](./number.ts): int and double, the group
-number; [`bigint.ts`](./bigint.ts), which `asBigint` of a number gives), the exact decimals
-([`decimals.ts`](./decimals.ts)), and the SQL data types of the numbers
+**No class extends a class of a module that imports its module back; for the types anything goes.** A class that
+extends one not yet evaluated throws a `ReferenceError`, and whether it is evaluated depends on which module the program
+loads first: an entry point of the package can work and a deep import (`ts-sql-query/__UNSUPPORTED__/...`) not.
+`test/runners/general/ModuleLoadOrder.test.ts` reads the imports at run time of every module of `src/` and fails on such
+a class. An `import type` is erased from the JavaScript, so the types name the data types directly: the comparisons of
+`NullableType` and `EqualableType` give a `BooleanType` (an `EqualableType`) with `import type { BooleanType } from
+'./logical.js'`, `AdditiveType.sign()` gives an `IntType`, and `CoalesceTypeOf` asks whether the data type is a
+`NumberType`. At run time a base, and a module the classes import, never imports a data type that extends one of them:
+it asks the registry for the classes it needs (above; the factory asks it for the boolean and the condition). That is
+why the numbers are in several files: the bases ([`numeric.ts`](./numeric.ts)), the numbers of JavaScript
+([`number.ts`](./number.ts): int and double, the group number; [`bigint.ts`](./bigint.ts), which `asBigint` of a number
+gives), the exact decimals ([`decimals.ts`](./decimals.ts)), and the SQL data types of the numbers
 ([`numericSqlDataTypes.ts`](./numericSqlDataTypes.ts)), apart so the bases give them without importing the classes that
 extend them.
 
 **A family is named in plural, its data types in singular.** A class in plural is a family: the base that its data
 types extend, which has their shared methods and no type of its own (`UuidsType` for `UuidType`; `LocalDatesType` for
-`LocalDateType`; `DecimalsType` for `StringDecimalType` and, tomorrow, the `Decimal` of JavaScript once it is standard,
-or the decimal of a library). A class in singular is a data type with a value: a built-in one (`UuidType`, `IntType`)
+`LocalDateType`; `DecimalsType` for `StringDecimalType` and for any other exact decimal, of the user or of a library). A class in singular is a data type with a value: a built-in one (`UuidType`, `IntType`)
 or one of the user. A file in plural has a family and the built-in data types of it (`uuids.ts`, `localDates.ts`,
 `decimals.ts`); a file in singular has one data type, a group or the tiers (`enum.ts`; `bigint.ts`; `number.ts`, the
 group number; `logical.ts`, the group logical: the boolean and the conditions; `numeric.ts`, `comparable.ts`, ...). A
@@ -235,7 +241,7 @@ methods, and it is still an int or a double.
 
 The other numbers (`bigint`, `stringDecimal`, the ones of the user) work only with themselves, and each level of the
 classes adds what its numbers can do: an integer and an exact decimal have no `divide`, which wouldn't give an exact
-value (see `test/DEFERRED.md`); only the numbers with decimals are rounded (`ceil`, `floor`, `round`, `roundn`); an
+value; only the numbers with decimals are rounded (`ceil`, `floor`, `round`, `roundn`); an
 exact decimal gives a `double` for the computations that can't be exact. `sum` and `average` take any of them, by the
 mark of `AdditiveType` (`IAnyAdditiveValueSource`).
 
@@ -319,24 +325,56 @@ position that takes it accepts and its fragment expression. The methods that tak
 `const`, `arg`, `fragmentWithType`, `executeFunction`, `sequence`, `setRequestedType`, a column of a dynamic condition,
 ...) have one generic overload over these maps, so a name the user declares works in all of them. A union of names
 (`t: 'int' | 'string'`) compiles and gives a union of value sources, on purpose: at run time the value is one of
-them, so a union in gives a union out (the maintainer's decision; nothing rejects it).
+them, so a union in gives a union out. That is why they are maps: written directly, the union would go inside one
+value source (the comment of `dataTypeNames.ts`).
 
-## The rest of the folder
+## The methods a data type of the user writes
 
-- [`base.ts`](./base.ts) also has the types that give a value source another source (`RemapValueSourceType` and its
-  forms, used for the columns of an alias, a `with`, a left join): the same data type with another `SOURCE`.
-- [`arguments.ts`](./arguments.ts): `Argument`, the argument of a fragment built with arguments, typed by its data
-  type class, and the helpers that type the fragment and its function (`MapArgumentToValueSource`, `ArgForFn`, ...).
-- [`filterOperations.ts`](./filterOperations.ts): `filterOperation` and `exposeFilterOperations`, how a class of a data
-  type says which of its methods a dynamic filter can call. Each family lists its own in its static `[filterOperation]`
-  and declares it on the instance; `FilterOf` (in `src/expressions/dynamicConditionUsingFilters.ts`) reads the names
-  from the instance and the value of each from the parameter of its method, and `DynamicConditionBuilder` asks the
-  class at run time.
-- [`fragments.ts`](./fragments.ts): `FragmentExpression<NO_SOURCE, TYPE, OPTIONAL_TYPE, EXTRA_SOURCE>`, the SQL of a
-  fragment of any data type. The builders of fragments with arguments stay in `src/expressions/fragment.ts`.
-- [`valueSource.ts`](./valueSource.ts): what every value source has whatever its data type: the optionality
-  (`OptionalType`, `CombinedOptionality`, ...), `AnyValueSource`, `TypedValueSource`, the types of the value of a result
-  (`ValueSourceValueType*`), and the executable queries.
+A class of the user adds methods to its data type with what `NullableType` gives it, `protected`, so only the class and
+the classes that extend it see them: `fragmentWithType(type, required, adapter?)`, the SQL of a fragment whose values
+can be `this` (the value source the method is called on) and any value source, and `const` / `optionalConst`, a value
+given to the method as a parameter. They are the methods of the same names of the connection, without its source: the
+result has the source of what the fragment embeds, the one of the column the method is called on when it embeds `this`.
+The fragment is a `DataTypeFragmentExpression` ([`fragments.ts`](./fragments.ts)), not the `FragmentExpression` of the
+connection: inside the class, `this` is not a value source yet (it has no source until the method is called on a
+column), so a value is taken whole and its source read afterwards (`SourceOf<V1>`); inferring a source from `this`
+would fix it to what the class declares, and makes TypeScript read the members of the class while they are computed.
+The types to write the signatures of such methods (`ValueSource`, `SourceOf`, `OptionalityOf`, `DataTypeOf`,
+`CombinedOptionality`, `OperandOf`) are exported by the package; a method can also be exposed to a dynamic filter
+([`filterOperations.ts`](./filterOperations.ts)).
+
+## The files
+
+| File | What it has |
+|---|---|
+| [`base.ts`](./base.ts) | `BaseType`, the root of every data type (the NType, `static type`, `static sqlDataType`, the conversions); `ValueSource` and what a value source adds to its data type; the readers (`SourceOf`, `OptionalityOf`, `DataTypeOf`, `ValueTypeOf`); the gates (`IValueWithType`, `IValueSource`, ...); `RemapValueSourceType` and its forms, the same data type with another source (a column of an alias, a `with`, a left join) |
+| [`valueSourceBase.ts`](./valueSourceBase.ts) | `ValueSourceBaseType`: what every value source has (`isConstValue`, `allowWhen`, ...) and the type guard `is` |
+| [`nullable.ts`](./nullable.ts) | `NullableType`, the root of the data types whose value can be null: `isNull`, `valueWhenNull` (`CoalesceTypeOf`), `asOptional`, ...; and `fragmentWithType`, `const` and `optionalConst`, with which a class of the user writes its own methods |
+| [`equalable.ts`](./equalable.ts) | `EqualableType`: equality, `is`, `in` and their `*IfValue` forms |
+| [`comparable.ts`](./comparable.ts) | `ComparableType`: the order (`lessThan`, `between`, ...) |
+| [`enum.ts`](./enum.ts) | `EnumType`, the enumerations |
+| [`logical.ts`](./logical.ts) | the group logical: `BooleanType`, `BooleanConditionType` (the boolean of a condition) and the conditions (`IfType`, `AlwaysIfType`) |
+| [`numeric.ts`](./numeric.ts) | the families of the numbers: `ArithmeticType`, `AdditiveType`, `MultipliableType`, `IntegersType`, `DivisibleType`, `RealsType` |
+| [`number.ts`](./number.ts) | the group number: `NumberType`, `IntType`, `DoubleType`, and `PromotedNumberType` |
+| [`bigint.ts`](./bigint.ts) | `BigintType` |
+| [`decimals.ts`](./decimals.ts) | `DecimalsType` and `StringDecimalType`, the exact decimals |
+| [`numericSqlDataTypes.ts`](./numericSqlDataTypes.ts) | the SQL data types of the numbers, apart so the bases give them without importing the classes that extend them |
+| [`strings.ts`](./strings.ts) | `StringsType` and `StringType`: the comparisons and functions of a text |
+| [`uuids.ts`](./uuids.ts) | `UuidsType` and `UuidType`, with the operations of a text on the text of a uuid |
+| [`uuidText.ts`](./uuidText.ts) | `UuidTextType`, the text of a uuid, only for the run time |
+| [`localDates.ts`](./localDates.ts) | the families and the data types of the dates, the times and both |
+| [`aggregatedArrays.ts`](./aggregatedArrays.ts) | `AggregatedArraysType` and its two data types, the arrays an aggregate as array gives |
+| [`valueSource.ts`](./valueSource.ts) | what every value source has whatever its data type: the optionality (`OptionalType`, `CombinedOptionality`, `__mergeOptional`, ...), `AnyValueSource`, `TypedValueSource`, the types of the value of a result (`ValueSourceValueType*`), the executable queries, and the questions the SQL builders ask about the value of a value source by its SQL data type (`__isBooleanValueSource`, ...) |
+| [`dataTypes.ts`](./dataTypes.ts) | the questions about the SQL data type of a class (`__sqlFamilyOf`, `__isExactDecimalSql`, ...), by which the run time decides what a value is |
+| [`dataTypeQuestions.ts`](./dataTypeQuestions.ts) | the questions about the family of a class (`__isIntClass`, ...), which only the connections ask |
+| [`dataTypeClasses.ts`](./dataTypeClasses.ts) | the class of a data type given by its name (`__dataTypeClassFrom`), the class of a projected column (`__projectedTypeClassOf`), and the class a value given to an operation is sent with |
+| [`dataTypeNames.ts`](./dataTypeNames.ts) | `DataTypes`, `DataTypeName` and the maps of each type name (see above) |
+| [`dataTypeRegistry.ts`](./dataTypeRegistry.ts) | the registry of the data types and `registerDataType` |
+| [`registerDataTypes.ts`](./registerDataTypes.ts) | the registration of the data types of the library, the only module with side effects |
+| [`valueSourceFactory.ts`](./valueSourceFactory.ts) | the creation (`__create*`) and recognition (`__is*`) of the value sources, the only door to the nodes |
+| [`arguments.ts`](./arguments.ts) | `Argument`, the argument of a fragment built with arguments, and the helpers that type the fragment and its function (`MapArgumentToValueSource`, `ArgForFn`, ...) |
+| [`fragments.ts`](./fragments.ts) | `FragmentExpression`, the SQL of a fragment of the connection, and `DataTypeFragmentExpression`, the one of a method of a class of a data type; the builders of fragments with arguments are in `src/expressions/fragment.ts` |
+| [`filterOperations.ts`](./filterOperations.ts) | `filterOperation` and `exposeFilterOperations`: how a class says which of its methods a dynamic filter can call. `FilterOf` (in `src/expressions/dynamicConditionUsingFilters.ts`) reads the names from the instance and the value of each from the parameter of its method, and `DynamicConditionBuilder` asks the class at run time |
 
 ## Checking a change
 
@@ -348,8 +386,9 @@ them, so a union in gives a union out (the maintainer's decision; nothing reject
 - Then the test matrix: `bun run validate:tests` (the test scope compiles against these types; start with one cell,
   `bun run validate:tests postgres/newest/pg`) and `bun run tests`. A change of the types moves no SQL snapshot: if one
   moves, the change touched the runtime.
-- Measure the compiler: `validate:tests` took ~150 s and ~7.6 GB at its peak when the library moved to this type system,
-  the same as before. Compare against that before and after a change that adds conditional types or overloads.
+- Measure the compiler before and after a change that adds conditional types or overloads: the time and the peak of
+  memory of `bun run validate:tests`, against the figures of `test/BENCHMARKS.md`, on a machine with nothing else
+  running.
 - No recursive types (the rule of `CLAUDE.md`): the types here walk nothing; keep it so.
 
 ## Adding a data type
@@ -360,4 +399,5 @@ them, so a union in gives a union out (the maintainer's decision; nothing reject
    runners send and read them), and its own methods with the result types the runtime gives.
 2. A built-in one: its entry in `DataTypes` of `dataTypeNames.ts`, and its registration in `registerDataTypes.ts`.
 3. Its question in `dataTypeQuestions.ts`, if the connection converts it in its own way.
-4. Its cases in the probe, and its tests in the matrix.
+4. Its cases in `test/runners/general/DataTypeOperations.test.ts` (operands and results) and, when its class converts
+   its values, in `DataTypeConversions.test.ts`; then its tests in the matrix.

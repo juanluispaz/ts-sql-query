@@ -23,7 +23,8 @@ export function __typeClassOf(valueSource: AnyType | NodeValueSource): DataTypeC
  * without its type adapter (the one created gets its own)
  */
 export function __sameTypeClassOf(valueSource: AnyType | NodeValueSource): DataTypeClass {
-    // Every value source of a class has its node (the raw fragment of a table, which has no data type, hasn't)
+    // A value without a node is not a value source, and has no class of a data type (the raw fragment of a table has a
+    // node: its class is ValueSourceRoot)
     if ((valueSource as { __node?: unknown }).__node) {
         return __unadaptedClassOf(valueSource.constructor as unknown as DataTypeClass)
     }

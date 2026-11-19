@@ -14,6 +14,10 @@ import { __keptClassOf } from './adaptedTypeClass.js'
 import { __classOf, __isComputedTextClass, __unadaptedClassOf } from '../nodes/adaptedTypeClass.js'
 import { type AnyType } from '../typeSystem/base.js'
 
+// The nodes of an operation of a value source (its receiver) with zero, one or two operands, of `in`, `collate`,
+// `isNull`, and the no-op that keeps the SQL of its receiver with another optionality or class. Each one reaches what
+// its receiver and its operands reach.
+
 /**
  * The class the values given to an operation are converted with: the one of its result when it is of the data type of
  * the receiver (a value computed from it, or one of its values: the result says whether it keeps the type adapter and
@@ -43,6 +47,7 @@ export function __priorOf(valueSource: AnyType | NodeValueSource): any {
     return __newSqlOperation0ValueSource('_prior', vs, __keptClassOf(vs, __typeClassOf(vs)), vs.__optionalType)
 }
 
+/** A function or an operator of the receiver alone (abs, length, negate, ...) */
 export interface SqlOperation0ValueSource extends NodeValueSource, HasOperation {
     readonly __valueSource: NodeValueSource
     readonly __operation: keyof SqlFunction0 | keyof SqlBoolean0
@@ -85,6 +90,7 @@ export function __newSqlOperation0ValueSource(operation: keyof SqlFunction0 | ke
     return vs
 }
 
+/** The receiver with a collation */
 export interface SqlOperationCollateValueSource extends NodeValueSource, HasOperation {
     readonly __valueSource: NodeValueSource
     readonly __operation: '_collate'
@@ -129,6 +135,7 @@ export function __newSqlOperationCollateValueSource(valueSource: AnyType | NodeV
     return vs
 }
 
+/** `isNull` / `isNotNull` of the receiver */
 export interface SqlOperationIsNullValueSource extends NodeValueSource, HasOperation {
     readonly __valueSource: NodeValueSource
     readonly __operation: keyof SqlComparator0
@@ -171,6 +178,7 @@ export function __newSqlOperationIsNullValueSource(operation: keyof SqlComparato
     return vs
 }
 
+/** A function or an operator of the receiver with one operand (equals, add, concat, valueWhenNull, is, ...); the flattening of a concat recognises it (`__isOperation1`) */
 export interface SqlOperation1ValueSource extends NodeValueSource, HasOperation {
     readonly __valueSource: NodeValueSource
     readonly __operation: keyof SqlOperation1
@@ -218,6 +226,7 @@ export function __newSqlOperation1ValueSource(operation: keyof SqlOperation1, va
     return vs
 }
 
+/** `in` / `notIn` with a list, a value source or a select */
 export interface SqlOperationInValueSource extends NodeValueSource, HasOperation {
     readonly __valueSource: NodeValueSource
     readonly __operation: '_in' | '_notIn'
@@ -347,6 +356,7 @@ export function __newSqlOperationInValueSource(operation: '_in' | '_notIn', valu
     return vs
 }
 
+/** A function of the receiver with two operands (between, substr, replaceAll, ...) */
 export interface SqlOperation2ValueSource extends NodeValueSource, HasOperation {
     readonly __valueSource: NodeValueSource
     readonly __operation: keyof SqlOperation2
@@ -399,6 +409,7 @@ export function __newSqlOperation2ValueSource(operation: keyof SqlOperation2, va
     return vs
 }
 
+/** The SQL of the receiver as it is, with another optionality or class */
 export interface NoopValueSource extends NodeValueSource {
     readonly __valueSource: NodeValueSource
 }

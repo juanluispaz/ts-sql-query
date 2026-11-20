@@ -124,21 +124,40 @@ export function durationOfReceivedValue(value: unknown, typeName: string): Tempo
  * `signInEachField` (PostgreSQL, which rejects `-P1D`) the sign of a negative duration in each field (`P-1DT-2H`)
  */
 export function durationIsoTextWithoutWeeks(value: TemporalDuration, signInEachField: boolean): string {
+    return isoTextOf(value, true, signInEachField)
+}
+
+/**
+ * The ISO 8601 text of a duration, as Temporal's `toString` writes it (`-P1Y2W3DT4H0.5S`), written here: the toString
+ * of Node 26.1 drops the fraction of a second when its seconds are 0 and it has another field (`PT1H` for one hour and
+ * one nanosecond)
+ */
+export function durationIsoText(value: TemporalDuration): string {
+    return isoTextOf(value, false, false)
+}
+
+function isoTextOf(value: TemporalDuration, weeksAsDays: boolean, signInEachField: boolean): string {
     const sign = value.sign < 0 ? -1 : 1
     const fields = {
-        years: Math.abs(value.years), months: Math.abs(value.months), days: Math.abs(value.weeks) * 7 + Math.abs(value.days),
-        hours: Math.abs(value.hours), minutes: Math.abs(value.minutes), seconds: Math.abs(value.seconds),
+        years: Math.abs(value.years), months: Math.abs(value.months), weeks: weeksAsDays ? 0 : Math.abs(value.weeks),
+        days: (weeksAsDays ? Math.abs(value.weeks) * 7 : 0) + Math.abs(value.days),
+        hours: Math.abs(value.hours), minutes: Math.abs(value.minutes),
     }
-    const fraction = (String(Math.abs(value.milliseconds)).padStart(3, '0') + String(Math.abs(value.microseconds)).padStart(3, '0') + String(Math.abs(value.nanoseconds)).padStart(3, '0')).replace(/0+$/, '')
+    // The seconds and the fields below them, as Temporal writes them: one number of seconds with its fraction, as each
+    // field may hold more than one of the next (1500 milliseconds are 1.5 seconds)
+    const nanoseconds = BigInt(Math.abs(value.seconds)) * 1_000_000_000n + BigInt(Math.abs(value.milliseconds)) * 1_000_000n + BigInt(Math.abs(value.microseconds)) * 1000n + BigInt(Math.abs(value.nanoseconds))
+    const seconds = nanoseconds / 1_000_000_000n
+    const fraction = String(nanoseconds % 1_000_000_000n).padStart(9, '0').replace(/0+$/, '')
     const each = signInEachField && sign < 0 ? '-' : ''
     let date = ''
     if (fields.years) { date += each + fields.years + 'Y' }
     if (fields.months) { date += each + fields.months + 'M' }
+    if (fields.weeks) { date += each + fields.weeks + 'W' }
     if (fields.days) { date += each + fields.days + 'D' }
     let time = ''
     if (fields.hours) { time += each + fields.hours + 'H' }
     if (fields.minutes) { time += each + fields.minutes + 'M' }
-    if (fields.seconds || fraction !== '') { time += each + fields.seconds + (fraction === '' ? '' : '.' + fraction) + 'S' }
+    if (seconds !== 0n || fraction !== '') { time += each + String(seconds) + (fraction === '' ? '' : '.' + fraction) + 'S' }
     const text = 'P' + date + (time === '' ? '' : 'T' + time)
     const result = text === 'P' ? 'PT0S' : text
     return sign < 0 && !signInEachField ? '-' + result : result

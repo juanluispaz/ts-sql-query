@@ -48,7 +48,7 @@ import { __temporal, type TemporalPlainDateTime } from '../typeSystem/temporal.j
 import { PlainDateTimeType, PlainDateType, PlainTimeType } from '../typeSystem/plainDates.js'
 import { InstantType } from '../typeSystem/instants.js'
 import { parseInstantText, parsePlainDateTimeText, plainDateTimeOfUtcDate } from '../utils/plainDateTimeText.js'
-import { durationOfReceivedValue, isDurationValue } from '../utils/durationValues.js'
+import { durationIsoText, durationOfReceivedValue, isDurationValue } from '../utils/durationValues.js'
 import type { NumberType } from '../typeSystem/number.js'
 import type { BigintType } from '../typeSystem/bigint.js'
 import type { StringDecimalType } from '../typeSystem/decimals.js'
@@ -1435,7 +1435,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid duration value to send to the db: ' + String(value))
             }
             if (!this.isDurationKeptAsInterval(__durationSqlDataTypeOf(context.requestedSqlDataType, context.requestedType))) {
-                return value.toString()
+                return durationIsoText(value)
             }
             // An interval of the database: each query runner gives its driver the form it needs
             return value

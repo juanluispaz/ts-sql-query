@@ -62,7 +62,8 @@ describe(ctx.label, () => {
             .where(tDurationValue.id.equals(4))
             .select({ span: tDurationValue.span, spanCalendar: tDurationValue.spanCalendar, spanText: tDurationValue.spanText })
             .executeSelectMany()
-        expect(rows.map(row => [row.span.toString(), row.spanCalendar?.toString(), row.spanText?.toString()])).toEqual([['-P2DT3H4M5.123456789S', 'P2Y', 'P1Y1WT0.000000001S']])
+        // The fields of span_text, whose text Node 26.1's toString writes without its nanosecond (P1Y1W)
+        expect(rows.map(row => [row.span.toString(), row.spanCalendar?.toString(), row.spanText?.years, row.spanText?.weeks, row.spanText?.nanoseconds])).toEqual([['-P2DT3H4M5.123456789S', 'P2Y', 1, 1, 1]])
     })
 
     // NOT-APPLICABLE: MySQL has no RETURNING

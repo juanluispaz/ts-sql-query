@@ -10,7 +10,7 @@ import { MySqlConnection } from '../../../src/connections/MySqlConnection.js'
 import { MockQueryRunner } from '../../../src/queryRunners/MockQueryRunner.js'
 import { DurationsType, Table, TsSqlError, withSqlDataType } from '../../../src/exports/v2/index.js'
 import { postgreSqlDriverParams } from '../../../src/utils/postgreSql/postgreSqlParamTypes.js'
-import { durationIsoTextWithoutWeeks, durationPartsFor } from '../../../src/utils/durationValues.js'
+import { durationIsoText, durationIsoTextWithoutWeeks, durationPartsFor } from '../../../src/utils/durationValues.js'
 import { sqliteScalarFunctions } from '../../../src/utils/sqlite/sqliteFunctions.js'
 import { plainTemporalFieldsOf } from '../../../src/utils/plainTemporalFields.js'
 import { plainTemporalRoundingOf } from '../../../src/utils/plainTemporalRounding.js'
@@ -64,12 +64,15 @@ function reasonOf(error: unknown): string {
     return error instanceof TsSqlError ? error.errorReason.reason : String(error)
 }
 
-/** The text of the duration read from that value, or the reason of its error */
+/**
+ * The text of the duration read from that value, as Temporal writes it (written by the library: the toString of Node
+ * 26.1 drops a fraction of a second next to the hours), or the reason of its error
+ */
 async function read(value: unknown): Promise<string> {
     rowsToReturn = [{ span: value }]
     try {
         const row = await pg.selectFrom(tPgSpan).select({ span: tPgSpan.span }).executeSelectOne()
-        return row.span.toString()
+        return durationIsoText(row.span)
     } catch (error) {
         return reasonOf(error)
     }
@@ -218,6 +221,50 @@ describe('DurationValues', () => {
             .where(tMySpan.id.equals(1))
             .executeUpdate()
         expect(lastParams.map(String)).toEqual(['-P1Y2W3DT0.000000001S', '1'])
+    })
+
+    test('the-text-of-a-duration-writes-its-seconds-as-temporal', async () => {
+        // A field below the second may hold more than one second (1500 milliseconds are 1.5 seconds), and a fraction of
+        // a second is written with the hours (Node 26.1's toString drops it there)
+        const sent: string[] = []
+        for (const fields of [{ milliseconds: 1500 }, { seconds: 59, milliseconds: 1500 }, { microseconds: 2000001 }, { hours: 1, nanoseconds: 1 }, { days: -1, milliseconds: -1500 }, { weeks: 2, days: 1, minutes: 1, microseconds: 1 }]) {
+            await mysql.update(tMySpan).set({ span: Temporal.Duration.from(fields) }).where(tMySpan.id.equals(1)).executeUpdate()
+            sent.push(String(lastParams[0]))
+        }
+        expect(sent).toEqual(['PT1.5S', 'PT60.5S', 'PT2.000001S', 'PT1H0.000000001S', '-P1DT1.5S', 'P2W1DT1M0.000001S'])
+        expect([
+            durationIsoTextWithoutWeeks(Temporal.Duration.from({ milliseconds: 1500 }), true),
+            durationIsoTextWithoutWeeks(Temporal.Duration.from({ days: -1, milliseconds: -1500 }), true),
+            durationIsoTextWithoutWeeks(Temporal.Duration.from({ weeks: 2, microseconds: 2000001 }), false),
+        ]).toEqual(['PT1.5S', 'P-1DT-1.5S', 'P14DT2.000001S'])
+        // Every duration: its text is the same duration, read back by Temporal
+        let state = 20261120
+        const next = (n: number) => {
+            state = (Math.imul(state, 1103515245) + 12345) & 0x7fffffff
+            return (state >>> 8) % n
+        }
+        const limits: Record<string, number> = { years: 5, months: 13, weeks: 6, days: 40, hours: 30, minutes: 70, seconds: 70, milliseconds: 3000, microseconds: 3000000, nanoseconds: 3000000000 }
+        const differences: string[] = []
+        for (let i = 0; i < 3000; i++) {
+            const sign = next(2) ? 1 : -1
+            const fields: Record<string, number> = {}
+            for (const name in limits) {
+                if (next(3) === 0) {
+                    fields[name] = sign * next(limits[name]!)
+                }
+            }
+            const duration = Temporal.Duration.from(Object.keys(fields).length ? fields : { days: 0 })
+            await mysql.update(tMySpan).set({ span: duration }).where(tMySpan.id.equals(1)).executeUpdate()
+            const text = String(lastParams[0])
+            const back = Temporal.Duration.from(text)
+            const same = Temporal.Duration.compare(duration, back, { relativeTo: Temporal.PlainDate.from('2024-01-31') }) === 0
+                && duration.years === back.years && duration.months === back.months && duration.weeks === back.weeks && duration.days === back.days
+                && duration.hours === back.hours && duration.minutes === back.minutes
+            if (!same) {
+                differences.push(JSON.stringify(fields) + ' -> ' + text)
+            }
+        }
+        expect(differences).toEqual([])
     })
 
     test('the-parts-a-duration-adds-to-each-type', () => {

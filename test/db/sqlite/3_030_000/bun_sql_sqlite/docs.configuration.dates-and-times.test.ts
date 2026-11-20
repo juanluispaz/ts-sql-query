@@ -187,6 +187,37 @@ describe(ctx.label, () => {
         ])
     })
 
+    test('docs:dates-and-times/the-instant-of-its-epoch', async () => {
+        ctx.mockNext([
+            { version: '1.2.0', deployedAt: '2024-01-16 09:30:15.123', sameInstant: '2024-01-16 09:30:15.123' },
+        ])
+        const connection = ctx.conn
+
+        // doc-start
+        const deployedBefore = await connection.selectFrom(tRelease)
+            .where(tRelease.deployedAt.lessThan(connection.instantFromEpochMilliseconds(1705400000000)))
+            .select({
+                version: tRelease.version,
+                deployedAt: tRelease.deployedAt,
+                sameInstant: connection.instantFromEpochMilliseconds(tRelease.deployedAt.epochMilliseconds()),
+            })
+            .orderBy('version')
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as version, deployed_at as deployedAt, strftime('%Y-%m-%d %H:%M:%f', date('1970-01-01', (cast((round((julianday(deployed_at) - 2440587.5) * 86400000.0) - ((round((julianday(deployed_at) - 2440587.5) * 86400000.0) % 86400000 + 86400000) % 86400000)) / 86400000 as integer)) || ' days'), ((((round((julianday(deployed_at) - 2440587.5) * 86400000.0) % 86400000 + 86400000) % 86400000) * 1000000) / 1000000000.0) || ' seconds') as sameInstant from project_release where deployed_at < ?1 order by version"`)
+        expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
+          [
+            "2024-01-16 10:13:20.000",
+          ]
+        `)
+        assertType<Exact<typeof deployedBefore, Array<{ version: string; deployedAt?: Temporal.Instant; sameInstant?: Temporal.Instant }>>>()
+        const deployed = Temporal.Instant.from('2024-01-16T09:30:15.123Z')
+        expect(deployedBefore.map(release => [release.version, release.deployedAt?.toString(), release.sameInstant?.toString()])).toEqual([
+            ['1.2.0', deployed.toString(), Temporal.Instant.fromEpochMilliseconds(deployed.epochMilliseconds).toString()],
+        ])
+    })
+
     // NOT-SUPPORTED: Bun SQL's sqlite adapter exposes neither a user-defined-function API nor its bun:sqlite `Database`, so the tsq_duration_text UDF can't be registered
     /*
     test('docs:dates-and-times/the-arithmetic-of-an-instant', async () => {

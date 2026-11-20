@@ -487,6 +487,8 @@ An instant can be kept in any column of a date and a time:
 | SQLite | none: it keeps an instant as it keeps a `localDateTime`, in the [format of its dates](supported-databases/sqlite.md#working-with-date-and-time) | |
 | SQL Server | `datetimeoffset(7)` | `datetime2(7)` |
 
+On SQLite a `localdate` format keeps the wall clock of the instant in the zone of the application. With [`sqliteRunsInApplicationTimeZone`](supported-databases/sqlite.md#the-date-functions-and-the-time-zone), the arithmetic of the instant takes it to UTC and back with the modifiers `'utc'` and `'localtime'`; without it, the zone of the application must be UTC.
+
 The [four kinds of temporal column](time-zones.md#the-four-kinds-of-temporal-column) explain what each one does with the zone. On MySQL and MariaDB a `TIMESTAMP` rejects an instant outside its range, from `1970-01-01T00:00:01Z` to `2038-01-19T03:14:07Z` on MySQL, and to `2106-02-07T06:28:15Z` on MariaDB 13; a `DATETIME(6)` in UTC also holds the instants before and after it.
 
 ### The epoch of an instant, and its date and time
@@ -582,13 +584,96 @@ The parameters are: `[]`
 | `'0.9.0'` | `2024-03-02` | `1709377500000` | `2024-03-02T11:00:00Z` |
 | `'1.2.0'` | `2024-01-16` | `1705397415123` | `2024-01-16T09:00:00Z` |
 
+The other way round, `connection.instantFromEpochMilliseconds(value)` and `connection.instantFromEpochNanoseconds(value)` give the instant of a number of milliseconds or nanoseconds since `1970-01-01T00:00:00Z`, as Temporal's `Temporal.Instant.fromEpochMilliseconds` and `fromEpochNanoseconds`. Of a value of the query, like a column that keeps a Unix time in milliseconds, the database computes it, with the digits it keeps. A number (a `bigint` for the nanoseconds) is the `Temporal.Instant` sent as a value:
+
+```ts
+const deployedBefore = await connection.selectFrom(tRelease)
+    .where(tRelease.deployedAt.lessThan(connection.instantFromEpochMilliseconds(1705400000000)))
+    .select({
+        version: tRelease.version,
+        deployedAt: tRelease.deployedAt,
+        sameInstant: connection.instantFromEpochMilliseconds(tRelease.deployedAt.epochMilliseconds()),
+    })
+    .orderBy('version')
+    .executeSelectMany()
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        version as version, 
+        deployed_at as deployedAt, 
+        date_add(date_add(date '1970-01-01', interval (floor(timestampdiff(microsecond, '1970-01-01 00:00:00', deployed_at) / 1000) - ((floor(timestampdiff(microsecond, '1970-01-01 00:00:00', deployed_at) / 1000) % 86400000 + 86400000) % 86400000)) div 86400000 day), interval (((floor(timestampdiff(microsecond, '1970-01-01 00:00:00', deployed_at) / 1000) % 86400000 + 86400000) % 86400000) * 1000000) div 1000 microsecond) as sameInstant 
+    from project_release 
+    where deployed_at < ? 
+    order by version
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        version as version, 
+        deployed_at as deployedAt, 
+        date_add(date_add(date '1970-01-01', interval (floor(timestampdiff(microsecond, '1970-01-01 00:00:00', deployed_at) / 1000) - ((floor(timestampdiff(microsecond, '1970-01-01 00:00:00', deployed_at) / 1000) % 86400000 + 86400000) % 86400000)) div 86400000 day), interval (((floor(timestampdiff(microsecond, '1970-01-01 00:00:00', deployed_at) / 1000) % 86400000 + 86400000) % 86400000) * 1000000) div 1000 microsecond) as sameInstant 
+    from project_release 
+    where deployed_at < ? 
+    order by version
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        version as "version", 
+        to_char(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "deployedAt", 
+        to_char(sys_extract_utc(cast(from_tz(cast((date '1970-01-01' + trunc(((trunc(timestamp '1970-01-01 00:00:00' + (deployed_at - timestamp '1970-01-01 00:00:00')) - date '1970-01-01') * 86400000 + to_number(to_char(timestamp '1970-01-01 00:00:00' + (deployed_at - timestamp '1970-01-01 00:00:00'), 'SSSSSFF3')) - (mod((mod((trunc(timestamp '1970-01-01 00:00:00' + (deployed_at - timestamp '1970-01-01 00:00:00')) - date '1970-01-01') * 86400000 + to_number(to_char(timestamp '1970-01-01 00:00:00' + (deployed_at - timestamp '1970-01-01 00:00:00'), 'SSSSSFF3')), 86400000) + 86400000), 86400000))) / 86400000)) as timestamp(9)) + numtodsinterval(((mod((mod((trunc(timestamp '1970-01-01 00:00:00' + (deployed_at - timestamp '1970-01-01 00:00:00')) - date '1970-01-01') * 86400000 + to_number(to_char(timestamp '1970-01-01 00:00:00' + (deployed_at - timestamp '1970-01-01 00:00:00'), 'SSSSSFF3')), 86400000) + 86400000), 86400000)) * 1000000) / 1000000000, 'second'), '+00:00') as timestamp(9) with time zone)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "sameInstant" 
+    from project_release 
+    where deployed_at < to_timestamp(:0, 'YYYY-MM-DD HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN') 
+    order by "version"
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        version as version, 
+        deployed_at as "deployedAt", 
+        (date '1970-01-01' + cast(((cast(floor(extract(epoch from deployed_at) * 1000) as bigint) - ((cast(floor(extract(epoch from deployed_at) * 1000) as bigint) % 86400000 + 86400000) % 86400000)) / 86400000) as integer)) + make_interval(secs => (((cast(floor(extract(epoch from deployed_at) * 1000) as bigint) % 86400000 + 86400000) % 86400000) * 1000000) / 1000000000.0) as "sameInstant" 
+    from project_release 
+    where deployed_at < $1 
+    order by version
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        version as version, 
+        deployed_at as deployedAt, 
+        strftime('%Y-%m-%dT%H:%M:%fZ', date('1970-01-01', (cast((round(unixepoch(deployed_at, 'subsec') * 1000) - ((round(unixepoch(deployed_at, 'subsec') * 1000) % 86400000 + 86400000) % 86400000)) / 86400000 as integer)) || ' days'), ((((round(unixepoch(deployed_at, 'subsec') * 1000) % 86400000 + 86400000) % 86400000) * 1000000) / 1000000000.0) || ' seconds') as sameInstant 
+    from project_release 
+    where deployed_at < ?1 
+    order by version
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        version as version, 
+        deployed_at as deployedAt, 
+        dateadd(nanosecond, (((cast(datediff_big(millisecond, '1970-01-01 00:00:00', deployed_at) as bigint) % 86400000 + 86400000) % 86400000) * 1000000) % 1000000000, dateadd(second, (((cast(datediff_big(millisecond, '1970-01-01 00:00:00', deployed_at) as bigint) % 86400000 + 86400000) % 86400000) * 1000000) / 1000000000, cast(dateadd(day, (cast(datediff_big(millisecond, '1970-01-01 00:00:00', deployed_at) as bigint) - ((cast(datediff_big(millisecond, '1970-01-01 00:00:00', deployed_at) as bigint) % 86400000 + 86400000) % 86400000)) / 86400000, cast('1970-01-01' as date)) as datetime2))) as sameInstant 
+    from project_release 
+    where deployed_at < @0 
+    order by version
+    ```
+
+The parameters are: `[ Instant 2024-01-16T10:13:20Z ]` (on SQLite: `[ '2024-01-16T10:13:20.000Z' ]`)
+
+| version | deployedAt | sameInstant |
+|---|---|---|
+| `'1.2.0'` | `2024-01-16T09:30:15.123456Z` (on SQLite: `2024-01-16T09:30:15.123Z`) | `2024-01-16T09:30:15.123Z` |
+
 `epochNanoseconds()` holds every instant on PostgreSQL, MariaDB, MySQL and Oracle, which compute it as a decimal. On SQL Server and SQLite it is a 64-bit integer, so an instant before 1678 or after 2262 makes the query fail. SQLite keeps an instant to the millisecond, and its drivers give an integer beyond 2^53, like the nanoseconds of today, as a rounded number unless their big-integer mode is on: the library then rejects reading it with `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE`, and the value can still be compared in the query.
 
 ### The arithmetic of an instant
 
 An instant has Temporal's arithmetic, with the units of the time alone, since without a zone a day has no fixed length:
 
-- `add` and `subtract` take a `Temporal.Duration` or its fields, of hours and smaller units: `add({ hours: 48 })`. A duration with days, weeks, months or years is rejected before the query is sent, as Temporal rejects it.
+- `add` and `subtract` take a `Temporal.Duration` or its fields, of hours and smaller units: `add({ hours: 48 })`. A duration with days, weeks, months or years is rejected before the query is sent, as Temporal rejects it. They also take a duration of the query, like a column: `add(tRelease.rolloutTime)`. Its value is only known by the database, so the query fails when it has days, weeks, months or years. An interval of Oracle keeps `PT48H` as 2 days, so it fails there too; PostgreSQL's interval and a duration kept as text keep its hours.
 - `until` and `since` give the duration to or from another instant, in seconds and smaller units by default: `largestUnit` asks for minutes or hours, and `smallestUnit`, `roundingIncrement` and `roundingMode` round it, as for a [date and time](#the-options-of-until-and-since).
 - `round` rounds it to a unit, or to multiples of an increment of the unit that divides a day, like 90 minutes, in the mode given (`halfExpand` by default): `round({ smallestUnit: 'hour', roundingMode: 'floor' })`. Before 1970 it rounds as after it: `trunc` and `floor` give the same instant.
 
@@ -611,7 +696,7 @@ The executed query is:
     ```mariadb
     select 
         version as version, 
-        tsq_duration_text(0, 0, 0, 0, -(datediff(date(published_at), date(deployed_at)) * 86400000000000 + ((floor(time_to_sec(published_at)) * 1000000 + microsecond(published_at)) * 1000 - (floor(time_to_sec(deployed_at)) * 1000000 + microsecond(deployed_at)) * 1000)), 'hour') as afterPublishing, 
+        tsq_duration_text(0, 0, 0, 0, -(datediff(date(published_at), date(deployed_at)) * cast(86400000000000 as decimal(65)) + ((floor(time_to_sec(published_at)) * 1000000 + microsecond(published_at)) * 1000 - (floor(time_to_sec(deployed_at)) * 1000000 + microsecond(deployed_at)) * 1000)), 'hour') as afterPublishing, 
         date_add(date(deployed_at), interval ((floor(time_to_sec(deployed_at)) * 1000000 + microsecond(deployed_at)) * 1000 div 3600000000000 * 3600000000000) div 1000 microsecond) as hour, 
         date_add(date_add(date(deployed_at), interval (((floor(time_to_sec(deployed_at)) * 1000000 + microsecond(deployed_at)) * 1000 + 3599999999999) div 3600000000000 * 3600000000000) div 1000 microsecond), interval ? microsecond) as reviewBy 
     from project_release 
@@ -622,7 +707,7 @@ The executed query is:
     ```mysql
     select 
         version as version, 
-        tsq_duration_text(0, 0, 0, 0, -(datediff(date(published_at), date(deployed_at)) * 86400000000000 + ((floor(time_to_sec(published_at)) * 1000000 + microsecond(published_at)) * 1000 - (floor(time_to_sec(deployed_at)) * 1000000 + microsecond(deployed_at)) * 1000)), 'hour') as afterPublishing, 
+        tsq_duration_text(0, 0, 0, 0, -(datediff(date(published_at), date(deployed_at)) * cast(86400000000000 as decimal(65)) + ((floor(time_to_sec(published_at)) * 1000000 + microsecond(published_at)) * 1000 - (floor(time_to_sec(deployed_at)) * 1000000 + microsecond(deployed_at)) * 1000)), 'hour') as afterPublishing, 
         date_add(date(deployed_at), interval ((floor(time_to_sec(deployed_at)) * 1000000 + microsecond(deployed_at)) * 1000 div 3600000000000 * 3600000000000) div 1000 microsecond) as hour, 
         date_add(date_add(date(deployed_at), interval (((floor(time_to_sec(deployed_at)) * 1000000 + microsecond(deployed_at)) * 1000 + 3599999999999) div 3600000000000 * 3600000000000) div 1000 microsecond), interval ? microsecond) as reviewBy 
     from project_release 
@@ -644,7 +729,7 @@ The executed query is:
     ```postgresql
     select 
         version as version, 
-        make_interval(secs => -((cast(published_at as date) - cast(deployed_at as date)) * 86400000000000 + ((round(extract(epoch from cast(published_at as time)) * 1000000)::bigint * 1000) - (round(extract(epoch from cast(deployed_at as time)) * 1000000)::bigint * 1000))) / 1000000000.0) as "afterPublishing", 
+        make_interval(hours => cast(div(-((cast(published_at as date) - cast(deployed_at as date)) * 86400000000000::numeric + ((round(extract(epoch from cast(published_at as time)) * 1000000)::bigint * 1000) - (round(extract(epoch from cast(deployed_at as time)) * 1000000)::bigint * 1000))), 3600000000000) as integer), secs => -((cast(published_at as date) - cast(deployed_at as date)) * 86400000000000::numeric + ((round(extract(epoch from cast(published_at as time)) * 1000000)::bigint * 1000) - (round(extract(epoch from cast(deployed_at as time)) * 1000000)::bigint * 1000))) % 3600000000000 / 1000000000.0) as "afterPublishing", 
         cast(deployed_at as date) + make_interval(secs => (((round(extract(epoch from cast(deployed_at as time)) * 1000000)::bigint * 1000) / 3600000000000) * 3600000000000) / 1000000000.0) as hour, 
         cast(deployed_at as date) + make_interval(secs => ((((round(extract(epoch from cast(deployed_at as time)) * 1000000)::bigint * 1000) + 3599999999999) / 3600000000000) * 3600000000000) / 1000000000.0) + $1::interval as "reviewBy" 
     from project_release 
@@ -666,7 +751,7 @@ The executed query is:
     ```sqlserver
     select 
         version as version, 
-        dbo.tsq_duration_text(0, 0, 0, 0, -(datediff(day, cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as date), cast(cast(switchoffset(published_at, '+00:00') as datetime2) as date)) * cast(86400000000000 as bigint) + ((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(published_at, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(published_at, '+00:00') as datetime2))) - (cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(deployed_at, '+00:00') as datetime2))))), 'hour') as afterPublishing, 
+        dbo.tsq_duration_text(0, 0, 0, 0, -(datediff(day, cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as date), cast(cast(switchoffset(published_at, '+00:00') as datetime2) as date)) * cast(86400000000000 as decimal(38)) + ((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(published_at, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(published_at, '+00:00') as datetime2))) - (cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(deployed_at, '+00:00') as datetime2))))), 'hour') as afterPublishing, 
         dateadd(nanosecond, ((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(deployed_at, '+00:00') as datetime2))) / cast(3600000000000 as bigint) * cast(3600000000000 as bigint)) % 1000000000, dateadd(second, ((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(deployed_at, '+00:00') as datetime2))) / cast(3600000000000 as bigint) * cast(3600000000000 as bigint)) / 1000000000, cast(cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as date) as datetime2))) as hour, 
         dateadd(day, @0, cast(switchoffset(dateadd(nanosecond, (((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(deployed_at, '+00:00') as datetime2))) + cast(3599999999999 as bigint)) / cast(3600000000000 as bigint) * cast(3600000000000 as bigint)) % 1000000000, dateadd(second, (((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(deployed_at, '+00:00') as datetime2))) + cast(3599999999999 as bigint)) / cast(3600000000000 as bigint) * cast(3600000000000 as bigint)) / 1000000000, cast(cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as date) as datetime2))), '+00:00') as datetime2)) as reviewBy 
     from project_release 
@@ -1372,7 +1457,7 @@ The executed query is:
     select 
         version as version, 
         tsq_duration_text(0, 0, 0, datediff(date(published_at), released_on), 0, 'hour') as toPublication, 
-        tsq_duration_text(0, 0, 0, 0, -(datediff(date(timestamp(released_on)), date(published_at)) * 86400000000000 + ((floor(time_to_sec(timestamp(released_on))) * 1000000 + microsecond(timestamp(released_on))) * 1000 - (floor(time_to_sec(published_at)) * 1000000 + microsecond(published_at)) * 1000)), 'hour') as publishedAfter, 
+        tsq_duration_text(0, 0, 0, 0, -(datediff(date(timestamp(released_on)), date(published_at)) * cast(86400000000000 as decimal(65)) + ((floor(time_to_sec(timestamp(released_on))) * 1000000 + microsecond(timestamp(released_on))) * 1000 - (floor(time_to_sec(published_at)) * 1000000 + microsecond(published_at)) * 1000)), 'hour') as publishedAfter, 
         tsq_duration_text(0, ((cast(year(?) as signed) * 12 + cast(month(?) as signed)) * 32 + cast(dayofmonth(?) as signed) - (cast(year(released_on) as signed) * 12 + cast(month(released_on) as signed)) * 32 - cast(dayofmonth(released_on) as signed)) div 32, 0, datediff(?, date_add(released_on, interval ((cast(year(?) as signed) * 12 + cast(month(?) as signed)) * 32 + cast(dayofmonth(?) as signed) - (cast(year(released_on) as signed) * 12 + cast(month(released_on) as signed)) * 32 - cast(dayofmonth(released_on) as signed)) div 32 month)), 0, 'hour') as untilEndOfJune 
     from project_release 
     order by version
@@ -1382,7 +1467,7 @@ The executed query is:
     select 
         version as version, 
         tsq_duration_text(0, 0, 0, datediff(date(published_at), released_on), 0, 'hour') as toPublication, 
-        tsq_duration_text(0, 0, 0, 0, -(datediff(date(timestamp(released_on)), date(published_at)) * 86400000000000 + ((floor(time_to_sec(timestamp(released_on))) * 1000000 + microsecond(timestamp(released_on))) * 1000 - (floor(time_to_sec(published_at)) * 1000000 + microsecond(published_at)) * 1000)), 'hour') as publishedAfter, 
+        tsq_duration_text(0, 0, 0, 0, -(datediff(date(timestamp(released_on)), date(published_at)) * cast(86400000000000 as decimal(65)) + ((floor(time_to_sec(timestamp(released_on))) * 1000000 + microsecond(timestamp(released_on))) * 1000 - (floor(time_to_sec(published_at)) * 1000000 + microsecond(published_at)) * 1000)), 'hour') as publishedAfter, 
         tsq_duration_text(0, ((cast(year(?) as signed) * 12 + cast(month(?) as signed)) * 32 + cast(dayofmonth(?) as signed) - (cast(year(released_on) as signed) * 12 + cast(month(released_on) as signed)) * 32 - cast(dayofmonth(released_on) as signed)) div 32, 0, datediff(?, date_add(released_on, interval ((cast(year(?) as signed) * 12 + cast(month(?) as signed)) * 32 + cast(dayofmonth(?) as signed) - (cast(year(released_on) as signed) * 12 + cast(month(released_on) as signed)) * 32 - cast(dayofmonth(released_on) as signed)) div 32 month)), 0, 'hour') as untilEndOfJune 
     from project_release 
     order by version
@@ -1402,7 +1487,7 @@ The executed query is:
     select 
         version as version, 
         make_interval(days => (cast(published_at as date) - released_on)) as "toPublication", 
-        make_interval(secs => -((cast(cast(released_on as timestamp) as date) - cast(published_at as date)) * 86400000000000 + ((round(extract(epoch from cast(cast(released_on as timestamp) as time)) * 1000000)::bigint * 1000) - (round(extract(epoch from cast(published_at as time)) * 1000000)::bigint * 1000))) / 1000000000.0) as "publishedAfter", 
+        make_interval(hours => cast(div(-((cast(cast(released_on as timestamp) as date) - cast(published_at as date)) * 86400000000000::numeric + ((round(extract(epoch from cast(cast(released_on as timestamp) as time)) * 1000000)::bigint * 1000) - (round(extract(epoch from cast(published_at as time)) * 1000000)::bigint * 1000))), 3600000000000) as integer), secs => -((cast(cast(released_on as timestamp) as date) - cast(published_at as date)) * 86400000000000::numeric + ((round(extract(epoch from cast(cast(released_on as timestamp) as time)) * 1000000)::bigint * 1000) - (round(extract(epoch from cast(published_at as time)) * 1000000)::bigint * 1000))) % 3600000000000 / 1000000000.0) as "publishedAfter", 
         make_interval(months => (((cast(extract(year from $1::date) as integer) * 12 + cast(extract(month from $1::date) as integer)) * 32 + cast(extract(day from $1::date) as integer) - (cast(extract(year from released_on) as integer) * 12 + cast(extract(month from released_on) as integer)) * 32 - cast(extract(day from released_on) as integer)) / 32), days => ($1::date - cast(released_on + make_interval(months => (((cast(extract(year from $1::date) as integer) * 12 + cast(extract(month from $1::date) as integer)) * 32 + cast(extract(day from $1::date) as integer) - (cast(extract(year from released_on) as integer) * 12 + cast(extract(month from released_on) as integer)) * 32 - cast(extract(day from released_on) as integer)) / 32)) as date))) as "untilEndOfJune" 
     from project_release 
     order by version
@@ -1422,7 +1507,7 @@ The executed query is:
     select 
         version as version, 
         dbo.tsq_duration_text(0, 0, 0, datediff(day, released_on, cast(switchoffset(published_at, '+00:00') as date)), 0, 'hour') as toPublication, 
-        dbo.tsq_duration_text(0, 0, 0, 0, -(datediff(day, cast(published_at as date), cast(cast(released_on as datetime2) as date)) * cast(86400000000000 as bigint) + ((cast(datediff(second, cast('00:00' as time), cast(cast(released_on as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(released_on as datetime2))) - (cast(datediff(second, cast('00:00' as time), cast(published_at as time)) as bigint) * 1000000000 + datepart(nanosecond, published_at)))), 'hour') as publishedAfter, 
+        dbo.tsq_duration_text(0, 0, 0, 0, -(datediff(day, cast(published_at as date), cast(cast(released_on as datetime2) as date)) * cast(86400000000000 as decimal(38)) + ((cast(datediff(second, cast('00:00' as time), cast(cast(released_on as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(released_on as datetime2))) - (cast(datediff(second, cast('00:00' as time), cast(published_at as time)) as bigint) * 1000000000 + datepart(nanosecond, published_at)))), 'hour') as publishedAfter, 
         dbo.tsq_duration_text(0, ((datepart(year, @0) * 12 + datepart(month, @0)) * 32 + datepart(day, @0) - (datepart(year, released_on) * 12 + datepart(month, released_on)) * 32 - datepart(day, released_on)) / 32, 0, datediff(day, dateadd(month, ((datepart(year, @0) * 12 + datepart(month, @0)) * 32 + datepart(day, @0) - (datepart(year, released_on) * 12 + datepart(month, released_on)) * 32 - datepart(day, released_on)) / 32, released_on), @0), 0, 'hour') as untilEndOfJune 
     from project_release 
     order by version
@@ -2191,7 +2276,7 @@ The executed query is:
         version as version, 
         tsq_duration_total(tsq_duration_part(rollout_time, 'M'), tsq_duration_part(rollout_time, 'weeks'), tsq_duration_part(rollout_time, 'days'), tsq_duration_part(rollout_time, 'S'), tsq_duration_part(rollout_time, 'N'), 0, 0, 0, 'hour') as hours, 
         tsq_duration_total(tsq_duration_part(rollout_time, 'M'), tsq_duration_part(rollout_time, 'weeks'), tsq_duration_part(rollout_time, 'days'), tsq_duration_part(rollout_time, 'S'), tsq_duration_part(rollout_time, 'N'), cast(year(released_on) as signed), cast(month(released_on) as signed), cast(dayofmonth(released_on) as signed), 'month') as months, 
-        tsq_duration_total(0, 0, -(datediff(date(timestamp(released_on)), date(published_at)) * 86400000000000 + ((floor(time_to_sec(timestamp(released_on))) * 1000000 + microsecond(timestamp(released_on))) * 1000 - (floor(time_to_sec(published_at)) * 1000000 + microsecond(published_at)) * 1000)) div 86400000000000, 0, -((datediff(date(timestamp(released_on)), date(published_at)) * 86400000000000 + ((floor(time_to_sec(timestamp(released_on))) * 1000000 + microsecond(timestamp(released_on))) * 1000 - (floor(time_to_sec(published_at)) * 1000000 + microsecond(published_at)) * 1000)) % 86400000000000), 0, 0, 0, 'day') as daysToPublication 
+        tsq_duration_total(0, 0, -truncate((datediff(date(timestamp(released_on)), date(published_at)) * cast(86400000000000 as decimal(65)) + ((floor(time_to_sec(timestamp(released_on))) * 1000000 + microsecond(timestamp(released_on))) * 1000 - (floor(time_to_sec(published_at)) * 1000000 + microsecond(published_at)) * 1000)) / 86400000000000, 0), truncate(-((datediff(date(timestamp(released_on)), date(published_at)) * cast(86400000000000 as decimal(65)) + ((floor(time_to_sec(timestamp(released_on))) * 1000000 + microsecond(timestamp(released_on))) * 1000 - (floor(time_to_sec(published_at)) * 1000000 + microsecond(published_at)) * 1000)) % 86400000000000) / 1000000000, 0), -((datediff(date(timestamp(released_on)), date(published_at)) * cast(86400000000000 as decimal(65)) + ((floor(time_to_sec(timestamp(released_on))) * 1000000 + microsecond(timestamp(released_on))) * 1000 - (floor(time_to_sec(published_at)) * 1000000 + microsecond(published_at)) * 1000)) % 86400000000000) % 1000000000, 0, 0, 0, 'day') as daysToPublication 
     from project_release 
     order by version
     ```
@@ -2201,7 +2286,7 @@ The executed query is:
         version as version, 
         tsq_duration_total(tsq_duration_part(rollout_time, 'M'), tsq_duration_part(rollout_time, 'weeks'), tsq_duration_part(rollout_time, 'days'), tsq_duration_part(rollout_time, 'S'), tsq_duration_part(rollout_time, 'N'), 0, 0, 0, 'hour') as hours, 
         tsq_duration_total(tsq_duration_part(rollout_time, 'M'), tsq_duration_part(rollout_time, 'weeks'), tsq_duration_part(rollout_time, 'days'), tsq_duration_part(rollout_time, 'S'), tsq_duration_part(rollout_time, 'N'), cast(year(released_on) as signed), cast(month(released_on) as signed), cast(dayofmonth(released_on) as signed), 'month') as months, 
-        tsq_duration_total(0, 0, -(datediff(date(timestamp(released_on)), date(published_at)) * 86400000000000 + ((floor(time_to_sec(timestamp(released_on))) * 1000000 + microsecond(timestamp(released_on))) * 1000 - (floor(time_to_sec(published_at)) * 1000000 + microsecond(published_at)) * 1000)) div 86400000000000, 0, -((datediff(date(timestamp(released_on)), date(published_at)) * 86400000000000 + ((floor(time_to_sec(timestamp(released_on))) * 1000000 + microsecond(timestamp(released_on))) * 1000 - (floor(time_to_sec(published_at)) * 1000000 + microsecond(published_at)) * 1000)) % 86400000000000), 0, 0, 0, 'day') as daysToPublication 
+        tsq_duration_total(0, 0, -truncate((datediff(date(timestamp(released_on)), date(published_at)) * cast(86400000000000 as decimal(65)) + ((floor(time_to_sec(timestamp(released_on))) * 1000000 + microsecond(timestamp(released_on))) * 1000 - (floor(time_to_sec(published_at)) * 1000000 + microsecond(published_at)) * 1000)) / 86400000000000, 0), truncate(-((datediff(date(timestamp(released_on)), date(published_at)) * cast(86400000000000 as decimal(65)) + ((floor(time_to_sec(timestamp(released_on))) * 1000000 + microsecond(timestamp(released_on))) * 1000 - (floor(time_to_sec(published_at)) * 1000000 + microsecond(published_at)) * 1000)) % 86400000000000) / 1000000000, 0), -((datediff(date(timestamp(released_on)), date(published_at)) * cast(86400000000000 as decimal(65)) + ((floor(time_to_sec(timestamp(released_on))) * 1000000 + microsecond(timestamp(released_on))) * 1000 - (floor(time_to_sec(published_at)) * 1000000 + microsecond(published_at)) * 1000)) % 86400000000000) % 1000000000, 0, 0, 0, 'day') as daysToPublication 
     from project_release 
     order by version
     ```
@@ -2211,7 +2296,7 @@ The executed query is:
         version as "version", 
         tsq_duration_total(0, 0, extract(day from rollout_time), extract(hour from rollout_time) * 3600 + extract(minute from rollout_time) * 60 + trunc(extract(second from rollout_time)), mod(extract(second from rollout_time) * 1000000000, 1000000000), 0, 0, 0, 'hour') as "hours", 
         tsq_duration_total(0, 0, extract(day from rollout_time), extract(hour from rollout_time) * 3600 + extract(minute from rollout_time) * 60 + trunc(extract(second from rollout_time)), mod(extract(second from rollout_time) * 1000000000, 1000000000), extract(year from released_on), extract(month from released_on), extract(day from released_on), 'month') as "months", 
-        tsq_duration_total(0, 0, -trunc(((trunc(cast(released_on as timestamp(9))) - trunc(published_at)) * 86400000000000 + ((extract(hour from (cast(cast(released_on as timestamp(9)) as timestamp(9)) - trunc(cast(released_on as timestamp(9))))) * 3600 + extract(minute from (cast(cast(released_on as timestamp(9)) as timestamp(9)) - trunc(cast(released_on as timestamp(9))))) * 60 + extract(second from (cast(cast(released_on as timestamp(9)) as timestamp(9)) - trunc(cast(released_on as timestamp(9)))))) * 1000000000 - (extract(hour from (cast(published_at as timestamp(9)) - trunc(published_at))) * 3600 + extract(minute from (cast(published_at as timestamp(9)) - trunc(published_at))) * 60 + extract(second from (cast(published_at as timestamp(9)) - trunc(published_at)))) * 1000000000)) / 86400000000000), 0, -(mod(((trunc(cast(released_on as timestamp(9))) - trunc(published_at)) * 86400000000000 + ((extract(hour from (cast(cast(released_on as timestamp(9)) as timestamp(9)) - trunc(cast(released_on as timestamp(9))))) * 3600 + extract(minute from (cast(cast(released_on as timestamp(9)) as timestamp(9)) - trunc(cast(released_on as timestamp(9))))) * 60 + extract(second from (cast(cast(released_on as timestamp(9)) as timestamp(9)) - trunc(cast(released_on as timestamp(9)))))) * 1000000000 - (extract(hour from (cast(published_at as timestamp(9)) - trunc(published_at))) * 3600 + extract(minute from (cast(published_at as timestamp(9)) - trunc(published_at))) * 60 + extract(second from (cast(published_at as timestamp(9)) - trunc(published_at)))) * 1000000000)), 86400000000000)), 0, 0, 0, 'day') as "daysToPublication" 
+        tsq_duration_total(0, 0, -trunc(((trunc(cast(released_on as timestamp(9))) - trunc(published_at)) * 86400000000000 + ((extract(hour from (cast(cast(released_on as timestamp(9)) as timestamp(9)) - trunc(cast(released_on as timestamp(9))))) * 3600 + extract(minute from (cast(cast(released_on as timestamp(9)) as timestamp(9)) - trunc(cast(released_on as timestamp(9))))) * 60 + extract(second from (cast(cast(released_on as timestamp(9)) as timestamp(9)) - trunc(cast(released_on as timestamp(9)))))) * 1000000000 - (extract(hour from (cast(published_at as timestamp(9)) - trunc(published_at))) * 3600 + extract(minute from (cast(published_at as timestamp(9)) - trunc(published_at))) * 60 + extract(second from (cast(published_at as timestamp(9)) - trunc(published_at)))) * 1000000000)) / 86400000000000), trunc(-(mod(((trunc(cast(released_on as timestamp(9))) - trunc(published_at)) * 86400000000000 + ((extract(hour from (cast(cast(released_on as timestamp(9)) as timestamp(9)) - trunc(cast(released_on as timestamp(9))))) * 3600 + extract(minute from (cast(cast(released_on as timestamp(9)) as timestamp(9)) - trunc(cast(released_on as timestamp(9))))) * 60 + extract(second from (cast(cast(released_on as timestamp(9)) as timestamp(9)) - trunc(cast(released_on as timestamp(9)))))) * 1000000000 - (extract(hour from (cast(published_at as timestamp(9)) - trunc(published_at))) * 3600 + extract(minute from (cast(published_at as timestamp(9)) - trunc(published_at))) * 60 + extract(second from (cast(published_at as timestamp(9)) - trunc(published_at)))) * 1000000000)), 86400000000000)) / 1000000000), mod(-(mod(((trunc(cast(released_on as timestamp(9))) - trunc(published_at)) * 86400000000000 + ((extract(hour from (cast(cast(released_on as timestamp(9)) as timestamp(9)) - trunc(cast(released_on as timestamp(9))))) * 3600 + extract(minute from (cast(cast(released_on as timestamp(9)) as timestamp(9)) - trunc(cast(released_on as timestamp(9))))) * 60 + extract(second from (cast(cast(released_on as timestamp(9)) as timestamp(9)) - trunc(cast(released_on as timestamp(9)))))) * 1000000000 - (extract(hour from (cast(published_at as timestamp(9)) - trunc(published_at))) * 3600 + extract(minute from (cast(published_at as timestamp(9)) - trunc(published_at))) * 60 + extract(second from (cast(published_at as timestamp(9)) - trunc(published_at)))) * 1000000000)), 86400000000000)), 1000000000), 0, 0, 0, 'day') as "daysToPublication" 
     from project_release 
     order by "version"
     ```
@@ -2221,7 +2306,7 @@ The executed query is:
         version as version, 
         tsq_duration_total(cast(extract(year from rollout_time) * 12 + extract(month from rollout_time) as bigint), 0, cast(extract(day from rollout_time) as bigint), cast(extract(hour from rollout_time) * 3600 + extract(minute from rollout_time) * 60 + trunc(extract(second from rollout_time)) as bigint), cast(extract(microseconds from rollout_time) as bigint) % 1000000 * 1000, 0, 0, 0, 'hour') as hours, 
         tsq_duration_total(cast(extract(year from rollout_time) * 12 + extract(month from rollout_time) as bigint), 0, cast(extract(day from rollout_time) as bigint), cast(extract(hour from rollout_time) * 3600 + extract(minute from rollout_time) * 60 + trunc(extract(second from rollout_time)) as bigint), cast(extract(microseconds from rollout_time) as bigint) % 1000000 * 1000, cast(extract(year from released_on) as integer), cast(extract(month from released_on) as integer), cast(extract(day from released_on) as integer), 'month') as months, 
-        tsq_duration_total(0, 0, -cast((((cast(cast(released_on as timestamp) as date) - cast(published_at as date)) * 86400000000000 + ((round(extract(epoch from cast(cast(released_on as timestamp) as time)) * 1000000)::bigint * 1000) - (round(extract(epoch from cast(published_at as time)) * 1000000)::bigint * 1000))) / 86400000000000) as integer), 0, -(((cast(cast(released_on as timestamp) as date) - cast(published_at as date)) * 86400000000000 + ((round(extract(epoch from cast(cast(released_on as timestamp) as time)) * 1000000)::bigint * 1000) - (round(extract(epoch from cast(published_at as time)) * 1000000)::bigint * 1000))) % 86400000000000), 0, 0, 0, 'day') as "daysToPublication" 
+        tsq_duration_total(0, 0, -cast(div(((cast(cast(released_on as timestamp) as date) - cast(published_at as date)) * 86400000000000::numeric + ((round(extract(epoch from cast(cast(released_on as timestamp) as time)) * 1000000)::bigint * 1000) - (round(extract(epoch from cast(published_at as time)) * 1000000)::bigint * 1000))), 86400000000000) as integer), cast(div(-(((cast(cast(released_on as timestamp) as date) - cast(published_at as date)) * 86400000000000::numeric + ((round(extract(epoch from cast(cast(released_on as timestamp) as time)) * 1000000)::bigint * 1000) - (round(extract(epoch from cast(published_at as time)) * 1000000)::bigint * 1000))) % 86400000000000), 1000000000) as bigint), cast(-(((cast(cast(released_on as timestamp) as date) - cast(published_at as date)) * 86400000000000::numeric + ((round(extract(epoch from cast(cast(released_on as timestamp) as time)) * 1000000)::bigint * 1000) - (round(extract(epoch from cast(published_at as time)) * 1000000)::bigint * 1000))) % 86400000000000) % 1000000000 as bigint), 0, 0, 0, 'day') as "daysToPublication" 
     from project_release 
     order by version
     ```
@@ -2231,7 +2316,7 @@ The executed query is:
         version as version, 
         tsq_duration_total(tsq_duration_part(rollout_time, 'M'), tsq_duration_part(rollout_time, 'weeks'), tsq_duration_part(rollout_time, 'days'), tsq_duration_part(rollout_time, 'S'), tsq_duration_part(rollout_time, 'N'), 0, 0, 0, 'hour') as hours, 
         tsq_duration_total(tsq_duration_part(rollout_time, 'M'), tsq_duration_part(rollout_time, 'weeks'), tsq_duration_part(rollout_time, 'days'), tsq_duration_part(rollout_time, 'S'), tsq_duration_part(rollout_time, 'N'), cast(strftime('%Y', released_on) as integer), cast(strftime('%m', released_on) as integer), cast(strftime('%d', released_on) as integer), 'month') as months, 
-        tsq_duration_total(0, 0, -cast((cast(julianday(date(strftime('%Y-%m-%dT%H:%M:%fZ', released_on))) - julianday(date(published_at)) as integer) * 86400000000000 + (cast(round((julianday(strftime('%Y-%m-%dT%H:%M:%fZ', released_on)) - julianday(date(strftime('%Y-%m-%dT%H:%M:%fZ', released_on)))) * 86400000) as integer) * 1000000 - cast(round((julianday(published_at) - julianday(date(published_at))) * 86400000) as integer) * 1000000)) / 86400000000000 as integer), 0, -((cast(julianday(date(strftime('%Y-%m-%dT%H:%M:%fZ', released_on))) - julianday(date(published_at)) as integer) * 86400000000000 + (cast(round((julianday(strftime('%Y-%m-%dT%H:%M:%fZ', released_on)) - julianday(date(strftime('%Y-%m-%dT%H:%M:%fZ', released_on)))) * 86400000) as integer) * 1000000 - cast(round((julianday(published_at) - julianday(date(published_at))) * 86400000) as integer) * 1000000)) % 86400000000000), 0, 0, 0, 'day') as daysToPublication 
+        tsq_duration_total(0, 0, -cast((cast(julianday(date(strftime('%Y-%m-%dT%H:%M:%fZ', released_on))) - julianday(date(published_at)) as integer) * 86400000000000 + (cast(round((julianday(strftime('%Y-%m-%dT%H:%M:%fZ', released_on)) - julianday(date(strftime('%Y-%m-%dT%H:%M:%fZ', released_on)))) * 86400000) as integer) * 1000000 - cast(round((julianday(published_at) - julianday(date(published_at))) * 86400000) as integer) * 1000000)) / 86400000000000 as integer), 0, cast(-((cast(julianday(date(strftime('%Y-%m-%dT%H:%M:%fZ', released_on))) - julianday(date(published_at)) as integer) * 86400000000000 + (cast(round((julianday(strftime('%Y-%m-%dT%H:%M:%fZ', released_on)) - julianday(date(strftime('%Y-%m-%dT%H:%M:%fZ', released_on)))) * 86400000) as integer) * 1000000 - cast(round((julianday(published_at) - julianday(date(published_at))) * 86400000) as integer) * 1000000)) % 86400000000000) as text), 0, 0, 0, 'day') as daysToPublication 
     from project_release 
     order by version
     ```
@@ -2241,7 +2326,7 @@ The executed query is:
         version as version, 
         dbo.tsq_duration_total(dbo.tsq_duration_part(rollout_time, 'M'), dbo.tsq_duration_part(rollout_time, 'weeks'), dbo.tsq_duration_part(rollout_time, 'days'), dbo.tsq_duration_part(rollout_time, 'S'), dbo.tsq_duration_part(rollout_time, 'N'), 0, 0, 0, 'hour') as hours, 
         dbo.tsq_duration_total(dbo.tsq_duration_part(rollout_time, 'M'), dbo.tsq_duration_part(rollout_time, 'weeks'), dbo.tsq_duration_part(rollout_time, 'days'), dbo.tsq_duration_part(rollout_time, 'S'), dbo.tsq_duration_part(rollout_time, 'N'), datepart(year, released_on), datepart(month, released_on), datepart(day, released_on), 'month') as months, 
-        dbo.tsq_duration_total(0, 0, -(datediff(day, cast(published_at as date), cast(cast(released_on as datetime2) as date)) * cast(86400000000000 as bigint) + ((cast(datediff(second, cast('00:00' as time), cast(cast(released_on as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(released_on as datetime2))) - (cast(datediff(second, cast('00:00' as time), cast(published_at as time)) as bigint) * 1000000000 + datepart(nanosecond, published_at)))) / cast(86400000000000 as bigint), 0, -((datediff(day, cast(published_at as date), cast(cast(released_on as datetime2) as date)) * cast(86400000000000 as bigint) + ((cast(datediff(second, cast('00:00' as time), cast(cast(released_on as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(released_on as datetime2))) - (cast(datediff(second, cast('00:00' as time), cast(published_at as time)) as bigint) * 1000000000 + datepart(nanosecond, published_at)))) % cast(86400000000000 as bigint)), 0, 0, 0, 'day') as daysToPublication 
+        dbo.tsq_duration_total(0, 0, -round((datediff(day, cast(published_at as date), cast(cast(released_on as datetime2) as date)) * cast(86400000000000 as decimal(38)) + ((cast(datediff(second, cast('00:00' as time), cast(cast(released_on as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(released_on as datetime2))) - (cast(datediff(second, cast('00:00' as time), cast(published_at as time)) as bigint) * 1000000000 + datepart(nanosecond, published_at)))) / cast(86400000000000 as bigint), 0, 1), cast(round(-((datediff(day, cast(published_at as date), cast(cast(released_on as datetime2) as date)) * cast(86400000000000 as decimal(38)) + ((cast(datediff(second, cast('00:00' as time), cast(cast(released_on as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(released_on as datetime2))) - (cast(datediff(second, cast('00:00' as time), cast(published_at as time)) as bigint) * 1000000000 + datepart(nanosecond, published_at)))) % cast(86400000000000 as bigint)) / 1000000000, 0, 1) as bigint), cast(-((datediff(day, cast(published_at as date), cast(cast(released_on as datetime2) as date)) * cast(86400000000000 as decimal(38)) + ((cast(datediff(second, cast('00:00' as time), cast(cast(released_on as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(released_on as datetime2))) - (cast(datediff(second, cast('00:00' as time), cast(published_at as time)) as bigint) * 1000000000 + datepart(nanosecond, published_at)))) % cast(86400000000000 as bigint)) % 1000000000 as bigint), 0, 0, 0, 'day') as daysToPublication 
     from project_release 
     order by version
     ```
@@ -3007,6 +3092,6 @@ An Oracle `TIMESTAMP(9)`, or `TIMESTAMP(9) WITH TIME ZONE`, keeps the nanosecond
 - **A year before 1.** In Temporal the year before 1 is 0 (1 BC), and the one before it -1. PostgreSQL and Oracle keep these dates, but `year()` gives the year as they number it, with no year 0: -1 for 1 BC and -44 for 44 BC, where the value read is `-000043-03-15`. SQL Server rejects a date before the year 1, and an instant before the year 1.
 - **Bun SQL on MySQL 8** sends a text parameter that MySQL converts to a time wrongly (`'10:07:30'` is `00:00:00`): a `plainTime` given as a value and rounded is another time there. A column is read right, and so is every value with the other drivers and with MariaDB.
 - **Oracle has no type for a time of the day**: a `plainTime` is kept in a `DATE` or a `TIMESTAMP` on 1970-01-01, as a `localTime` is.
-- **A difference of more than 292 years in hours or smaller units**, like `until` of two instants or of two dates and times with `largestUnit: 'hour'`, has more nanoseconds than a 64-bit integer: PostgreSQL, MariaDB, MySQL, SQL Server and SQLite reject the query (`bigint out of range`, `BIGINT value is out of range`, `Arithmetic overflow`, and on SQLite the error of `tsq_duration_text`). Oracle computes it.
+- **A difference of more than 292 years on SQLite**, like `until` of two instants or of two dates and times, has more nanoseconds than its 64-bit integers: the query fails with the error of `tsq_duration_text` or `tsq_duration_total`. The other databases compute it with decimal numbers.
 - **An interval of PostgreSQL with fields of different signs**, like `-1 days +02:03:00` or `1 mon -1 days`, can't be a `Temporal.Duration`, whose fields have one sign: reading it is rejected with `INVALID_VALUE_RECEIVED_FROM_DATABASE`. The library never sends one.
 - **A column with a zone**, like `timestamptz` on PostgreSQL: a `plainDateTime` reads the date and time it has in the zone of the database. On SQL Server, a `datetimeoffset` is read, and its parts given, in UTC.

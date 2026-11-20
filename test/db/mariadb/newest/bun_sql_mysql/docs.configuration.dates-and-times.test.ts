@@ -190,6 +190,36 @@ describe(ctx.label, () => {
         ])
     })
 
+    // NOT-SUPPORTED: Bun SQL delivers a timestamp or a datetime as a Date, without the digits below the millisecond, and has no option to read its text
+    /*
+    test('docs:dates-and-times/the-instant-of-its-epoch', async () => {
+        ctx.mockNext([
+            { version: '1.2.0', deployedAt: '2024-01-16 09:30:15.123456+00', sameInstant: '2024-01-16 09:30:15.123' },
+        ])
+        const connection = ctx.conn
+
+        // doc-start
+        const deployedBefore = await connection.selectFrom(tRelease)
+            .where(tRelease.deployedAt.lessThan(connection.instantFromEpochMilliseconds(1705400000000)))
+            .select({
+                version: tRelease.version,
+                deployedAt: tRelease.deployedAt,
+                sameInstant: connection.instantFromEpochMilliseconds(tRelease.deployedAt.epochMilliseconds()),
+            })
+            .orderBy('version')
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams.map(String)).toMatchInlineSnapshot()
+        assertType<Exact<typeof deployedBefore, Array<{ version: string; deployedAt?: Temporal.Instant; sameInstant?: Temporal.Instant }>>>()
+        const deployed = Temporal.Instant.from('2024-01-16T09:30:15.123456Z')
+        expect(deployedBefore.map(release => [release.version, release.deployedAt?.toString(), release.sameInstant?.toString()])).toEqual([
+            ['1.2.0', deployed.toString(), Temporal.Instant.fromEpochMilliseconds(deployed.epochMilliseconds).toString()],
+        ])
+    })
+    */
+
     test('docs:dates-and-times/the-arithmetic-of-an-instant', async () => {
         ctx.mockNext([
             { version: '0.9.0', afterPublishing: '00:05:00', hour: '2024-03-02 11:00:00+00', reviewBy: '2024-03-04 12:00:00+00' },

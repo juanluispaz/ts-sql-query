@@ -187,6 +187,37 @@ describe(ctx.label, () => {
         ])
     })
 
+    test('docs:dates-and-times/the-instant-of-its-epoch', async () => {
+        ctx.mockNext([
+            { version: '1.2.0', deployedAt: '2024-01-16 09:30:15.123456+00', sameInstant: '2024-01-16 09:30:15.123' },
+        ])
+        const connection = ctx.conn
+
+        // doc-start
+        const deployedBefore = await connection.selectFrom(tRelease)
+            .where(tRelease.deployedAt.lessThan(connection.instantFromEpochMilliseconds(1705400000000)))
+            .select({
+                version: tRelease.version,
+                deployedAt: tRelease.deployedAt,
+                sameInstant: connection.instantFromEpochMilliseconds(tRelease.deployedAt.epochMilliseconds()),
+            })
+            .orderBy('version')
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as "version", to_char(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "deployedAt", to_char(sys_extract_utc(cast(from_tz(cast((date '1970-01-01' + trunc(((trunc(timestamp '1970-01-01 00:00:00' + (deployed_at - timestamp '1970-01-01 00:00:00')) - date '1970-01-01') * 86400000 + to_number(to_char(timestamp '1970-01-01 00:00:00' + (deployed_at - timestamp '1970-01-01 00:00:00'), 'SSSSSFF3')) - (mod((mod((trunc(timestamp '1970-01-01 00:00:00' + (deployed_at - timestamp '1970-01-01 00:00:00')) - date '1970-01-01') * 86400000 + to_number(to_char(timestamp '1970-01-01 00:00:00' + (deployed_at - timestamp '1970-01-01 00:00:00'), 'SSSSSFF3')), 86400000) + 86400000), 86400000))) / 86400000)) as timestamp(9)) + numtodsinterval(((mod((mod((trunc(timestamp '1970-01-01 00:00:00' + (deployed_at - timestamp '1970-01-01 00:00:00')) - date '1970-01-01') * 86400000 + to_number(to_char(timestamp '1970-01-01 00:00:00' + (deployed_at - timestamp '1970-01-01 00:00:00'), 'SSSSSFF3')), 86400000) + 86400000), 86400000)) * 1000000) / 1000000000, 'second'), '+00:00') as timestamp(9) with time zone)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "sameInstant" from project_release where deployed_at < to_timestamp(:0, 'YYYY-MM-DD HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN') order by "version""`)
+        expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
+          [
+            "2024-01-16T10:13:20Z",
+          ]
+        `)
+        assertType<Exact<typeof deployedBefore, Array<{ version: string; deployedAt?: Temporal.Instant; sameInstant?: Temporal.Instant }>>>()
+        const deployed = Temporal.Instant.from('2024-01-16T09:30:15.123456Z')
+        expect(deployedBefore.map(release => [release.version, release.deployedAt?.toString(), release.sameInstant?.toString()])).toEqual([
+            ['1.2.0', deployed.toString(), Temporal.Instant.fromEpochMilliseconds(deployed.epochMilliseconds).toString()],
+        ])
+    })
+
     test('docs:dates-and-times/the-arithmetic-of-an-instant', async () => {
         ctx.mockNext([
             { version: '0.9.0', afterPublishing: '00:05:00', hour: '2024-03-02 11:00:00+00', reviewBy: '2024-03-04 12:00:00+00' },

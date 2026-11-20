@@ -489,7 +489,100 @@ An instant can be kept in any column of a date and a time:
 
 The [four kinds of temporal column](time-zones.md#the-four-kinds-of-temporal-column) explain what each one does with the zone. On MySQL and MariaDB a `TIMESTAMP` rejects an instant outside its range, from `1970-01-01T00:00:01Z` to `2038-01-19T03:14:07Z` on MySQL, and to `2106-02-07T06:28:15Z` on MariaDB 13; a `DATETIME(6)` in UTC also holds the instants before and after it.
 
-An instant has no year, month or hour of its own: as in Temporal, they depend on the zone they are seen in.
+### The epoch of an instant, and its date and time
+
+An instant has no year, month or hour of its own: as in Temporal, they depend on the zone they are seen in. Its date and time in the zone of the database, UTC unless you [declare another](time-zones.md#a-database-outside-utc), are `toPlainDateTime()`, `toPlainDate()` and `toPlainTime()`, which Temporal writes `instant.toZonedDateTimeISO(zone).toPlainDateTime()`; the parts are taken from them, like `toPlainDateTime().hour()`. The other way round, `toInstant()` of a `plainDateTime` is the instant of that wall clock in the zone of the database. `epochMilliseconds()` and `epochNanoseconds()` count from `1970-01-01T00:00:00Z`, as Temporal's: the milliseconds as a number, rounded down, also before 1970, and the nanoseconds as a `bigint`.
+
+```ts
+const deployments = await connection.selectFrom(tRelease)
+    .where(tRelease.deployedAt.isNotNull())
+    .select({
+        version: tRelease.version,
+        deployedOn: tRelease.deployedAt.toPlainDate(),
+        deployedMs: tRelease.deployedAt.epochMilliseconds(),
+        published: tRelease.publishedAt.toInstant(),
+    })
+    .orderBy('version')
+    .executeSelectMany()
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        version as version, 
+        date(deployed_at) as deployedOn, 
+        floor(timestampdiff(microsecond, '1970-01-01 00:00:00', deployed_at) / 1000) as deployedMs, 
+        published_at as published 
+    from project_release 
+    where deployed_at is not null 
+    order by version
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        version as version, 
+        date(deployed_at) as deployedOn, 
+        floor(timestampdiff(microsecond, '1970-01-01 00:00:00', deployed_at) / 1000) as deployedMs, 
+        published_at as published 
+    from project_release 
+    where deployed_at is not null 
+    order by version
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        version as "version", 
+        to_char(trunc(cast(cast(deployed_at as timestamp(9) with time zone) at local as timestamp(9))), 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "deployedOn", 
+        (trunc(timestamp '1970-01-01 00:00:00' + (deployed_at - timestamp '1970-01-01 00:00:00')) - date '1970-01-01') * 86400000 + to_number(to_char(timestamp '1970-01-01 00:00:00' + (deployed_at - timestamp '1970-01-01 00:00:00'), 'SSSSSFF3')) as "deployedMs", 
+        to_char(sys_extract_utc(cast(published_at as timestamp(9) with time zone)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "published" 
+    from project_release 
+    where deployed_at is not null 
+    order by "version"
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        version as version, 
+        cast(deployed_at::timestamp as date) as "deployedOn", 
+        floor(extract(epoch from deployed_at) * 1000) as "deployedMs", 
+        published_at as published 
+    from project_release 
+    where deployed_at is not null 
+    order by version
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        version as version, 
+        date(deployed_at) as deployedOn, 
+        round(unixepoch(deployed_at, 'subsec') * 1000) as deployedMs, 
+        published_at as published 
+    from project_release 
+    where deployed_at is not null 
+    order by version
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        version as version, 
+        cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as date) as deployedOn, 
+        datediff_big(millisecond, '1970-01-01 00:00:00', deployed_at) as deployedMs, 
+        published_at as published 
+    from project_release 
+    where deployed_at is not null 
+    order by version
+    ```
+
+The parameters are: `[]`
+
+| version | deployedOn | deployedMs | published |
+|---|---|---|---|
+| `'0.9.0'` | `2024-03-02` | `1709377500000` | `2024-03-02T11:00:00Z` |
+| `'1.2.0'` | `2024-01-16` | `1705397415123` | `2024-01-16T09:00:00Z` |
+
+`epochNanoseconds()` holds every instant on PostgreSQL, MariaDB, MySQL and Oracle, which compute it as a decimal. On SQL Server and SQLite it is a 64-bit integer, so an instant before 1678 or after 2262 makes the query fail. SQLite keeps an instant to the millisecond, and its drivers give an integer beyond 2^53, like the nanoseconds of today, as a rounded number unless their big-integer mode is on: the library then rejects reading it with `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE`, and the value can still be compared in the query.
 
 `currentInstant()` of the connection gives the instant of now in the database, with the digits of the fraction of a second it gives:
 

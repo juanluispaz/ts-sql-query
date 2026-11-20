@@ -453,6 +453,8 @@ interface PlainDateTimeValueSource extends ComparableValueSource<Temporal.PlainD
     with(fields: { year?: number, month?: number, monthCode?: string, day?: number, hour?: number, minute?: number, second?: number, millisecond?: number, microsecond?: number, nanosecond?: number }, options?: { overflow?: 'constrain' | 'reject' }): PlainDateTimeValueSource
     /** Rounded, as Temporal's round: to a unit, or to multiples of roundingIncrement of smallestUnit in a roundingMode (halfExpand by default) */
     round(options: TimeUnit | 'day' | 'days' | { smallestUnit: TimeUnit | 'day' | 'days', roundingIncrement?: number, roundingMode?: RoundingMode }): PlainDateTimeValueSource
+    /** The instant of this date and time as a wall clock of the zone of the database, as Temporal's toZonedDateTime(zone).toInstant() */
+    toInstant(): InstantValueSource
     /** The duration from this date and time to the other one, as Temporal's until: in days by default (hours for a time) */
     until(other: Temporal.PlainDateTime | PlainDateTimeValueSource, options?: DifferenceOptions<DateUnit | TimeUnit>): DurationValueSource
     /** The duration from the other date and time to this one, as Temporal's since: until with the rounding mode negated, negated */
@@ -504,6 +506,14 @@ interface DurationValueSource extends EqualableValueSource<Temporal.Duration, 'd
  * its instant, one without zone its wall clock in the zone of the database. Ordered by its moment; see Dates and times
  */
 interface InstantValueSource extends ComparableValueSource<Temporal.Instant, 'instant'> {
+    /** The milliseconds since 1970-01-01T00:00Z, rounded down, as Temporal's epochMilliseconds */
+    epochMilliseconds(): NumberValueSource
+    /** The nanoseconds since 1970-01-01T00:00Z, as Temporal's epochNanoseconds */
+    epochNanoseconds(): BigintValueSource
+    /** Its date and time, date or time of the day in the zone of the database, as Temporal's toZonedDateTimeISO(zone).toPlainDateTime() */
+    toPlainDateTime(): PlainDateTimeValueSource
+    toPlainDate(): PlainDateValueSource
+    toPlainTime(): PlainTimeValueSource
 }
 ```
 

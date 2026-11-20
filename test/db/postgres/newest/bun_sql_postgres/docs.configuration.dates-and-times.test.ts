@@ -159,6 +159,37 @@ describe(ctx.label, () => {
     })
     */
 
+    test('docs:dates-and-times/the-epoch-and-the-date-of-an-instant', async () => {
+        ctx.mockNext([
+            { version: '0.9.0', deployedOn: '2024-03-02', deployedMs: 1709377500000, published: '2024-03-02 11:00:00' },
+            { version: '1.2.0', deployedOn: '2024-01-16', deployedMs: 1705397415123, published: '2024-01-16 09:00:00' },
+        ])
+        const connection = ctx.conn
+
+        // doc-start
+        const deployments = await connection.selectFrom(tRelease)
+            .where(tRelease.deployedAt.isNotNull())
+            .select({
+                version: tRelease.version,
+                deployedOn: tRelease.deployedAt.toPlainDate(),
+                deployedMs: tRelease.deployedAt.epochMilliseconds(),
+                published: tRelease.publishedAt.toInstant(),
+            })
+            .orderBy('version')
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as version, cast(deployed_at::timestamp as date) as "deployedOn", floor(extract(epoch from deployed_at) * 1000) as "deployedMs", published_at as published from project_release where deployed_at is not null order by version"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof deployments, Array<{ version: string; deployedOn?: Temporal.PlainDate; deployedMs?: number; published: Temporal.Instant }>>>()
+        const first = Temporal.Instant.from('2024-03-02T11:05:00Z')
+        const second = Temporal.Instant.from('2024-01-16T09:30:15.123456Z')
+        expect(deployments.map(release => [release.version, release.deployedOn?.toString(), release.deployedMs, release.published.toString()])).toEqual([
+            ['0.9.0', first.toZonedDateTimeISO('UTC').toPlainDate().toString(), first.epochMilliseconds, '2024-03-02T11:00:00Z'],
+            ['1.2.0', second.toZonedDateTimeISO('UTC').toPlainDate().toString(), second.epochMilliseconds, '2024-01-16T09:00:00Z'],
+        ])
+    })
+
     test('docs:dates-and-times/the-current-instant', async () => {
         ctx.mockNext('2024-05-06 10:11:12.345678+00')
         const connection = ctx.conn

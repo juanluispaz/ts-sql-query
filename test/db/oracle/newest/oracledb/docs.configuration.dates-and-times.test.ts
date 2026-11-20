@@ -125,6 +125,53 @@ describe(ctx.label, () => {
         expect(now).toBeInstanceOf(Temporal.PlainDateTime)
     })
 
+    test('docs:dates-and-times/instants-in-a-query', async () => {
+        ctx.mockNext([
+            { version: '1.2.0', deployedAt: '2024-01-16T09:30:15.123456000Z AD' },
+            { version: '0.9.0', deployedAt: '2024-03-02T11:05:00.000000000Z AD' },
+        ])
+        const connection = ctx.conn
+
+        // doc-start
+        const deployments = await connection.selectFrom(tRelease)
+            .where(tRelease.deployedAt.greaterOrEqual(Temporal.Instant.from('2024-01-16T10:30:15+01:00')))
+            .select({
+                version: tRelease.version,
+                deployedAt: tRelease.deployedAt,
+            })
+            .orderBy('deployedAt')
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as "version", to_char(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "deployedAt" from project_release where deployed_at >= to_timestamp(:0, 'YYYY-MM-DD HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN') order by project_release.deployed_at"`)
+        expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
+          [
+            "2024-01-16T09:30:15Z",
+          ]
+        `)
+        assertType<Exact<typeof deployments, Array<{ version: string; deployedAt?: Temporal.Instant }>>>()
+        expect(deployments.map(release => [release.version, release.deployedAt?.toString()])).toEqual([
+            ['1.2.0', '2024-01-16T09:30:15.123456Z'],
+            ['0.9.0', '2024-03-02T11:05:00Z'],
+        ])
+    })
+
+    test('docs:dates-and-times/the-current-instant', async () => {
+        ctx.mockNext('2024-05-06T10:11:12.345678000Z AD')
+        const connection = ctx.conn
+
+        // doc-start
+        const now = await connection.selectFromNoTable()
+            .selectOneColumn(connection.currentInstant())
+            .executeSelectOne()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select to_char(sys_extract_utc(cast(systimestamp as timestamp(9) with time zone)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "result" from dual"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof now, Temporal.Instant>>()
+        expect(now).toBeInstanceOf(Temporal.Instant)
+    })
+
     test('docs:dates-and-times/durations-in-a-query', async () => {
         ctx.mockNext([
             { version: '0.9.0', rolloutTime: 'P2D' },

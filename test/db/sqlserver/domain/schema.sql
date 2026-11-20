@@ -176,6 +176,8 @@ CREATE TABLE project_release (
     published_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     -- The time the rollout of the release took (a duration, Temporal.Duration)
     rollout_time NVARCHAR(64),
+    -- The instant the release was deployed (an instant, Temporal.Instant)
+    deployed_at DATETIMEOFFSET(7),
     is_signed BIT,
     download_count BIGINT,
     avg_rating FLOAT,

@@ -500,6 +500,15 @@ interface DurationValueSource extends EqualableValueSource<Temporal.Duration, 'd
 
 ```typescript
 /**
+ * Represents an exact moment (using a Temporal.Instant), kept in any column of a date and a time: one with zone holds
+ * its instant, one without zone its wall clock in the zone of the database. Ordered by its moment; see Dates and times
+ */
+interface InstantValueSource extends ComparableValueSource<Temporal.Instant, 'instant'> {
+}
+```
+
+```typescript
+/**
  * Represents a local date without time (using a Date object). The getters give its parts in UTC, as the
  * getUTC… methods of the Date read
  */

@@ -179,6 +179,8 @@ CREATE TABLE project_release (
     published_at DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%f', 'now')),
     -- The time the rollout of the release took (a duration, Temporal.Duration)
     rollout_time VARCHAR(64),
+    -- The instant the release was deployed (an instant, Temporal.Instant)
+    deployed_at DATETIME,
     is_signed INTEGER,
     download_count INTEGER,
     avg_rating REAL,

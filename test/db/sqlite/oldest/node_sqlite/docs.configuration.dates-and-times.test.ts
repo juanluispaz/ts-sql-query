@@ -125,6 +125,53 @@ describe(ctx.label, () => {
         expect(now).toBeInstanceOf(Temporal.PlainDateTime)
     })
 
+    test('docs:dates-and-times/instants-in-a-query', async () => {
+        ctx.mockNext([
+            { version: '1.2.0', deployedAt: '2024-01-16 09:30:15.123' },
+            { version: '0.9.0', deployedAt: '2024-03-02 11:05:00.000' },
+        ])
+        const connection = ctx.conn
+
+        // doc-start
+        const deployments = await connection.selectFrom(tRelease)
+            .where(tRelease.deployedAt.greaterOrEqual(Temporal.Instant.from('2024-01-16T10:30:15+01:00')))
+            .select({
+                version: tRelease.version,
+                deployedAt: tRelease.deployedAt,
+            })
+            .orderBy('deployedAt')
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as version, deployed_at as deployedAt from project_release where deployed_at >= ?1 order by deployedAt"`)
+        expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
+          [
+            "2024-01-16 09:30:15.000",
+          ]
+        `)
+        assertType<Exact<typeof deployments, Array<{ version: string; deployedAt?: Temporal.Instant }>>>()
+        expect(deployments.map(release => [release.version, release.deployedAt?.toString()])).toEqual([
+            ['1.2.0', '2024-01-16T09:30:15.123Z'],
+            ['0.9.0', '2024-03-02T11:05:00Z'],
+        ])
+    })
+
+    test('docs:dates-and-times/the-current-instant', async () => {
+        ctx.mockNext('2024-05-06 10:11:12.345')
+        const connection = ctx.conn
+
+        // doc-start
+        const now = await connection.selectFromNoTable()
+            .selectOneColumn(connection.currentInstant())
+            .executeSelectOne()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select strftime('%Y-%m-%d %H:%M:%f', 'now', 'localtime') as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof now, Temporal.Instant>>()
+        expect(now).toBeInstanceOf(Temporal.Instant)
+    })
+
     test('docs:dates-and-times/durations-in-a-query', async () => {
         ctx.mockNext([
             { version: '0.9.0', rolloutTime: 'P2D' },

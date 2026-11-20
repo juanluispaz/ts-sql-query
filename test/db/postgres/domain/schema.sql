@@ -168,6 +168,8 @@ CREATE TABLE project_release (
     published_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     -- The time the rollout of the release took (a duration, Temporal.Duration)
     rollout_time INTERVAL,
+    -- The instant the release was deployed (an instant, Temporal.Instant)
+    deployed_at TIMESTAMPTZ,
     -- Plain-kind sources for the release_overview VIEW's per-kind read columns
     -- (boolean/bigint/double). uuid/localDate/localTime reuse signing_key/
     -- released_on/cutoff_time; the custom+adapter column reuses id.

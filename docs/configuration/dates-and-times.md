@@ -4,7 +4,7 @@ search:
 ---
 # Dates and times
 
-A date, a time of the day or both reach your code in one of two ways: as a [Temporal](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal) value of JavaScript, or as a `Date`. This page says what each one is, why Temporal is the one we recommend, what you need to use it, and what a query can do with these values: compare them, take their parts, and turn a date into a date and time. It also covers [durations](#durations), a length of time like the 45 minutes a task took, as a `Temporal.Duration`. Where the zone of each value comes from, and how to set up the zones of your database and your application, is in [Time zones](time-zones.md).
+A date, a time of the day or both reach your code in one of two ways: as a [Temporal](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal) value of JavaScript, or as a `Date`. This page says what each one is, why Temporal is the one we recommend, what you need to use it, and what a query can do with these values: compare them, take their parts, and turn a date into a date and time. It also covers [instants](#instants), an exact moment like the one a release was deployed, as a `Temporal.Instant`, and [durations](#durations), a length of time like the 45 minutes a task took, as a `Temporal.Duration`. Where the zone of each value comes from, and how to set up the zones of your database and your application, is in [Time zones](time-zones.md).
 
 ## The types
 
@@ -15,6 +15,7 @@ The same column of the database can be read either way; you choose with the type
 | `plainDate`      | `Temporal.PlainDate`     | A date without time, like a birthday  | `localDate`                   |
 | `plainTime`      | `Temporal.PlainTime`     | A time of the day, like an opening time | `localTime`                 |
 | `plainDateTime`  | `Temporal.PlainDateTime` | A date and a time of the day          | `localDateTime`               |
+| `instant`        | `Temporal.Instant`       | An exact moment, the same everywhere, like the one a release was deployed | `localDateTime` |
 | `duration`       | `Temporal.Duration`      | A length of time, like 1 day and 12 hours | None                      |
 
 ```typescriptreact
@@ -22,9 +23,10 @@ releasedOn = this.column('released_on', 'plainDate')
 cutoffTime = this.column('cutoff_time', 'plainTime')
 publishedAt = this.column('published_at', 'plainDateTime')
 rolloutTime = this.optionalColumn('rollout_time', 'duration')
+deployedAt = this.optionalColumn('deployed_at', 'instant')
 ```
 
-Their classes are `PlainDateType`, `PlainTimeType`, `PlainDateTimeType` and `DurationType`, exported by `ts-sql-query`, and a type of yours can extend their families, `PlainDatesType`, `PlainTimesType`, `PlainDateTimesType` and `DurationsType`, as in [Data types of your own](../advanced/data-types/own-data-types.md#the-families).
+Their classes are `PlainDateType`, `PlainTimeType`, `PlainDateTimeType`, `InstantType` and `DurationType`, exported by `ts-sql-query`, and a type of yours can extend their families, `PlainDatesType`, `PlainTimesType`, `PlainDateTimesType`, `InstantsType` and `DurationsType`, as in [Data types of your own](../advanced/data-types/own-data-types.md#the-families).
 
 ## Why Temporal
 
@@ -386,6 +388,144 @@ The executed query is:
     select 
         current_date as today, 
         current_timestamp as now
+    ```
+
+The parameters are: `[]`
+
+## Instants
+
+An `instant` is an exact moment, the same everywhere: when a release was deployed, when a payment was made. It is a `Temporal.Instant`, with nanoseconds. It isn't a date and a time of the day: `2024-01-16T09:30:15Z` is 10:30:15 in Madrid and 18:30:15 in Tokyo, the same instant. A `plainDateTime` is the other way round, a wall clock without a zone, like a meeting at 10:00 wherever you are. A `localDateTime` is also an instant, as a `Date`, which stops at the millisecond.
+
+The value is compared, assigned and sent as a `Temporal.Instant`, and instants are ordered by their moment. The offset of the text it is written with is only how it is written: `2024-01-16T10:30:15+01:00` is `2024-01-16T09:30:15Z`. Here, the releases deployed from that instant on:
+
+```ts
+const deployments = await connection.selectFrom(tRelease)
+    .where(tRelease.deployedAt.greaterOrEqual(Temporal.Instant.from('2024-01-16T10:30:15+01:00')))
+    .select({
+        version: tRelease.version,
+        deployedAt: tRelease.deployedAt,
+    })
+    .orderBy('deployedAt')
+    .executeSelectMany()
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        version as version, 
+        deployed_at as deployedAt 
+    from project_release 
+    where deployed_at >= ? 
+    order by deployedAt
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        version as version, 
+        deployed_at as deployedAt 
+    from project_release 
+    where deployed_at >= ? 
+    order by deployedAt
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        version as "version", 
+        to_char(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "deployedAt" 
+    from project_release 
+    where deployed_at >= to_timestamp(:0, 'YYYY-MM-DD HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN') 
+    order by project_release.deployed_at
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        version as version, 
+        deployed_at as "deployedAt" 
+    from project_release 
+    where deployed_at >= $1 
+    order by "deployedAt"
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        version as version, 
+        deployed_at as deployedAt 
+    from project_release 
+    where deployed_at >= ?1 
+    order by deployedAt
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        version as version, 
+        deployed_at as deployedAt 
+    from project_release 
+    where deployed_at >= @0 
+    order by deployedAt
+    ```
+
+The parameters are: `[ Instant 2024-01-16T09:30:15Z ]` (on SQLite: `[ '2024-01-16T09:30:15.000Z' ]`)
+
+| version | deployedAt |
+|---|---|
+| `'1.2.0'` | `2024-01-16T09:30:15.123456Z` (on SQLite: `2024-01-16T09:30:15.123Z`) |
+| `'0.9.0'` | `2024-03-02T11:05:00Z` |
+
+An instant can be kept in any column of a date and a time:
+
+- **A column that keeps the instant** (`timestamptz`, `TIMESTAMP WITH TIME ZONE`, `datetimeoffset`): what you read is the instant written. The library writes it with the offset `+00:00`; one written with another offset by another program is read as its instant. A MySQL and MariaDB `TIMESTAMP` and an Oracle `TIMESTAMP WITH LOCAL TIME ZONE` keep the instant too, converted with the zone of the session, which must be the zone of the database.
+- **A column without a zone** keeps the wall clock of the instant in the zone of the database: in UTC, `2024-01-16 09:30:15.123456`. With a [database outside UTC](time-zones.md#a-database-outside-utc), the database converts it with its session.
+
+| Database | Keeps the instant | Keeps its wall clock |
+|---|---|---|
+| MariaDB | `TIMESTAMP(6)`, converted with the zone of the session, from 1970 to 2106 (MariaDB 13) | `DATETIME(6)` |
+| MySQL | `TIMESTAMP(6)`, converted with the zone of the session, from 1970 to 2038 | `DATETIME(6)` |
+| Oracle | `TIMESTAMP(9) WITH TIME ZONE`, or `TIMESTAMP(9) WITH LOCAL TIME ZONE`, converted with the zone of the session | `TIMESTAMP(9)`, `DATE` |
+| PostgreSQL | `timestamptz` | `timestamp` |
+| SQLite | none: it keeps an instant as it keeps a `localDateTime`, in the [format of its dates](supported-databases/sqlite.md#working-with-date-and-time) | |
+| SQL Server | `datetimeoffset(7)` | `datetime2(7)` |
+
+The [four kinds of temporal column](time-zones.md#the-four-kinds-of-temporal-column) explain what each one does with the zone. On MySQL and MariaDB a `TIMESTAMP` rejects an instant outside its range, from `1970-01-01T00:00:01Z` to `2038-01-19T03:14:07Z` on MySQL, and to `2106-02-07T06:28:15Z` on MariaDB 13; a `DATETIME(6)` in UTC also holds the instants before and after it.
+
+An instant has no year, month or hour of its own: as in Temporal, they depend on the zone they are seen in.
+
+`currentInstant()` of the connection gives the instant of now in the database, with the digits of the fraction of a second it gives:
+
+<!-- doc-code-snippet-result: "2024-05-06 10:11:12.345678+00" -->
+```ts
+const now = await connection.selectFromNoTable()
+    .selectOneColumn(connection.currentInstant())
+    .executeSelectOne()
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select utc_timestamp(6) as result
+    ```
+=== "MySQL"
+    ```mysql
+    select utc_timestamp(6) as result
+    ```
+=== "Oracle"
+    ```oracle
+    select to_char(sys_extract_utc(cast(systimestamp as timestamp(9) with time zone)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "result" 
+    from dual
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select current_timestamp as result
+    ```
+=== "SQLite"
+    ```sqlite
+    select strftime('%Y-%m-%dT%H:%M:%fZ', 'now') as result
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select sysutcdatetime() as result
     ```
 
 The parameters are: `[]`
@@ -2667,10 +2807,12 @@ A Temporal value goes to the database with all its digits, up to the nanosecond,
 | SQLite | What the [format of its dates](supported-databases/sqlite.md#working-with-date-and-time) says: milliseconds by default | `23:59:58.123` |
 | SQL Server | Hundreds of nanoseconds in a `datetime2(7)`, rounded | `23:59:58.1234568` |
 
+An Oracle `TIMESTAMP(9)`, or `TIMESTAMP(9) WITH TIME ZONE`, keeps the nanoseconds. A constant selected as it is comes back as it was sent, with all its digits, unless the database converts it: PostgreSQL and SQL Server round it to the digits of their type.
+
 ## Known limits
 
-- **Bun SQL** gives a `timestamp` (PostgreSQL) or a `datetime` (MySQL and MariaDB) as a `Date`, and has no way to give its text: a `plainDateTime` read through it stops at the millisecond. A `date` and a `time` keep all their digits. The other drivers of these databases read every digit.
-- **A year before 1.** In Temporal the year before 1 is 0 (1 BC), and the one before it -1. PostgreSQL and Oracle keep these dates, but `year()` gives the year as they number it, with no year 0: -1 for 1 BC and -44 for 44 BC, where the value read is `-000043-03-15`. SQL Server rejects a date before the year 1.
+- **Bun SQL** gives a `timestamp` (PostgreSQL) or a `datetime` (MySQL and MariaDB) as a `Date`, and has no way to give its text: a `plainDateTime` or an `instant` read through it stops at the millisecond. A `date` and a `time` keep all their digits. The other drivers of these databases read every digit.
+- **A year before 1.** In Temporal the year before 1 is 0 (1 BC), and the one before it -1. PostgreSQL and Oracle keep these dates, but `year()` gives the year as they number it, with no year 0: -1 for 1 BC and -44 for 44 BC, where the value read is `-000043-03-15`. SQL Server rejects a date before the year 1, and an instant before the year 1.
 - **Bun SQL on MySQL 8** sends a text parameter that MySQL converts to a time wrongly (`'10:07:30'` is `00:00:00`): a `plainTime` given as a value and rounded is another time there. A column is read right, and so is every value with the other drivers and with MariaDB.
 - **Oracle has no type for a time of the day**: a `plainTime` is kept in a `DATE` or a `TIMESTAMP` on 1970-01-01, as a `localTime` is.
 - **An interval of PostgreSQL with fields of different signs**, like `-1 days +02:03:00` or `1 mon -1 days`, can't be a `Temporal.Duration`, whose fields have one sign: reading it is rejected with `INVALID_VALUE_RECEIVED_FROM_DATABASE`. The library never sends one.

@@ -181,6 +181,8 @@ CREATE TABLE project_release (
     published_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     -- The time the rollout of the release took (a duration, Temporal.Duration)
     rollout_time INTERVAL DAY(9) TO SECOND(9),
+    -- The instant the release was deployed (an instant, Temporal.Instant)
+    deployed_at TIMESTAMP(9) WITH TIME ZONE,
     is_signed NUMBER(1),
     download_count NUMBER(19),
     avg_rating BINARY_DOUBLE,

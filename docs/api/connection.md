@@ -77,6 +77,8 @@ interface Connection {
     currentPlainDate(): PlainDateValueSource
     currentPlainTime(): PlainTimeValueSource
     currentPlainDateTime(): PlainDateTimeValueSource
+    /** The instant of now in the database, as Temporal's Now.instant(), with the digits of the fraction of a second it gives */
+    currentInstant(): InstantValueSource
     true(): BooleanValueSource
     false(): BooleanValueSource
 

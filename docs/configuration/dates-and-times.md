@@ -16,6 +16,7 @@ The same column of the database can be read either way; you choose with the type
 | `plainTime`      | `Temporal.PlainTime`     | A time of the day, like an opening time | `localTime`                 |
 | `plainDateTime`  | `Temporal.PlainDateTime` | A date and a time of the day          | `localDateTime`               |
 | `instant`        | `Temporal.Instant`       | An exact moment, the same everywhere, like the one a release was deployed | `localDateTime` |
+| `zonedDateTime`  | `Temporal.ZonedDateTime` | An exact moment in a time zone, like a meeting at 09:00 in Madrid; only on Oracle | None |
 | `duration`       | `Temporal.Duration`      | A length of time, like 1 day and 12 hours | None                      |
 
 ```typescriptreact
@@ -26,7 +27,7 @@ rolloutTime = this.optionalColumn('rollout_time', 'duration')
 deployedAt = this.optionalColumn('deployed_at', 'instant')
 ```
 
-Their classes are `PlainDateType`, `PlainTimeType`, `PlainDateTimeType`, `InstantType` and `DurationType`, exported by `ts-sql-query`, and a type of yours can extend their families, `PlainDatesType`, `PlainTimesType`, `PlainDateTimesType`, `InstantsType` and `DurationsType`, as in [Data types of your own](../advanced/data-types/own-data-types.md#the-families).
+Their classes are `PlainDateType`, `PlainTimeType`, `PlainDateTimeType`, `InstantType`, `ZonedDateTimeType` and `DurationType`, exported by `ts-sql-query`, and a type of yours can extend their families, `PlainDatesType`, `PlainTimesType`, `PlainDateTimesType`, `InstantsType`, `ZonedDateTimesType` and `DurationsType`, as in [Data types of your own](../advanced/data-types/own-data-types.md#the-families).
 
 ## Why Temporal
 
@@ -806,6 +807,83 @@ The executed query is:
     ```
 
 The parameters are: `[]`
+
+## Zoned dates and times
+
+A `zonedDateTime` is an exact moment seen in a time zone: a `Temporal.ZonedDateTime`, an instant with its zone, an IANA name like `Europe/Madrid` or an offset like `+05:30`. The zone gives it its date and time there, and its rules: when a wall clock is repeated or skipped by a change to summer time. Use it where the zone is part of the value, like the start of a meeting that must stay at 09:00 in Madrid. An `instant` is the same moment without a zone, and a `plainDateTime` a wall clock without one.
+
+Only Oracle keeps a zone with each value, in a `TIMESTAMP WITH TIME ZONE`, and computes with its rules. On MariaDB, MySQL, PostgreSQL, SQLite and SQL Server a query with a `zonedDateTime` fails when it is built, with `UNSUPPORTED_QUERY`, and nothing is sent.
+
+An instant goes to a zone with `toZonedDateTimeISO(zone)`, and a wall clock with `toZonedDateTime(zone)`, as in Temporal. A wall clock that the zone repeats (02:30 on 2024-10-27 in Madrid) or skips (02:30 on 2024-03-31) takes the instant `disambiguation` says, as Temporal: `'compatible'`, the default, the earlier of a repeated one and the later of a skipped one (03:30), `'earlier'` and `'later'` what they say, and `'reject'` makes the query fail. Here, the deployments and the publications of the releases in Madrid:
+
+```ts
+const releases = await connection.selectFrom(tRelease)
+    .select({
+        version: tRelease.version,
+        deployedInMadrid: tRelease.deployedAt.toZonedDateTimeISO('Europe/Madrid'),
+        publishedInMadrid: tRelease.publishedAt.toZonedDateTime('Europe/Madrid'),
+        publishedInstant: tRelease.publishedAt.toZonedDateTime('Europe/Madrid').toInstant(),
+    })
+    .orderBy('version')
+    .executeSelectMany()
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    -- Not available on MariaDB
+    ```
+=== "MySQL"
+    ```mysql
+    -- Not available on MySQL
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        version as "version", 
+        case when (from_tz(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)), '+00:00') at time zone 'Europe/Madrid') is not null then to_char(sys_extract_utc((from_tz(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)), '+00:00') at time zone 'Europe/Madrid')), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN') || '[' || to_char((from_tz(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)), '+00:00') at time zone 'Europe/Madrid'), 'TZR') || ']' end as "deployedInMadrid", 
+        case when (from_tz(case when not (cast((from_tz((cast(published_at as timestamp(9)) - (cast((from_tz((cast(published_at as timestamp(9)) - interval '1' day), '+00:00') at time zone 'Europe/Madrid') as timestamp(9)) - (cast(published_at as timestamp(9)) - interval '1' day))), '+00:00') at time zone 'Europe/Madrid') as timestamp(9)) = cast(published_at as timestamp(9))) and cast((from_tz((cast(published_at as timestamp(9)) - (cast((from_tz((cast(published_at as timestamp(9)) + interval '1' day), '+00:00') at time zone 'Europe/Madrid') as timestamp(9)) - (cast(published_at as timestamp(9)) + interval '1' day))), '+00:00') at time zone 'Europe/Madrid') as timestamp(9)) = cast(published_at as timestamp(9)) then (cast(published_at as timestamp(9)) - (cast((from_tz((cast(published_at as timestamp(9)) + interval '1' day), '+00:00') at time zone 'Europe/Madrid') as timestamp(9)) - (cast(published_at as timestamp(9)) + interval '1' day))) else (cast(published_at as timestamp(9)) - (cast((from_tz((cast(published_at as timestamp(9)) - interval '1' day), '+00:00') at time zone 'Europe/Madrid') as timestamp(9)) - (cast(published_at as timestamp(9)) - interval '1' day))) end, '+00:00') at time zone 'Europe/Madrid') is not null then to_char(sys_extract_utc((from_tz(case when not (cast((from_tz((cast(published_at as timestamp(9)) - (cast((from_tz((cast(published_at as timestamp(9)) - interval '1' day), '+00:00') at time zone 'Europe/Madrid') as timestamp(9)) - (cast(published_at as timestamp(9)) - interval '1' day))), '+00:00') at time zone 'Europe/Madrid') as timestamp(9)) = cast(published_at as timestamp(9))) and cast((from_tz((cast(published_at as timestamp(9)) - (cast((from_tz((cast(published_at as timestamp(9)) + interval '1' day), '+00:00') at time zone 'Europe/Madrid') as timestamp(9)) - (cast(published_at as timestamp(9)) + interval '1' day))), '+00:00') at time zone 'Europe/Madrid') as timestamp(9)) = cast(published_at as timestamp(9)) then (cast(published_at as timestamp(9)) - (cast((from_tz((cast(published_at as timestamp(9)) + interval '1' day), '+00:00') at time zone 'Europe/Madrid') as timestamp(9)) - (cast(published_at as timestamp(9)) + interval '1' day))) else (cast(published_at as timestamp(9)) - (cast((from_tz((cast(published_at as timestamp(9)) - interval '1' day), '+00:00') at time zone 'Europe/Madrid') as timestamp(9)) - (cast(published_at as timestamp(9)) - interval '1' day))) end, '+00:00') at time zone 'Europe/Madrid')), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN') || '[' || to_char((from_tz(case when not (cast((from_tz((cast(published_at as timestamp(9)) - (cast((from_tz((cast(published_at as timestamp(9)) - interval '1' day), '+00:00') at time zone 'Europe/Madrid') as timestamp(9)) - (cast(published_at as timestamp(9)) - interval '1' day))), '+00:00') at time zone 'Europe/Madrid') as timestamp(9)) = cast(published_at as timestamp(9))) and cast((from_tz((cast(published_at as timestamp(9)) - (cast((from_tz((cast(published_at as timestamp(9)) + interval '1' day), '+00:00') at time zone 'Europe/Madrid') as timestamp(9)) - (cast(published_at as timestamp(9)) + interval '1' day))), '+00:00') at time zone 'Europe/Madrid') as timestamp(9)) = cast(published_at as timestamp(9)) then (cast(published_at as timestamp(9)) - (cast((from_tz((cast(published_at as timestamp(9)) + interval '1' day), '+00:00') at time zone 'Europe/Madrid') as timestamp(9)) - (cast(published_at as timestamp(9)) + interval '1' day))) else (cast(published_at as timestamp(9)) - (cast((from_tz((cast(published_at as timestamp(9)) - interval '1' day), '+00:00') at time zone 'Europe/Madrid') as timestamp(9)) - (cast(published_at as timestamp(9)) - interval '1' day))) end, '+00:00') at time zone 'Europe/Madrid'), 'TZR') || ']' end as "publishedInMadrid", 
+        to_char(sys_extract_utc(cast((from_tz(case when not (cast((from_tz((cast(published_at as timestamp(9)) - (cast((from_tz((cast(published_at as timestamp(9)) - interval '1' day), '+00:00') at time zone 'Europe/Madrid') as timestamp(9)) - (cast(published_at as timestamp(9)) - interval '1' day))), '+00:00') at time zone 'Europe/Madrid') as timestamp(9)) = cast(published_at as timestamp(9))) and cast((from_tz((cast(published_at as timestamp(9)) - (cast((from_tz((cast(published_at as timestamp(9)) + interval '1' day), '+00:00') at time zone 'Europe/Madrid') as timestamp(9)) - (cast(published_at as timestamp(9)) + interval '1' day))), '+00:00') at time zone 'Europe/Madrid') as timestamp(9)) = cast(published_at as timestamp(9)) then (cast(published_at as timestamp(9)) - (cast((from_tz((cast(published_at as timestamp(9)) + interval '1' day), '+00:00') at time zone 'Europe/Madrid') as timestamp(9)) - (cast(published_at as timestamp(9)) + interval '1' day))) else (cast(published_at as timestamp(9)) - (cast((from_tz((cast(published_at as timestamp(9)) - interval '1' day), '+00:00') at time zone 'Europe/Madrid') as timestamp(9)) - (cast(published_at as timestamp(9)) - interval '1' day))) end, '+00:00') at time zone 'Europe/Madrid') as timestamp(9) with time zone)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "publishedInstant" 
+    from project_release 
+    order by "version"
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    -- Not available on PostgreSQL
+    ```
+=== "SQLite"
+    ```sqlite
+    -- Not available on SQLite
+    ```
+=== "SQL Server"
+    ```sqlserver
+    -- Not available on SQL Server
+    ```
+
+The parameters are: `[]`
+
+| version | deployedInMadrid | publishedInMadrid | publishedInstant |
+|---|---|---|---|
+| `'0.9.0'` | `2024-03-02T12:05:00+01:00[Europe/Madrid]` | `2024-03-02T11:00:00+01:00[Europe/Madrid]` | `2024-03-02T10:00:00Z` |
+| `'1.2.0'` | `2024-01-16T10:30:15.123456+01:00[Europe/Madrid]` | `2024-01-16T09:00:00+01:00[Europe/Madrid]` | `2024-01-16T08:00:00Z` |
+| `'1.3.0-beta.1'` | `undefined` | `2024-02-21T10:00:00+01:00[Europe/Madrid]` | `2024-02-21T09:00:00Z` |
+
+A zone given as a value is checked as Temporal checks it before the query is sent, and written in the SQL as its name: Oracle takes no parameter after `at time zone`. A string of the query, like a column with the zone of each user, is taken as it is, and Oracle rejects a zone it doesn't know (`ORA-01882`).
+
+A `zonedDateTime` has the methods of Temporal that give its parts and its instant:
+
+| Method | What it gives |
+|---|---|
+| `toInstant()` | its instant, an `instant` |
+| `toPlainDateTime()`, `toPlainDate()`, `toPlainTime()` | its date and time, its date, its time of the day in its zone |
+| `year()`, `month()`, `day()`, `dayOfWeek()`, `dayOfYear()`, `hour()`, `minute()`, `second()`, `millisecond()`, `microsecond()` | its parts in its zone, as a `plainDateTime`'s |
+| `timeZoneId()` | the name of its zone, as Temporal writes it (`'Europe/Madrid'`, `'+05:30'`) |
+| `offset()`, `offsetNanoseconds()` | its offset from UTC at its instant, as text (`'+01:00'`) and in nanoseconds |
+| `epochMilliseconds()`, `epochNanoseconds()` | the milliseconds and nanoseconds of its instant since `1970-01-01T00:00:00Z` |
+| `withTimeZone(zone)` | the same instant in another zone |
+
+Two zoned dates and times are compared and ordered by their instant, as Temporal's `ZonedDateTime.compare`: `equals` finds the same instant in another zone too, where Temporal's `equals` also compares the zone.
 
 ## Durations
 
@@ -3093,5 +3171,6 @@ An Oracle `TIMESTAMP(9)`, or `TIMESTAMP(9) WITH TIME ZONE`, keeps the nanosecond
 - **Bun SQL on MySQL 8** sends a text parameter that MySQL converts to a time wrongly (`'10:07:30'` is `00:00:00`): a `plainTime` given as a value and rounded is another time there. A column is read right, and so is every value with the other drivers and with MariaDB.
 - **Oracle has no type for a time of the day**: a `plainTime` is kept in a `DATE` or a `TIMESTAMP` on 1970-01-01, as a `localTime` is.
 - **A difference of more than 292 years on SQLite**, like `until` of two instants or of two dates and times, has more nanoseconds than its 64-bit integers: the query fails with the error of `tsq_duration_text` or `tsq_duration_total`. The other databases compute it with decimal numbers.
+- **A zoned date and time before 1900 on Oracle**: Oracle keeps the offset of the local mean time of a zone (like `-00:14:44` in Madrid) without its seconds, so the date and time of an instant there, and the instant of a wall clock there, are some seconds off from Temporal's. A zoned date and time read keeps its instant.
 - **An interval of PostgreSQL with fields of different signs**, like `-1 days +02:03:00` or `1 mon -1 days`, can't be a `Temporal.Duration`, whose fields have one sign: reading it is rejected with `INVALID_VALUE_RECEIVED_FROM_DATABASE`. The library never sends one.
 - **A column with a zone**, like `timestamptz` on PostgreSQL: a `plainDateTime` reads the date and time it has in the zone of the database. On SQL Server, a `datetimeoffset` is read, and its parts given, in UTC.

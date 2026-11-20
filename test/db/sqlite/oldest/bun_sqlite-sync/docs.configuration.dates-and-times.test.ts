@@ -219,6 +219,39 @@ describe(ctx.label, () => {
         ])
     })
 
+    // NOT-SUPPORTED: this database keeps no time zone with each value: a zonedDateTime is only kept and computed on Oracle
+    /*
+    test('docs:dates-and-times/zoned-dates-and-times', async () => {
+        ctx.mockNext([
+            { version: '0.9.0', deployedInMadrid: '2024-03-02T11:05:00.000000000Z AD[EUROPE/MADRID]', publishedInMadrid: '2024-03-02T10:00:00.000000000Z AD[EUROPE/MADRID]', publishedInstant: '2024-03-02T10:00:00.000000000Z AD' },
+            { version: '1.2.0', deployedInMadrid: '2024-01-16T09:30:15.123456000Z AD[EUROPE/MADRID]', publishedInMadrid: '2024-01-16T08:00:00.000000000Z AD[EUROPE/MADRID]', publishedInstant: '2024-01-16T08:00:00.000000000Z AD' },
+            { version: '1.3.0-beta.1', deployedInMadrid: null, publishedInMadrid: '2024-02-21T09:00:00.000000000Z AD[EUROPE/MADRID]', publishedInstant: '2024-02-21T09:00:00.000000000Z AD' },
+        ])
+        const connection = ctx.conn
+
+        // doc-start
+        const releases = sync(connection.selectFrom(tRelease)
+            .select({
+                version: tRelease.version,
+                deployedInMadrid: tRelease.deployedAt.toZonedDateTimeISO('Europe/Madrid'),
+                publishedInMadrid: tRelease.publishedAt.toZonedDateTime('Europe/Madrid'),
+                publishedInstant: tRelease.publishedAt.toZonedDateTime('Europe/Madrid').toInstant(),
+            })
+            .orderBy('version')
+            .executeSelectMany())
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams).toMatchInlineSnapshot()
+        assertType<Exact<typeof releases, Array<{ version: string; deployedInMadrid?: Temporal.ZonedDateTime; publishedInMadrid: Temporal.ZonedDateTime; publishedInstant: Temporal.Instant }>>>()
+        const deployed = [Temporal.Instant.from('2024-03-02T11:05:00Z'), Temporal.Instant.from('2024-01-16T09:30:15.123456Z'), undefined]
+        const published = ['2024-03-02T11:00:00', '2024-01-16T09:00:00', '2024-02-21T10:00:00'].map(text => Temporal.PlainDateTime.from(text).toZonedDateTime('Europe/Madrid'))
+        expect(releases.map(release => [release.version, release.deployedInMadrid?.toString(), release.publishedInMadrid.toString(), release.publishedInstant.toString()])).toEqual(['0.9.0', '1.2.0', '1.3.0-beta.1'].map((version, i) => [
+            version, deployed[i]?.toZonedDateTimeISO('Europe/Madrid').toString(), published[i]!.toString(), published[i]!.toInstant().toString(),
+        ]))
+    })
+    */
+
     test('docs:dates-and-times/the-arithmetic-of-an-instant', async () => {
         ctx.mockNext([
             { version: '0.9.0', afterPublishing: 'PT5M', hour: '2024-03-02 11:00:00.000', reviewBy: '2024-03-04 12:00:00.000' },

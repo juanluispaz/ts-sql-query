@@ -273,6 +273,36 @@ describe(ctx.label, () => {
         ])
     })
 
+    test('docs:dates-and-times/the-total-of-a-duration', async () => {
+        ctx.mockNext([
+            { version: '0.9.0', hours: 48, months: 0.06451612903225806, daysToPublication: 1.4583333333333333 },
+            { version: '1.2.0', hours: 36, months: 0.04838709677419355, daysToPublication: 1.375 },
+            { version: '1.3.0-beta.1', hours: 0.75, months: 0.0010775862068965517, daysToPublication: 1.4166666666666667 },
+        ])
+        const connection = ctx.conn
+
+        // doc-start
+        const releases = await connection.selectFrom(tRelease)
+            .select({
+                version: tRelease.version,
+                hours: tRelease.rolloutTime.total('hours'),
+                months: tRelease.rolloutTime.total({ unit: 'month', relativeTo: tRelease.releasedOn }),
+                daysToPublication: tRelease.publishedAt.since(tRelease.releasedOn.toPlainDateTime()).total('days'),
+            })
+            .orderBy('version')
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as "version", tsq_duration_total(0, 0, extract(day from rollout_time), extract(hour from rollout_time) * 3600 + extract(minute from rollout_time) * 60 + trunc(extract(second from rollout_time)), mod(extract(second from rollout_time) * 1000000000, 1000000000), 0, 0, 0, 'hour') as "hours", tsq_duration_total(0, 0, extract(day from rollout_time), extract(hour from rollout_time) * 3600 + extract(minute from rollout_time) * 60 + trunc(extract(second from rollout_time)), mod(extract(second from rollout_time) * 1000000000, 1000000000), extract(year from released_on), extract(month from released_on), extract(day from released_on), 'month') as "months", tsq_duration_total(0, 0, -trunc(((trunc(cast(released_on as timestamp(9))) - trunc(published_at)) * 86400000000000 + ((extract(hour from (cast(cast(released_on as timestamp(9)) as timestamp(9)) - trunc(cast(released_on as timestamp(9))))) * 3600 + extract(minute from (cast(cast(released_on as timestamp(9)) as timestamp(9)) - trunc(cast(released_on as timestamp(9))))) * 60 + extract(second from (cast(cast(released_on as timestamp(9)) as timestamp(9)) - trunc(cast(released_on as timestamp(9)))))) * 1000000000 - (extract(hour from (cast(published_at as timestamp(9)) - trunc(published_at))) * 3600 + extract(minute from (cast(published_at as timestamp(9)) - trunc(published_at))) * 60 + extract(second from (cast(published_at as timestamp(9)) - trunc(published_at)))) * 1000000000)) / 86400000000000), 0, -(mod(((trunc(cast(released_on as timestamp(9))) - trunc(published_at)) * 86400000000000 + ((extract(hour from (cast(cast(released_on as timestamp(9)) as timestamp(9)) - trunc(cast(released_on as timestamp(9))))) * 3600 + extract(minute from (cast(cast(released_on as timestamp(9)) as timestamp(9)) - trunc(cast(released_on as timestamp(9))))) * 60 + extract(second from (cast(cast(released_on as timestamp(9)) as timestamp(9)) - trunc(cast(released_on as timestamp(9)))))) * 1000000000 - (extract(hour from (cast(published_at as timestamp(9)) - trunc(published_at))) * 3600 + extract(minute from (cast(published_at as timestamp(9)) - trunc(published_at))) * 60 + extract(second from (cast(published_at as timestamp(9)) - trunc(published_at)))) * 1000000000)), 86400000000000)), 0, 0, 0, 'day') as "daysToPublication" from project_release order by "version""`)
+        expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof releases, Array<{ version: string; hours?: number; months?: number; daysToPublication: number }>>>()
+        expect(releases.map(release => [release.version, release.hours, release.months, release.daysToPublication])).toEqual([
+            ['0.9.0', 48, 0.06451612903225806, 1.4583333333333333],
+            ['1.2.0', 36, 0.04838709677419355, 1.375],
+            ['1.3.0-beta.1', 0.75, 0.0010775862068965517, 1.4166666666666667],
+        ])
+    })
+
     test('docs:dates-and-times/changing-a-field-and-rounding', async () => {
         ctx.mockNext([
             { version: '0.9.0', monthOfRelease: '2024-03-01', cutoffSlot: '18:00:00' },

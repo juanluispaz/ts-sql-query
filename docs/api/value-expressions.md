@@ -482,6 +482,13 @@ interface DurationValueSource extends EqualableValueSource<Temporal.Duration, 'd
     negated(): DurationValueSource
     /** The duration without its sign, as Temporal's abs */
     abs(): DurationValueSource
+    /**
+     * The duration in a unit, as a double with its fraction, as Temporal's total: of days or time without a date of
+     * reference (a day is 24 hours; a duration with years, months or weeks fails the query), any unit with one (a date,
+     * or the date of a date and time), counted from it
+     */
+    total(unit: 'day' | 'days' | TimeUnit | { unit: 'day' | 'days' | TimeUnit }): NumberValueSource
+    total(options: { unit: DateUnit | TimeUnit, relativeTo: Temporal.PlainDate | Temporal.PlainDateTime | PlainDateValueSource | PlainDateTimeValueSource }): NumberValueSource
 }
 ```
 

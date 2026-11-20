@@ -295,7 +295,7 @@ oracledb keeps each statement in its statement cache by its text, with the types
 
 ## Dates before 1582
 
-Oracle counts the dates before 15 October 1582 in the Julian calendar, and a JavaScript `Date` in the Gregorian one for every year. The digits the library sends and reads are the same, but what Oracle computes from a date before that day doesn't agree with JavaScript: `getDay()` of `0999-01-14` is `6` (a Saturday, for Oracle) where the `Date` gives `1` (a Monday), and `getTime()` is five days later than the `Date`'s. The days from 5 to 14 October 1582 don't exist in Oracle: `to_date('1582-10-10', 'YYYY-MM-DD')` is 15 October 1582. Dates from 15 October 1582 on agree.
+Oracle counts the dates before 15 October 1582 in the Julian calendar, and a JavaScript `Date` in the Gregorian one for every year. The digits the library sends and reads are the same, but what Oracle computes from a date before that day doesn't agree with JavaScript: `getDay()` of `0999-01-14` is `6` (a Saturday, for Oracle) where the `Date` gives `1` (a Monday), and `getTime()` is five days later than the `Date`'s. The days from 5 to 14 October 1582 don't exist in Oracle: `to_date('1582-10-10', 'YYYY-MM-DD')` is 15 October 1582. The same goes for the durations Oracle computes from such a date, with `until`, `since` or `total`: they count the days of the Julian calendar, where Temporal counts the ones of the Gregorian calendar. Dates from 15 October 1582 on agree.
 
 ## The scale of `roundn`
 

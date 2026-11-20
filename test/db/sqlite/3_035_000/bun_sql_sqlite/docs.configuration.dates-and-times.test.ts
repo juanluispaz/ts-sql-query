@@ -274,6 +274,39 @@ describe(ctx.label, () => {
     })
     */
 
+    // NOT-SUPPORTED: Bun SQL's sqlite adapter exposes neither a user-defined-function API nor its bun:sqlite `Database`, so the tsq_duration_total UDF can't be registered
+    /*
+    test('docs:dates-and-times/the-total-of-a-duration', async () => {
+        ctx.mockNext([
+            { version: '0.9.0', hours: 48, months: 0.06451612903225806, daysToPublication: 1.4583333333333333 },
+            { version: '1.2.0', hours: 36, months: 0.04838709677419355, daysToPublication: 1.375 },
+            { version: '1.3.0-beta.1', hours: 0.75, months: 0.0010775862068965517, daysToPublication: 1.4166666666666667 },
+        ])
+        const connection = ctx.conn
+
+        // doc-start
+        const releases = await connection.selectFrom(tRelease)
+            .select({
+                version: tRelease.version,
+                hours: tRelease.rolloutTime.total('hours'),
+                months: tRelease.rolloutTime.total({ unit: 'month', relativeTo: tRelease.releasedOn }),
+                daysToPublication: tRelease.publishedAt.since(tRelease.releasedOn.toPlainDateTime()).total('days'),
+            })
+            .orderBy('version')
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams.map(String)).toMatchInlineSnapshot()
+        assertType<Exact<typeof releases, Array<{ version: string; hours?: number; months?: number; daysToPublication: number }>>>()
+        expect(releases.map(release => [release.version, release.hours, release.months, release.daysToPublication])).toEqual([
+            ['0.9.0', 48, 0.06451612903225806, 1.4583333333333333],
+            ['1.2.0', 36, 0.04838709677419355, 1.375],
+            ['1.3.0-beta.1', 0.75, 0.0010775862068965517, 1.4166666666666667],
+        ])
+    })
+    */
+
     test('docs:dates-and-times/changing-a-field-and-rounding', async () => {
         ctx.mockNext([
             { version: '0.9.0', monthOfRelease: '2024-03-01', cutoffSlot: '18:00:00' },

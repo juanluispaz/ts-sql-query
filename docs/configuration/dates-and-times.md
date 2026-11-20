@@ -1795,6 +1795,522 @@ On MariaDB, MySQL, Oracle, SQLite and SQL Server the query writes the text of th
     GO
     ```
 
+## The total of a duration in a unit
+
+`total` gives a duration in one unit, as a `double` with the fraction of the unit, as Temporal's `total` does: `PT36H` is 1.5 days. It takes the unit (`'day'`, `'hour'`, … `'nanosecond'`, in the singular or the plural), or `{ unit }`, and a day is 24 hours. A month, a year and a week have no fixed length: a unit of them, or a duration with years, months or weeks, needs a date of reference, `relativeTo`, a `plainDate` or a `plainDateTime` (only its date counts), given as a Temporal value or as a value of the query, like a column. The duration is added to that date as `add` adds it, and the unit is counted from it with the days of the calendar there: from January 15, 2024, `P1DT12H` is 1.5 of the 31 days of January, 0.048 months. Here the time of each rollout in hours, and in months from its release, and the days from the release to the publication, a duration that `since` computes:
+
+```ts
+const releases = await connection.selectFrom(tRelease)
+    .select({
+        version: tRelease.version,
+        hours: tRelease.rolloutTime.total('hours'),
+        months: tRelease.rolloutTime.total({ unit: 'month', relativeTo: tRelease.releasedOn }),
+        daysToPublication: tRelease.publishedAt.since(tRelease.releasedOn.toPlainDateTime()).total('days'),
+    })
+    .orderBy('version')
+    .executeSelectMany()
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        version as version, 
+        tsq_duration_total(tsq_duration_part(rollout_time, 'M'), tsq_duration_part(rollout_time, 'weeks'), tsq_duration_part(rollout_time, 'days'), tsq_duration_part(rollout_time, 'S'), tsq_duration_part(rollout_time, 'N'), 0, 0, 0, 'hour') as hours, 
+        tsq_duration_total(tsq_duration_part(rollout_time, 'M'), tsq_duration_part(rollout_time, 'weeks'), tsq_duration_part(rollout_time, 'days'), tsq_duration_part(rollout_time, 'S'), tsq_duration_part(rollout_time, 'N'), cast(year(released_on) as signed), cast(month(released_on) as signed), cast(dayofmonth(released_on) as signed), 'month') as months, 
+        tsq_duration_total(0, 0, -(datediff(date(timestamp(released_on)), date(published_at)) * 86400000000000 + ((floor(time_to_sec(timestamp(released_on))) * 1000000 + microsecond(timestamp(released_on))) * 1000 - (floor(time_to_sec(published_at)) * 1000000 + microsecond(published_at)) * 1000)) div 86400000000000, 0, -((datediff(date(timestamp(released_on)), date(published_at)) * 86400000000000 + ((floor(time_to_sec(timestamp(released_on))) * 1000000 + microsecond(timestamp(released_on))) * 1000 - (floor(time_to_sec(published_at)) * 1000000 + microsecond(published_at)) * 1000)) % 86400000000000), 0, 0, 0, 'day') as daysToPublication 
+    from project_release 
+    order by version
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        version as version, 
+        tsq_duration_total(tsq_duration_part(rollout_time, 'M'), tsq_duration_part(rollout_time, 'weeks'), tsq_duration_part(rollout_time, 'days'), tsq_duration_part(rollout_time, 'S'), tsq_duration_part(rollout_time, 'N'), 0, 0, 0, 'hour') as hours, 
+        tsq_duration_total(tsq_duration_part(rollout_time, 'M'), tsq_duration_part(rollout_time, 'weeks'), tsq_duration_part(rollout_time, 'days'), tsq_duration_part(rollout_time, 'S'), tsq_duration_part(rollout_time, 'N'), cast(year(released_on) as signed), cast(month(released_on) as signed), cast(dayofmonth(released_on) as signed), 'month') as months, 
+        tsq_duration_total(0, 0, -(datediff(date(timestamp(released_on)), date(published_at)) * 86400000000000 + ((floor(time_to_sec(timestamp(released_on))) * 1000000 + microsecond(timestamp(released_on))) * 1000 - (floor(time_to_sec(published_at)) * 1000000 + microsecond(published_at)) * 1000)) div 86400000000000, 0, -((datediff(date(timestamp(released_on)), date(published_at)) * 86400000000000 + ((floor(time_to_sec(timestamp(released_on))) * 1000000 + microsecond(timestamp(released_on))) * 1000 - (floor(time_to_sec(published_at)) * 1000000 + microsecond(published_at)) * 1000)) % 86400000000000), 0, 0, 0, 'day') as daysToPublication 
+    from project_release 
+    order by version
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        version as "version", 
+        tsq_duration_total(0, 0, extract(day from rollout_time), extract(hour from rollout_time) * 3600 + extract(minute from rollout_time) * 60 + trunc(extract(second from rollout_time)), mod(extract(second from rollout_time) * 1000000000, 1000000000), 0, 0, 0, 'hour') as "hours", 
+        tsq_duration_total(0, 0, extract(day from rollout_time), extract(hour from rollout_time) * 3600 + extract(minute from rollout_time) * 60 + trunc(extract(second from rollout_time)), mod(extract(second from rollout_time) * 1000000000, 1000000000), extract(year from released_on), extract(month from released_on), extract(day from released_on), 'month') as "months", 
+        tsq_duration_total(0, 0, -trunc(((trunc(cast(released_on as timestamp(9))) - trunc(published_at)) * 86400000000000 + ((extract(hour from (cast(cast(released_on as timestamp(9)) as timestamp(9)) - trunc(cast(released_on as timestamp(9))))) * 3600 + extract(minute from (cast(cast(released_on as timestamp(9)) as timestamp(9)) - trunc(cast(released_on as timestamp(9))))) * 60 + extract(second from (cast(cast(released_on as timestamp(9)) as timestamp(9)) - trunc(cast(released_on as timestamp(9)))))) * 1000000000 - (extract(hour from (cast(published_at as timestamp(9)) - trunc(published_at))) * 3600 + extract(minute from (cast(published_at as timestamp(9)) - trunc(published_at))) * 60 + extract(second from (cast(published_at as timestamp(9)) - trunc(published_at)))) * 1000000000)) / 86400000000000), 0, -(mod(((trunc(cast(released_on as timestamp(9))) - trunc(published_at)) * 86400000000000 + ((extract(hour from (cast(cast(released_on as timestamp(9)) as timestamp(9)) - trunc(cast(released_on as timestamp(9))))) * 3600 + extract(minute from (cast(cast(released_on as timestamp(9)) as timestamp(9)) - trunc(cast(released_on as timestamp(9))))) * 60 + extract(second from (cast(cast(released_on as timestamp(9)) as timestamp(9)) - trunc(cast(released_on as timestamp(9)))))) * 1000000000 - (extract(hour from (cast(published_at as timestamp(9)) - trunc(published_at))) * 3600 + extract(minute from (cast(published_at as timestamp(9)) - trunc(published_at))) * 60 + extract(second from (cast(published_at as timestamp(9)) - trunc(published_at)))) * 1000000000)), 86400000000000)), 0, 0, 0, 'day') as "daysToPublication" 
+    from project_release 
+    order by "version"
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        version as version, 
+        tsq_duration_total(cast(extract(year from rollout_time) * 12 + extract(month from rollout_time) as bigint), 0, cast(extract(day from rollout_time) as bigint), cast(extract(hour from rollout_time) * 3600 + extract(minute from rollout_time) * 60 + trunc(extract(second from rollout_time)) as bigint), cast(extract(microseconds from rollout_time) as bigint) % 1000000 * 1000, 0, 0, 0, 'hour') as hours, 
+        tsq_duration_total(cast(extract(year from rollout_time) * 12 + extract(month from rollout_time) as bigint), 0, cast(extract(day from rollout_time) as bigint), cast(extract(hour from rollout_time) * 3600 + extract(minute from rollout_time) * 60 + trunc(extract(second from rollout_time)) as bigint), cast(extract(microseconds from rollout_time) as bigint) % 1000000 * 1000, cast(extract(year from released_on) as integer), cast(extract(month from released_on) as integer), cast(extract(day from released_on) as integer), 'month') as months, 
+        tsq_duration_total(0, 0, -cast((((cast(cast(released_on as timestamp) as date) - cast(published_at as date)) * 86400000000000 + ((round(extract(epoch from cast(cast(released_on as timestamp) as time)) * 1000000)::bigint * 1000) - (round(extract(epoch from cast(published_at as time)) * 1000000)::bigint * 1000))) / 86400000000000) as integer), 0, -(((cast(cast(released_on as timestamp) as date) - cast(published_at as date)) * 86400000000000 + ((round(extract(epoch from cast(cast(released_on as timestamp) as time)) * 1000000)::bigint * 1000) - (round(extract(epoch from cast(published_at as time)) * 1000000)::bigint * 1000))) % 86400000000000), 0, 0, 0, 'day') as "daysToPublication" 
+    from project_release 
+    order by version
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        version as version, 
+        tsq_duration_total(tsq_duration_part(rollout_time, 'M'), tsq_duration_part(rollout_time, 'weeks'), tsq_duration_part(rollout_time, 'days'), tsq_duration_part(rollout_time, 'S'), tsq_duration_part(rollout_time, 'N'), 0, 0, 0, 'hour') as hours, 
+        tsq_duration_total(tsq_duration_part(rollout_time, 'M'), tsq_duration_part(rollout_time, 'weeks'), tsq_duration_part(rollout_time, 'days'), tsq_duration_part(rollout_time, 'S'), tsq_duration_part(rollout_time, 'N'), cast(strftime('%Y', released_on) as integer), cast(strftime('%m', released_on) as integer), cast(strftime('%d', released_on) as integer), 'month') as months, 
+        tsq_duration_total(0, 0, -cast((cast(julianday(date(strftime('%Y-%m-%dT%H:%M:%fZ', released_on))) - julianday(date(published_at)) as integer) * 86400000000000 + (cast(round((julianday(strftime('%Y-%m-%dT%H:%M:%fZ', released_on)) - julianday(date(strftime('%Y-%m-%dT%H:%M:%fZ', released_on)))) * 86400000) as integer) * 1000000 - cast(round((julianday(published_at) - julianday(date(published_at))) * 86400000) as integer) * 1000000)) / 86400000000000 as integer), 0, -((cast(julianday(date(strftime('%Y-%m-%dT%H:%M:%fZ', released_on))) - julianday(date(published_at)) as integer) * 86400000000000 + (cast(round((julianday(strftime('%Y-%m-%dT%H:%M:%fZ', released_on)) - julianday(date(strftime('%Y-%m-%dT%H:%M:%fZ', released_on)))) * 86400000) as integer) * 1000000 - cast(round((julianday(published_at) - julianday(date(published_at))) * 86400000) as integer) * 1000000)) % 86400000000000), 0, 0, 0, 'day') as daysToPublication 
+    from project_release 
+    order by version
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        version as version, 
+        dbo.tsq_duration_total(dbo.tsq_duration_part(rollout_time, 'M'), dbo.tsq_duration_part(rollout_time, 'weeks'), dbo.tsq_duration_part(rollout_time, 'days'), dbo.tsq_duration_part(rollout_time, 'S'), dbo.tsq_duration_part(rollout_time, 'N'), 0, 0, 0, 'hour') as hours, 
+        dbo.tsq_duration_total(dbo.tsq_duration_part(rollout_time, 'M'), dbo.tsq_duration_part(rollout_time, 'weeks'), dbo.tsq_duration_part(rollout_time, 'days'), dbo.tsq_duration_part(rollout_time, 'S'), dbo.tsq_duration_part(rollout_time, 'N'), datepart(year, released_on), datepart(month, released_on), datepart(day, released_on), 'month') as months, 
+        dbo.tsq_duration_total(0, 0, -(datediff(day, cast(published_at as date), cast(cast(released_on as datetime2) as date)) * cast(86400000000000 as bigint) + ((cast(datediff(second, cast('00:00' as time), cast(cast(released_on as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(released_on as datetime2))) - (cast(datediff(second, cast('00:00' as time), cast(published_at as time)) as bigint) * 1000000000 + datepart(nanosecond, published_at)))) / cast(86400000000000 as bigint), 0, -((datediff(day, cast(published_at as date), cast(cast(released_on as datetime2) as date)) * cast(86400000000000 as bigint) + ((cast(datediff(second, cast('00:00' as time), cast(cast(released_on as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(released_on as datetime2))) - (cast(datediff(second, cast('00:00' as time), cast(published_at as time)) as bigint) * 1000000000 + datepart(nanosecond, published_at)))) % cast(86400000000000 as bigint)), 0, 0, 0, 'day') as daysToPublication 
+    from project_release 
+    order by version
+    ```
+
+The parameters are: `[]`
+
+| version | hours | months | daysToPublication |
+|---|---|---|---|
+| `'0.9.0'` | `48` | `0.06451612903225806` | `1.4583333333333333` |
+| `'1.2.0'` | `36` | `0.04838709677419355` | `1.375` |
+| `'1.3.0-beta.1'` | `0.75` | `0.0010775862068965517` | `1.4166666666666667` |
+
+The number is the one Temporal's `total` gives, to the last digit. What applies to what:
+
+| Unit | Without `relativeTo` | With `relativeTo` |
+|---|---|---|
+| `'day'` and the units of the time | a day is 24 hours; a duration with years, months or weeks fails the query | the duration is added to the date; a day is 24 hours |
+| `'week'`, `'month'`, `'year'` | doesn't compile | counted from the date: a month or a year has the days of the calendar there |
+
+Without a date of reference, a duration with years, months or weeks fails the query, as Temporal's `total` throws: the type of the value doesn't tell which fields it has. The error is the one of the function below, which says it needs a date of reference (on SQL Server, an error converting that text to a number, because a function there can't raise one).
+
+On Oracle, a date before 15 October 1582 is in the Julian calendar: a total counted across that day isn't the one of Temporal (see [Dates before 1582](supported-databases/oracle.md#dates-before-1582)).
+
+### The function `tsq_duration_total`
+
+`total` is computed by `tsq_duration_total`, a function of the library, on every database: it adds the duration to the date of reference and divides with integers, so the `double` is rounded once, as Temporal rounds it. It takes the months of the duration (its years too), its weeks, its days, the whole seconds of its time and the nanoseconds of the second, the year, the month and the day of the date of reference (`0, 0, 0` without one) and the unit. Create it once in the database, as `tsq_duration_part`; without it, the query fails with the error of the database for a function that doesn't exist.
+
+=== "MariaDB"
+    ```sql
+    DROP FUNCTION IF EXISTS tsq_duration_total;
+    DELIMITER //
+    CREATE FUNCTION tsq_duration_total(months BIGINT, weeks BIGINT, days BIGINT, seconds BIGINT, nanoseconds BIGINT, y INT, m INT, d INT, unit VARCHAR(11)) RETURNS DOUBLE DETERMINISTIC NO SQL
+    BEGIN
+        DECLARE v_day DECIMAL(65, 0) DEFAULT 86400000000000;
+        DECLARE v_t DECIMAL(65, 0);
+        DECLARE v_time_of_day DECIMAL(65, 0);
+        DECLARE v_one DATE;
+        DECLARE v_two DATE;
+        DECLARE v_adjusted DATE;
+        DECLARE v_sign INT;
+        DECLARE v_k INT;
+        DECLARE v_ya INT;
+        DECLARE v_ma INT;
+        DECLARE v_da INT;
+        DECLARE v_r1 INT;
+        DECLARE v_start DATE;
+        DECLARE v_end DATE;
+        DECLARE v_a DECIMAL(65, 0);
+        DECLARE v_b DECIMAL(65, 0);
+        DECLARE v_x DECIMAL(65, 0);
+        DECLARE v_s INT DEFAULT 0;
+        DECLARE v_q DECIMAL(65, 0);
+        DECLARE v_rest DECIMAL(65, 0);
+        DECLARE v_result DOUBLE;
+        IF months IS NULL OR weeks IS NULL OR days IS NULL OR seconds IS NULL OR nanoseconds IS NULL OR y IS NULL OR m IS NULL OR d IS NULL OR unit IS NULL THEN RETURN NULL; END IF;
+        SET v_t = seconds * CAST(1000000000 AS DECIMAL(65, 0)) + nanoseconds;
+        IF m = 0 THEN
+            IF months <> 0 OR weeks <> 0 OR unit IN ('year', 'month', 'week') THEN
+                SIGNAL SQLSTATE '22023' SET MESSAGE_TEXT = 'tsq_duration_total: a duration with years, months or weeks, or a total in years, months or weeks, needs a date of reference';
+            END IF;
+            SET v_a = days * v_day + v_t;
+        ELSE
+            -- The duration added to the date at 00:00: the months, then the weeks, the days and the whole days of the time
+            SET v_time_of_day = MOD(v_t, v_day);
+            IF v_time_of_day < 0 THEN SET v_time_of_day = v_time_of_day + v_day; END IF;
+            SET v_one = DATE_ADD(DATE_ADD(MAKEDATE(y, 1), INTERVAL m - 1 MONTH), INTERVAL d - 1 DAY);
+            SET v_two = DATE_ADD(DATE_ADD(v_one, INTERVAL months MONTH), INTERVAL weeks * 7 + days + (v_t - v_time_of_day) DIV v_day DAY);
+            IF unit IN ('year', 'month', 'week') THEN
+                IF v_two = v_one AND v_time_of_day = 0 THEN RETURN 0; END IF;
+                -- The whole units to the end without passing it (as until), and the progress to the next one
+                SET v_adjusted = IF(v_time_of_day > 0 AND v_two < v_one, DATE_ADD(v_two, INTERVAL 1 DAY), v_two);
+                SET v_sign = IF(DATEDIFF(v_two, v_one) * v_day + v_time_of_day < 0, -1, 1);
+                IF unit = 'week' THEN
+                    SET v_r1 = DATEDIFF(v_adjusted, v_one) DIV 7;
+                ELSE
+                    SET v_ya = YEAR(v_adjusted), v_ma = MONTH(v_adjusted), v_da = DAY(v_adjusted);
+                    SET v_k = ((v_ya * 12 + v_ma) * 32 + v_da - (y * 12 + m) * 32 - d) DIV 32;
+                    SET v_r1 = IF(unit = 'month', v_k, v_k DIV 12);
+                END IF;
+                SET v_start = IF(unit = 'week', DATE_ADD(v_one, INTERVAL 7 * v_r1 DAY), DATE_ADD(v_one, INTERVAL IF(unit = 'month', v_r1, 12 * v_r1) MONTH));
+                SET v_end = IF(unit = 'week', DATE_ADD(v_one, INTERVAL 7 * (v_r1 + v_sign) DAY), DATE_ADD(v_one, INTERVAL IF(unit = 'month', v_r1 + v_sign, 12 * (v_r1 + v_sign)) MONTH));
+                IF ABS(DATEDIFF(v_two, v_start) * v_day + v_time_of_day) >= ABS(DATEDIFF(v_end, v_start) * v_day) THEN
+                    -- The end beyond the next unit (the day of the date wasn't in the month of the end): from that unit
+                    SET v_r1 = v_r1 + v_sign, v_start = v_end;
+                    SET v_end = IF(unit = 'week', DATE_ADD(v_one, INTERVAL 7 * (v_r1 + v_sign) DAY), DATE_ADD(v_one, INTERVAL IF(unit = 'month', v_r1 + v_sign, 12 * (v_r1 + v_sign)) MONTH));
+                END IF;
+                SET v_b = ABS(DATEDIFF(v_end, v_start) * v_day);
+                SET v_a = v_r1 * v_b + v_sign * ABS(DATEDIFF(v_two, v_start) * v_day + v_time_of_day);
+            ELSE
+                SET v_a = DATEDIFF(v_two, v_one) * v_day + v_time_of_day;
+            END IF;
+        END IF;
+        IF unit NOT IN ('year', 'month', 'week') THEN
+            SET v_b = CASE unit WHEN 'day' THEN 86400000000000 WHEN 'hour' THEN 3600000000000 WHEN 'minute' THEN 60000000000 WHEN 'second' THEN 1000000000 WHEN 'millisecond' THEN 1000000 WHEN 'microsecond' THEN 1000 ELSE 1 END;
+        END IF;
+        -- a / b rounded once: the integer q from 2^52 to 2^53 and the exponent s with q * 2^-s the nearest to it
+        IF v_a = 0 THEN RETURN 0; END IF;
+        SET v_x = ABS(v_a);
+        WHILE v_x >= v_b * 9007199254740992 DO
+            SET v_b = v_b * 2, v_s = v_s - 1;
+        END WHILE;
+        WHILE v_x < v_b * 4503599627370496 DO
+            SET v_x = v_x * 2, v_s = v_s + 1;
+        END WHILE;
+        SET v_rest = MOD(v_x, v_b);
+        SET v_q = (v_x - v_rest) / v_b;
+        IF 2 * v_rest > v_b OR 2 * v_rest = v_b AND MOD(v_q, 2) = 1 THEN SET v_q = v_q + 1; END IF;
+        SET v_result = v_q;
+        RETURN IF(v_a < 0, -1, 1) * v_result * POW(2, -v_s);
+    END
+    //
+    DELIMITER ;
+    ```
+=== "MySQL"
+    ```sql
+    DROP FUNCTION IF EXISTS tsq_duration_total;
+    DELIMITER //
+    CREATE FUNCTION tsq_duration_total(months BIGINT, weeks BIGINT, days BIGINT, seconds BIGINT, nanoseconds BIGINT, y INT, m INT, d INT, unit VARCHAR(11)) RETURNS DOUBLE DETERMINISTIC NO SQL
+    BEGIN
+        DECLARE v_day DECIMAL(65, 0) DEFAULT 86400000000000;
+        DECLARE v_t DECIMAL(65, 0);
+        DECLARE v_time_of_day DECIMAL(65, 0);
+        DECLARE v_one DATE;
+        DECLARE v_two DATE;
+        DECLARE v_adjusted DATE;
+        DECLARE v_sign INT;
+        DECLARE v_k INT;
+        DECLARE v_ya INT;
+        DECLARE v_ma INT;
+        DECLARE v_da INT;
+        DECLARE v_r1 INT;
+        DECLARE v_start DATE;
+        DECLARE v_end DATE;
+        DECLARE v_a DECIMAL(65, 0);
+        DECLARE v_b DECIMAL(65, 0);
+        DECLARE v_x DECIMAL(65, 0);
+        DECLARE v_s INT DEFAULT 0;
+        DECLARE v_q DECIMAL(65, 0);
+        DECLARE v_rest DECIMAL(65, 0);
+        DECLARE v_result DOUBLE;
+        IF months IS NULL OR weeks IS NULL OR days IS NULL OR seconds IS NULL OR nanoseconds IS NULL OR y IS NULL OR m IS NULL OR d IS NULL OR unit IS NULL THEN RETURN NULL; END IF;
+        SET v_t = seconds * CAST(1000000000 AS DECIMAL(65, 0)) + nanoseconds;
+        IF m = 0 THEN
+            IF months <> 0 OR weeks <> 0 OR unit IN ('year', 'month', 'week') THEN
+                SIGNAL SQLSTATE '22023' SET MESSAGE_TEXT = 'tsq_duration_total: a duration with years, months or weeks, or a total in years, months or weeks, needs a date of reference';
+            END IF;
+            SET v_a = days * v_day + v_t;
+        ELSE
+            -- The duration added to the date at 00:00: the months, then the weeks, the days and the whole days of the time
+            SET v_time_of_day = MOD(v_t, v_day);
+            IF v_time_of_day < 0 THEN SET v_time_of_day = v_time_of_day + v_day; END IF;
+            SET v_one = DATE_ADD(DATE_ADD(MAKEDATE(y, 1), INTERVAL m - 1 MONTH), INTERVAL d - 1 DAY);
+            SET v_two = DATE_ADD(DATE_ADD(v_one, INTERVAL months MONTH), INTERVAL weeks * 7 + days + (v_t - v_time_of_day) DIV v_day DAY);
+            IF unit IN ('year', 'month', 'week') THEN
+                IF v_two = v_one AND v_time_of_day = 0 THEN RETURN 0; END IF;
+                -- The whole units to the end without passing it (as until), and the progress to the next one
+                SET v_adjusted = IF(v_time_of_day > 0 AND v_two < v_one, DATE_ADD(v_two, INTERVAL 1 DAY), v_two);
+                SET v_sign = IF(DATEDIFF(v_two, v_one) * v_day + v_time_of_day < 0, -1, 1);
+                IF unit = 'week' THEN
+                    SET v_r1 = DATEDIFF(v_adjusted, v_one) DIV 7;
+                ELSE
+                    SET v_ya = YEAR(v_adjusted), v_ma = MONTH(v_adjusted), v_da = DAY(v_adjusted);
+                    SET v_k = ((v_ya * 12 + v_ma) * 32 + v_da - (y * 12 + m) * 32 - d) DIV 32;
+                    SET v_r1 = IF(unit = 'month', v_k, v_k DIV 12);
+                END IF;
+                SET v_start = IF(unit = 'week', DATE_ADD(v_one, INTERVAL 7 * v_r1 DAY), DATE_ADD(v_one, INTERVAL IF(unit = 'month', v_r1, 12 * v_r1) MONTH));
+                SET v_end = IF(unit = 'week', DATE_ADD(v_one, INTERVAL 7 * (v_r1 + v_sign) DAY), DATE_ADD(v_one, INTERVAL IF(unit = 'month', v_r1 + v_sign, 12 * (v_r1 + v_sign)) MONTH));
+                IF ABS(DATEDIFF(v_two, v_start) * v_day + v_time_of_day) >= ABS(DATEDIFF(v_end, v_start) * v_day) THEN
+                    -- The end beyond the next unit (the day of the date wasn't in the month of the end): from that unit
+                    SET v_r1 = v_r1 + v_sign, v_start = v_end;
+                    SET v_end = IF(unit = 'week', DATE_ADD(v_one, INTERVAL 7 * (v_r1 + v_sign) DAY), DATE_ADD(v_one, INTERVAL IF(unit = 'month', v_r1 + v_sign, 12 * (v_r1 + v_sign)) MONTH));
+                END IF;
+                SET v_b = ABS(DATEDIFF(v_end, v_start) * v_day);
+                SET v_a = v_r1 * v_b + v_sign * ABS(DATEDIFF(v_two, v_start) * v_day + v_time_of_day);
+            ELSE
+                SET v_a = DATEDIFF(v_two, v_one) * v_day + v_time_of_day;
+            END IF;
+        END IF;
+        IF unit NOT IN ('year', 'month', 'week') THEN
+            SET v_b = CASE unit WHEN 'day' THEN 86400000000000 WHEN 'hour' THEN 3600000000000 WHEN 'minute' THEN 60000000000 WHEN 'second' THEN 1000000000 WHEN 'millisecond' THEN 1000000 WHEN 'microsecond' THEN 1000 ELSE 1 END;
+        END IF;
+        -- a / b rounded once: the integer q from 2^52 to 2^53 and the exponent s with q * 2^-s the nearest to it
+        IF v_a = 0 THEN RETURN 0; END IF;
+        SET v_x = ABS(v_a);
+        WHILE v_x >= v_b * 9007199254740992 DO
+            SET v_b = v_b * 2, v_s = v_s - 1;
+        END WHILE;
+        WHILE v_x < v_b * 4503599627370496 DO
+            SET v_x = v_x * 2, v_s = v_s + 1;
+        END WHILE;
+        SET v_rest = MOD(v_x, v_b);
+        SET v_q = (v_x - v_rest) / v_b;
+        IF 2 * v_rest > v_b OR 2 * v_rest = v_b AND MOD(v_q, 2) = 1 THEN SET v_q = v_q + 1; END IF;
+        SET v_result = v_q;
+        RETURN IF(v_a < 0, -1, 1) * v_result * POW(2, -v_s);
+    END
+    //
+    DELIMITER ;
+    ```
+=== "Oracle"
+    ```sql
+    CREATE OR REPLACE FUNCTION tsq_duration_total(months IN NUMBER, weeks IN NUMBER, days IN NUMBER, seconds IN NUMBER, nanoseconds IN NUMBER, y IN NUMBER, m IN NUMBER, d IN NUMBER, unit IN VARCHAR2) RETURN BINARY_DOUBLE DETERMINISTIC IS
+        v_day CONSTANT NUMBER := 86400000000000;
+        v_t NUMBER;
+        v_time_of_day NUMBER;
+        v_one DATE;
+        v_two DATE;
+        v_adjusted DATE;
+        v_sign NUMBER;
+        v_k NUMBER;
+        v_r1 NUMBER;
+        v_start DATE;
+        v_end DATE;
+        v_a NUMBER;
+        v_b NUMBER;
+        v_x NUMBER;
+        v_s NUMBER := 0;
+        v_q NUMBER;
+        v_rest NUMBER;
+        -- add_months gives the last day of a month to the last day of another: the days it moves past the day are taken back
+        FUNCTION plus_months(dt IN DATE, k IN NUMBER) RETURN DATE IS
+        BEGIN
+            RETURN ADD_MONTHS(dt, k) - GREATEST(0, EXTRACT(DAY FROM ADD_MONTHS(dt, k)) - EXTRACT(DAY FROM dt));
+        END;
+        -- The date plus a number of weeks, months or years, the day kept in the month
+        FUNCTION units_from(n IN NUMBER) RETURN DATE IS
+        BEGIN
+            RETURN CASE WHEN unit = 'week' THEN v_one + 7 * n ELSE plus_months(v_one, CASE WHEN unit = 'month' THEN n ELSE 12 * n END) END;
+        END;
+    BEGIN
+        IF months IS NULL OR weeks IS NULL OR days IS NULL OR seconds IS NULL OR nanoseconds IS NULL OR y IS NULL OR m IS NULL OR d IS NULL OR unit IS NULL THEN RETURN NULL; END IF;
+        v_t := seconds * 1000000000 + nanoseconds;
+        IF m = 0 THEN
+            IF months <> 0 OR weeks <> 0 OR unit IN ('year', 'month', 'week') THEN
+                RAISE_APPLICATION_ERROR(-20001, 'tsq_duration_total: a duration with years, months or weeks, or a total in years, months or weeks, needs a date of reference');
+            END IF;
+            v_a := days * v_day + v_t;
+        ELSE
+            -- The duration added to the date at 00:00: the months, then the weeks, the days and the whole days of the time
+            v_time_of_day := MOD(v_t, v_day);
+            IF v_time_of_day < 0 THEN v_time_of_day := v_time_of_day + v_day; END IF;
+            v_one := ADD_MONTHS(DATE '0001-01-01', (y - 1) * 12 + m - 1) + d - 1;
+            v_two := plus_months(v_one, months) + weeks * 7 + days + (v_t - v_time_of_day) / v_day;
+            IF unit IN ('year', 'month', 'week') THEN
+                IF v_two = v_one AND v_time_of_day = 0 THEN RETURN 0; END IF;
+                -- The whole units to the end without passing it (as until), and the progress to the next one
+                v_adjusted := CASE WHEN v_time_of_day > 0 AND v_two < v_one THEN v_two + 1 ELSE v_two END;
+                v_sign := CASE WHEN (v_two - v_one) * v_day + v_time_of_day < 0 THEN -1 ELSE 1 END;
+                IF unit = 'week' THEN
+                    v_r1 := TRUNC((v_adjusted - v_one) / 7);
+                ELSE
+                    v_k := TRUNC(((EXTRACT(YEAR FROM v_adjusted) * 12 + EXTRACT(MONTH FROM v_adjusted)) * 32 + EXTRACT(DAY FROM v_adjusted) - (y * 12 + m) * 32 - d) / 32);
+                    v_r1 := CASE WHEN unit = 'month' THEN v_k ELSE TRUNC(v_k / 12) END;
+                END IF;
+                v_start := units_from(v_r1);
+                v_end := units_from(v_r1 + v_sign);
+                IF ABS((v_two - v_start) * v_day + v_time_of_day) >= ABS((v_end - v_start) * v_day) THEN
+                    -- The end beyond the next unit (the day of the date wasn't in the month of the end): from that unit
+                    v_r1 := v_r1 + v_sign;
+                    v_start := v_end;
+                    v_end := units_from(v_r1 + v_sign);
+                END IF;
+                v_b := ABS((v_end - v_start) * v_day);
+                v_a := v_r1 * v_b + v_sign * ABS((v_two - v_start) * v_day + v_time_of_day);
+            ELSE
+                v_a := (v_two - v_one) * v_day + v_time_of_day;
+            END IF;
+        END IF;
+        IF unit NOT IN ('year', 'month', 'week') THEN
+            v_b := CASE unit WHEN 'day' THEN 86400000000000 WHEN 'hour' THEN 3600000000000 WHEN 'minute' THEN 60000000000 WHEN 'second' THEN 1000000000 WHEN 'millisecond' THEN 1000000 WHEN 'microsecond' THEN 1000 ELSE 1 END;
+        END IF;
+        -- a / b rounded once: the integer q from 2^52 to 2^53 and the exponent s with q * 2^-s the nearest to it
+        IF v_a = 0 THEN RETURN 0; END IF;
+        v_x := ABS(v_a);
+        WHILE v_x >= v_b * 9007199254740992 LOOP
+            v_b := v_b * 2;
+            v_s := v_s - 1;
+        END LOOP;
+        WHILE v_x < v_b * 4503599627370496 LOOP
+            v_x := v_x * 2;
+            v_s := v_s + 1;
+        END LOOP;
+        v_rest := MOD(v_x, v_b);
+        v_q := (v_x - v_rest) / v_b;
+        IF 2 * v_rest > v_b OR 2 * v_rest = v_b AND MOD(v_q, 2) = 1 THEN v_q := v_q + 1; END IF;
+        RETURN CASE WHEN v_a < 0 THEN -1 ELSE 1 END * TO_BINARY_DOUBLE(v_q) * POWER(2d, -v_s);
+    END;
+    ```
+===+ "PostgreSQL"
+    ```sql
+    CREATE OR REPLACE FUNCTION tsq_duration_total(months bigint, weeks bigint, days bigint, seconds bigint, nanoseconds bigint, y integer, m integer, d integer, unit text) RETURNS double precision LANGUAGE plpgsql IMMUTABLE STRICT AS $$
+    DECLARE
+        day_ns CONSTANT numeric := 86400000000000;
+        unit_ns CONSTANT numeric := CASE unit WHEN 'day' THEN 86400000000000 WHEN 'hour' THEN 3600000000000 WHEN 'minute' THEN 60000000000 WHEN 'second' THEN 1000000000 WHEN 'millisecond' THEN 1000000 WHEN 'microsecond' THEN 1000 ELSE 1 END;
+        t numeric := seconds * 1000000000::numeric + nanoseconds;
+        time_of_day numeric;
+        one date;
+        two date;
+        adjusted date;
+        sgn integer;
+        k integer;
+        r1 integer;
+        start_day date;
+        end_day date;
+        a numeric;
+        b numeric;
+        x numeric;
+        s integer := 0;
+        q numeric;
+        rest numeric;
+    BEGIN
+        IF m = 0 THEN
+            IF months <> 0 OR weeks <> 0 OR unit IN ('year', 'month', 'week') THEN
+                RAISE EXCEPTION 'tsq_duration_total: a duration with years, months or weeks, or a total in years, months or weeks, needs a date of reference';
+            END IF;
+            a := days * day_ns + t;
+            b := unit_ns;
+        ELSE
+            -- The duration added to the date at 00:00: the months, then the weeks, the days and the whole days of the time
+            time_of_day := mod(t, day_ns);
+            IF time_of_day < 0 THEN
+                time_of_day := time_of_day + day_ns;
+            END IF;
+            one := make_date(y, m, d);
+            two := (one + make_interval(months => months::integer))::date + (weeks * 7 + days + (t - time_of_day) / day_ns)::integer;
+            IF unit NOT IN ('year', 'month', 'week') THEN
+                a := (two - one) * day_ns + time_of_day;
+                b := unit_ns;
+            ELSE
+                IF two = one AND time_of_day = 0 THEN
+                    RETURN 0;
+                END IF;
+                -- The whole units to the end without passing it (as until), and the progress to the next one
+                adjusted := CASE WHEN time_of_day > 0 AND two < one THEN two + 1 ELSE two END;
+                sgn := CASE WHEN (two - one) * day_ns + time_of_day < 0 THEN -1 ELSE 1 END;
+                IF unit = 'week' THEN
+                    r1 := (adjusted - one) / 7;
+                ELSE
+                    k := ((extract(year from adjusted)::integer * 12 + extract(month from adjusted)::integer) * 32 + extract(day from adjusted)::integer - (y * 12 + m) * 32 - d) / 32;
+                    r1 := CASE WHEN unit = 'month' THEN k ELSE k / 12 END;
+                END IF;
+                start_day := CASE WHEN unit = 'week' THEN one + 7 * r1 ELSE (one + make_interval(months => CASE WHEN unit = 'month' THEN r1 ELSE 12 * r1 END))::date END;
+                end_day := CASE WHEN unit = 'week' THEN one + 7 * (r1 + sgn) ELSE (one + make_interval(months => CASE WHEN unit = 'month' THEN r1 + sgn ELSE 12 * (r1 + sgn) END))::date END;
+                IF abs((two - start_day) * day_ns + time_of_day) >= abs((end_day - start_day) * day_ns) THEN
+                    -- The end beyond the next unit (the day of the date wasn't in the month of the end): from that unit
+                    r1 := r1 + sgn;
+                    start_day := end_day;
+                    end_day := CASE WHEN unit = 'week' THEN one + 7 * (r1 + sgn) ELSE (one + make_interval(months => CASE WHEN unit = 'month' THEN r1 + sgn ELSE 12 * (r1 + sgn) END))::date END;
+                END IF;
+                b := abs((end_day - start_day) * day_ns);
+                a := r1 * b + sgn * abs((two - start_day) * day_ns + time_of_day);
+            END IF;
+        END IF;
+        -- a / b rounded once: the integer q from 2^52 to 2^53 and the exponent s with q * 2^-s the nearest to it
+        IF a = 0 THEN
+            RETURN 0;
+        END IF;
+        x := abs(a);
+        WHILE x >= b * 9007199254740992 LOOP
+            b := b * 2;
+            s := s - 1;
+        END LOOP;
+        WHILE x < b * 4503599627370496 LOOP
+            x := x * 2;
+            s := s + 1;
+        END LOOP;
+        q := div(x, b);
+        rest := x - q * b;
+        IF 2 * rest > b OR 2 * rest = b AND mod(q, 2) = 1 THEN
+            q := q + 1;
+        END IF;
+        RETURN CASE WHEN a < 0 THEN -1 ELSE 1 END * q::double precision * power(2::double precision, -s);
+    END
+    $$;
+    ```
+=== "SQLite"
+    `registerSqliteFunctions` registers it, written in JavaScript, with the other functions of the library: see [The SQL functions of the library](query-runners/recommended/bun_sqlite.md#the-sql-functions-of-the-library). Bun SQL's SQLite has no way to register a function.
+=== "SQL Server"
+    ```sql
+    CREATE OR ALTER FUNCTION dbo.tsq_duration_total(@months BIGINT, @weeks BIGINT, @days BIGINT, @seconds BIGINT, @nanoseconds BIGINT, @y INT, @m INT, @d INT, @unit VARCHAR(11)) RETURNS FLOAT WITH SCHEMABINDING AS
+    BEGIN
+        IF @months IS NULL OR @weeks IS NULL OR @days IS NULL OR @seconds IS NULL OR @nanoseconds IS NULL OR @y IS NULL OR @m IS NULL OR @d IS NULL OR @unit IS NULL RETURN NULL;
+        DECLARE @day DECIMAL(38, 0) = 86400000000000, @t DECIMAL(38, 0) = CAST(@seconds AS DECIMAL(38, 0)) * 1000000000 + @nanoseconds, @timeOfDay DECIMAL(38, 0);
+        DECLARE @one DATE, @two DATE, @adjusted DATE, @sign INT, @k INT, @r1 INT, @start DATE, @end DATE;
+        DECLARE @a DECIMAL(38, 0), @b DECIMAL(38, 0), @x DECIMAL(38, 0), @s INT = 0, @q DECIMAL(38, 0), @rest DECIMAL(38, 0);
+        IF @m = 0
+        BEGIN
+            IF @months <> 0 OR @weeks <> 0 OR @unit IN ('year', 'month', 'week')
+                RETURN CAST('tsq_duration_total: a duration with years, months or weeks, or a total in years, months or weeks, needs a date of reference, unit ' + @unit AS INT);
+            SET @a = @days * @day + @t;
+        END
+        ELSE
+        BEGIN
+            -- The duration added to the date at 00:00: the months, then the weeks, the days and the whole days of the time
+            SET @timeOfDay = @t % @day;
+            IF @timeOfDay < 0 SET @timeOfDay = @timeOfDay + @day;
+            SET @one = DATEFROMPARTS(@y, @m, @d);
+            SET @two = DATEADD(day, CAST(@weeks * 7 + @days + (@t - @timeOfDay) / @day AS INT), DATEADD(month, @months, @one));
+            IF @unit IN ('year', 'month', 'week')
+            BEGIN
+                IF @two = @one AND @timeOfDay = 0 RETURN 0;
+                -- The whole units to the end without passing it (as until), and the progress to the next one
+                SET @adjusted = CASE WHEN @timeOfDay > 0 AND @two < @one THEN DATEADD(day, 1, @two) ELSE @two END;
+                SET @sign = CASE WHEN DATEDIFF(day, @one, @two) * @day + @timeOfDay < 0 THEN -1 ELSE 1 END;
+                IF @unit = 'week'
+                    SET @r1 = DATEDIFF(day, @one, @adjusted) / 7;
+                ELSE
+                BEGIN
+                    SET @k = ((YEAR(@adjusted) * 12 + MONTH(@adjusted)) * 32 + DAY(@adjusted) - (@y * 12 + @m) * 32 - @d) / 32;
+                    SET @r1 = CASE WHEN @unit = 'month' THEN @k ELSE @k / 12 END;
+                END
+                SET @start = CASE WHEN @unit = 'week' THEN DATEADD(day, 7 * @r1, @one) ELSE DATEADD(month, CASE WHEN @unit = 'month' THEN @r1 ELSE 12 * @r1 END, @one) END;
+                SET @end = CASE WHEN @unit = 'week' THEN DATEADD(day, 7 * (@r1 + @sign), @one) ELSE DATEADD(month, CASE WHEN @unit = 'month' THEN @r1 + @sign ELSE 12 * (@r1 + @sign) END, @one) END;
+                IF ABS(DATEDIFF(day, @start, @two) * @day + @timeOfDay) >= ABS(DATEDIFF(day, @start, @end) * @day)
+                BEGIN
+                    -- The end beyond the next unit (the day of the date wasn't in the month of the end): from that unit
+                    SET @r1 = @r1 + @sign;
+                    SET @start = @end;
+                    SET @end = CASE WHEN @unit = 'week' THEN DATEADD(day, 7 * (@r1 + @sign), @one) ELSE DATEADD(month, CASE WHEN @unit = 'month' THEN @r1 + @sign ELSE 12 * (@r1 + @sign) END, @one) END;
+                END
+                SET @b = ABS(DATEDIFF(day, @start, @end) * @day);
+                SET @a = @r1 * @b + @sign * ABS(DATEDIFF(day, @start, @two) * @day + @timeOfDay);
+            END
+            ELSE
+                SET @a = DATEDIFF(day, @one, @two) * @day + @timeOfDay;
+        END
+        IF @unit NOT IN ('year', 'month', 'week')
+            SET @b = CASE @unit WHEN 'day' THEN 86400000000000 WHEN 'hour' THEN 3600000000000 WHEN 'minute' THEN 60000000000 WHEN 'second' THEN 1000000000 WHEN 'millisecond' THEN 1000000 WHEN 'microsecond' THEN 1000 ELSE 1 END;
+        -- a / b rounded once: the integer q from 2^52 to 2^53 and the exponent s with q * 2^-s the nearest to it
+        IF @a = 0 RETURN 0;
+        SET @x = ABS(@a);
+        WHILE @x >= @b * 9007199254740992 BEGIN SET @b = @b * 2; SET @s = @s - 1; END
+        WHILE @x < @b * 4503599627370496 BEGIN SET @x = @x * 2; SET @s = @s + 1; END
+        SET @rest = @x % @b;
+        SET @q = (@x - @rest) / @b;
+        IF 2 * @rest > @b OR 2 * @rest = @b AND @q % 2 = 1 SET @q = @q + 1;
+        RETURN CASE WHEN @a < 0 THEN -1 ELSE 1 END * CAST(@q AS FLOAT) * POWER(CAST(2 AS FLOAT), -@s);
+    END
+    GO
+    ```
+
 ## Changing a field and rounding
 
 `with` gives the value with some of its fields in place of its own, as Temporal's `with`: a `plainDate` takes `year`, `month` (or `monthCode`, like `'M02'`) and `day`; a `plainTime` takes `hour`, `minute`, `second`, `millisecond`, `microsecond` and `nanosecond`; a `plainDateTime` takes all of them. `round` of a `plainTime` or a `plainDateTime` rounds it as Temporal's `round`: to a unit, like `'minute'`, or with options. Here the first day of the month of each release, and its cutoff time rounded to slots of 6 hours:

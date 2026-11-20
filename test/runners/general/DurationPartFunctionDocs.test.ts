@@ -1,7 +1,7 @@
 // The functions of the library for durations that the page Dates and times gives for each database (tsq_duration_part,
-// tsq_duration_text, tsq_duration_round) are the ones the suite creates in the schema of that database
-// (test/db/<db>/domain/schema.sql), which the tests of the arithmetic and the differences of dates run against every
-// engine: the text of the page is the tested one.
+// tsq_duration_text, tsq_duration_round, tsq_duration_total) are the ones the suite creates in the schema of that
+// database (test/db/<db>/domain/schema.sql), which the tests of the arithmetic, the differences of dates and the totals
+// run against every engine: the text of the page is the tested one.
 
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -48,5 +48,14 @@ describe('DurationPartFunctionDocs', () => {
         expect(documented('PostgreSQL', heading)).toBe(tested('postgres', 'tsq_duration_round'))
         // tsq_duration_round uses tsq_duration_text: it is dropped first to create both again
         expect(documented('SQL Server', heading)).toBe('DROP FUNCTION IF EXISTS dbo.tsq_duration_round;\nGO\n\n' + both('sqlserver'))
+    })
+
+    test('the-documented-function-of-total-is-the-tested-one', () => {
+        const heading = '### The function `tsq_duration_total`'
+        expect(documented('MariaDB', heading)).toBe(tested('mariadb', 'tsq_duration_total'))
+        expect(documented('MySQL', heading)).toBe(tested('mysql', 'tsq_duration_total'))
+        expect(documented('Oracle', heading)).toBe(tested('oracle', 'tsq_duration_total'))
+        expect(documented('PostgreSQL', heading)).toBe(tested('postgres', 'tsq_duration_total'))
+        expect(documented('SQL Server', heading)).toBe(tested('sqlserver', 'tsq_duration_total'))
     })
 })

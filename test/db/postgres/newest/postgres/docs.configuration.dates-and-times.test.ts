@@ -273,6 +273,36 @@ describe(ctx.label, () => {
         ])
     })
 
+    test('docs:dates-and-times/the-total-of-a-duration', async () => {
+        ctx.mockNext([
+            { version: '0.9.0', hours: 48, months: 0.06451612903225806, daysToPublication: 1.4583333333333333 },
+            { version: '1.2.0', hours: 36, months: 0.04838709677419355, daysToPublication: 1.375 },
+            { version: '1.3.0-beta.1', hours: 0.75, months: 0.0010775862068965517, daysToPublication: 1.4166666666666667 },
+        ])
+        const connection = ctx.conn
+
+        // doc-start
+        const releases = await connection.selectFrom(tRelease)
+            .select({
+                version: tRelease.version,
+                hours: tRelease.rolloutTime.total('hours'),
+                months: tRelease.rolloutTime.total({ unit: 'month', relativeTo: tRelease.releasedOn }),
+                daysToPublication: tRelease.publishedAt.since(tRelease.releasedOn.toPlainDateTime()).total('days'),
+            })
+            .orderBy('version')
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as version, tsq_duration_total(cast(extract(year from rollout_time) * 12 + extract(month from rollout_time) as bigint), 0, cast(extract(day from rollout_time) as bigint), cast(extract(hour from rollout_time) * 3600 + extract(minute from rollout_time) * 60 + trunc(extract(second from rollout_time)) as bigint), cast(extract(microseconds from rollout_time) as bigint) % 1000000 * 1000, 0, 0, 0, 'hour') as hours, tsq_duration_total(cast(extract(year from rollout_time) * 12 + extract(month from rollout_time) as bigint), 0, cast(extract(day from rollout_time) as bigint), cast(extract(hour from rollout_time) * 3600 + extract(minute from rollout_time) * 60 + trunc(extract(second from rollout_time)) as bigint), cast(extract(microseconds from rollout_time) as bigint) % 1000000 * 1000, cast(extract(year from released_on) as integer), cast(extract(month from released_on) as integer), cast(extract(day from released_on) as integer), 'month') as months, tsq_duration_total(0, 0, -cast((((cast(cast(released_on as timestamp) as date) - cast(published_at as date)) * 86400000000000 + ((round(extract(epoch from cast(cast(released_on as timestamp) as time)) * 1000000)::bigint * 1000) - (round(extract(epoch from cast(published_at as time)) * 1000000)::bigint * 1000))) / 86400000000000) as integer), 0, -(((cast(cast(released_on as timestamp) as date) - cast(published_at as date)) * 86400000000000 + ((round(extract(epoch from cast(cast(released_on as timestamp) as time)) * 1000000)::bigint * 1000) - (round(extract(epoch from cast(published_at as time)) * 1000000)::bigint * 1000))) % 86400000000000), 0, 0, 0, 'day') as "daysToPublication" from project_release order by version"`)
+        expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof releases, Array<{ version: string; hours?: number; months?: number; daysToPublication: number }>>>()
+        expect(releases.map(release => [release.version, release.hours, release.months, release.daysToPublication])).toEqual([
+            ['0.9.0', 48, 0.06451612903225806, 1.4583333333333333],
+            ['1.2.0', 36, 0.04838709677419355, 1.375],
+            ['1.3.0-beta.1', 0.75, 0.0010775862068965517, 1.4166666666666667],
+        ])
+    })
+
     test('docs:dates-and-times/changing-a-field-and-rounding', async () => {
         ctx.mockNext([
             { version: '0.9.0', monthOfRelease: '2024-03-01', cutoffSlot: '18:00:00' },

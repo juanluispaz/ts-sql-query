@@ -6,6 +6,7 @@
 // database and the session in UTC; mode `declaredTypes` sends a localDateTime and a localTime with a type that
 // driverTypeOf of the runner gives them (postgres.js, PGlite).
 
+import { readFile } from 'node:fs/promises'
 import { PostgreSqlConnection } from '../../../../src/connections/PostgreSqlConnection.js'
 import { Table } from '../../../../src/Table.js'
 import type { QueryRunner } from '../../../../src/queryRunners/QueryRunner.js'
@@ -125,6 +126,12 @@ async function createRunner(): Promise<{ runner: QueryRunner, raw: (sql: string)
             const { PgLiteQueryRunner } = await import('../../../../src/queryRunners/PgLiteQueryRunner.js')
             // A database created in Madrid: its session is in Madrid, whatever the zone of the process
             const db = await PGlite.create('memory://', { postgresqlconf: [`timezone = '${zone}'`] })
+            // The functions of the library a difference in days of zoned dates and times uses, as the schema of the tests has them
+            const schema = await readFile(new URL('../../../db/postgres/domain/schema.sql', import.meta.url), 'utf8')
+            for (const name of ['tsq_zoned_at', 'tsq_zoned_until']) {
+                const start = schema.indexOf('CREATE OR REPLACE FUNCTION ' + name + '(')
+                await db.exec(schema.slice(start, schema.indexOf('\n$$;', start) + 4))
+            }
             return { runner: new PgLiteQueryRunner(db, oidTypes), raw: async (sql) => (await db.query<any>(sql)).rows, close: () => db.close() }
         }
         default:
@@ -149,6 +156,7 @@ export interface ScenarioResult {
     repeated: unknown
     skipped: unknown
     instant: { stored: unknown[], read: unknown[], where: number[], aggregated: unknown[], currentDrift: number, repeated: unknown, methods: unknown }
+    zoned: unknown
 }
 
 async function scenario(): Promise<ScenarioResult> {
@@ -238,7 +246,15 @@ async function scenario(): Promise<ScenarioResult> {
                 ofItsEpoch: conn.instantFromEpochMilliseconds(tInstantMoment.ts.epochMilliseconds()),
             }).executeSelectOne().then(row => ({ ...row, nanoseconds: String(row.nanoseconds), wall: String(row.wall), zonedWall: String(row.zonedWall), instant: String(row.instant), plainDay: String(row.plainDay), plusAnHour: String(row.plusAnHour), hourOf: String(row.hourOf), ofItsEpoch: String(row.ofItsEpoch) })),
             }
-            return { session, stored, read, whereTs, whereOld, whereT, aggregated, currentTimestampDrift, constTimeToday, summerTime, timeAfterMidnight, timeWithTimeZone, repeated, skipped, instant }
+            // The arithmetic of a zoned date and time follows the rules of its zone (New York goes back an hour on
+            // 2024-11-03), whatever the zone of the session
+            const newYork = conn.const(Temporal.ZonedDateTime.from('2024-11-02T01:30:00-04:00[America/New_York]'), 'zonedDateTime')
+            const zoned = await conn.selectFromNoTable().select({
+                nextDay: newYork.add({ days: 1 }), dayAfter: newYork.add({ hours: 24 }), rounded: newYork.add({ days: 1, hours: 11 }).round('day'),
+                start: newYork.add({ days: 1, hours: 3 }).startOfDay(), hours: newYork.add({ days: 1 }).hoursInDay(), with: newYork.add({ days: 1 }).with({ minute: 45 }, { offset: 'ignore', disambiguation: 'later' }),
+                days: newYork.until(newYork.add({ days: 2 }), { largestUnit: 'day' }),
+            }).executeSelectOne().then(row => ({ ...row, nextDay: String(row.nextDay), dayAfter: String(row.dayAfter), rounded: String(row.rounded), start: String(row.start), with: String(row.with), days: String(row.days) }))
+            return { session, stored, read, whereTs, whereOld, whereT, aggregated, currentTimestampDrift, constTimeToday, summerTime, timeAfterMidnight, timeWithTimeZone, repeated, skipped, instant, zoned }
         } finally {
             await raw('drop table ' + tableName)
         }

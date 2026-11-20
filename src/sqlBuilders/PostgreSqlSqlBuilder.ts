@@ -766,6 +766,14 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     override _zonedOfUtc(utc: string, _zone: string): string {
         return '(' + utc + ") at time zone 'UTC'"
     }
+    /** `timestamp at time zone` gives the later instant of a wall clock the zone repeats, and moves one it skips forward */
+    override _zonedLaterOfWallClock(wall: string, zone: string): string | undefined {
+        return this._zonedUtcOf(this._pgWallAt(wall, zone))
+    }
+    /** A wall clock that is not a name, nor the wall clock of a name in a zone given, is computed once */
+    override _zonedNamesWallClock(wall: string): boolean {
+        return !/^(?:[\w."]+|\([\w."]+ at time zone (?:interval )?'[^']*'\))$/.test(wall)
+    }
     override _zonedDayInterval(): string {
         return "interval '1 day'"
     }

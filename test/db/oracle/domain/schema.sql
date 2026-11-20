@@ -437,8 +437,10 @@ CREATE TABLE flight_leg (
 );
 
 -- tsq_duration_part: a part of the ISO 8601 text of a duration (Temporal.Duration), the function of the library that
--- adds or subtracts a duration kept as text: 'M' the months (its years too), 'D' the days (its weeks too), 'S' the whole
--- seconds of its time, 'N' the nanoseconds of the second, each with the sign of the duration.
+-- reads a duration kept as text: 'M' the months (its years too), 'D' the days (its weeks too), 'S' the whole seconds of
+-- its time, 'N' the nanoseconds of the second, to add or subtract it; 'years', 'months', 'weeks', 'days', 'hours',
+-- 'minutes' and 'seconds' (without its fraction) each field as written; each with the sign of the duration; 'sign' the
+-- sign of the duration (-1, 0 or 1).
 CREATE OR REPLACE FUNCTION tsq_duration_part(d IN VARCHAR2, part IN VARCHAR2) RETURN NUMBER DETERMINISTIC IS
     s VARCHAR2(100);
     i PLS_INTEGER := 1;
@@ -448,6 +450,7 @@ CREATE OR REPLACE FUNCTION tsq_duration_part(d IN VARCHAR2, part IN VARCHAR2) RE
     in_time BOOLEAN := FALSE;
     sgn NUMBER := 1;
     r NUMBER := 0;
+    nonzero BOOLEAN := FALSE;
 BEGIN
     IF d IS NULL THEN RETURN NULL; END IF;
     s := UPPER(TRIM(d));
@@ -459,6 +462,7 @@ BEGIN
         IF c = 'T' THEN in_time := TRUE;
         ELSIF c BETWEEN '0' AND '9' OR c = '.' OR c = ',' THEN num := num || CASE WHEN c = ',' THEN '.' ELSE c END;
         ELSE
+            IF TRANSLATE(num, 'x0.', 'x') IS NOT NULL THEN nonzero := TRUE; END IF;
             IF part = 'M' AND NOT in_time AND c = 'Y' THEN r := r + 12 * TO_NUMBER(num);
             ELSIF part = 'M' AND NOT in_time AND c = 'M' THEN r := r + TO_NUMBER(num);
             ELSIF part = 'D' AND c = 'W' THEN r := r + 7 * TO_NUMBER(num);
@@ -467,11 +471,13 @@ BEGIN
             ELSIF part = 'S' AND in_time AND c = 'M' THEN r := r + 60 * TO_NUMBER(num);
             ELSIF part = 'S' AND c = 'S' THEN r := r + TO_NUMBER(CASE WHEN INSTR(num, '.') > 0 THEN SUBSTR(num, 1, INSTR(num, '.') - 1) ELSE num END);
             ELSIF part = 'N' AND c = 'S' AND INSTR(num, '.') > 0 THEN r := TO_NUMBER(RPAD(SUBSTR(num, INSTR(num, '.') + 1), 9, '0'));
+            ELSIF part = 'years' AND NOT in_time AND c = 'Y' OR part = 'months' AND NOT in_time AND c = 'M' OR part = 'weeks' AND c = 'W' OR part = 'days' AND c = 'D' OR part = 'hours' AND in_time AND c = 'H' OR part = 'minutes' AND in_time AND c = 'M' OR part = 'seconds' AND c = 'S' THEN r := TO_NUMBER(CASE WHEN INSTR(num, '.') > 0 THEN SUBSTR(num, 1, INSTR(num, '.') - 1) ELSE num END);
             END IF;
             num := NULL;
         END IF;
         i := i + 1;
     END LOOP;
+    IF part = 'sign' THEN RETURN CASE WHEN nonzero THEN sgn ELSE 0 END; END IF;
     RETURN sgn * r;
 END;
 

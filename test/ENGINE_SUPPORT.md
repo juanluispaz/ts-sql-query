@@ -234,7 +234,8 @@ duration given as a value adds without the function there. The duration between 
 is written by `tsq_duration_text`, or `tsq_duration_round` when it is rounded to the calendar: every test of
 `column.plain-temporal-difference.test.ts` but `options-temporal-rejects-are-rejected` (rejected before the query is
 sent) and `docs.configuration.dates-and-times.test.ts` (`docs:dates-and-times/the-duration-between-two-values`) are
-`NOT-SUPPORTED` on those cells.
+`NOT-SUPPORTED` on those cells, and every test of `column.duration-methods.test.ts` (the fields, the sign, the negation and
+the absolute value of a duration kept as text read it with `tsq_duration_part`).
 
 ### SQLite RETURNING can only reference the table being modified, not a FROM/JOIN-ed column
 

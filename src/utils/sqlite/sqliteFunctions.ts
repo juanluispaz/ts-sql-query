@@ -390,7 +390,9 @@ function ciReplace(source: unknown, find: unknown, replacement: unknown): unknow
 /**
  * tsq_duration_part: a part of the ISO 8601 text of a duration, as the same function of the library on the other
  * databases reads it: 'M' the months (its years too), 'D' the days (its weeks too), 'S' the whole seconds of its time,
- * 'N' the nanoseconds of the second, each with the sign of the duration; null for a null text
+ * 'N' the nanoseconds of the second; 'years', 'months', 'weeks', 'days', 'hours', 'minutes' and 'seconds' (without its
+ * fraction) each field as written; each with the sign of the duration; 'sign' the sign of the duration (-1, 0 or 1);
+ * null for a null text
  */
 function durationPart(value: unknown, part: unknown): number | null {
     if (value === null || value === undefined) {
@@ -407,6 +409,7 @@ function durationPart(value: unknown, part: unknown): number | null {
     let number = ''
     let inTime = false
     let result = 0
+    let nonzero = false
     for (; i < text.length; i++) {
         const c = text[i]!
         if (c === 'T') {
@@ -415,6 +418,9 @@ function durationPart(value: unknown, part: unknown): number | null {
             number += c === ',' ? '.' : c
         } else {
             const whole = Number(number.split('.')[0] || '0')
+            if (/[1-9]/.test(number)) {
+                nonzero = true
+            }
             if (part === 'M' && !inTime && c === 'Y') {
                 result += 12 * whole
             } else if (part === 'M' && !inTime && c === 'M') {
@@ -431,9 +437,15 @@ function durationPart(value: unknown, part: unknown): number | null {
                 result += whole
             } else if (part === 'N' && c === 'S' && number.includes('.')) {
                 result = Number((number.split('.')[1]! + '000000000').slice(0, 9))
+            } else if ((part === 'years' && !inTime && c === 'Y') || (part === 'months' && !inTime && c === 'M') || (part === 'weeks' && c === 'W') || (part === 'days' && c === 'D')
+                || (part === 'hours' && inTime && c === 'H') || (part === 'minutes' && inTime && c === 'M') || (part === 'seconds' && c === 'S')) {
+                result = whole
             }
             number = ''
         }
+    }
+    if (part === 'sign') {
+        return nonzero ? sign : 0
     }
     return sign * result + 0
 }

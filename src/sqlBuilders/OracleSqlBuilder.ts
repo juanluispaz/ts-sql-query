@@ -5,7 +5,7 @@ import { flattenQueryColumns, hasToSql, getQueryColumn, operationOf } from './Sq
 import type { DataTypeClass } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter, OracleDateAsTimestampTypeAdapter } from '../TypeAdapter.js'
 import { DefaultImpl } from '../expressions/Default.js'
-import { AbstractSqlBuilder, type PlainTemporalDifferenceSql, type SelectColumnSql } from './AbstractSqlBuilder.js'
+import { AbstractSqlBuilder, type DurationField, type PlainTemporalDifferenceSql, type SelectColumnSql } from './AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import { __columnPathsOf } from '../utils/columnPaths.js'
 import { __getColumnOfObject } from '../utils/Column.js'
@@ -1548,6 +1548,57 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     }
     override _isDurationKeptAsText(valueSource: ToSql): boolean {
         return isDifference(valueSource) || super._isDurationKeptAsText(valueSource)
+    }
+    /**
+     * A field of an interval of Oracle: one of days to seconds keeps days and a time with nanoseconds, one of years to
+     * months years and months; the others are zero (null for a null interval)
+     */
+    override _intervalField(context: SqlBuildContext, valueSource: ToSql, field: DurationField): string {
+        const interval = this._appendSqlParenthesis(valueSource, context, false)
+        const yearToMonth = this._isYearToMonthDuration(valueSource)
+        switch (yearToMonth ? (field === 'years' || field === 'months' ? field : 'zero') : field) {
+            case 'years':
+            case 'months':
+            case 'days':
+            case 'hours':
+            case 'minutes':
+                return 'extract(' + field.slice(0, -1) + ' from ' + interval + ')'
+            case 'seconds':
+                return 'trunc(extract(second from ' + interval + '))'
+            case 'milliseconds':
+                return 'mod(trunc(extract(second from ' + interval + ') * 1000), 1000)'
+            case 'microseconds':
+                return 'mod(trunc(extract(second from ' + interval + ') * 1000000), 1000)'
+            case 'nanoseconds':
+                return 'mod(trunc(extract(second from ' + interval + ') * 1000000000), 1000)'
+            default:
+                return 'case when ' + interval + ' is not null then 0 end'
+        }
+    }
+    override _durationSign(context: SqlBuildContext, valueSource: ToSql): string {
+        if (this._isDurationKeptAsText(valueSource)) {
+            return super._durationSign(context, valueSource)
+        }
+        if (this._isYearToMonthDuration(valueSource)) {
+            return 'sign(extract(year from ' + this._appendSqlParenthesis(valueSource, context, false) + ') * 12 + extract(month from ' + this._appendSqlParenthesis(valueSource, context, false) + '))'
+        }
+        return 'sign(extract(day from ' + this._appendSqlParenthesis(valueSource, context, false) + ') * 86400 + extract(hour from ' + this._appendSqlParenthesis(valueSource, context, false) + ') * 3600 + extract(minute from '
+            + this._appendSqlParenthesis(valueSource, context, false) + ') * 60 + extract(second from ' + this._appendSqlParenthesis(valueSource, context, false) + '))'
+    }
+    override _durationAbs(context: SqlBuildContext, valueSource: ToSql): string {
+        if (this._isDurationKeptAsText(valueSource)) {
+            return super._durationAbs(context, valueSource)
+        }
+        const interval = this._appendSqlParenthesis(valueSource, context, false)
+        const zero = this._isYearToMonthDuration(valueSource) ? "numtoyminterval(0, 'month')" : "numtodsinterval(0, 'second')"
+        return 'case when ' + interval + ' < ' + zero + ' then ' + interval + ' * -1 else ' + interval + ' end'
+    }
+    override _durationNegated(context: SqlBuildContext, valueSource: ToSql): string {
+        if (this._isDurationKeptAsText(valueSource)) {
+            return super._durationNegated(context, valueSource)
+        }
+        // Oracle has no minus of an interval: an interval times -1
+        return '(' + this._appendSqlParenthesis(valueSource, context, false) + ' * -1)'
     }
     override _addMonthsToDate(_context: SqlBuildContext, date: string, months: string): string {
         return this._appendKeepingTheDay(date, months)

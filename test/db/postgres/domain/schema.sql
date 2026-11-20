@@ -457,8 +457,10 @@ CREATE FUNCTION cm_str() RETURNS varchar
 LANGUAGE sql AS $$ SELECT m_str FROM col_matrix WHERE id = 1 $$;
 
 -- tsq_duration_part: a part of the ISO 8601 text of a duration (Temporal.Duration), the function of the library that
--- adds or subtracts a duration kept as text: 'M' the months (its years too), 'D' the days (its weeks too), 'S' the whole
--- seconds of its time, 'N' the nanoseconds of the second, each with the sign of the duration.
+-- reads a duration kept as text: 'M' the months (its years too), 'D' the days (its weeks too), 'S' the whole seconds of
+-- its time, 'N' the nanoseconds of the second, to add or subtract it; 'years', 'months', 'weeks', 'days', 'hours',
+-- 'minutes' and 'seconds' (without its fraction) each field as written; each with the sign of the duration; 'sign' the
+-- sign of the duration (-1, 0 or 1).
 CREATE OR REPLACE FUNCTION tsq_duration_part(d text, part text) RETURNS bigint LANGUAGE plpgsql IMMUTABLE AS $$
 DECLARE
     s text;
@@ -469,6 +471,7 @@ DECLARE
     in_time boolean := false;
     sgn integer := 1;
     r bigint := 0;
+    nonzero boolean := false;
 BEGIN
     IF d IS NULL THEN RETURN NULL; END IF;
     s := upper(trim(d));
@@ -480,6 +483,7 @@ BEGIN
         IF c = 'T' THEN in_time := true;
         ELSIF position(c in '0123456789.,') > 0 THEN num := num || CASE WHEN c = ',' THEN '.' ELSE c END;
         ELSE
+            IF translate(num, '0.', '') <> '' THEN nonzero := true; END IF;
             IF part = 'M' AND NOT in_time AND c = 'Y' THEN r := r + 12 * num::bigint;
             ELSIF part = 'M' AND NOT in_time AND c = 'M' THEN r := r + num::bigint;
             ELSIF part = 'D' AND c = 'W' THEN r := r + 7 * num::bigint;
@@ -488,11 +492,13 @@ BEGIN
             ELSIF part = 'S' AND in_time AND c = 'M' THEN r := r + 60 * num::bigint;
             ELSIF part = 'S' AND c = 'S' THEN r := r + split_part(num, '.', 1)::bigint;
             ELSIF part = 'N' AND c = 'S' AND position('.' in num) > 0 THEN r := rpad(split_part(num, '.', 2), 9, '0')::bigint;
+            ELSIF part = 'years' AND NOT in_time AND c = 'Y' OR part = 'months' AND NOT in_time AND c = 'M' OR part = 'weeks' AND c = 'W' OR part = 'days' AND c = 'D' OR part = 'hours' AND in_time AND c = 'H' OR part = 'minutes' AND in_time AND c = 'M' OR part = 'seconds' AND c = 'S' THEN r := split_part(num, '.', 1)::bigint;
             END IF;
             num := '';
         END IF;
         i := i + 1;
     END LOOP;
+    IF part = 'sign' THEN RETURN CASE WHEN nonzero THEN sgn ELSE 0 END; END IF;
     RETURN sgn * r;
 END;
 $$;

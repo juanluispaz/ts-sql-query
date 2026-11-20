@@ -492,6 +492,10 @@ export interface SqlFunction0 {
     _dayOfWeek(context: SqlBuildContext, valueSource: ToSql): string
     _dayOfYear(context: SqlBuildContext, valueSource: ToSql): string
     _microsecond(context: SqlBuildContext, valueSource: ToSql): string
+    // A duration: its sign, negated, its absolute value, with the semantics of Temporal
+    _durationSign(context: SqlBuildContext, valueSource: ToSql): string
+    _durationNegated(context: SqlBuildContext, valueSource: ToSql): string
+    _durationAbs(context: SqlBuildContext, valueSource: ToSql): string
     _toPlainDate(context: SqlBuildContext, valueSource: ToSql): string
     _toPlainTime(context: SqlBuildContext, valueSource: ToSql): string
     _toPlainDateTime(context: SqlBuildContext, valueSource: ToSql): string
@@ -531,6 +535,8 @@ export interface SqlFunction1 {
     _atan2(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
     // Date functions with the semantics of Temporal: a date at a time of the day
     _toPlainDateTimeAt(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
+    // A field of a duration as Temporal reads it (years, months, ... nanoseconds)
+    _durationField(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
     // A date, a time or a date and time plus or minus a duration, with the semantics of Temporal
     _addDuration(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
     _subtractDuration(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string

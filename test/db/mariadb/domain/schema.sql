@@ -380,11 +380,13 @@ CREATE TABLE service_plan (
 ) WITH SYSTEM VERSIONING;
 
 -- tsq_duration_part: a part of the ISO 8601 text of a duration (Temporal.Duration), the function of the library that
--- adds or subtracts a duration kept as text: 'M' the months (its years too), 'D' the days (its weeks too), 'S' the whole
--- seconds of its time, 'N' the nanoseconds of the second, each with the sign of the duration.
+-- reads a duration kept as text: 'M' the months (its years too), 'D' the days (its weeks too), 'S' the whole seconds of
+-- its time, 'N' the nanoseconds of the second, to add or subtract it; 'years', 'months', 'weeks', 'days', 'hours',
+-- 'minutes' and 'seconds' (without its fraction) each field as written; each with the sign of the duration; 'sign' the
+-- sign of the duration (-1, 0 or 1).
 DROP FUNCTION IF EXISTS tsq_duration_part;
 DELIMITER //
-CREATE FUNCTION tsq_duration_part(d VARCHAR(100), part CHAR(1)) RETURNS BIGINT DETERMINISTIC NO SQL
+CREATE FUNCTION tsq_duration_part(d VARCHAR(100), part VARCHAR(10)) RETURNS BIGINT DETERMINISTIC NO SQL
 BEGIN
     DECLARE i INT DEFAULT 1;
     DECLARE n INT;
@@ -393,6 +395,7 @@ BEGIN
     DECLARE in_time BOOLEAN DEFAULT FALSE;
     DECLARE sgn INT DEFAULT 1;
     DECLARE r BIGINT DEFAULT 0;
+    DECLARE nonzero BOOLEAN DEFAULT FALSE;
     IF d IS NULL THEN RETURN NULL; END IF;
     SET d = UPPER(TRIM(d));
     SET n = CHAR_LENGTH(d);
@@ -403,6 +406,7 @@ BEGIN
         IF c = 'T' THEN SET in_time = TRUE;
         ELSEIF c BETWEEN '0' AND '9' OR c = '.' OR c = ',' THEN SET num = CONCAT(num, IF(c = ',', '.', c));
         ELSE
+            IF REPLACE(REPLACE(num, '0', ''), '.', '') <> '' THEN SET nonzero = TRUE; END IF;
             IF part = 'M' AND NOT in_time AND c = 'Y' THEN SET r = r + 12 * CAST(num AS SIGNED);
             ELSEIF part = 'M' AND NOT in_time AND c = 'M' THEN SET r = r + CAST(num AS SIGNED);
             ELSEIF part = 'D' AND c = 'W' THEN SET r = r + 7 * CAST(num AS SIGNED);
@@ -411,11 +415,13 @@ BEGIN
             ELSEIF part = 'S' AND in_time AND c = 'M' THEN SET r = r + 60 * CAST(num AS SIGNED);
             ELSEIF part = 'S' AND c = 'S' THEN SET r = r + CAST(SUBSTRING_INDEX(num, '.', 1) AS SIGNED);
             ELSEIF part = 'N' AND c = 'S' AND LOCATE('.', num) > 0 THEN SET r = CAST(RPAD(SUBSTRING_INDEX(num, '.', -1), 9, '0') AS SIGNED);
+            ELSEIF part = 'years' AND NOT in_time AND c = 'Y' OR part = 'months' AND NOT in_time AND c = 'M' OR part = 'weeks' AND c = 'W' OR part = 'days' AND c = 'D' OR part = 'hours' AND in_time AND c = 'H' OR part = 'minutes' AND in_time AND c = 'M' OR part = 'seconds' AND c = 'S' THEN SET r = CAST(SUBSTRING_INDEX(num, '.', 1) AS SIGNED);
             END IF;
             SET num = '';
         END IF;
         SET i = i + 1;
     END WHILE;
+    IF part = 'sign' THEN RETURN IF(nonzero, sgn, 0); END IF;
     RETURN sgn * r;
 END
 //

@@ -1201,6 +1201,15 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         // A function of the user is called with its schema
         return 'dbo.tsq_duration_text'
     }
+    override _textFirstCharacter(text: string): string {
+        return 'substring(' + text + ', 1, 1)'
+    }
+    override _textFromSecondCharacter(text: string): string {
+        return 'substring(' + text + ', 2, 100)'
+    }
+    override _textWithMinus(text: string): string {
+        return "'-' + " + text
+    }
     override _durationRoundFunctionName(): string {
         return 'dbo.tsq_duration_round'
     }

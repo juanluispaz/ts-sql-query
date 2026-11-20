@@ -1,6 +1,21 @@
 import type { SqlDataType } from '../TypeAdapter.js'
 import { EqualableType } from './equalable.js'
 import type { TemporalDuration } from './temporal.js'
+import type { DataTypeOf, OptionalityOf, SourceOf, ValueSource } from './base.js'
+import { __operation0, __operation1 } from '../nodes/operations.js'
+import { IntType } from './number.js'
+import { __typeClassOf } from '../nodes/dataTypeClassOf.js'
+import { __computedClassOf } from '../nodes/adaptedTypeClass.js'
+
+/** A field of a duration: an int */
+function fieldOf(valueSource: unknown, field: string): any {
+    return __operation1(valueSource as any, '_durationField', field, IntType)
+}
+
+/** The duration negated or its absolute value: a duration of the same data type */
+function sameDuration(valueSource: unknown, operation: '_durationNegated' | '_durationAbs'): any {
+    return __operation0(valueSource as any, operation, __computedClassOf(valueSource as object, __typeClassOf(valueSource as any)))
+}
 
 /*
  * An amount of time as Temporal has it: a duration (a Temporal.Duration), in years, months, weeks, days, hours ...
@@ -20,6 +35,72 @@ export const durationSqlDataType: SqlDataType = { family: 'interval' }
  */
 export abstract class DurationsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends EqualableType<VALUE_TYPE, TYPE_NAME> {
     static override readonly sqlDataType: SqlDataType | undefined = durationSqlDataType
+
+    /** The years, as an int with the sign of the duration: Temporal's `years` of the duration as it is kept */
+    years(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
+    years(): any {
+        return fieldOf(this, 'years')
+    }
+    /** The months, as an int with the sign of the duration: Temporal's `months` of the duration as it is kept */
+    months(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
+    months(): any {
+        return fieldOf(this, 'months')
+    }
+    /** The weeks, as an int with the sign of the duration: Temporal's `weeks` of the duration as it is kept */
+    weeks(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
+    weeks(): any {
+        return fieldOf(this, 'weeks')
+    }
+    /** The days, as an int with the sign of the duration: Temporal's `days` of the duration as it is kept */
+    days(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
+    days(): any {
+        return fieldOf(this, 'days')
+    }
+    /** The hours, as an int with the sign of the duration: Temporal's `hours` of the duration as it is kept */
+    hours(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
+    hours(): any {
+        return fieldOf(this, 'hours')
+    }
+    /** The minutes, as an int with the sign of the duration: Temporal's `minutes` of the duration as it is kept */
+    minutes(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
+    minutes(): any {
+        return fieldOf(this, 'minutes')
+    }
+    /** The seconds, without their fraction, as an int with the sign of the duration: Temporal's `seconds` of the duration as it is kept */
+    seconds(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
+    seconds(): any {
+        return fieldOf(this, 'seconds')
+    }
+    /** The milliseconds of the fraction of a second, from 0 to 999, as an int with the sign of the duration: Temporal's `milliseconds` of the duration as it is kept */
+    milliseconds(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
+    milliseconds(): any {
+        return fieldOf(this, 'milliseconds')
+    }
+    /** The microseconds of the millisecond, from 0 to 999, as an int with the sign of the duration: Temporal's `microseconds` of the duration as it is kept */
+    microseconds(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
+    microseconds(): any {
+        return fieldOf(this, 'microseconds')
+    }
+    /** The nanoseconds of the microsecond, from 0 to 999, as an int with the sign of the duration: Temporal's `nanoseconds` of the duration as it is kept */
+    nanoseconds(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
+    nanoseconds(): any {
+        return fieldOf(this, 'nanoseconds')
+    }
+    /** The sign of the duration, as an int: -1, 0 or 1, Temporal's `sign` */
+    sign(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
+    sign(): any {
+        return __operation0(this as any, '_durationSign', IntType)
+    }
+    /** The duration with the opposite sign, Temporal's `negated()` */
+    negated(): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    negated(): any {
+        return sameDuration(this, '_durationNegated')
+    }
+    /** The duration without its sign, Temporal's `abs()` */
+    abs(): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    abs(): any {
+        return sameDuration(this, '_durationAbs')
+    }
 }
 
 /** A duration, a Temporal.Duration */

@@ -1077,6 +1077,9 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         // The parameters are positional: a const is a parameter each time it is written
         return operand
     }
+    override _textWithMinus(text: string): string {
+        return "concat('-', " + text + ')'
+    }
     override _integerPart(sql: string): string {
         // year(), month(), day() ... give an unsigned integer, which a subtraction can't take below zero
         return 'cast(' + sql + ' as signed)'

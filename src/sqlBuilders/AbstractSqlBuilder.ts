@@ -4653,8 +4653,92 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * (its years too), 'D' the days (its weeks too), 'S' the whole seconds of its time, 'N' the nanoseconds of the
      * second; each with the sign of the duration
      */
-    _durationTextPart(context: SqlBuildContext, valueSource: ToSql, part: 'M' | 'D' | 'S' | 'N'): string {
+    _durationTextPart(context: SqlBuildContext, valueSource: ToSql, part: 'M' | 'D' | 'S' | 'N' | 'sign' | 'years' | 'months' | 'weeks' | 'days' | 'hours' | 'minutes' | 'seconds'): string {
         return this._durationPartFunctionName() + '(' + this._appendSql(valueSource, context, false) + ", '" + part + "')"
+    }
+    /**
+     * A field of a duration as Temporal reads the duration kept: of its ISO 8601 text, the field as written (with
+     * tsq_duration_part), the milliseconds, microseconds and nanoseconds of its fraction; of an interval, its fields
+     */
+    _durationField(context: SqlBuildContext, operand: ToSql, value: any, _typeClass: DataTypeClass): string {
+        const valueSource = this._temporalOperand(operand)
+        const field = value as DurationField
+        if (!this._isDurationKeptAsText(valueSource)) {
+            return this._intervalField(context, valueSource, field)
+        }
+        switch (field) {
+            case 'milliseconds':
+                return '(' + this._truncatedDivision(this._durationTextPart(context, valueSource, 'N'), '1000000') + ')'
+            case 'microseconds':
+                return '(' + this._integerRemainder(this._truncatedDivision(this._durationTextPart(context, valueSource, 'N'), '1000'), '1000') + ')'
+            case 'nanoseconds':
+                return '(' + this._integerRemainder(this._durationTextPart(context, valueSource, 'N'), '1000') + ')'
+            default:
+                return this._durationTextPart(context, valueSource, field)
+        }
+    }
+    /**
+     * A field of an interval of PostgreSQL, as the duration read of it: it keeps months (the years of Temporal are its
+     * months / 12), days and a time in microseconds, and no weeks nor nanoseconds (zero, null for a null interval)
+     */
+    _intervalField(context: SqlBuildContext, valueSource: ToSql, field: DurationField): string {
+        const interval = this._appendSqlParenthesis(valueSource, context, false)
+        switch (field) {
+            case 'years':
+            case 'months':
+            case 'days':
+            case 'hours':
+            case 'minutes':
+                return 'cast(extract(' + field.slice(0, -1) + ' from ' + interval + ') as integer)'
+            case 'seconds':
+                return 'cast(trunc(extract(second from ' + interval + ')) as integer)'
+            case 'milliseconds':
+                return '(cast(trunc(extract(microseconds from ' + interval + ')) as integer) / 1000 % 1000)'
+            case 'microseconds':
+                return '(cast(trunc(extract(microseconds from ' + interval + ')) as integer) % 1000)'
+            default:
+                return 'case when ' + interval + ' is not null then 0 end'
+        }
+    }
+    _durationSign(context: SqlBuildContext, operand: ToSql): string {
+        const valueSource = this._temporalOperand(operand)
+        if (this._isDurationKeptAsText(valueSource)) {
+            return this._durationTextPart(context, valueSource, 'sign')
+        }
+        // An interval whose fields have one sign: the sign of its seconds
+        return 'cast(sign(extract(epoch from ' + this._appendSqlParenthesis(valueSource, context, false) + ')) as integer)'
+    }
+    _durationNegated(context: SqlBuildContext, operand: ToSql): string {
+        const valueSource = this._temporalOperand(operand)
+        if (!this._isDurationKeptAsText(valueSource)) {
+            return '-' + this._appendSqlParenthesis(valueSource, context, false)
+        }
+        // The text without its sign, or with a minus; a duration of zero as it is (Temporal writes it without sign)
+        let result = 'case when ' + this._textFirstCharacter(this._appendSql(valueSource, context, false)) + " = '-' then " + this._textFromSecondCharacter(this._appendSql(valueSource, context, false))
+        result += ' when ' + this._durationTextPart(context, valueSource, 'sign') + ' = 0 then ' + this._appendSql(valueSource, context, false)
+        result += ' when ' + this._textFirstCharacter(this._appendSql(valueSource, context, false)) + " = '+' then " + this._textWithMinus(this._textFromSecondCharacter(this._appendSql(valueSource, context, false)))
+        return result + ' else ' + this._textWithMinus(this._appendSql(valueSource, context, false)) + ' end'
+    }
+    _durationAbs(context: SqlBuildContext, operand: ToSql): string {
+        const valueSource = this._temporalOperand(operand)
+        if (!this._isDurationKeptAsText(valueSource)) {
+            const interval = this._appendSqlParenthesis(valueSource, context, false)
+            return 'case when ' + interval + " < interval '0' then -" + interval + ' else ' + interval + ' end'
+        }
+        let result = 'case when ' + this._textFirstCharacter(this._appendSql(valueSource, context, false)) + " in ('-', '+') then " + this._textFromSecondCharacter(this._appendSql(valueSource, context, false))
+        return result + ' else ' + this._appendSql(valueSource, context, false) + ' end'
+    }
+    /** The first character of a text */
+    _textFirstCharacter(text: string): string {
+        return 'substr(' + text + ', 1, 1)'
+    }
+    /** A text from its second character */
+    _textFromSecondCharacter(text: string): string {
+        return 'substr(' + text + ', 2)'
+    }
+    /** A minus followed by a text */
+    _textWithMinus(text: string): string {
+        return "'-' || " + text
     }
     /** The name of the function of the library that reads a part of the ISO 8601 text of a duration */
     _durationPartFunctionName(): string {
@@ -5475,6 +5559,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
 function secondsWithFraction(seconds: string, nanoseconds: string): string {
     return nanoseconds === '0' ? seconds : seconds + ' + ' + nanoseconds + ' / 1000000000.0'
 }
+
+/** A field of a duration, as Temporal names it */
+export type DurationField = 'years' | 'months' | 'weeks' | 'days' | 'hours' | 'minutes' | 'seconds' | 'milliseconds' | 'microseconds' | 'nanoseconds'
 
 /** A field of the duration of a difference: the time is the hours to the nanoseconds, in nanoseconds */
 export type PlainTemporalDifferenceField = 'years' | 'months' | 'weeks' | 'days' | 'time'

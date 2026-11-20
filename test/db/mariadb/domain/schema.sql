@@ -433,7 +433,7 @@ DELIMITER ;
 -- ('second'); every field with the sign of the duration. The text is the one of Temporal's toString.
 DROP FUNCTION IF EXISTS tsq_duration_text;
 DELIMITER //
-CREATE FUNCTION tsq_duration_text(y BIGINT, mo BIGINT, w BIGINT, d BIGINT, ns BIGINT, unit VARCHAR(6)) RETURNS VARCHAR(100) DETERMINISTIC NO SQL
+CREATE FUNCTION tsq_duration_text(y BIGINT, mo BIGINT, w BIGINT, d BIGINT, ns BIGINT, unit VARCHAR(6)) RETURNS VARCHAR(100) CHARACTER SET ascii DETERMINISTIC NO SQL
 BEGIN
     DECLARE r VARCHAR(100) DEFAULT '';
     DECLARE t VARCHAR(100) DEFAULT '';
@@ -465,7 +465,7 @@ DELIMITER ;
 -- result.
 DROP FUNCTION IF EXISTS tsq_duration_round;
 DELIMITER //
-CREATE FUNCTION tsq_duration_round(y1 INT, m1 INT, d1 INT, ns1 BIGINT, y2 INT, m2 INT, d2 INT, ns2 BIGINT, largest_unit VARCHAR(5), smallest_unit VARCHAR(11), increment BIGINT, rounding_mode VARCHAR(10), negation INT) RETURNS VARCHAR(100) DETERMINISTIC NO SQL
+CREATE FUNCTION tsq_duration_round(y1 INT, m1 INT, d1 INT, ns1 BIGINT, y2 INT, m2 INT, d2 INT, ns2 BIGINT, largest_unit VARCHAR(5), smallest_unit VARCHAR(11), increment BIGINT, rounding_mode VARCHAR(10), negation INT) RETURNS VARCHAR(100) CHARACTER SET ascii DETERMINISTIC NO SQL
 BEGIN
     DECLARE v_day BIGINT DEFAULT 86400000000000;
     DECLARE v_one DATE;

@@ -23,7 +23,7 @@ import { TsSqlError, TsSqlProcessingError } from '../TsSqlError.js'
 import { isUtcTimeZoneName } from '../utils/processTimeZone.js'
 import { __durationSqlDataTypeOf, __isIntegerSql, __isJsonDocumentSql, __sqlFamilyOf, __temporalFieldsOf } from '../typeSystem/dataTypes.js'
 import { type DurationTotalDate, type DurationTotalUnit } from '../utils/durationTotal.js'
-import type { SqlOperation2ValueSource } from '../nodes/operations.js'
+import type { SqlOperation0ValueSource, SqlOperation2ValueSource } from '../nodes/operations.js'
 import { durationOfArgument, durationOfParts, durationPartsFor, isZeroDuration, type DurationParts, type DurationPartsSql } from '../utils/durationValues.js'
 import { plainTemporalFieldsOf } from '../utils/plainTemporalFields.js'
 import { plainTemporalRoundingOf, type PlainTemporalRounding } from '../utils/plainTemporalRounding.js'
@@ -4651,7 +4651,15 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     /** Whether a duration value source is kept as its ISO 8601 text: on a database without intervals, or a text column */
     _isDurationKeptAsText(valueSource: ToSql): boolean {
-        return !this._supportNativeDurations() || __durationSqlDataTypeOf(__sqlDataTypeOf(__classOf(valueSource as object)), __classOf(valueSource as object))?.family === 'character string'
+        if (!this._supportNativeDurations()) {
+            return true
+        }
+        // A duration computed from another one (negated, abs) is kept as that one
+        const from = __durationComputedFrom(valueSource)
+        if (from) {
+            return this._isDurationKeptAsText(from)
+        }
+        return __durationSqlDataTypeOf(__sqlDataTypeOf(__classOf(valueSource as object)), __classOf(valueSource as object))?.family === 'character string'
     }
     /**
      * A part of the ISO 8601 text of a duration, with the function of the library tsq_duration_part: 'M' the months
@@ -4716,7 +4724,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _durationNegated(context: SqlBuildContext, operand: ToSql): string {
         const valueSource = this._temporalOperand(operand)
         if (!this._isDurationKeptAsText(valueSource)) {
-            return '-' + this._appendSqlParenthesis(valueSource, context, false)
+            return negatedSql(this._appendSqlParenthesis(valueSource, context, false))
         }
         // The text without its sign, or with a minus; a duration of zero as it is (Temporal writes it without sign)
         let result = 'case when ' + this._textFirstCharacter(this._appendSql(valueSource, context, false)) + " = '-' then " + this._textFromSecondCharacter(this._appendSql(valueSource, context, false))
@@ -4728,7 +4736,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const valueSource = this._temporalOperand(operand)
         if (!this._isDurationKeptAsText(valueSource)) {
             const interval = this._appendSqlParenthesis(valueSource, context, false)
-            return 'case when ' + interval + " < interval '0' then -" + interval + ' else ' + interval + ' end'
+            return 'case when ' + interval + " < interval '0' then " + negatedSql(interval) + ' else ' + interval + ' end'
         }
         let result = 'case when ' + this._textFirstCharacter(this._appendSql(valueSource, context, false)) + " in ('-', '+') then " + this._textFromSecondCharacter(this._appendSql(valueSource, context, false))
         return result + ' else ' + this._appendSql(valueSource, context, false) + ' end'
@@ -5625,6 +5633,26 @@ export type DurationField = 'years' | 'months' | 'weeks' | 'days' | 'hours' | 'm
 
 /** A field of the duration of a difference: the time is the hours to the nanoseconds, in nanoseconds */
 export type PlainTemporalDifferenceField = 'years' | 'months' | 'weeks' | 'days' | 'time'
+
+/** The SQL negated with a minus; between parentheses when it starts with one, since `--` starts a comment */
+function negatedSql(sql: string): string {
+    return sql.startsWith('-') ? '-(' + sql + ')' : '-' + sql
+}
+
+/**
+ * The duration a duration is computed from, keeping its storage (an interval, of days to seconds or of years to months,
+ * or its text): the one negated or without its sign; undefined for any other value
+ */
+export function __durationComputedFrom(valueSource: ToSql): ToSql | undefined {
+    if (!isValueSource(valueSource)) {
+        return undefined
+    }
+    const operation = __asNodeValueSource(valueSource) as Partial<SqlOperation0ValueSource>
+    if (operation.__operation === '_durationNegated' || operation.__operation === '_durationAbs') {
+        return operation.__valueSource as unknown as ToSql
+    }
+    return undefined
+}
 
 /** The difference of two values of a date, a time or a date and time to write (see _appendDifference) */
 export interface PlainTemporalDifferenceSql {

@@ -109,6 +109,40 @@ describe(ctx.label, () => {
 
     // NOT-SUPPORTED: Bun SQL's sqlite adapter exposes neither a user-defined-function API nor its bun:sqlite `Database`, so the tsq_duration_part UDF can't be registered
     /*
+    test('a-duration-computed-from-another-is-kept-as-that-one', async () => {
+        // The text negated or without its sign is a text: its fields and its total read it as one
+        ctx.mockNext([{ id: 2, hours: 26, minutes: 0, total: 1560 }, { id: 3, hours: 0, minutes: -90, total: 90 }])
+        const rows = await ctx.conn.selectFrom(tDurationValue)
+            .where(tDurationValue.id.greaterThan(1))
+            .select({
+                id: tDurationValue.id,
+                hours: tDurationValue.spanText.negated().hours(),
+                minutes: tDurationValue.spanText.negated().minutes(),
+                total: tDurationValue.spanText.abs().total('minutes'),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams.map(String)).toMatchInlineSnapshot()
+        expect(rows.map(row => [row.id, row.hours, row.minutes, row.total])).toEqual([[2, 26, 0, 1560], [3, 0, -90, 90]])
+        // 2024-01-31 until 2024-03-30 in months is P1M30D: negated, -P1M30D
+        ctx.mockNext({ months: -1, days: -30, total: 59 })
+        const january31 = ctx.conn.const(Temporal.PlainDate.from('2024-01-31'), 'plainDate')
+        const row = await ctx.conn.selectFromNoTable()
+            .select({
+                months: january31.until(Temporal.PlainDate.from('2024-03-30'), { largestUnit: 'month' }).negated().months(),
+                days: january31.until(Temporal.PlainDate.from('2024-03-30'), { largestUnit: 'month' }).negated().days(),
+                total: january31.until(Temporal.PlainDate.from('2024-03-30'), { largestUnit: 'month' }).negated().abs().total({ unit: 'day', relativeTo: january31 }),
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams.map(String)).toMatchInlineSnapshot()
+        expect([row.months, row.days, row.total]).toEqual([-1, -30, 59])
+    })
+    */
+
+    // NOT-SUPPORTED: Bun SQL's sqlite adapter exposes neither a user-defined-function API nor its bun:sqlite `Database`, so the tsq_duration_part UDF can't be registered
+    /*
     test('the-fields-of-a-difference', async () => {
         // 2024-01-31 until 2025-03-30 in years is P1Y1M30D; since gives it negated
         ctx.mockNext({ years: 1, months: 1, days: 30, sign: -1 })

@@ -5,7 +5,7 @@ import { flattenQueryColumns, hasToSql, getQueryColumn, operationOf } from './Sq
 import type { DataTypeClass } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter, OracleDateAsTimestampTypeAdapter } from '../TypeAdapter.js'
 import { DefaultImpl } from '../expressions/Default.js'
-import { AbstractSqlBuilder, type DurationField, type PlainTemporalDifferenceSql, type SelectColumnSql } from './AbstractSqlBuilder.js'
+import { AbstractSqlBuilder, __durationComputedFrom, type DurationField, type PlainTemporalDifferenceSql, type SelectColumnSql } from './AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import { __columnPathsOf } from '../utils/columnPaths.js'
 import { __getColumnOfObject } from '../utils/Column.js'
@@ -1652,6 +1652,10 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     }
     /** Whether a duration value source is an interval of years to months (its SQL data type says it) */
     _isYearToMonthDuration(valueSource: ToSql): boolean {
+        const from = __durationComputedFrom(valueSource)
+        if (from) {
+            return this._isYearToMonthDuration(from)
+        }
         const sqlDataType = __durationSqlDataTypeOf(__sqlDataTypeOf(__classOf(valueSource as object)), __classOf(valueSource as object))
         return sqlDataType?.family === 'interval' && sqlDataType.fields === 'year to month'
     }

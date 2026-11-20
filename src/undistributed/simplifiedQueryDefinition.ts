@@ -674,6 +674,27 @@ interface ZonedDateTimeValueSource extends ComparableValueSource<Temporal.ZonedD
     microsecond(): NumberValueSource
     /** The same instant in another zone, as Temporal's withTimeZone */
     withTimeZone(timeZone: string | StringValueSource): ZonedDateTimeValueSource
+    /**
+     * Plus or minus a duration, as Temporal's add and subtract: its years to days on the wall clock in its zone (the day
+     * kept in the month, or rejected), taken back to its zone ('compatible'), then its time on the instant
+     */
+    add(duration: Temporal.Duration | Temporal.DurationLike | DurationValueSource, options?: { overflow?: 'constrain' | 'reject' }): ZonedDateTimeValueSource
+    subtract(duration: Temporal.Duration | Temporal.DurationLike | DurationValueSource, options?: { overflow?: 'constrain' | 'reject' }): ZonedDateTimeValueSource
+    /** With other fields of its date and time in its zone, keeping its offset when the zone still has it, as Temporal's with */
+    with(fields: { year?: number, month?: number, monthCode?: string, day?: number, hour?: number, minute?: number, second?: number, millisecond?: number, microsecond?: number, nanosecond?: number, offset?: string }, options?: { overflow?: 'constrain' | 'reject', disambiguation?: 'compatible' | 'earlier' | 'later' | 'reject', offset?: 'use' | 'prefer' | 'ignore' | 'reject' }): ZonedDateTimeValueSource
+    /** At the time of the day given, or at the start of its day, as Temporal's withPlainTime */
+    withPlainTime(time?: Temporal.PlainTime | PlainTimeValueSource): ZonedDateTimeValueSource
+    /** The start of its day in its zone, and the hours of its day there, as Temporal's startOfDay and hoursInDay */
+    startOfDay(): ZonedDateTimeValueSource
+    hoursInDay(): NumberValueSource
+    /** Rounded, as Temporal's round: to the start of its day or the next one, or its wall clock to a unit of the time */
+    round(options: 'day' | 'days' | TimeUnit | { smallestUnit: 'day' | 'days' | TimeUnit, roundingIncrement?: number, roundingMode?: RoundingMode }): ZonedDateTimeValueSource
+    /**
+     * The duration to or from the other one, as Temporal's until and since: in hours by default (their instants); in days
+     * or larger units the days of the calendar in their zone, with the function of the library tsq_zoned_until
+     */
+    until(other: Temporal.ZonedDateTime | ZonedDateTimeValueSource, options?: DifferenceOptions<DateUnit | TimeUnit>): DurationValueSource
+    since(other: Temporal.ZonedDateTime | ZonedDateTimeValueSource, options?: DifferenceOptions<DateUnit | TimeUnit>): DurationValueSource
 }
 
 /**

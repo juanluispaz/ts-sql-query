@@ -234,10 +234,9 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
         if (context.output === 'resultColumn' && __isZonedDateTimeClass(context.requestedType)) {
             // A zoned date and time leaves the database as its instant in UTC, with all its digits and the era always
             // written, followed by the region of its zone in brackets (Temporal reads its name whatever its case)
-            // (`at time zone` binds looser than `is not null`: a value computed in its zone is in parenthesis)
+            // (null, which Oracle concatenates as an empty text, gives '[]', taken back to null)
             context.comparison = 'equality'
-            const value = /^[\w."]+$/.test(sql) ? sql : '(' + sql + ')'
-            return "case when " + value + " is not null then to_char(sys_extract_utc(" + value + "), 'YYYY-MM-DD\"T\"HH24:MI:SS.FF9\"Z\" BC', 'NLS_DATE_LANGUAGE=AMERICAN') || '[' || to_char(" + value + ", 'TZR') || ']' end"
+            return "nullif(to_char(sys_extract_utc(" + sql + "), 'YYYY-MM-DD\"T\"HH24:MI:SS.FF9\"Z\" BC', 'NLS_DATE_LANGUAGE=AMERICAN') || '[' || to_char(" + sql + ", 'TZR') || ']', '[]')"
         }
         if (context.output === 'resultColumn' && __isInstantClass(context.requestedType)) {
             // oracledb delivers a date and a time as a Date, which drops the digits below the millisecond: an instant

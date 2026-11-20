@@ -4119,6 +4119,39 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _plainDateTimeToZoned(_context: SqlBuildContext, _valueSource: ToSql, _value: any, _value2: any, _typeClass: DataTypeClass): string {
         return this._zonedDateTimeUnsupported()
     }
+    _zonedInUtc(_context: SqlBuildContext, _valueSource: ToSql): string {
+        return this._zonedDateTimeUnsupported()
+    }
+    _zonedHoursInDay(_context: SqlBuildContext, _valueSource: ToSql): string {
+        return this._zonedDateTimeUnsupported()
+    }
+    _zonedOperandReference(_context: SqlBuildContext, _valueSource: ToSql): string {
+        return this._zonedDateTimeUnsupported()
+    }
+    _zonedAddDuration(_context: SqlBuildContext, _valueSource: ToSql, _value: any, _typeClass: DataTypeClass): string {
+        return this._zonedDateTimeUnsupported()
+    }
+    _zonedSubtractDuration(_context: SqlBuildContext, _valueSource: ToSql, _value: any, _typeClass: DataTypeClass): string {
+        return this._zonedDateTimeUnsupported()
+    }
+    _zonedAddDurationRejecting(_context: SqlBuildContext, _valueSource: ToSql, _value: any, _typeClass: DataTypeClass): string {
+        return this._zonedDateTimeUnsupported()
+    }
+    _zonedSubtractDurationRejecting(_context: SqlBuildContext, _valueSource: ToSql, _value: any, _typeClass: DataTypeClass): string {
+        return this._zonedDateTimeUnsupported()
+    }
+    _zonedRoundToDay(_context: SqlBuildContext, _valueSource: ToSql, _value: any, _typeClass: DataTypeClass): string {
+        return this._zonedDateTimeUnsupported()
+    }
+    _zonedOfWallClockIn(_context: SqlBuildContext, _valueSource: ToSql, _value: any, _value2: any, _typeClass: DataTypeClass): string {
+        return this._zonedDateTimeUnsupported()
+    }
+    _zonedUntil(_context: SqlBuildContext, _valueSource: ToSql, _value: any, _value2: any, _typeClass: DataTypeClass): string {
+        return this._zonedDateTimeUnsupported()
+    }
+    _zonedSince(_context: SqlBuildContext, _valueSource: ToSql, _value: any, _value2: any, _typeClass: DataTypeClass): string {
+        return this._zonedDateTimeUnsupported()
+    }
     /** The instant of a wall clock in UTC (see _instantInUtc) */
     _instantOfUtc(_context: SqlBuildContext, sql: string): string {
         return sql

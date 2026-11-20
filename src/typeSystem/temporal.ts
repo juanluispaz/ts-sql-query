@@ -38,8 +38,15 @@ export type TemporalZonedDateTime = InstanceOf<'ZonedDateTime'>
  * of a repeated one and the later of a skipped one, `'reject'` rejects both
  */
 export interface TemporalDisambiguationOptions {
-    readonly disambiguation?: 'compatible' | 'earlier' | 'later' | 'reject' | undefined
+    readonly disambiguation?: TemporalDisambiguation | undefined
 }
+/** How a wall clock is taken to an instant in a zone that repeats or skips it, as Temporal's option `disambiguation` */
+export type TemporalDisambiguation = 'compatible' | 'earlier' | 'later' | 'reject'
+/**
+ * The option `offset` of Temporal's `with` of a zoned date and time: the offset kept when the zone still has it
+ * (`'prefer'`, the default), used as it is (`'use'`), not used (`'ignore'`), or rejected when the zone hasn't it
+ */
+export type TemporalOffsetOption = 'use' | 'prefer' | 'ignore' | 'reject'
 /**
  * The option of Temporal's `add`, `subtract` and `with` of a date: a day that its month hasn't is taken to the last day
  * of the month (`'constrain'`, the default) or rejected (`'reject'`)

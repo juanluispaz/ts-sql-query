@@ -40,4 +40,10 @@ export const oracleOperationsThatNeedParenthesis: OperationsThatNeedParenthesis 
     // `from_tz(...) at time zone z`, which binds looser than an operator after it
     _instantToZoned: true,
     _plainDateTimeToZoned: true,
+    _zonedOfWallClockIn: true,
+    _zonedAddDuration: true,
+    _zonedSubtractDuration: true,
+    _zonedAddDurationRejecting: true,
+    _zonedSubtractDurationRejecting: true,
+    _zonedRoundToDay: true,
 }

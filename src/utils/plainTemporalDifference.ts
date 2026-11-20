@@ -52,9 +52,11 @@ function unitOf(name: unknown, fields: 'date' | 'time' | 'timestamp'): PlainTemp
 
 /**
  * The difference the options of `until` (or of `since`) of a date ('date'), a time ('time') or a date and time
- * ('timestamp') ask for, as Temporal reads them; undefined when Temporal rejects them
+ * ('timestamp') ask for, as Temporal reads them; undefined when Temporal rejects them. The largest unit 'auto' is the
+ * larger of the smallest unit and the default one: the day for a date and time, the hour for a time and for a zoned
+ * date and time (its default is given)
  */
-export function plainTemporalDifferenceOf(value: unknown, fields: 'date' | 'time' | 'timestamp', since: boolean): PlainTemporalDifference | undefined {
+export function plainTemporalDifferenceOf(value: unknown, fields: 'date' | 'time' | 'timestamp', since: boolean, defaultLargestUnit?: 'hour'): PlainTemporalDifference | undefined {
     if (value !== undefined && (value === null || typeof value !== 'object')) {
         return undefined
     }
@@ -65,7 +67,7 @@ export function plainTemporalDifferenceOf(value: unknown, fields: 'date' | 'time
         return undefined
     }
     const smallestUnit = smallest ?? (fields === 'date' ? 'day' : 'nanosecond')
-    const defaultLargest = fields === 'time' ? 'hour' : 'day'
+    const defaultLargest = fields === 'time' ? 'hour' : defaultLargestUnit ?? 'day'
     const largestUnit = largestGiven ?? (unitOrder[defaultLargest]! <= unitOrder[smallestUnit]! ? defaultLargest : smallestUnit)
     if (unitOrder[largestUnit]! > unitOrder[smallestUnit]!) {
         return undefined

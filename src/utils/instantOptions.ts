@@ -40,10 +40,10 @@ function timeUnitOf(name: unknown): string | undefined | null {
 
 /**
  * The options of `until` (or `since`) of an instant as the ones of a date and time with the same meaning: its units
- * checked, and its largest unit always given (the second by default, or the smallest unit when it is larger). Undefined
- * when Temporal rejects a unit; the rest is checked as for a date and time
+ * checked, and its largest unit always given (the second by default, the hour for a zoned date and time, or the
+ * smallest unit when it is larger). Undefined when Temporal rejects a unit; the rest is checked as for a date and time
  */
-export function instantDifferenceOptionsOf(value: unknown): object | undefined {
+export function instantDifferenceOptionsOf(value: unknown, defaultLargestUnit: 'second' | 'hour' = 'second'): object | undefined {
     if (value !== undefined && (value === null || typeof value !== 'object')) {
         return undefined
     }
@@ -54,7 +54,7 @@ export function instantDifferenceOptionsOf(value: unknown): object | undefined {
         return undefined
     }
     const smallestUnit = smallest ?? 'nanosecond'
-    const largestUnit = largest ?? (timeUnitOrder[smallestUnit]! < timeUnitOrder['second']! ? smallestUnit : 'second')
+    const largestUnit = largest ?? (timeUnitOrder[smallestUnit]! < timeUnitOrder[defaultLargestUnit]! ? smallestUnit : defaultLargestUnit)
     return { largestUnit, smallestUnit, roundingIncrement: options.roundingIncrement, roundingMode: options.roundingMode }
 }
 

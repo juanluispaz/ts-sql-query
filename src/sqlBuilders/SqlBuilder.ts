@@ -519,6 +519,11 @@ export interface SqlFunction0 {
     _zonedTimeZoneId(context: SqlBuildContext, valueSource: ToSql): string
     _zonedOffset(context: SqlBuildContext, valueSource: ToSql): string
     _zonedOffsetNanoseconds(context: SqlBuildContext, valueSource: ToSql): string
+    // The arithmetic of a zoned date and time: its wall clock in UTC (its instant), the hours of its day
+    _zonedInUtc(context: SqlBuildContext, valueSource: ToSql): string
+    _zonedHoursInDay(context: SqlBuildContext, valueSource: ToSql): string
+    // A zoned date and time where a computation of its wall clock refers to it (see _zonedOfWallClockIn)
+    _zonedOperandReference(context: SqlBuildContext, valueSource: ToSql): string
     // Uuid
     _asString(context: SqlBuildContext, valueSource: ToSql): string
     // Oracle recursive
@@ -575,6 +580,12 @@ export interface SqlFunction1 {
     _instantToZoned(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
     _instantAddDuration(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
     _instantSubtractDuration(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
+    // The arithmetic of a zoned date and time, with the semantics of Temporal
+    _zonedAddDuration(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
+    _zonedSubtractDuration(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
+    _zonedAddDurationRejecting(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
+    _zonedSubtractDurationRejecting(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
+    _zonedRoundToDay(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
 }
 // avg, count, max, median, min,
 // greatest, least
@@ -586,6 +597,11 @@ export interface SqlFunction2 {
     // The duration between two dates, times or dates and times, with the semantics of Temporal's until and since
     _until(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, typeClass: DataTypeClass): string
     _plainDateTimeToZoned(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, typeClass: DataTypeClass): string
+    // A wall clock (the receiver) in the zone of a zoned date and time, as Temporal interprets it (see ZonedInterpretation)
+    _zonedOfWallClockIn(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, typeClass: DataTypeClass): string
+    // The duration between two zoned dates and times in days or larger units, with the semantics of Temporal
+    _zonedUntil(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, typeClass: DataTypeClass): string
+    _zonedSince(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, typeClass: DataTypeClass): string
     _since(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, typeClass: DataTypeClass): string
     _durationTotal(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, typeClass: DataTypeClass): string
     _replaceAll(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, typeClass: DataTypeClass): string

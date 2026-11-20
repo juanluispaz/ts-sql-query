@@ -1,7 +1,7 @@
 // Zoned dates and times (Temporal.ZonedDateTime) as the library takes them: the text it reads of one (its instant and
 // its zone in brackets, as Temporal writes it or as Oracle gives it, the zone in capitals), the zone of a value checked
-// as Temporal checks it, the options of toZonedDateTime, and the databases without zones, where a query with one fails
-// when it is built and nothing is sent.
+// as Temporal checks it, the options of toZonedDateTime and of the arithmetic of a zoned date and time, and the
+// databases without zones, where a query with one fails when it is built and nothing is sent.
 
 import { describe, expect, test } from '../../lib/testRunner.js'
 import { PostgreSqlConnection } from '../../../src/connections/PostgreSqlConnection.js'
@@ -10,6 +10,7 @@ import { MockQueryRunner } from '../../../src/queryRunners/MockQueryRunner.js'
 import { Table } from '../../../src/exports/v2/index.js'
 import { parseZonedDateTimeText } from '../../../src/utils/plainDateTimeText.js'
 import { oraclePlainTemporalForm } from '../../../src/utils/oracle/oracleParamTypes.js'
+import { offsetNanosecondsOf } from '../../../src/utils/zonedOptions.js'
 
 let queries = 0
 const runner = () => new MockQueryRunner(() => {
@@ -63,6 +64,34 @@ describe('ZonedDateTimeValues', () => {
         expect(await reasonOf(() => tOracleEvent.at.toZonedDateTimeISO('-03:30'))).toBe('no error')
         expect(await reasonOf(() => tOracleEvent.at.toZonedDateTimeISO('Nowhere/City'))).toBe('INVALID_VALUE_TO_SEND_TO_DATABASE')
         expect(await reasonOf(() => tOracleEvent.wall.toZonedDateTime('Europe/Madrid', { disambiguation: 'first' as never }))).toBe('INVALID_VALUE_TO_SEND_TO_DATABASE')
+    })
+
+    test('the-options-of-the-arithmetic-of-a-zoned-date-and-time-are-checked-as-temporal-checks-them', async () => {
+        // What Temporal takes is built; what it rejects fails when the query is built
+        const connection = new OracleDBConnection(runner())
+        const zoned = tOracleEvent.at.toZonedDateTimeISO('Europe/Madrid')
+        const built = (valueSource: () => any) => reasonOf(() => connection.selectFrom(tOracleEvent).selectOneColumn(valueSource()).executeSelectMany())
+        expect(await Promise.all([
+            built(() => zoned.add({ days: 1 }, { overflow: 'reject' })),
+            built(() => zoned.with({ offset: '+01:00' })),
+            built(() => zoned.with({ hour: 2 }, { offset: 'use', disambiguation: 'reject' })),
+            built(() => zoned.round({ smallestUnit: 'day', roundingMode: 'halfEven' })),
+            built(() => zoned.until(zoned, { largestUnit: 'year', smallestUnit: 'week', roundingIncrement: 2 })),
+        ])).toEqual(['no error', 'no error', 'no error', 'no error', 'no error'])
+        expect(await Promise.all([
+            built(() => zoned.add({ days: 1 }, { overflow: 'keep' as never })),
+            built(() => zoned.add({ days: 1, hours: -1 })),
+            built(() => zoned.with({ offset: '+1:00' })),
+            built(() => zoned.with({ hour: 2 }, { offset: 'keep' as never })),
+            built(() => zoned.with({ hour: 2 }, { disambiguation: 'first' as never })),
+            built(() => zoned.with({} as never)),
+            built(() => zoned.round({ smallestUnit: 'day', roundingIncrement: 2 })),
+            built(() => zoned.round('week' as never)),
+            built(() => zoned.until(zoned, { largestUnit: 'hour', smallestUnit: 'day' })),
+            built(() => zoned.until(zoned, { smallestUnit: 'minute', roundingIncrement: 7 })),
+        ])).toEqual(Array(10).fill('INVALID_VALUE_TO_SEND_TO_DATABASE'))
+        // An offset as Temporal writes it: with or without colons, up to the nanosecond
+        expect(['+01:00', '-0330', '+05', '+05:30:15.5', '+24:00', '1:00'].map(offset => offsetNanosecondsOf(offset))).toEqual([3_600_000_000_000n, -12_600_000_000_000n, 18_000_000_000_000n, 19_815_500_000_000n, undefined, undefined])
     })
 
     test('oracle-receives-the-instant-of-a-zoned-date-and-time-and-its-zone', async () => {

@@ -682,6 +682,21 @@ function _typeNegatives() {
     void tColMatrixPlain.mDatetime.toZonedDateTime('Europe/Madrid', { disambiguation: 'first' })
     // @ts-expect-error a date has no instant in a zone without a time of the day
     void tColMatrixPlain.mDate.toZonedDateTime('Europe/Madrid')
+    // The arithmetic of a zoned date and time: a duration of any unit, its fields, a rounding to a day, a difference in days
+    void tInstantValue.instantAt.toZonedDateTimeISO('Europe/Madrid').add({ days: 1, hours: 2 }, { overflow: 'reject' })
+    void tInstantValue.instantAt.toZonedDateTimeISO('Europe/Madrid').subtract(tDurationValue.span)
+    void tInstantValue.instantAt.toZonedDateTimeISO('Europe/Madrid').with({ hour: 2, offset: '+01:00' }, { offset: 'prefer', disambiguation: 'later' })
+    void tInstantValue.instantAt.toZonedDateTimeISO('Europe/Madrid').round({ smallestUnit: 'day', roundingMode: 'floor' })
+    void tInstantValue.instantAt.toZonedDateTimeISO('Europe/Madrid').until(tInstantValue.instantAt.toZonedDateTimeISO('Europe/Madrid'), { largestUnit: 'month' })
+    void tInstantValue.instantAt.toZonedDateTimeISO('Europe/Madrid').withPlainTime(tColMatrixPlain.mTime).hoursInDay()
+    // @ts-expect-error the offset of with is one of Temporal's
+    void tInstantValue.instantAt.toZonedDateTimeISO('Europe/Madrid').with({ hour: 2 }, { offset: 'keep' })
+    // @ts-expect-error a zoned date and time isn't rounded to a week
+    void tInstantValue.instantAt.toZonedDateTimeISO('Europe/Madrid').round('week')
+    // @ts-expect-error the other value is a zoned date and time
+    void tInstantValue.instantAt.toZonedDateTimeISO('Europe/Madrid').until(tInstantValue.instantAt)
+    // @ts-expect-error the time of withPlainTime is a plainTime
+    void tInstantValue.instantAt.toZonedDateTimeISO('Europe/Madrid').withPlainTime(tColMatrixPlain.mDatetime)
 }
 
 test('expressions-negative-types', () => {

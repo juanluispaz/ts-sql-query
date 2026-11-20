@@ -221,6 +221,153 @@ describe(ctx.label, () => {
     })
     */
 
+    // NOT-SUPPORTED: this database keeps no time zone with each value: a zonedDateTime is only kept and computed on Oracle
+    /*
+    test('a-zoned-date-and-time-plus-a-duration', async () => {
+        // Days are added to the wall clock in the zone: row 1 plus a day is 02:30 on the next day, an hour later in UTC,
+        // as Madrid goes back an hour; hours are added to the instant; a duration value source as well
+        const duration = Temporal.Duration.from('P1DT2H')
+        const text = (value: Temporal.ZonedDateTime) => value.toInstant().toString() + ' AD[' + value.timeZoneId.toUpperCase() + ']'
+        ctx.mockNext(zoned.map((value, i) => ({
+            id: i + 1, nextDay: text(value.add({ days: 1 })), twoHoursBefore: text(value.subtract({ hours: 2 })), monthAndHour: text(value.add({ months: 1, hours: 1 })), ofDuration: text(value.add(duration)),
+        })))
+        const rows = sync(ctx.conn.selectFrom(tZonedValue)
+            .select({
+                id: tZonedValue.id,
+                nextDay: tZonedValue.zonedAt.add({ days: 1 }),
+                twoHoursBefore: tZonedValue.zonedAt.subtract({ hours: 2 }),
+                monthAndHour: tZonedValue.zonedAt.add({ months: 1, hours: 1 }),
+                ofDuration: tZonedValue.zonedAt.add(ctx.conn.const(duration, 'duration')),
+            })
+            .orderBy('id')
+            .executeSelectMany())
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams.map(String)).toMatchInlineSnapshot()
+        assertType<Exact<typeof rows, Array<{ id: number; nextDay: Temporal.ZonedDateTime; twoHoursBefore: Temporal.ZonedDateTime; monthAndHour: Temporal.ZonedDateTime; ofDuration: Temporal.ZonedDateTime }>>>()
+        expect(rows.map(row => [row.id, row.nextDay.toString(), row.twoHoursBefore.toString(), row.monthAndHour.toString(), row.ofDuration.toString()])).toEqual(zoned.map((value, i) => [
+            i + 1, value.add({ days: 1 }).toString(), value.subtract({ hours: 2 }).toString(), value.add({ months: 1, hours: 1 }).toString(), value.add(duration).toString(),
+        ]))
+    })
+    */
+
+    // NOT-SUPPORTED: this database keeps no time zone with each value: a zonedDateTime is only kept and computed on Oracle
+    /*
+    test('a-zoned-date-and-time-with-other-fields-rounded-and-at-the-start-of-its-day', async () => {
+        // Row 1 is in the first 02:30 of a day Madrid repeats, with 25 hours: with keeps its offset when the zone still
+        // has it, round rounds its wall clock, round to a day takes the start of its day or of the next one
+        const noon = Temporal.PlainTime.from('12:00')
+        const text = (value: Temporal.ZonedDateTime) => value.toInstant().toString() + ' AD[' + value.timeZoneId.toUpperCase() + ']'
+        ctx.mockNext(zoned.map((value, i) => ({
+            id: i + 1, quarterTo: text(value.with({ minute: 45 })), later: text(value.with({ minute: 45 }, { offset: 'ignore', disambiguation: 'later' })), hour: text(value.round('hour')),
+            day: text(value.round('day')), start: text(value.startOfDay()), atNoon: text(value.withPlainTime(noon)), hoursInDay: value.hoursInDay,
+        })))
+        const rows = sync(ctx.conn.selectFrom(tZonedValue)
+            .select({
+                id: tZonedValue.id,
+                quarterTo: tZonedValue.zonedAt.with({ minute: 45 }),
+                later: tZonedValue.zonedAt.with({ minute: 45 }, { offset: 'ignore', disambiguation: 'later' }),
+                hour: tZonedValue.zonedAt.round('hour'),
+                day: tZonedValue.zonedAt.round('day'),
+                start: tZonedValue.zonedAt.startOfDay(),
+                atNoon: tZonedValue.zonedAt.withPlainTime(noon),
+                hoursInDay: tZonedValue.zonedAt.hoursInDay(),
+            })
+            .orderBy('id')
+            .executeSelectMany())
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams.map(String)).toMatchInlineSnapshot()
+        assertType<Exact<typeof rows, Array<{ id: number; quarterTo: Temporal.ZonedDateTime; later: Temporal.ZonedDateTime; hour: Temporal.ZonedDateTime; day: Temporal.ZonedDateTime; start: Temporal.ZonedDateTime; atNoon: Temporal.ZonedDateTime; hoursInDay: number }>>>()
+        expect(rows.map(row => [row.id, row.quarterTo.toString(), row.later.toString(), row.hour.toString(), row.day.toString(), row.start.toString(), row.atNoon.toString(), row.hoursInDay])).toEqual(zoned.map((value, i) => [
+            i + 1, value.with({ minute: 45 }).toString(), value.with({ minute: 45 }, { offset: 'ignore', disambiguation: 'later' }).toString(), value.round('hour').toString(),
+            value.round('day').toString(), value.startOfDay().toString(), value.withPlainTime(noon).toString(), value.hoursInDay,
+        ]))
+    })
+    */
+
+    // NOT-SUPPORTED: this database keeps no time zone with each value: a zonedDateTime is only kept and computed on Oracle
+    /*
+    test('operations-on-a-computed-zoned-date-and-time', async () => {
+        // A value computed from another one is computed once and named in the query; each operation is Temporal's
+        const text = (value: Temporal.ZonedDateTime) => value.toInstant().toString() + ' AD[' + value.timeZoneId.toUpperCase() + ']'
+        const chain = (value: Temporal.ZonedDateTime) => value.add({ days: 1 }).with({ hour: 3 }).round('hour')
+        ctx.mockNext(zoned.map((value, i) => ({ id: i + 1, chained: text(chain(value).startOfDay()), hoursInDay: chain(value).hoursInDay })))
+        const rows = sync(ctx.conn.selectFrom(tZonedValue)
+            .select({
+                id: tZonedValue.id,
+                chained: tZonedValue.zonedAt.add({ days: 1 }).with({ hour: 3 }).round('hour').startOfDay(),
+                hoursInDay: tZonedValue.zonedAt.add({ days: 1 }).with({ hour: 3 }).round('hour').hoursInDay(),
+            })
+            .orderBy('id')
+            .executeSelectMany())
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams.map(String)).toMatchInlineSnapshot()
+        assertType<Exact<typeof rows, Array<{ id: number; chained: Temporal.ZonedDateTime; hoursInDay: number }>>>()
+        expect(rows.map(row => [row.id, row.chained.toString(), row.hoursInDay])).toEqual(zoned.map((value, i) => [i + 1, chain(value).startOfDay().toString(), chain(value).hoursInDay]))
+    })
+    */
+
+    // NOT-SUPPORTED: this database keeps no time zone with each value: a zonedDateTime is only kept and computed on Oracle
+    /*
+    test('reject-fails-for-a-day-the-month-has-not-or-an-offset-the-zone-has-not', async () => {
+        // As Temporal: row 1 is in October, a month later November has its day 27; February has no day 30; Madrid has
+        // no offset +05:00
+        const failures: boolean[] = []
+        const value = zoned[0]!
+        const text = (zonedValue: Temporal.ZonedDateTime) => zonedValue.toInstant().toString() + ' AD[' + zonedValue.timeZoneId.toUpperCase() + ']'
+        ctx.mockNext([text(value.add({ months: 1 }, { overflow: 'reject' }))])
+        failures.push(await failureOf(ctx.conn.selectFrom(tZonedValue).where(tZonedValue.id.equals(1)).selectOneColumn(tZonedValue.zonedAt.add({ months: 1 }, { overflow: 'reject' })).executeSelectMany()))
+        ctx.mockNext([])
+        failures.push(await failureOf(ctx.conn.selectFrom(tZonedValue).where(tZonedValue.id.equals(1)).selectOneColumn(tZonedValue.zonedAt.with({ month: 2, day: 30 }, { overflow: 'reject' })).executeSelectMany()))
+        ctx.mockNext([])
+        failures.push(await failureOf(ctx.conn.selectFrom(tZonedValue).where(tZonedValue.id.equals(1)).selectOneColumn(tZonedValue.zonedAt.with({ offset: '+05:00' }, { offset: 'reject' })).executeSelectMany()))
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(failures).toEqual([false, ctx.realDbEnabled, ctx.realDbEnabled])
+    })
+    */
+
+    // NOT-SUPPORTED: this database keeps no time zone with each value: a zonedDateTime is only kept and computed on Oracle
+    /*
+    test('the-duration-between-two-zoned-dates-and-times', async () => {
+        // In hours by default, the difference of their instants; in days, the days of the calendar in their zone: row 1
+        // to two days later in Madrid is 2 days and 1 hour, which a day of 25 hours makes 49 hours
+        const later = (value: Temporal.ZonedDateTime) => value.add({ days: 2, hours: 1 })
+        ctx.mockNext(zoned.map((value, i) => ({
+            id: i + 1, hours: value.until(later(value)).toString(), days: value.until(later(value), { largestUnit: 'day' }).toString(),
+            months: value.since(value.subtract({ months: 1, days: 10 }), { largestUnit: 'month', smallestUnit: 'month', roundingMode: 'halfExpand' }).toString(),
+        })))
+        const rows = sync(ctx.conn.selectFrom(tZonedValue)
+            .select({
+                id: tZonedValue.id,
+                hours: tZonedValue.zonedAt.until(tZonedValue.zonedAt.add({ days: 2, hours: 1 })),
+                days: tZonedValue.zonedAt.until(tZonedValue.zonedAt.add({ days: 2, hours: 1 }), { largestUnit: 'day' }),
+                months: tZonedValue.zonedAt.since(tZonedValue.zonedAt.subtract({ months: 1, days: 10 }), { largestUnit: 'month', smallestUnit: 'month', roundingMode: 'halfExpand' }),
+            })
+            .orderBy('id')
+            .executeSelectMany())
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams.map(String)).toMatchInlineSnapshot()
+        assertType<Exact<typeof rows, Array<{ id: number; hours: Temporal.Duration; days: Temporal.Duration; months: Temporal.Duration }>>>()
+        expect(rows.map(row => [row.id, row.hours.toString(), row.days.toString(), row.months.toString()])).toEqual(zoned.map((value, i) => [
+            i + 1, value.until(later(value)).toString(), value.until(later(value), { largestUnit: 'day' }).toString(),
+            value.since(value.subtract({ months: 1, days: 10 }), { largestUnit: 'month', smallestUnit: 'month', roundingMode: 'halfExpand' }).toString(),
+        ]))
+    })
+    */
+
+    // NOT-SUPPORTED: this database keeps no time zone with each value: a zonedDateTime is only kept and computed on Oracle
+    /*
+    test('a-difference-in-days-needs-the-same-zone', async () => {
+        // As Temporal, which rejects it: row 2 is in Kolkata, the other value in Madrid; in hours any two are compared
+        const madrid = Temporal.ZonedDateTime.from('2024-02-01T00:00:00+01:00[Europe/Madrid]')
+        ctx.mockNext([])
+        const failure = await failureOf(ctx.conn.selectFrom(tZonedValue).where(tZonedValue.id.equals(2)).selectOneColumn(tZonedValue.zonedAt.until(madrid, { largestUnit: 'day' })).executeSelectMany())
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        ctx.mockNext(zoned[1]!.until(madrid).toString())
+        const hours = sync(ctx.conn.selectFrom(tZonedValue).where(tZonedValue.id.equals(2)).selectOneColumn(tZonedValue.zonedAt.until(madrid)).executeSelectOne())
+        expect([failure, hours.toString()]).toEqual([ctx.realDbEnabled, zoned[1]!.until(madrid).toString()])
+    })
+    */
+
     test('a-zoned-date-and-time-needs-a-database-with-zones', async () => {
         // This database keeps no zone with each value: the query isn't sent
         const reason = await reasonOf(() => sync(ctx.conn.selectFrom(tInstantValue)

@@ -671,6 +671,243 @@ BEGIN
     RETURN tsq_duration_text(v_years * negation, v_months * negation, v_weeks * negation, v_days * negation, v_t * negation, 'hour');
 END;
 
+-- tsq_zoned_until: the duration from one zoned date and time to another (two TIMESTAMP WITH TIME ZONE in the same time
+-- zone) as Temporal's until with a largest unit of days or larger ('day', 'week', 'month', 'year'), rounded to the
+-- smallest unit, increment and mode given, the function of the library that counts the days of the calendar in the
+-- zone, each one with its length there (23 or 25 hours where the zone changes its offset); since passes its mode
+-- negated and -1 to negate the result. Two zones that aren't the same are an error, as in Temporal.
+CREATE OR REPLACE FUNCTION tsq_zoned_until(one IN TIMESTAMP_TZ_UNCONSTRAINED, two IN TIMESTAMP_TZ_UNCONSTRAINED, largest_unit IN VARCHAR2, smallest_unit IN VARCHAR2, increment IN NUMBER, rounding_mode IN VARCHAR2, negation IN NUMBER) RETURN VARCHAR2 DETERMINISTIC IS
+    v_zone VARCHAR2(100);
+    v_u1 TIMESTAMP_UNCONSTRAINED;
+    v_u2 TIMESTAMP_UNCONSTRAINED;
+    v_w1 TIMESTAMP_UNCONSTRAINED;
+    v_w2 TIMESTAMP_UNCONSTRAINED;
+    v_d1 DATE;
+    v_t1 NUMBER;
+    v_sign NUMBER;
+    v_years NUMBER := 0;
+    v_months NUMBER := 0;
+    v_weeks NUMBER := 0;
+    v_days NUMBER := 0;
+    v_t NUMBER := 0;
+    v_inter DATE;
+    v_correction NUMBER;
+    v_found BOOLEAN := FALSE;
+    v_m NUMBER;
+    v_r1 NUMBER;
+    v_r2 NUMBER;
+    v_start TIMESTAMP_UNCONSTRAINED;
+    v_end TIMESTAMP_UNCONSTRAINED;
+    v_nudged TIMESTAMP_UNCONSTRAINED;
+    v_num NUMBER;
+    v_den NUMBER;
+    v_mode VARCHAR2(12);
+    v_rounded NUMBER;
+    v_step NUMBER;
+    v_beyond NUMBER;
+    v_expanded BOOLEAN := FALSE;
+    v_unit NUMBER;
+    v_largest NUMBER;
+    v_ey NUMBER;
+    v_em NUMBER;
+    v_ew NUMBER;
+    -- The nanoseconds of an interval
+    FUNCTION ns_of(i IN DSINTERVAL_UNCONSTRAINED) RETURN NUMBER IS
+    BEGIN
+        RETURN ((EXTRACT(DAY FROM i) * 24 + EXTRACT(HOUR FROM i)) * 60 + EXTRACT(MINUTE FROM i)) * 60000000000 + EXTRACT(SECOND FROM i) * 1000000000;
+    END;
+    -- The wall clock in the zone of an instant (its wall clock in UTC)
+    FUNCTION wall_of(u IN TIMESTAMP_UNCONSTRAINED) RETURN TIMESTAMP_UNCONSTRAINED IS
+        v_z TIMESTAMP_TZ_UNCONSTRAINED;
+        v_w TIMESTAMP_UNCONSTRAINED;
+    BEGIN
+        v_z := FROM_TZ(u, '+00:00') AT TIME ZONE v_zone;
+        v_w := v_z;
+        RETURN v_w;
+    END;
+    -- The instant (its wall clock in UTC) of a wall clock in the zone, as Temporal's 'compatible' disambiguates it
+    FUNCTION utc_of(w IN TIMESTAMP_UNCONSTRAINED) RETURN TIMESTAMP_UNCONSTRAINED IS
+        v_before TIMESTAMP_UNCONSTRAINED;
+        v_after TIMESTAMP_UNCONSTRAINED;
+    BEGIN
+        v_before := w - (wall_of(w - INTERVAL '1' DAY) - (w - INTERVAL '1' DAY));
+        v_after := w - (wall_of(w + INTERVAL '1' DAY) - (w + INTERVAL '1' DAY));
+        IF wall_of(v_before) <> w AND wall_of(v_after) = w THEN
+            RETURN v_after;
+        END IF;
+        RETURN v_before;
+    END;
+    -- A date plus years and months (the day kept in the month), weeks and days
+    FUNCTION plus(d IN DATE, y IN NUMBER, mo IN NUMBER, w IN NUMBER, dd IN NUMBER) RETURN DATE IS
+    BEGIN
+        RETURN ADD_MONTHS(d, y * 12 + mo) - GREATEST(0, EXTRACT(DAY FROM ADD_MONTHS(d, y * 12 + mo)) - EXTRACT(DAY FROM d)) + w * 7 + dd;
+    END;
+    -- The instant of the first wall clock plus a duration of its date, in the zone
+    FUNCTION utc_plus(y IN NUMBER, mo IN NUMBER, w IN NUMBER, dd IN NUMBER) RETURN TIMESTAMP_UNCONSTRAINED IS
+        v_wall TIMESTAMP_UNCONSTRAINED;
+    BEGIN
+        v_wall := plus(v_d1, y, mo, w, dd);
+        RETURN utc_of(v_wall + NUMTODSINTERVAL(v_t1 / 1000000000, 'SECOND'));
+    END;
+    -- Temporal's rounding mode for a value of a sign: 'zero', 'infinity', 'halfZero', 'halfInfinity' or 'halfEven'
+    FUNCTION unsigned_mode(negative IN BOOLEAN) RETURN VARCHAR2 IS
+    BEGIN
+        RETURN CASE rounding_mode
+            WHEN 'ceil' THEN CASE WHEN negative THEN 'zero' ELSE 'infinity' END
+            WHEN 'floor' THEN CASE WHEN negative THEN 'infinity' ELSE 'zero' END
+            WHEN 'halfCeil' THEN CASE WHEN negative THEN 'halfZero' ELSE 'halfInfinity' END
+            WHEN 'halfFloor' THEN CASE WHEN negative THEN 'halfInfinity' ELSE 'halfZero' END
+            WHEN 'expand' THEN 'infinity' WHEN 'trunc' THEN 'zero' WHEN 'halfExpand' THEN 'halfInfinity' WHEN 'halfTrunc' THEN 'halfZero'
+            ELSE 'halfEven' END;
+    END;
+    -- Whether a value num / den between r1 (0) and r2 (1) is rounded to r2, as the unsigned mode says; r1 is the number of increments of r1
+    FUNCTION to_second(m IN VARCHAR2, num IN NUMBER, den IN NUMBER, r1 IN NUMBER) RETURN BOOLEAN IS
+    BEGIN
+        IF num = 0 THEN RETURN FALSE; END IF;
+        IF num = den THEN RETURN TRUE; END IF;
+        IF m = 'zero' THEN RETURN FALSE; END IF;
+        IF m = 'infinity' THEN RETURN TRUE; END IF;
+        IF 2 * num < den THEN RETURN FALSE; END IF;
+        IF 2 * num > den THEN RETURN TRUE; END IF;
+        RETURN m = 'halfInfinity' OR m = 'halfEven' AND MOD(r1, 2) <> 0;
+    END;
+    -- A number of nanoseconds rounded to a multiple of a step, with the sign of the number: Temporal's RoundNumberToIncrement
+    FUNCTION round_to(x IN NUMBER, step IN NUMBER) RETURN NUMBER IS
+        v_q NUMBER := ABS(x) / step;
+        v_low NUMBER := FLOOR(ABS(x) / step);
+        v_result NUMBER;
+    BEGIN
+        v_result := v_low + CASE WHEN to_second(unsigned_mode(x < 0), v_q - v_low, 1, v_low) THEN 1 ELSE 0 END;
+        RETURN SIGN(x) * v_result * step;
+    END;
+BEGIN
+    IF one IS NULL OR two IS NULL OR largest_unit IS NULL OR smallest_unit IS NULL OR increment IS NULL OR rounding_mode IS NULL OR negation IS NULL THEN RETURN NULL; END IF;
+    v_zone := TO_CHAR(one, 'TZR');
+    IF UPPER(v_zone) <> UPPER(TO_CHAR(two, 'TZR')) THEN
+        RAISE_APPLICATION_ERROR(-20001, 'tsq_zoned_until: a difference in days or larger units needs both zoned dates and times in the same time zone');
+    END IF;
+    v_u1 := SYS_EXTRACT_UTC(one);
+    v_u2 := SYS_EXTRACT_UTC(two);
+    IF v_u1 = v_u2 THEN
+        RETURN tsq_duration_text(0, 0, 0, 0, 0, 'hour');
+    END IF;
+    v_w1 := wall_of(v_u1);
+    v_w2 := wall_of(v_u2);
+    v_d1 := TRUNC(v_w1);
+    v_t1 := ns_of(v_w1 - CAST(v_d1 AS TIMESTAMP));
+    v_sign := CASE WHEN v_u2 < v_u1 THEN -1 ELSE 1 END;
+    -- Temporal's DifferenceZonedDateTime: the days of the calendar to a day of the second at the time of the first that
+    -- doesn't pass it, and the exact time from there
+    IF TRUNC(v_w2) = v_d1 THEN
+        v_t := ns_of(v_u2 - v_u1);
+    ELSE
+        v_correction := CASE WHEN SIGN(ns_of(v_w2 - CAST(TRUNC(v_w2) AS TIMESTAMP)) - v_t1) = -v_sign THEN 1 ELSE 0 END;
+        WHILE v_correction <= CASE WHEN v_sign = 1 THEN 2 ELSE 1 END AND NOT v_found LOOP
+            v_inter := TRUNC(v_w2) - v_correction * v_sign;
+            v_t := ns_of(v_u2 - utc_of(CAST(v_inter AS TIMESTAMP) + NUMTODSINTERVAL(v_t1 / 1000000000, 'SECOND')));
+            IF SIGN(v_t) <> -v_sign THEN v_found := TRUE; END IF;
+            v_correction := v_correction + 1;
+        END LOOP;
+        -- Temporal's CalendarDateUntil: the whole months from the first date that don't pass the other one (the day of the
+        -- first not kept in the month), then the days
+        IF largest_unit IN ('year', 'month') THEN
+            v_m := (EXTRACT(YEAR FROM v_inter) * 12 + EXTRACT(MONTH FROM v_inter)) - (EXTRACT(YEAR FROM v_d1) * 12 + EXTRACT(MONTH FROM v_d1));
+            IF v_sign > 0 AND EXTRACT(DAY FROM v_d1) > EXTRACT(DAY FROM v_inter) THEN v_m := v_m - 1; END IF;
+            IF v_sign < 0 AND EXTRACT(DAY FROM v_d1) < EXTRACT(DAY FROM v_inter) THEN v_m := v_m + 1; END IF;
+            IF largest_unit = 'year' THEN v_years := TRUNC(v_m / 12); END IF;
+            v_months := v_m - v_years * 12;
+        END IF;
+        v_days := v_inter - plus(v_d1, v_years, v_months, 0, 0);
+        IF largest_unit = 'week' THEN
+            v_weeks := TRUNC(v_days / 7);
+            v_days := v_days - v_weeks * 7;
+        END IF;
+    END IF;
+    -- Temporal's RoundRelativeDuration
+    IF smallest_unit <> 'nanosecond' OR increment <> 1 THEN
+        v_mode := unsigned_mode(v_sign < 0);
+        IF smallest_unit IN ('year', 'month', 'week', 'day') THEN
+            -- NudgeToCalendarUnit: between the duration truncated to the unit and one increment more, by the instants
+            IF smallest_unit = 'year' THEN
+                v_r1 := TRUNC(v_years / increment) * increment;
+                v_start := utc_plus(v_r1, 0, 0, 0);
+                v_end := utc_plus(v_r1 + increment * v_sign, 0, 0, 0);
+            ELSIF smallest_unit = 'month' THEN
+                v_r1 := TRUNC(v_months / increment) * increment;
+                v_start := utc_plus(v_years, v_r1, 0, 0);
+                v_end := utc_plus(v_years, v_r1 + increment * v_sign, 0, 0);
+            ELSIF smallest_unit = 'week' THEN
+                v_r1 := TRUNC((v_weeks + TRUNC(v_days / 7)) / increment) * increment;
+                v_start := utc_plus(v_years, v_months, v_r1, 0);
+                v_end := utc_plus(v_years, v_months, v_r1 + increment * v_sign, 0);
+            ELSE
+                v_r1 := TRUNC(v_days / increment) * increment;
+                v_start := utc_plus(v_years, v_months, v_weeks, v_r1);
+                v_end := utc_plus(v_years, v_months, v_weeks, v_r1 + increment * v_sign);
+            END IF;
+            v_num := ns_of(v_u2 - v_start);
+            v_den := ns_of(v_end - v_start);
+            v_r2 := v_r1 + increment * v_sign;
+            IF to_second(v_mode, ABS(v_num), ABS(v_den), ABS(v_r1) / increment) THEN
+                v_expanded := TRUE;
+                v_r1 := v_r2;
+                v_nudged := v_end;
+            ELSE
+                v_nudged := v_start;
+            END IF;
+            IF smallest_unit = 'year' THEN
+                v_years := v_r1; v_months := 0; v_weeks := 0; v_days := 0;
+            ELSIF smallest_unit = 'month' THEN
+                v_months := v_r1; v_weeks := 0; v_days := 0;
+            ELSIF smallest_unit = 'week' THEN
+                v_weeks := v_r1; v_days := 0;
+            ELSE
+                v_days := v_r1;
+            END IF;
+            v_t := 0;
+        ELSE
+            -- NudgeToZonedTime: the time rounded in the day it is in, which may round to the next day (of its length there)
+            v_step := CASE smallest_unit WHEN 'hour' THEN 3600000000000 WHEN 'minute' THEN 60000000000 WHEN 'second' THEN 1000000000 WHEN 'millisecond' THEN 1000000 WHEN 'microsecond' THEN 1000 ELSE 1 END * increment;
+            v_start := utc_plus(v_years, v_months, v_weeks, v_days);
+            v_end := utc_plus(v_years, v_months, v_weeks, v_days + v_sign);
+            v_rounded := round_to(v_t, v_step);
+            v_beyond := v_rounded - ns_of(v_end - v_start);
+            IF SIGN(v_beyond) <> -v_sign THEN
+                v_expanded := TRUE;
+                v_days := v_days + v_sign;
+                v_rounded := round_to(v_beyond, v_step);
+                v_nudged := v_end + NUMTODSINTERVAL(v_rounded / 1000000000, 'SECOND');
+            ELSE
+                v_nudged := v_start + NUMTODSINTERVAL(v_rounded / 1000000000, 'SECOND');
+            END IF;
+            v_t := v_rounded;
+        END IF;
+        -- BubbleRelativeDuration: a unit that reached the next larger one gives it, up to the largest unit
+        IF v_expanded AND smallest_unit <> 'week' THEN
+            v_largest := CASE largest_unit WHEN 'year' THEN 0 WHEN 'month' THEN 1 WHEN 'week' THEN 2 ELSE 3 END;
+            v_unit := CASE smallest_unit WHEN 'year' THEN 0 WHEN 'month' THEN 1 WHEN 'week' THEN 2 ELSE 3 END - 1;
+            WHILE v_unit >= v_largest LOOP
+                IF v_unit <> 2 OR v_largest = 2 THEN
+                    v_ey := v_years; v_em := v_months; v_ew := v_weeks;
+                    IF v_unit = 0 THEN
+                        v_ey := v_years + v_sign; v_em := 0; v_ew := 0;
+                    ELSIF v_unit = 1 THEN
+                        v_em := v_months + v_sign; v_ew := 0;
+                    ELSE
+                        v_ew := v_weeks + v_sign;
+                    END IF;
+                    IF SIGN(ns_of(v_nudged - utc_plus(v_ey, v_em, v_ew, 0))) = -v_sign THEN
+                        EXIT;
+                    END IF;
+                    v_years := v_ey; v_months := v_em; v_weeks := v_ew; v_days := 0; v_t := 0;
+                END IF;
+                v_unit := v_unit - 1;
+            END LOOP;
+        END IF;
+    END IF;
+    RETURN tsq_duration_text(v_years * negation, v_months * negation, v_weeks * negation, v_days * negation, v_t * negation, 'hour');
+END;
+
 -- tsq_duration_total: a duration (its months, its years too; its weeks; its days; the whole seconds of its time and the
 -- nanoseconds of the second, each with the sign of the duration) in a unit ('year' ... 'nanosecond'), the function of
 -- the library that gives Temporal's total. With a date of reference (its year, month and day; 0, 0, 0 without one) the

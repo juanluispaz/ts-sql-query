@@ -460,7 +460,9 @@ LANGUAGE sql AS $$ SELECT m_str FROM col_matrix WHERE id = 1 $$;
 -- reads a duration kept as text: 'M' the months (its years too), 'D' the days (its weeks too), 'S' the whole seconds of
 -- its time, 'N' the nanoseconds of the second, to add or subtract it; 'years', 'months', 'weeks', 'days', 'hours',
 -- 'minutes' and 'seconds' (without its fraction) each field as written; each with the sign of the duration; 'sign' the
--- sign of the duration (-1, 0 or 1).
+-- sign of the duration (-1, 0 or 1); 'largest' the largest field that isn't zero (0 the years, 1 the months, 2 the weeks,
+-- 3 the days, 4 the hours, 5 the minutes, 6 the seconds, 7 the milliseconds, 8 the microseconds, 9 the nanoseconds; 10
+-- for a duration of zero).
 CREATE OR REPLACE FUNCTION tsq_duration_part(d text, part text) RETURNS bigint LANGUAGE plpgsql IMMUTABLE AS $$
 DECLARE
     s text;
@@ -472,6 +474,8 @@ DECLARE
     sgn integer := 1;
     r bigint := 0;
     nonzero boolean := false;
+    lg integer := 10;
+    f bigint;
 BEGIN
     IF d IS NULL THEN RETURN NULL; END IF;
     s := upper(trim(d));
@@ -483,7 +487,12 @@ BEGIN
         IF c = 'T' THEN in_time := true;
         ELSIF position(c in '0123456789.,') > 0 THEN num := num || CASE WHEN c = ',' THEN '.' ELSE c END;
         ELSE
-            IF translate(num, '0.', '') <> '' THEN nonzero := true; END IF;
+            IF translate(num, '0.', '') <> '' THEN
+                nonzero := true;
+                f := rpad(split_part(num, '.', 2), 9, '0')::bigint;
+                lg := least(lg, CASE WHEN c = 'Y' THEN 0 WHEN c = 'M' AND NOT in_time THEN 1 WHEN c = 'W' THEN 2 WHEN c = 'D' THEN 3 WHEN c = 'H' THEN 4 WHEN c = 'M' THEN 5
+                    WHEN split_part(num, '.', 1)::bigint <> 0 THEN 6 WHEN f >= 1000000 THEN 7 WHEN f >= 1000 THEN 8 ELSE 9 END);
+            END IF;
             IF part = 'M' AND NOT in_time AND c = 'Y' THEN r := r + 12 * num::bigint;
             ELSIF part = 'M' AND NOT in_time AND c = 'M' THEN r := r + num::bigint;
             ELSIF part = 'D' AND c = 'W' THEN r := r + 7 * num::bigint;
@@ -499,6 +508,7 @@ BEGIN
         i := i + 1;
     END LOOP;
     IF part = 'sign' THEN RETURN CASE WHEN nonzero THEN sgn ELSE 0 END; END IF;
+    IF part = 'largest' THEN RETURN lg; END IF;
     RETURN sgn * r;
 END;
 $$;
@@ -714,5 +724,29 @@ BEGIN
         q := q + 1;
     END IF;
     RETURN CASE WHEN a < 0 THEN -1 ELSE 1 END * q::double precision * power(2::double precision, -s);
+END
+$$;
+
+-- tsq_duration_add: the sum of two durations, the second times sign (1 to add it, -1 to subtract it), each given by its
+-- largest field that isn't zero (tsq_duration_part 'largest'), its days, the whole seconds of its time and the
+-- nanoseconds of the second, each with its sign; the function of the library that adds and subtracts durations as
+-- Temporal's add and subtract: a duration with years, months or weeks is an error, a day is 24 hours, and the sum is
+-- balanced up to the largest field of the two (days and a time, or a time in hours, in minutes or in seconds).
+CREATE OR REPLACE FUNCTION tsq_duration_add(largest1 bigint, days1 bigint, seconds1 bigint, nanoseconds1 bigint, largest2 bigint, days2 bigint, seconds2 bigint, nanoseconds2 bigint, sgn integer) RETURNS interval LANGUAGE plpgsql IMMUTABLE STRICT AS $$
+DECLARE
+    day_ns CONSTANT numeric := 86400000000000;
+    largest bigint := least(largest1, largest2);
+    total numeric := (days1 + sgn * days2) * day_ns + (seconds1 + sgn * seconds2) * 1000000000::numeric + nanoseconds1 + sgn * nanoseconds2;
+    days numeric := 0;
+    t numeric;
+BEGIN
+    IF largest <= 2 THEN
+        RAISE EXCEPTION 'tsq_duration_add: a duration with years, months or weeks can''t be added nor subtracted';
+    END IF;
+    IF largest = 3 THEN
+        days := div(total, day_ns);
+    END IF;
+    t := total - days * day_ns;
+    RETURN make_interval(days => days::integer, secs => div(t, 1000000000)::double precision) + make_interval(secs => mod(t, 1000000000) / 1000000000.0);
 END
 $$;

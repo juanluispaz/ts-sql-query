@@ -487,11 +487,13 @@ GO
 -- reads a duration kept as text: 'M' the months (its years too), 'D' the days (its weeks too), 'S' the whole seconds of
 -- its time, 'N' the nanoseconds of the second, to add or subtract it; 'years', 'months', 'weeks', 'days', 'hours',
 -- 'minutes' and 'seconds' (without its fraction) each field as written; each with the sign of the duration; 'sign' the
--- sign of the duration (-1, 0 or 1).
+-- sign of the duration (-1, 0 or 1); 'largest' the largest field that isn't zero (0 the years, 1 the months, 2 the weeks,
+-- 3 the days, 4 the hours, 5 the minutes, 6 the seconds, 7 the milliseconds, 8 the microseconds, 9 the nanoseconds; 10
+-- for a duration of zero).
 CREATE OR ALTER FUNCTION dbo.tsq_duration_part(@d NVARCHAR(100), @part VARCHAR(10)) RETURNS BIGINT WITH SCHEMABINDING AS
 BEGIN
     IF @d IS NULL RETURN NULL;
-    DECLARE @s NVARCHAR(100) = UPPER(LTRIM(RTRIM(@d))), @i INT = 1, @n INT, @c NCHAR(1), @num NVARCHAR(40) = N'', @inTime BIT = 0, @sign INT = 1, @r BIGINT = 0, @nonzero BIT = 0;
+    DECLARE @s NVARCHAR(100) = UPPER(LTRIM(RTRIM(@d))), @i INT = 1, @n INT, @c NCHAR(1), @num NVARCHAR(40) = N'', @inTime BIT = 0, @sign INT = 1, @r BIGINT = 0, @nonzero BIT = 0, @largest INT = 10, @f BIGINT;
     SET @n = LEN(@s);
     IF LEFT(@s, 1) = N'-' BEGIN SET @sign = -1; SET @i = 2; END ELSE IF LEFT(@s, 1) = N'+' SET @i = 2;
     SET @i = @i + 1;
@@ -502,7 +504,13 @@ BEGIN
         ELSE IF @c LIKE N'[0-9]' OR @c = N'.' OR @c = N',' SET @num = @num + CASE WHEN @c = N',' THEN N'.' ELSE @c END;
         ELSE
         BEGIN
-            IF REPLACE(REPLACE(@num, N'0', N''), N'.', N'') <> N'' SET @nonzero = 1;
+            IF REPLACE(REPLACE(@num, N'0', N''), N'.', N'') <> N''
+            BEGIN
+                SET @nonzero = 1;
+                SET @f = CAST(LEFT(CASE WHEN CHARINDEX(N'.', @num) > 0 THEN SUBSTRING(@num, CHARINDEX(N'.', @num) + 1, 40) ELSE N'' END + N'000000000', 9) AS BIGINT);
+                SET @largest = (SELECT MIN(v) FROM (VALUES (@largest), (CASE WHEN @c = N'Y' THEN 0 WHEN @c = N'M' AND @inTime = 0 THEN 1 WHEN @c = N'W' THEN 2 WHEN @c = N'D' THEN 3 WHEN @c = N'H' THEN 4 WHEN @c = N'M' THEN 5
+                    WHEN CAST(CASE WHEN CHARINDEX(N'.', @num) > 0 THEN LEFT(@num, CHARINDEX(N'.', @num) - 1) ELSE @num END AS BIGINT) <> 0 THEN 6 WHEN @f >= 1000000 THEN 7 WHEN @f >= 1000 THEN 8 ELSE 9 END)) AS t(v));
+            END
             IF @part = 'M' AND @inTime = 0 AND @c = N'Y' SET @r = @r + 12 * CAST(@num AS BIGINT);
             ELSE IF @part = 'M' AND @inTime = 0 AND @c = N'M' SET @r = @r + CAST(@num AS BIGINT);
             ELSE IF @part = 'D' AND @c = N'W' SET @r = @r + 7 * CAST(@num AS BIGINT);
@@ -517,12 +525,14 @@ BEGIN
         SET @i = @i + 1;
     END
     IF @part = 'sign' RETURN CASE WHEN @nonzero = 1 THEN @sign ELSE 0 END;
+    IF @part = 'largest' RETURN @largest;
     RETURN @sign * @r;
 END
 GO
 
--- tsq_duration_round uses tsq_duration_text: it goes first to create both again
+-- tsq_duration_round and tsq_duration_add use tsq_duration_text: they go first to create them again
 DROP FUNCTION IF EXISTS dbo.tsq_duration_round;
+DROP FUNCTION IF EXISTS dbo.tsq_duration_add;
 GO
 
 -- tsq_duration_text: the ISO 8601 text of a duration (Temporal.Duration) of its fields, the function of the library that
@@ -719,5 +729,22 @@ BEGIN
     SET @q = (@x - @rest) / @b;
     IF 2 * @rest > @b OR 2 * @rest = @b AND @q % 2 = 1 SET @q = @q + 1;
     RETURN CASE WHEN @a < 0 THEN -1 ELSE 1 END * CAST(@q AS FLOAT) * POWER(CAST(2 AS FLOAT), -@s);
+END
+GO
+
+-- tsq_duration_add: the sum of two durations, the second times sign (1 to add it, -1 to subtract it), each given by its
+-- largest field that isn't zero (tsq_duration_part 'largest'), its days, the whole seconds of its time and the
+-- nanoseconds of the second, each with its sign; the function of the library that adds and subtracts durations as
+-- Temporal's add and subtract: a duration with years, months or weeks is an error, a day is 24 hours, and the sum is
+-- balanced up to the largest field of the two (days and a time, or a time in hours, in minutes or in seconds).
+CREATE OR ALTER FUNCTION dbo.tsq_duration_add(@largest1 INT, @days1 BIGINT, @seconds1 BIGINT, @nanoseconds1 BIGINT, @largest2 INT, @days2 BIGINT, @seconds2 BIGINT, @nanoseconds2 BIGINT, @sign INT) RETURNS VARCHAR(100) WITH SCHEMABINDING AS
+BEGIN
+    IF @largest1 IS NULL OR @days1 IS NULL OR @seconds1 IS NULL OR @nanoseconds1 IS NULL OR @largest2 IS NULL OR @days2 IS NULL OR @seconds2 IS NULL OR @nanoseconds2 IS NULL OR @sign IS NULL RETURN NULL;
+    DECLARE @day DECIMAL(38, 0) = 86400000000000, @largest INT = CASE WHEN @largest1 < @largest2 THEN @largest1 ELSE @largest2 END, @total DECIMAL(38, 0), @days DECIMAL(38, 0) = 0;
+    IF @largest <= 2
+        RETURN CAST(CAST('tsq_duration_add: a duration with years, months or weeks can''t be added nor subtracted, sign ' + CAST(@sign AS VARCHAR(2)) AS INT) AS VARCHAR(100));
+    SET @total = CAST(@days1 + @sign * @days2 AS DECIMAL(38, 0)) * @day + CAST(@seconds1 + @sign * @seconds2 AS DECIMAL(38, 0)) * 1000000000 + @nanoseconds1 + @sign * @nanoseconds2;
+    IF @largest = 3 SET @days = (@total - @total % @day) / @day;
+    RETURN dbo.tsq_duration_text(0, 0, 0, @days, @total - @days * @day, CASE WHEN @largest <= 4 THEN 'hour' WHEN @largest = 5 THEN 'minute' ELSE 'second' END);
 END
 GO

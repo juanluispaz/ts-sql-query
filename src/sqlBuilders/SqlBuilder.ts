@@ -537,6 +537,8 @@ export interface SqlFunction1 {
     _toPlainDateTimeAt(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
     // A field of a duration as Temporal reads it (years, months, ... nanoseconds)
     _durationField(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
+    _durationAdd(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
+    _durationSubtract(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
     // A date, a time or a date and time plus or minus a duration, with the semantics of Temporal
     _addDuration(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
     _subtractDuration(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string

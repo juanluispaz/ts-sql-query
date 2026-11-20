@@ -1575,6 +1575,24 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 return 'case when ' + interval + ' is not null then 0 end'
         }
     }
+    override _isDurationSumKeptAsText(): boolean {
+        // As a difference, the text Temporal writes: an interval of days to seconds would write PT25H as 1 day 1 hour
+        return true
+    }
+    override _durationPartsForSum(context: SqlBuildContext, valueSource: ToSql): string {
+        if (this._isDurationKeptAsText(valueSource)) {
+            return super._durationPartsForSum(context, valueSource)
+        }
+        const interval = this._appendSqlParenthesis(valueSource, context, false)
+        if (this._isYearToMonthDuration(valueSource)) {
+            return 'case when extract(year from ' + interval + ') <> 0 or extract(month from ' + interval + ') <> 0 then 1 else 10 end, 0, 0, 0'
+        }
+        const fraction = 'mod(abs(extract(second from ' + interval + ')) * 1000000000, 1000000000)'
+        let result = 'case when extract(day from ' + interval + ') <> 0 then 3 when extract(hour from ' + interval + ') <> 0 then 4 when extract(minute from ' + interval + ') <> 0 then 5'
+        result += ' when trunc(extract(second from ' + interval + ')) <> 0 then 6 when ' + fraction + ' >= 1000000 then 7 when ' + fraction + ' >= 1000 then 8 when ' + fraction + ' <> 0 then 9 else 10 end, '
+        result += 'extract(day from ' + interval + '), extract(hour from ' + interval + ') * 3600 + extract(minute from ' + interval + ') * 60 + trunc(extract(second from ' + interval + ')), '
+        return result + 'mod(extract(second from ' + interval + ') * 1000000000, 1000000000)'
+    }
     override _durationPartsForTotal(context: SqlBuildContext, valueSource: ToSql): string {
         if (this._isDurationKeptAsText(valueSource)) {
             return super._durationPartsForTotal(context, valueSource)

@@ -605,6 +605,12 @@ interface DurationValueSource extends EqualableValueSource<Temporal.Duration, 'd
      */
     total(unit: 'day' | 'days' | TimeUnit | { unit: 'day' | 'days' | TimeUnit }): NumberValueSource
     total(options: { unit: DateUnit | TimeUnit, relativeTo: Temporal.PlainDate | Temporal.PlainDateTime | PlainDateValueSource | PlainDateTimeValueSource }): NumberValueSource
+    /**
+     * The duration plus or minus another one, as Temporal's add and subtract: a day is 24 hours, the sum balanced up to
+     * the largest field of the two; a duration with years, months or weeks fails the query
+     */
+    add(other: Temporal.Duration | Temporal.DurationLike | DurationValueSource): DurationValueSource
+    subtract(other: Temporal.Duration | Temporal.DurationLike | DurationValueSource): DurationValueSource
 }
 
 /**

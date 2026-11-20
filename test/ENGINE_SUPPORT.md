@@ -236,8 +236,8 @@ is written by `tsq_duration_text`, or `tsq_duration_round` when it is rounded to
 sent) and `docs.configuration.dates-and-times.test.ts` (`docs:dates-and-times/the-duration-between-two-values`) are
 `NOT-SUPPORTED` on those cells, and every test of `column.duration-methods.test.ts` (the fields, the sign, the negation and
 the absolute value of a duration kept as text read it with `tsq_duration_part`), as `docs:dates-and-times/the-fields-of-a-duration`.
-The total of a duration in a unit is computed by `tsq_duration_total`: every test of `column.duration-total.test.ts` is
-`NOT-SUPPORTED` on those cells.
+The total of a duration in a unit is computed by `tsq_duration_total`, and durations added together by `tsq_duration_add`:
+every test of `column.duration-total.test.ts` and of `column.duration-arithmetic.test.ts` is `NOT-SUPPORTED` on those cells.
 
 ### SQLite RETURNING can only reference the table being modified, not a FROM/JOIN-ed column
 

@@ -46,8 +46,8 @@ describe('DurationPartFunctionDocs', () => {
         expect(documented('MySQL', heading)).toBe(both('mysql'))
         expect(documented('Oracle', heading)).toBe(both('oracle'))
         expect(documented('PostgreSQL', heading)).toBe(tested('postgres', 'tsq_duration_round'))
-        // tsq_duration_round uses tsq_duration_text: it is dropped first to create both again
-        expect(documented('SQL Server', heading)).toBe('DROP FUNCTION IF EXISTS dbo.tsq_duration_round;\nGO\n\n' + both('sqlserver'))
+        // tsq_duration_round and tsq_duration_add use tsq_duration_text: they are dropped first to create them again
+        expect(documented('SQL Server', heading)).toBe('DROP FUNCTION IF EXISTS dbo.tsq_duration_round;\nDROP FUNCTION IF EXISTS dbo.tsq_duration_add;\nGO\n\n' + both('sqlserver'))
     })
 
     test('the-documented-function-of-total-is-the-tested-one', () => {

@@ -777,6 +777,8 @@ On MariaDB, MySQL, SQLite and SQL Server, and in a column of PostgreSQL or Oracl
         DECLARE sgn INT DEFAULT 1;
         DECLARE r BIGINT DEFAULT 0;
         DECLARE nonzero BOOLEAN DEFAULT FALSE;
+        DECLARE lg INT DEFAULT 10;
+        DECLARE f BIGINT;
         IF d IS NULL THEN RETURN NULL; END IF;
         SET d = UPPER(TRIM(d));
         SET n = CHAR_LENGTH(d);
@@ -787,7 +789,12 @@ On MariaDB, MySQL, SQLite and SQL Server, and in a column of PostgreSQL or Oracl
             IF c = 'T' THEN SET in_time = TRUE;
             ELSEIF c BETWEEN '0' AND '9' OR c = '.' OR c = ',' THEN SET num = CONCAT(num, IF(c = ',', '.', c));
             ELSE
-                IF REPLACE(REPLACE(num, '0', ''), '.', '') <> '' THEN SET nonzero = TRUE; END IF;
+                IF REPLACE(REPLACE(num, '0', ''), '.', '') <> '' THEN
+                    SET nonzero = TRUE;
+                    SET f = CAST(RPAD(IF(LOCATE('.', num) > 0, SUBSTRING_INDEX(num, '.', -1), ''), 9, '0') AS SIGNED);
+                    SET lg = LEAST(lg, CASE WHEN c = 'Y' THEN 0 WHEN c = 'M' AND NOT in_time THEN 1 WHEN c = 'W' THEN 2 WHEN c = 'D' THEN 3 WHEN c = 'H' THEN 4 WHEN c = 'M' THEN 5
+                        WHEN CAST(SUBSTRING_INDEX(num, '.', 1) AS SIGNED) <> 0 THEN 6 WHEN f >= 1000000 THEN 7 WHEN f >= 1000 THEN 8 ELSE 9 END);
+                END IF;
                 IF part = 'M' AND NOT in_time AND c = 'Y' THEN SET r = r + 12 * CAST(num AS SIGNED);
                 ELSEIF part = 'M' AND NOT in_time AND c = 'M' THEN SET r = r + CAST(num AS SIGNED);
                 ELSEIF part = 'D' AND c = 'W' THEN SET r = r + 7 * CAST(num AS SIGNED);
@@ -803,6 +810,7 @@ On MariaDB, MySQL, SQLite and SQL Server, and in a column of PostgreSQL or Oracl
             SET i = i + 1;
         END WHILE;
         IF part = 'sign' THEN RETURN IF(nonzero, sgn, 0); END IF;
+        IF part = 'largest' THEN RETURN lg; END IF;
         RETURN sgn * r;
     END
     //
@@ -822,6 +830,8 @@ On MariaDB, MySQL, SQLite and SQL Server, and in a column of PostgreSQL or Oracl
         DECLARE sgn INT DEFAULT 1;
         DECLARE r BIGINT DEFAULT 0;
         DECLARE nonzero BOOLEAN DEFAULT FALSE;
+        DECLARE lg INT DEFAULT 10;
+        DECLARE f BIGINT;
         IF d IS NULL THEN RETURN NULL; END IF;
         SET d = UPPER(TRIM(d));
         SET n = CHAR_LENGTH(d);
@@ -832,7 +842,12 @@ On MariaDB, MySQL, SQLite and SQL Server, and in a column of PostgreSQL or Oracl
             IF c = 'T' THEN SET in_time = TRUE;
             ELSEIF c BETWEEN '0' AND '9' OR c = '.' OR c = ',' THEN SET num = CONCAT(num, IF(c = ',', '.', c));
             ELSE
-                IF REPLACE(REPLACE(num, '0', ''), '.', '') <> '' THEN SET nonzero = TRUE; END IF;
+                IF REPLACE(REPLACE(num, '0', ''), '.', '') <> '' THEN
+                    SET nonzero = TRUE;
+                    SET f = CAST(RPAD(IF(LOCATE('.', num) > 0, SUBSTRING_INDEX(num, '.', -1), ''), 9, '0') AS SIGNED);
+                    SET lg = LEAST(lg, CASE WHEN c = 'Y' THEN 0 WHEN c = 'M' AND NOT in_time THEN 1 WHEN c = 'W' THEN 2 WHEN c = 'D' THEN 3 WHEN c = 'H' THEN 4 WHEN c = 'M' THEN 5
+                        WHEN CAST(SUBSTRING_INDEX(num, '.', 1) AS SIGNED) <> 0 THEN 6 WHEN f >= 1000000 THEN 7 WHEN f >= 1000 THEN 8 ELSE 9 END);
+                END IF;
                 IF part = 'M' AND NOT in_time AND c = 'Y' THEN SET r = r + 12 * CAST(num AS SIGNED);
                 ELSEIF part = 'M' AND NOT in_time AND c = 'M' THEN SET r = r + CAST(num AS SIGNED);
                 ELSEIF part = 'D' AND c = 'W' THEN SET r = r + 7 * CAST(num AS SIGNED);
@@ -848,6 +863,7 @@ On MariaDB, MySQL, SQLite and SQL Server, and in a column of PostgreSQL or Oracl
             SET i = i + 1;
         END WHILE;
         IF part = 'sign' THEN RETURN IF(nonzero, sgn, 0); END IF;
+        IF part = 'largest' THEN RETURN lg; END IF;
         RETURN sgn * r;
     END
     //
@@ -865,6 +881,8 @@ On MariaDB, MySQL, SQLite and SQL Server, and in a column of PostgreSQL or Oracl
         sgn NUMBER := 1;
         r NUMBER := 0;
         nonzero BOOLEAN := FALSE;
+        lg NUMBER := 10;
+        f NUMBER;
     BEGIN
         IF d IS NULL THEN RETURN NULL; END IF;
         s := UPPER(TRIM(d));
@@ -876,7 +894,12 @@ On MariaDB, MySQL, SQLite and SQL Server, and in a column of PostgreSQL or Oracl
             IF c = 'T' THEN in_time := TRUE;
             ELSIF c BETWEEN '0' AND '9' OR c = '.' OR c = ',' THEN num := num || CASE WHEN c = ',' THEN '.' ELSE c END;
             ELSE
-                IF TRANSLATE(num, 'x0.', 'x') IS NOT NULL THEN nonzero := TRUE; END IF;
+                IF TRANSLATE(num, 'x0.', 'x') IS NOT NULL THEN
+                    nonzero := TRUE;
+                    f := TO_NUMBER(RPAD(CASE WHEN INSTR(num, '.') > 0 THEN SUBSTR(num, INSTR(num, '.') + 1) END || '0', 9, '0'));
+                    lg := LEAST(lg, CASE WHEN c = 'Y' THEN 0 WHEN c = 'M' AND NOT in_time THEN 1 WHEN c = 'W' THEN 2 WHEN c = 'D' THEN 3 WHEN c = 'H' THEN 4 WHEN c = 'M' THEN 5
+                        WHEN TO_NUMBER(CASE WHEN INSTR(num, '.') > 0 THEN SUBSTR(num, 1, INSTR(num, '.') - 1) ELSE num END) <> 0 THEN 6 WHEN f >= 1000000 THEN 7 WHEN f >= 1000 THEN 8 ELSE 9 END);
+                END IF;
                 IF part = 'M' AND NOT in_time AND c = 'Y' THEN r := r + 12 * TO_NUMBER(num);
                 ELSIF part = 'M' AND NOT in_time AND c = 'M' THEN r := r + TO_NUMBER(num);
                 ELSIF part = 'D' AND c = 'W' THEN r := r + 7 * TO_NUMBER(num);
@@ -892,6 +915,7 @@ On MariaDB, MySQL, SQLite and SQL Server, and in a column of PostgreSQL or Oracl
             i := i + 1;
         END LOOP;
         IF part = 'sign' THEN RETURN CASE WHEN nonzero THEN sgn ELSE 0 END; END IF;
+        IF part = 'largest' THEN RETURN lg; END IF;
         RETURN sgn * r;
     END;
     ```
@@ -908,6 +932,8 @@ On MariaDB, MySQL, SQLite and SQL Server, and in a column of PostgreSQL or Oracl
         sgn integer := 1;
         r bigint := 0;
         nonzero boolean := false;
+        lg integer := 10;
+        f bigint;
     BEGIN
         IF d IS NULL THEN RETURN NULL; END IF;
         s := upper(trim(d));
@@ -919,7 +945,12 @@ On MariaDB, MySQL, SQLite and SQL Server, and in a column of PostgreSQL or Oracl
             IF c = 'T' THEN in_time := true;
             ELSIF position(c in '0123456789.,') > 0 THEN num := num || CASE WHEN c = ',' THEN '.' ELSE c END;
             ELSE
-                IF translate(num, '0.', '') <> '' THEN nonzero := true; END IF;
+                IF translate(num, '0.', '') <> '' THEN
+                    nonzero := true;
+                    f := rpad(split_part(num, '.', 2), 9, '0')::bigint;
+                    lg := least(lg, CASE WHEN c = 'Y' THEN 0 WHEN c = 'M' AND NOT in_time THEN 1 WHEN c = 'W' THEN 2 WHEN c = 'D' THEN 3 WHEN c = 'H' THEN 4 WHEN c = 'M' THEN 5
+                        WHEN split_part(num, '.', 1)::bigint <> 0 THEN 6 WHEN f >= 1000000 THEN 7 WHEN f >= 1000 THEN 8 ELSE 9 END);
+                END IF;
                 IF part = 'M' AND NOT in_time AND c = 'Y' THEN r := r + 12 * num::bigint;
                 ELSIF part = 'M' AND NOT in_time AND c = 'M' THEN r := r + num::bigint;
                 ELSIF part = 'D' AND c = 'W' THEN r := r + 7 * num::bigint;
@@ -935,6 +966,7 @@ On MariaDB, MySQL, SQLite and SQL Server, and in a column of PostgreSQL or Oracl
             i := i + 1;
         END LOOP;
         IF part = 'sign' THEN RETURN CASE WHEN nonzero THEN sgn ELSE 0 END; END IF;
+        IF part = 'largest' THEN RETURN lg; END IF;
         RETURN sgn * r;
     END;
     $$;
@@ -946,7 +978,7 @@ On MariaDB, MySQL, SQLite and SQL Server, and in a column of PostgreSQL or Oracl
     CREATE OR ALTER FUNCTION dbo.tsq_duration_part(@d NVARCHAR(100), @part VARCHAR(10)) RETURNS BIGINT WITH SCHEMABINDING AS
     BEGIN
         IF @d IS NULL RETURN NULL;
-        DECLARE @s NVARCHAR(100) = UPPER(LTRIM(RTRIM(@d))), @i INT = 1, @n INT, @c NCHAR(1), @num NVARCHAR(40) = N'', @inTime BIT = 0, @sign INT = 1, @r BIGINT = 0, @nonzero BIT = 0;
+        DECLARE @s NVARCHAR(100) = UPPER(LTRIM(RTRIM(@d))), @i INT = 1, @n INT, @c NCHAR(1), @num NVARCHAR(40) = N'', @inTime BIT = 0, @sign INT = 1, @r BIGINT = 0, @nonzero BIT = 0, @largest INT = 10, @f BIGINT;
         SET @n = LEN(@s);
         IF LEFT(@s, 1) = N'-' BEGIN SET @sign = -1; SET @i = 2; END ELSE IF LEFT(@s, 1) = N'+' SET @i = 2;
         SET @i = @i + 1;
@@ -957,7 +989,13 @@ On MariaDB, MySQL, SQLite and SQL Server, and in a column of PostgreSQL or Oracl
             ELSE IF @c LIKE N'[0-9]' OR @c = N'.' OR @c = N',' SET @num = @num + CASE WHEN @c = N',' THEN N'.' ELSE @c END;
             ELSE
             BEGIN
-                IF REPLACE(REPLACE(@num, N'0', N''), N'.', N'') <> N'' SET @nonzero = 1;
+                IF REPLACE(REPLACE(@num, N'0', N''), N'.', N'') <> N''
+                BEGIN
+                    SET @nonzero = 1;
+                    SET @f = CAST(LEFT(CASE WHEN CHARINDEX(N'.', @num) > 0 THEN SUBSTRING(@num, CHARINDEX(N'.', @num) + 1, 40) ELSE N'' END + N'000000000', 9) AS BIGINT);
+                    SET @largest = (SELECT MIN(v) FROM (VALUES (@largest), (CASE WHEN @c = N'Y' THEN 0 WHEN @c = N'M' AND @inTime = 0 THEN 1 WHEN @c = N'W' THEN 2 WHEN @c = N'D' THEN 3 WHEN @c = N'H' THEN 4 WHEN @c = N'M' THEN 5
+                        WHEN CAST(CASE WHEN CHARINDEX(N'.', @num) > 0 THEN LEFT(@num, CHARINDEX(N'.', @num) - 1) ELSE @num END AS BIGINT) <> 0 THEN 6 WHEN @f >= 1000000 THEN 7 WHEN @f >= 1000 THEN 8 ELSE 9 END)) AS t(v));
+                END
                 IF @part = 'M' AND @inTime = 0 AND @c = N'Y' SET @r = @r + 12 * CAST(@num AS BIGINT);
                 ELSE IF @part = 'M' AND @inTime = 0 AND @c = N'M' SET @r = @r + CAST(@num AS BIGINT);
                 ELSE IF @part = 'D' AND @c = N'W' SET @r = @r + 7 * CAST(@num AS BIGINT);
@@ -972,6 +1010,7 @@ On MariaDB, MySQL, SQLite and SQL Server, and in a column of PostgreSQL or Oracl
             SET @i = @i + 1;
         END
         IF @part = 'sign' RETURN CASE WHEN @nonzero = 1 THEN @sign ELSE 0 END;
+        IF @part = 'largest' RETURN @largest;
         RETURN @sign * @r;
     END
     GO
@@ -1672,6 +1711,7 @@ On MariaDB, MySQL, Oracle, SQLite and SQL Server the query writes the text of th
 === "SQL Server"
     ```sql
     DROP FUNCTION IF EXISTS dbo.tsq_duration_round;
+    DROP FUNCTION IF EXISTS dbo.tsq_duration_add;
     GO
 
     CREATE OR ALTER FUNCTION dbo.tsq_duration_text(@y BIGINT, @mo BIGINT, @w BIGINT, @d BIGINT, @ns BIGINT, @unit VARCHAR(6)) RETURNS VARCHAR(100) WITH SCHEMABINDING AS

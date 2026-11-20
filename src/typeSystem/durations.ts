@@ -1,6 +1,6 @@
 import type { SqlDataType } from '../TypeAdapter.js'
 import { EqualableType } from './equalable.js'
-import type { TemporalDayOrTimeUnit, TemporalDuration, TemporalPlainDate, TemporalPlainDateTime, TemporalRelativeTotalOptions, TemporalTotalOptions } from './temporal.js'
+import type { TemporalDayOrTimeUnit, TemporalDuration, TemporalDurationLike, TemporalPlainDate, TemporalPlainDateTime, TemporalRelativeTotalOptions, TemporalTotalOptions } from './temporal.js'
 import type { DataTypeOf, IValueWithType, OptionalityOf, SourceOf, ValueSource } from './base.js'
 import type { CombinedOptionality } from './valueSource.js'
 import { __newSqlOperation2ValueSource, __operation0, __operation1 } from '../nodes/operations.js'
@@ -19,6 +19,11 @@ function fieldOf(valueSource: unknown, field: string): any {
 /** The duration negated or its absolute value: a duration of the same data type */
 function sameDuration(valueSource: unknown, operation: '_durationNegated' | '_durationAbs'): any {
     return __operation0(valueSource as any, operation, __computedClassOf(valueSource as object, __typeClassOf(valueSource as any)))
+}
+
+/** The duration plus or minus another one: a duration of the same data type */
+function sumOf(valueSource: unknown, operation: '_durationAdd' | '_durationSubtract', other: unknown): any {
+    return __operation1(valueSource as any, operation, other, __computedClassOf(valueSource as object, __typeClassOf(valueSource as any)))
 }
 
 /** The duration in a unit, as Temporal's `total`: a double */
@@ -134,6 +139,30 @@ export abstract class DurationsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME 
     total<RELATIVE_TO extends IValueWithType<'type:plainDate:'> | IValueWithType<'type:plainDateTime:'>>(options: TemporalRelativeTotalOptions<RELATIVE_TO>): ValueSource<SourceOf<this> | SourceOf<RELATIVE_TO>, DoubleType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<RELATIVE_TO>>>
     total(options: unknown): any {
         return totalOf(this, options)
+    }
+    /**
+     * The duration plus the one given, as Temporal's `add`: a day is 24 hours, and the sum is balanced up to the largest
+     * field of the two (`PT90M` plus `PT30M` is `PT120M`, `P1D` plus `PT25H` is `P2DT1H`). A duration with years, months
+     * or weeks fails the query, as Temporal throws. The duration is a Temporal.Duration or its fields (`{ hours: 2 }`)
+     */
+    add(other: TemporalDuration | TemporalDurationLike): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    /**
+     * The duration plus the one given, as Temporal's `add`: a day is 24 hours, and the sum is balanced up to the largest
+     * field of the two. A duration with years, months or weeks fails the query, as Temporal throws
+     */
+    add<VALUE extends IValueWithType<'type:duration:'>>(other: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    add(other: unknown): any {
+        return sumOf(this, '_durationAdd', other)
+    }
+    /**
+     * The duration minus the one given, as Temporal's `subtract`: the other one negated, added. A duration with years,
+     * months or weeks fails the query, as Temporal throws. The duration is a Temporal.Duration or its fields
+     */
+    subtract(other: TemporalDuration | TemporalDurationLike): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    /** The duration minus the one given, as Temporal's `subtract`: the other one negated, added */
+    subtract<VALUE extends IValueWithType<'type:duration:'>>(other: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    subtract(other: unknown): any {
+        return sumOf(this, '_durationSubtract', other)
     }
 }
 

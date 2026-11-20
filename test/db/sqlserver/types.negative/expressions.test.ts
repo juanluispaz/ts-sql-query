@@ -633,6 +633,13 @@ function _typeNegatives() {
     void tDurationValue.span.total({ unit: 'month', relativeTo: '2024-01-31' })
     // @ts-expect-error a unit Temporal hasn't
     void tDurationValue.span.total('fortnight')
+    // A duration plus or minus a duration: a Temporal.Duration, its fields, or a value of the type duration
+    void tDurationValue.span.add(tDurationValue.spanText)
+    void tDurationValue.span.subtract({ hours: 1 })
+    // @ts-expect-error a number isn't a duration
+    void tDurationValue.span.add(3600)
+    // @ts-expect-error a time of the day isn't a duration
+    void tDurationValue.span.subtract(tColMatrixPlain.mTime)
 }
 
 test('expressions-negative-types', () => {

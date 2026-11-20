@@ -440,7 +440,9 @@ CREATE TABLE flight_leg (
 -- reads a duration kept as text: 'M' the months (its years too), 'D' the days (its weeks too), 'S' the whole seconds of
 -- its time, 'N' the nanoseconds of the second, to add or subtract it; 'years', 'months', 'weeks', 'days', 'hours',
 -- 'minutes' and 'seconds' (without its fraction) each field as written; each with the sign of the duration; 'sign' the
--- sign of the duration (-1, 0 or 1).
+-- sign of the duration (-1, 0 or 1); 'largest' the largest field that isn't zero (0 the years, 1 the months, 2 the weeks,
+-- 3 the days, 4 the hours, 5 the minutes, 6 the seconds, 7 the milliseconds, 8 the microseconds, 9 the nanoseconds; 10
+-- for a duration of zero).
 CREATE OR REPLACE FUNCTION tsq_duration_part(d IN VARCHAR2, part IN VARCHAR2) RETURN NUMBER DETERMINISTIC IS
     s VARCHAR2(100);
     i PLS_INTEGER := 1;
@@ -451,6 +453,8 @@ CREATE OR REPLACE FUNCTION tsq_duration_part(d IN VARCHAR2, part IN VARCHAR2) RE
     sgn NUMBER := 1;
     r NUMBER := 0;
     nonzero BOOLEAN := FALSE;
+    lg NUMBER := 10;
+    f NUMBER;
 BEGIN
     IF d IS NULL THEN RETURN NULL; END IF;
     s := UPPER(TRIM(d));
@@ -462,7 +466,12 @@ BEGIN
         IF c = 'T' THEN in_time := TRUE;
         ELSIF c BETWEEN '0' AND '9' OR c = '.' OR c = ',' THEN num := num || CASE WHEN c = ',' THEN '.' ELSE c END;
         ELSE
-            IF TRANSLATE(num, 'x0.', 'x') IS NOT NULL THEN nonzero := TRUE; END IF;
+            IF TRANSLATE(num, 'x0.', 'x') IS NOT NULL THEN
+                nonzero := TRUE;
+                f := TO_NUMBER(RPAD(CASE WHEN INSTR(num, '.') > 0 THEN SUBSTR(num, INSTR(num, '.') + 1) END || '0', 9, '0'));
+                lg := LEAST(lg, CASE WHEN c = 'Y' THEN 0 WHEN c = 'M' AND NOT in_time THEN 1 WHEN c = 'W' THEN 2 WHEN c = 'D' THEN 3 WHEN c = 'H' THEN 4 WHEN c = 'M' THEN 5
+                    WHEN TO_NUMBER(CASE WHEN INSTR(num, '.') > 0 THEN SUBSTR(num, 1, INSTR(num, '.') - 1) ELSE num END) <> 0 THEN 6 WHEN f >= 1000000 THEN 7 WHEN f >= 1000 THEN 8 ELSE 9 END);
+            END IF;
             IF part = 'M' AND NOT in_time AND c = 'Y' THEN r := r + 12 * TO_NUMBER(num);
             ELSIF part = 'M' AND NOT in_time AND c = 'M' THEN r := r + TO_NUMBER(num);
             ELSIF part = 'D' AND c = 'W' THEN r := r + 7 * TO_NUMBER(num);
@@ -478,6 +487,7 @@ BEGIN
         i := i + 1;
     END LOOP;
     IF part = 'sign' THEN RETURN CASE WHEN nonzero THEN sgn ELSE 0 END; END IF;
+    IF part = 'largest' THEN RETURN lg; END IF;
     RETURN sgn * r;
 END;
 
@@ -729,4 +739,25 @@ BEGIN
     v_q := (v_x - v_rest) / v_b;
     IF 2 * v_rest > v_b OR 2 * v_rest = v_b AND MOD(v_q, 2) = 1 THEN v_q := v_q + 1; END IF;
     RETURN CASE WHEN v_a < 0 THEN -1 ELSE 1 END * TO_BINARY_DOUBLE(v_q) * POWER(2d, -v_s);
+END;
+
+-- tsq_duration_add: the sum of two durations, the second times sign (1 to add it, -1 to subtract it), each given by its
+-- largest field that isn't zero (tsq_duration_part 'largest'), its days, the whole seconds of its time and the
+-- nanoseconds of the second, each with its sign; the function of the library that adds and subtracts durations as
+-- Temporal's add and subtract: a duration with years, months or weeks is an error, a day is 24 hours, and the sum is
+-- balanced up to the largest field of the two (days and a time, or a time in hours, in minutes or in seconds).
+CREATE OR REPLACE FUNCTION tsq_duration_add(largest1 IN NUMBER, days1 IN NUMBER, seconds1 IN NUMBER, nanoseconds1 IN NUMBER, largest2 IN NUMBER, days2 IN NUMBER, seconds2 IN NUMBER, nanoseconds2 IN NUMBER, sgn IN NUMBER) RETURN VARCHAR2 DETERMINISTIC IS
+    v_day CONSTANT NUMBER := 86400000000000;
+    v_largest NUMBER;
+    v_total NUMBER;
+    v_days NUMBER := 0;
+BEGIN
+    IF largest1 IS NULL OR days1 IS NULL OR seconds1 IS NULL OR nanoseconds1 IS NULL OR largest2 IS NULL OR days2 IS NULL OR seconds2 IS NULL OR nanoseconds2 IS NULL OR sgn IS NULL THEN RETURN NULL; END IF;
+    v_largest := LEAST(largest1, largest2);
+    IF v_largest <= 2 THEN
+        RAISE_APPLICATION_ERROR(-20001, 'tsq_duration_add: a duration with years, months or weeks can''t be added nor subtracted');
+    END IF;
+    v_total := (days1 + sgn * days2) * v_day + (seconds1 + sgn * seconds2) * 1000000000 + nanoseconds1 + sgn * nanoseconds2;
+    IF v_largest = 3 THEN v_days := TRUNC(v_total / v_day); END IF;
+    RETURN tsq_duration_text(0, 0, 0, v_days, v_total - v_days * v_day, CASE WHEN v_largest <= 4 THEN 'hour' WHEN v_largest = 5 THEN 'minute' ELSE 'second' END);
 END;

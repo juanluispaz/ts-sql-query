@@ -383,7 +383,9 @@ CREATE TABLE service_plan (
 -- reads a duration kept as text: 'M' the months (its years too), 'D' the days (its weeks too), 'S' the whole seconds of
 -- its time, 'N' the nanoseconds of the second, to add or subtract it; 'years', 'months', 'weeks', 'days', 'hours',
 -- 'minutes' and 'seconds' (without its fraction) each field as written; each with the sign of the duration; 'sign' the
--- sign of the duration (-1, 0 or 1).
+-- sign of the duration (-1, 0 or 1); 'largest' the largest field that isn't zero (0 the years, 1 the months, 2 the weeks,
+-- 3 the days, 4 the hours, 5 the minutes, 6 the seconds, 7 the milliseconds, 8 the microseconds, 9 the nanoseconds; 10
+-- for a duration of zero).
 DROP FUNCTION IF EXISTS tsq_duration_part;
 DELIMITER //
 CREATE FUNCTION tsq_duration_part(d VARCHAR(100), part VARCHAR(10)) RETURNS BIGINT DETERMINISTIC NO SQL
@@ -396,6 +398,8 @@ BEGIN
     DECLARE sgn INT DEFAULT 1;
     DECLARE r BIGINT DEFAULT 0;
     DECLARE nonzero BOOLEAN DEFAULT FALSE;
+    DECLARE lg INT DEFAULT 10;
+    DECLARE f BIGINT;
     IF d IS NULL THEN RETURN NULL; END IF;
     SET d = UPPER(TRIM(d));
     SET n = CHAR_LENGTH(d);
@@ -406,7 +410,12 @@ BEGIN
         IF c = 'T' THEN SET in_time = TRUE;
         ELSEIF c BETWEEN '0' AND '9' OR c = '.' OR c = ',' THEN SET num = CONCAT(num, IF(c = ',', '.', c));
         ELSE
-            IF REPLACE(REPLACE(num, '0', ''), '.', '') <> '' THEN SET nonzero = TRUE; END IF;
+            IF REPLACE(REPLACE(num, '0', ''), '.', '') <> '' THEN
+                SET nonzero = TRUE;
+                SET f = CAST(RPAD(IF(LOCATE('.', num) > 0, SUBSTRING_INDEX(num, '.', -1), ''), 9, '0') AS SIGNED);
+                SET lg = LEAST(lg, CASE WHEN c = 'Y' THEN 0 WHEN c = 'M' AND NOT in_time THEN 1 WHEN c = 'W' THEN 2 WHEN c = 'D' THEN 3 WHEN c = 'H' THEN 4 WHEN c = 'M' THEN 5
+                    WHEN CAST(SUBSTRING_INDEX(num, '.', 1) AS SIGNED) <> 0 THEN 6 WHEN f >= 1000000 THEN 7 WHEN f >= 1000 THEN 8 ELSE 9 END);
+            END IF;
             IF part = 'M' AND NOT in_time AND c = 'Y' THEN SET r = r + 12 * CAST(num AS SIGNED);
             ELSEIF part = 'M' AND NOT in_time AND c = 'M' THEN SET r = r + CAST(num AS SIGNED);
             ELSEIF part = 'D' AND c = 'W' THEN SET r = r + 7 * CAST(num AS SIGNED);
@@ -422,6 +431,7 @@ BEGIN
         SET i = i + 1;
     END WHILE;
     IF part = 'sign' THEN RETURN IF(nonzero, sgn, 0); END IF;
+    IF part = 'largest' THEN RETURN lg; END IF;
     RETURN sgn * r;
 END
 //
@@ -666,6 +676,31 @@ BEGIN
     IF 2 * v_rest > v_b OR 2 * v_rest = v_b AND MOD(v_q, 2) = 1 THEN SET v_q = v_q + 1; END IF;
     SET v_result = v_q;
     RETURN IF(v_a < 0, -1, 1) * v_result * POW(2, -v_s);
+END
+//
+DELIMITER ;
+
+-- tsq_duration_add: the sum of two durations, the second times sign (1 to add it, -1 to subtract it), each given by its
+-- largest field that isn't zero (tsq_duration_part 'largest'), its days, the whole seconds of its time and the
+-- nanoseconds of the second, each with its sign; the function of the library that adds and subtracts durations as
+-- Temporal's add and subtract: a duration with years, months or weeks is an error, a day is 24 hours, and the sum is
+-- balanced up to the largest field of the two (days and a time, or a time in hours, in minutes or in seconds).
+DROP FUNCTION IF EXISTS tsq_duration_add;
+DELIMITER //
+CREATE FUNCTION tsq_duration_add(largest1 INT, days1 BIGINT, seconds1 BIGINT, nanoseconds1 BIGINT, largest2 INT, days2 BIGINT, seconds2 BIGINT, nanoseconds2 BIGINT, sgn INT) RETURNS VARCHAR(100) CHARACTER SET ascii DETERMINISTIC NO SQL
+BEGIN
+    DECLARE v_day DECIMAL(65, 0) DEFAULT 86400000000000;
+    DECLARE v_largest INT;
+    DECLARE v_total DECIMAL(65, 0);
+    DECLARE v_days DECIMAL(65, 0) DEFAULT 0;
+    IF largest1 IS NULL OR days1 IS NULL OR seconds1 IS NULL OR nanoseconds1 IS NULL OR largest2 IS NULL OR days2 IS NULL OR seconds2 IS NULL OR nanoseconds2 IS NULL OR sgn IS NULL THEN RETURN NULL; END IF;
+    SET v_largest = LEAST(largest1, largest2);
+    IF v_largest <= 2 THEN
+        SIGNAL SQLSTATE '22023' SET MESSAGE_TEXT = 'tsq_duration_add: a duration with years, months or weeks can''t be added nor subtracted';
+    END IF;
+    SET v_total = (days1 + sgn * days2) * v_day + (seconds1 + sgn * seconds2) * CAST(1000000000 AS DECIMAL(65, 0)) + nanoseconds1 + sgn * nanoseconds2;
+    IF v_largest = 3 THEN SET v_days = (v_total - MOD(v_total, v_day)) DIV v_day; END IF;
+    RETURN tsq_duration_text(0, 0, 0, v_days, v_total - v_days * v_day, CASE WHEN v_largest <= 4 THEN 'hour' WHEN v_largest = 5 THEN 'minute' ELSE 'second' END);
 END
 //
 DELIMITER ;

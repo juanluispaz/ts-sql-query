@@ -392,7 +392,8 @@ function ciReplace(source: unknown, find: unknown, replacement: unknown): unknow
  * databases reads it: 'M' the months (its years too), 'D' the days (its weeks too), 'S' the whole seconds of its time,
  * 'N' the nanoseconds of the second; 'years', 'months', 'weeks', 'days', 'hours', 'minutes' and 'seconds' (without its
  * fraction) each field as written; each with the sign of the duration; 'sign' the sign of the duration (-1, 0 or 1);
- * null for a null text
+ * 'largest' the largest field that isn't zero (0 the years ... 6 the seconds, 7 the milliseconds, 8 the microseconds, 9
+ * the nanoseconds; 10 for a duration of zero); null for a null text
  */
 function durationPart(value: unknown, part: unknown): number | null {
     if (value === null || value === undefined) {
@@ -410,6 +411,7 @@ function durationPart(value: unknown, part: unknown): number | null {
     let inTime = false
     let result = 0
     let nonzero = false
+    let largest = 10
     for (; i < text.length; i++) {
         const c = text[i]!
         if (c === 'T') {
@@ -420,6 +422,10 @@ function durationPart(value: unknown, part: unknown): number | null {
             const whole = Number(number.split('.')[0] || '0')
             if (/[1-9]/.test(number)) {
                 nonzero = true
+                const fraction = Number(((number.split('.')[1] ?? '') + '000000000').slice(0, 9))
+                const index = c === 'Y' ? 0 : c === 'M' && !inTime ? 1 : c === 'W' ? 2 : c === 'D' ? 3 : c === 'H' ? 4 : c === 'M' ? 5
+                    : whole !== 0 ? 6 : fraction >= 1_000_000 ? 7 : fraction >= 1000 ? 8 : 9
+                largest = Math.min(largest, index)
             }
             if (part === 'M' && !inTime && c === 'Y') {
                 result += 12 * whole
@@ -446,6 +452,9 @@ function durationPart(value: unknown, part: unknown): number | null {
     }
     if (part === 'sign') {
         return nonzero ? sign : 0
+    }
+    if (part === 'largest') {
+        return largest
     }
     return sign * result + 0
 }
@@ -810,6 +819,34 @@ function durationTotal(months: unknown, weeks: unknown, days: unknown, seconds: 
     return exactQuotient(BigInt(r1) * den + BigInt(sign) * absoluteBigint(BigInt(e2 - start) * day + timeOfDay), den)
 }
 
+/**
+ * tsq_duration_add: the sum of two durations, the second times sign (1 to add it, -1 to subtract it), each given by its
+ * largest field that isn't zero (tsq_duration_part 'largest'), its days, the whole seconds of its time and the
+ * nanoseconds of the second, each with its sign, as Temporal's add and subtract, as the same function of the library on
+ * the other databases: a duration with years, months or weeks is an error, a day is 24 hours, and the sum is balanced up
+ * to the largest field of the two; its ISO 8601 text. Null when an argument is null
+ */
+function durationAdd(largest1: unknown, days1: unknown, seconds1: unknown, nanoseconds1: unknown, largest2: unknown, days2: unknown, seconds2: unknown, nanoseconds2: unknown, sign: unknown): string | null {
+    const d1 = bigintArgument(days1)
+    const s1 = bigintArgument(seconds1)
+    const n1 = bigintArgument(nanoseconds1)
+    const d2 = bigintArgument(days2)
+    const s2 = bigintArgument(seconds2)
+    const n2 = bigintArgument(nanoseconds2)
+    const k = bigintArgument(sign)
+    if (largest1 === null || largest2 === null || d1 === null || s1 === null || n1 === null || d2 === null || s2 === null || n2 === null || k === null) {
+        return null
+    }
+    const largest = Math.min(Number(largest1), Number(largest2))
+    if (largest <= 2) {
+        throw new Error("tsq_duration_add: a duration with years, months or weeks can't be added nor subtracted")
+    }
+    const day = 86_400_000_000_000n
+    const total = (d1 + k * d2) * day + (s1 + k * s2) * 1_000_000_000n + n1 + k * n2
+    const days = largest === 3 ? total / day : 0n
+    return durationText(0n, 0n, 0n, days, total - days * day, largest <= 4 ? 'hour' : largest === 5 ? 'minute' : 'second')
+}
+
 /** The days from 1970-01-01 to a date plus a number of weeks, months or years ('week', 'month', 'year'), the day kept in the month */
 function unitsFrom(year: number, month: number, day: number, days: number, unit: string, units: number): number {
     return unit === 'week' ? days + 7 * units : daysOfDatePlusMonths(year, month, day, unit === 'month' ? units : 12 * units)
@@ -838,6 +875,7 @@ export const sqliteScalarFunctions: readonly SqliteScalarFunction[] = [
     { name: 'tsq_duration_text', arity: 6, deterministic: pure, fn: durationText as SqliteScalarFunction['fn'] },
     { name: 'tsq_duration_round', arity: 13, deterministic: pure, fn: durationRound as SqliteScalarFunction['fn'] },
     { name: 'tsq_duration_total', arity: 9, deterministic: pure, fn: durationTotal as SqliteScalarFunction['fn'] },
+    { name: 'tsq_duration_add', arity: 9, deterministic: pure, fn: durationAdd as SqliteScalarFunction['fn'] },
 ]
 
 export const sqliteAggregateFunctions: readonly SqliteAggregateFunction[] = [

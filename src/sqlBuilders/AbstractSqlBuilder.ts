@@ -24,6 +24,7 @@ import { isUtcTimeZoneName } from '../utils/processTimeZone.js'
 import { __durationSqlDataTypeOf, __isIntegerSql, __isJsonDocumentSql, __sqlFamilyOf, __temporalFieldsOf } from '../typeSystem/dataTypes.js'
 import { type DurationTotalDate, type DurationTotalUnit } from '../utils/durationTotal.js'
 import type { SqlOperation0ValueSource, SqlOperation2ValueSource } from '../nodes/operations.js'
+import type { TemporalDuration } from '../typeSystem/temporal.js'
 import { durationOfArgument, durationOfParts, durationPartsFor, isZeroDuration, type DurationParts, type DurationPartsSql } from '../utils/durationValues.js'
 import { plainTemporalFieldsOf } from '../utils/plainTemporalFields.js'
 import { plainTemporalRoundingOf, type PlainTemporalRounding } from '../utils/plainTemporalRounding.js'
@@ -4654,6 +4655,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (!this._supportNativeDurations()) {
             return true
         }
+        if (__isDurationSum(valueSource)) {
+            return this._isDurationSumKeptAsText()
+        }
         // A duration computed from another one (negated, abs) is kept as that one
         const from = __durationComputedFrom(valueSource)
         if (from) {
@@ -4666,7 +4670,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * (its years too), 'D' the days (its weeks too), 'S' the whole seconds of its time, 'N' the nanoseconds of the
      * second; each with the sign of the duration
      */
-    _durationTextPart(context: SqlBuildContext, valueSource: ToSql, part: 'M' | 'D' | 'S' | 'N' | 'sign' | 'years' | 'months' | 'weeks' | 'days' | 'hours' | 'minutes' | 'seconds'): string {
+    _durationTextPart(context: SqlBuildContext, valueSource: ToSql, part: 'M' | 'D' | 'S' | 'N' | 'sign' | 'largest' | 'years' | 'months' | 'weeks' | 'days' | 'hours' | 'minutes' | 'seconds'): string {
         return this._durationPartFunctionName() + '(' + this._appendSql(valueSource, context, false) + ", '" + part + "')"
     }
     /**
@@ -4791,6 +4795,57 @@ export class AbstractSqlBuilder implements SqlBuilder {
         let result = 'cast(extract(year from ' + interval + ') * 12 + extract(month from ' + interval + ') as bigint), 0, cast(extract(day from ' + interval + ') as bigint), '
         result += 'cast(extract(hour from ' + interval + ') * 3600 + extract(minute from ' + interval + ') * 60 + trunc(extract(second from ' + interval + ')) as bigint), '
         return result + 'cast(extract(microseconds from ' + interval + ') as bigint) % 1000000 * 1000'
+    }
+    /**
+     * A duration plus or minus another one (sign), as Temporal's add and subtract, with the function of the library
+     * tsq_duration_add: the largest field that isn't zero, the days, the whole seconds and the nanoseconds of each one
+     * (see _durationPartsForSum), and the sign. Where the database has intervals the sum is one (PostgreSQL), or its ISO
+     * 8601 text (see _isDurationSumKeptAsText)
+     */
+    _durationAdd(context: SqlBuildContext, operand: ToSql, value: any, _typeClass: DataTypeClass): string {
+        return this._appendDurationSum(context, operand, value, 1)
+    }
+    _durationSubtract(context: SqlBuildContext, operand: ToSql, value: any, _typeClass: DataTypeClass): string {
+        return this._appendDurationSum(context, operand, value, -1)
+    }
+    _appendDurationSum(context: SqlBuildContext, operand: ToSql, value: any, sign: 1 | -1): string {
+        let result = this._durationAddFunctionName() + '(' + this._durationPartsForSum(context, this._temporalOperand(operand)) + ', '
+        if (isValueSource(value)) {
+            result += this._durationPartsForSum(context, this._temporalOperand(value as unknown as ToSql))
+        } else {
+            const duration = durationOfArgument(value, 'duration')
+            if (!duration) {
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: 'duration' }, 'Invalid duration to add or subtract: ' + String(value))
+            }
+            // The parts of a Temporal value, integers
+            const time = ((((BigInt(duration.hours) * 60n + BigInt(duration.minutes)) * 60n + BigInt(duration.seconds)) * 1000n + BigInt(duration.milliseconds)) * 1000n + BigInt(duration.microseconds)) * 1000n + BigInt(duration.nanoseconds)
+            result += String(largestFieldOf(duration)) + ', ' + String(duration.days) + ', ' + String(time / 1_000_000_000n) + ', ' + String(time % 1_000_000_000n)
+        }
+        return result + ', ' + sign + ')'
+    }
+    /**
+     * The largest field that isn't zero, the days, the whole seconds of the time and the nanoseconds of the second of a
+     * duration, as the arguments of tsq_duration_add: of its ISO 8601 text, with tsq_duration_part; of an interval of
+     * PostgreSQL, its fields (its months are its years and months, it has no weeks)
+     */
+    _durationPartsForSum(context: SqlBuildContext, valueSource: ToSql): string {
+        if (this._isDurationKeptAsText(valueSource)) {
+            return this._durationTextPart(context, valueSource, 'largest') + ', ' + this._durationTextPart(context, valueSource, 'days') + ', ' + this._durationTextPart(context, valueSource, 'S') + ', ' + this._durationTextPart(context, valueSource, 'N')
+        }
+        const interval = this._appendSqlParenthesis(valueSource, context, false)
+        const fraction = 'abs(cast(extract(microseconds from ' + interval + ') as bigint) % 1000000)'
+        let result = 'case when extract(year from ' + interval + ') <> 0 or extract(month from ' + interval + ') <> 0 then 1 when extract(day from ' + interval + ') <> 0 then 3 when extract(hour from ' + interval + ') <> 0 then 4 when extract(minute from ' + interval + ') <> 0 then 5'
+        result += ' when trunc(extract(second from ' + interval + ')) <> 0 then 6 when ' + fraction + ' >= 1000 then 7 when ' + fraction + ' <> 0 then 8 else 10 end, '
+        result += 'cast(extract(day from ' + interval + ') as bigint), cast(extract(hour from ' + interval + ') * 3600 + extract(minute from ' + interval + ') * 60 + trunc(extract(second from ' + interval + ')) as bigint), '
+        return result + 'cast(extract(microseconds from ' + interval + ') as bigint) % 1000000 * 1000'
+    }
+    /** Whether a duration plus or minus another one is the ISO 8601 text of the sum, where the database has intervals */
+    _isDurationSumKeptAsText(): boolean {
+        return false
+    }
+    /** The name of the function of the library that adds and subtracts durations */
+    _durationAddFunctionName(): string {
+        return 'tsq_duration_add'
     }
     /** The name of the function of the library that gives the total of a duration */
     _durationTotalFunctionName(): string {
@@ -5633,6 +5688,22 @@ export type DurationField = 'years' | 'months' | 'weeks' | 'days' | 'hours' | 'm
 
 /** A field of the duration of a difference: the time is the hours to the nanoseconds, in nanoseconds */
 export type PlainTemporalDifferenceField = 'years' | 'months' | 'weeks' | 'days' | 'time'
+
+/** Whether a value source is a duration plus or minus another one */
+export function __isDurationSum(valueSource: ToSql): boolean {
+    if (!isValueSource(valueSource)) {
+        return false
+    }
+    const operation = (__asNodeValueSource(valueSource) as Partial<SqlOperation0ValueSource>).__operation as string | undefined
+    return operation === '_durationAdd' || operation === '_durationSubtract'
+}
+
+/** The index of the largest field of a duration that isn't zero, from 0 (the years) to 9 (the nanoseconds); 10 for zero */
+function largestFieldOf(duration: TemporalDuration): number {
+    const fields = [duration.years, duration.months, duration.weeks, duration.days, duration.hours, duration.minutes, duration.seconds, duration.milliseconds, duration.microseconds, duration.nanoseconds]
+    const index = fields.findIndex(field => field !== 0)
+    return index < 0 ? 10 : index
+}
 
 /** The SQL negated with a minus; between parentheses when it starts with one, since `--` starts a comment */
 function negatedSql(sql: string): string {

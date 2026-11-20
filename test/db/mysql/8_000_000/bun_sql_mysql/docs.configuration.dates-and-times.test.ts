@@ -253,6 +253,42 @@ describe(ctx.label, () => {
     })
     */
 
+    // NOT-SUPPORTED: this database keeps no time zone with each value: a zonedDateTime is only kept and computed on Oracle
+    /*
+    test('docs:dates-and-times/the-arithmetic-of-a-zoned-date-and-time', async () => {
+        ctx.mockNext([
+            { version: '0.9.0', followUp: '2024-03-31T09:00:00.000000000Z AD[EUROPE/MADRID]', daysToFollowUp: 'P29D', hoursToFollowUp: 'PT695H', hoursInThatDay: 23 },
+            { version: '1.2.0', followUp: '2024-02-14T08:00:00.000000000Z AD[EUROPE/MADRID]', daysToFollowUp: 'P29D', hoursToFollowUp: 'PT696H', hoursInThatDay: 24 },
+            { version: '1.3.0-beta.1', followUp: '2024-03-21T09:00:00.000000000Z AD[EUROPE/MADRID]', daysToFollowUp: 'P29D', hoursToFollowUp: 'PT696H', hoursInThatDay: 24 },
+        ])
+        const connection = ctx.conn
+
+        // doc-start
+        const published = tRelease.publishedAt.toZonedDateTime('Europe/Madrid')
+        const followUp = published.add({ weeks: 4, days: 1 })
+        const followUps = await connection.selectFrom(tRelease)
+            .select({
+                version: tRelease.version,
+                followUp: followUp,
+                daysToFollowUp: published.until(followUp, { largestUnit: 'day' }),
+                hoursToFollowUp: published.until(followUp),
+                hoursInThatDay: followUp.hoursInDay(),
+            })
+            .orderBy('version')
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams).toMatchInlineSnapshot()
+        assertType<Exact<typeof followUps, Array<{ version: string; followUp: Temporal.ZonedDateTime; daysToFollowUp: Temporal.Duration; hoursToFollowUp: Temporal.Duration; hoursInThatDay: number }>>>()
+        const publications = ['2024-03-02T11:00:00', '2024-01-16T09:00:00', '2024-02-21T10:00:00'].map(text => Temporal.PlainDateTime.from(text).toZonedDateTime('Europe/Madrid'))
+        expect(followUps.map(release => [release.version, release.followUp.toString(), release.daysToFollowUp.toString(), release.hoursToFollowUp.toString(), release.hoursInThatDay])).toEqual(['0.9.0', '1.2.0', '1.3.0-beta.1'].map((version, i) => {
+            const at = publications[i]!.add({ weeks: 4, days: 1 })
+            return [version, at.toString(), publications[i]!.until(at, { largestUnit: 'day' }).toString(), publications[i]!.until(at).toString(), at.hoursInDay]
+        }))
+    })
+    */
+
     test('docs:dates-and-times/the-arithmetic-of-an-instant', async () => {
         ctx.mockNext([
             { version: '0.9.0', afterPublishing: '00:05:00', hour: '2024-03-02 11:00:00+00', reviewBy: '2024-03-04 12:00:00+00' },

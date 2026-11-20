@@ -49,7 +49,7 @@ Start with the file of the area of your task. These files are written for you: o
 | To | Read | Tokens |
 |---|---|---|
 | Connect a driver | [`llms-connect.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-connect.txt), or only the page of your driver, listed in `llms.txt` | 34k |
-| Declare the connection, the tables and the types of their columns | [`llms-configuration-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-configuration-postgresql.txt), with `<database>` being `mariadb`, `mysql`, `oracle`, `postgresql`, `sqlite` or `sqlserver` | 52k |
+| Declare the connection, the tables and the types of their columns | [`llms-configuration-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-configuration-postgresql.txt), with `<database>` being `mariadb`, `mysql`, `oracle`, `postgresql`, `sqlite` or `sqlserver` | 56k |
 | Look up a method of a table or a view | [`llms-api-mapping.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-api-mapping.txt) | 3k |
 
 **Write queries**
@@ -62,7 +62,7 @@ Start with the file of the area of your task. These files are written for you: o
 | Aggregate and group | [`llms-aggregates-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-aggregates-postgresql.txt) | 11k |
 | Write data | [`llms-mutations-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-mutations-postgresql.txt) | 25k |
 | Use a transaction | [`llms-transactions.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-transactions.txt) | 13k |
-| Look up a method of the connection, a select, a value or a dynamic condition | [`llms-api-queries.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-api-queries.txt) | 24k |
+| Look up a method of the connection, a select, a value or a dynamic condition | [`llms-api-queries.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-api-queries.txt) | 25k |
 | Look up a method of an insert, an update or a delete | [`llms-api-mutations.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-api-mutations.txt) | 11k |
 
 **Beyond dynamic queries**
@@ -97,7 +97,7 @@ Start with the file of the area of your task. These files are written for you: o
 
 | To | Read | Tokens |
 |---|---|---|
-| Look up any method | [`llms-api.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-api.txt) | 48k |
+| Look up any method | [`llms-api.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-api.txt) | 49k |
 | Understand an error | [`llms-errors.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-errors.txt) | 23k |
 | Find what writes a SQL keyword | [`llms-keywords.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-keywords.txt) | 12k |
 | Know what the library is, and what it can't do | [`llms-general.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-general.txt) | 8k |

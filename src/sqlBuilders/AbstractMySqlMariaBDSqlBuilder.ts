@@ -972,6 +972,14 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         // The digits below a millisecond are dropped, as the Date read drops them (floor, also before 1970)
         return "floor(timestampdiff(microsecond, '1970-01-01 00:00:00', " + this._appendSql(valueSource, context, false) + ') / 1000)'
     }
+    override _epochNanoseconds(context: SqlBuildContext, valueSource: ToSql): string {
+        // The microseconds the database keeps, as a decimal: exact beyond the 64 bits of an integer too (after 2262)
+        return "cast(timestampdiff(microsecond, '1970-01-01 00:00:00', " + this._appendSql(valueSource, context, false) + ') as decimal(30)) * 1000'
+    }
+    override _instantToPlainDateTime(context: SqlBuildContext, valueSource: ToSql): string {
+        // An instant is kept as its wall clock in the zone of the database (a TIMESTAMP is converted with the session)
+        return this._appendSql(valueSource, context, false)
+    }
     override _year(context: SqlBuildContext, valueSource: ToSql): string {
         return 'year(' + this._appendSql(valueSource, context, false) + ')'
     }

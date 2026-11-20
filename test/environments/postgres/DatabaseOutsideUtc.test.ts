@@ -77,6 +77,8 @@ function checkScenario(out: ScenarioResult): void {
     expect(out.instant.currentDrift).toBeLessThan(60_000)
     // A wall clock that Madrid repeats is taken in winter time by PostgreSQL
     expect(out.instant.repeated).toBe('2024-10-27T01:30:00Z')
+    // Its epoch, its date and time in Madrid, and a wall clock of Madrid as an instant
+    expect(out.instant.methods).toEqual({ milliseconds: 1705223730123, nanoseconds: '1705223730123000000', wall: '2024-01-14T10:15:30.123', zonedWall: '2024-01-14T10:15:30.123', hour: 10, instant: '2024-01-14T09:15:30.123Z', plainHour: 10, plainDay: '2024-01-14' })
 }
 
 // A localDateTime and a localTime with a type driverTypeOf gives them (a timestamp and a time; postgres.js and PGlite,

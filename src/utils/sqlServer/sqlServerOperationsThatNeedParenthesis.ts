@@ -7,6 +7,8 @@ export const sqlServerOperationsThatNeedParenthesis: OperationsThatNeedParenthes
     _dayOfWeek: true,
     // `dateadd(...)`, a self-contained call
     _toPlainDateTimeAt: false,
+    // `cast(...) * 1000 + datepart(...) % 1000`
+    _epochNanoseconds: true,
     // `dateadd(...)`
     _addDuration: false,
     _subtractDuration: false,

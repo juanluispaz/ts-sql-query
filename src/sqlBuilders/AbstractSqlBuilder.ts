@@ -4016,6 +4016,27 @@ export class AbstractSqlBuilder implements SqlBuilder {
         // A date at 00:00
         return 'cast(' + this._appendSql(valueSource, context, false) + ' as timestamp)'
     }
+    /**
+     * The nanoseconds since 1970-01-01T00:00Z of an instant: its seconds since the epoch with their fraction (the
+     * microseconds PostgreSQL keeps), exact as a numeric, beyond the 64 bits of an integer too (before 1678, after 2262)
+     */
+    _epochNanoseconds(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'trunc(extract(epoch from ' + this._appendSqlForDatePartArgument(valueSource, context) + ') * 1000000000)'
+    }
+    /**
+     * The date and time of an instant in the zone of the database: a timestamp, which converts a timestamptz with the
+     * zone of the session (the zone of the database), and is the value itself for a column without zone
+     */
+    _instantToPlainDateTime(context: SqlBuildContext, valueSource: ToSql): string {
+        return this._appendSqlParenthesis(valueSource, context, false) + '::timestamp'
+    }
+    /**
+     * The instant of a date and time, a wall clock of the zone of the database: the same value, which the database
+     * completes with the zone of its session where the instant meets a value with zone, or is read
+     */
+    _toInstant(context: SqlBuildContext, valueSource: ToSql): string {
+        return this._appendSql(valueSource, context, false)
+    }
     _toPlainDateTimeAt(context: SqlBuildContext, valueSource: ToSql, value: any, _typeClass: DataTypeClass): string {
         // A date plus a time of the day is the timestamp of that day at that time; a time given as a value is sent with
         // its type, which the operator needs

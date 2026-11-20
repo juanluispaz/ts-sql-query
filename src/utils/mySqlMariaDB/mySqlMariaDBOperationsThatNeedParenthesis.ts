@@ -17,6 +17,8 @@ export const mySqlMariaDBOperationsThatNeedParenthesis: OperationsThatNeedParent
     _dayOfWeek: true,
     // `timestamp(date, time)`, a self-contained call
     _toPlainDateTimeAt: false,
+    // `cast(...) * 1000`
+    _epochNanoseconds: true,
     // `date_add(...)`, `sec_to_time(...)`
     _addDuration: false,
     _subtractDuration: false,

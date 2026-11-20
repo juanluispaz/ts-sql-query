@@ -4,6 +4,8 @@ import { operationsThatNeedParenthesis, type OperationsThatNeedParenthesis } fro
 export const oracleOperationsThatNeedParenthesis: OperationsThatNeedParenthesis = {
     ...operationsThatNeedParenthesis,
     _epochMilliseconds: true,
+    // `(trunc(...) - date '1970-01-01') * ... + to_number(...)`
+    _epochNanoseconds: true,
     // `_millisecond` is written as a self-contained call, so it never needs the wrapping the base's trailing
     // `% 1000` form asks for.
     _millisecond: false,

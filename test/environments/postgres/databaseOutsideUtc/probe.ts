@@ -66,6 +66,8 @@ class TInstantMoment extends Table<MadridConnection, 'TInstantMoment'> {
     id = this.primaryKey('id', 'int')
     ts = this.optionalColumn('ts', 'instant')
     tstz = this.optionalColumn('tstz', 'instant')
+    // The same column, as a date and time of the zone of the database
+    tsPlain = this.optionalColumn('ts', 'plainDateTime')
     constructor() {
         super(tableName)
     }
@@ -146,7 +148,7 @@ export interface ScenarioResult {
     timeWithTimeZone: { delivered: unknown, read: unknown, hours: unknown }
     repeated: unknown
     skipped: unknown
-    instant: { stored: unknown[], read: unknown[], where: number[], aggregated: unknown[], currentDrift: number, repeated: unknown }
+    instant: { stored: unknown[], read: unknown[], where: number[], aggregated: unknown[], currentDrift: number, repeated: unknown, methods: unknown }
 }
 
 async function scenario(): Promise<ScenarioResult> {
@@ -224,6 +226,14 @@ async function scenario(): Promise<ScenarioResult> {
                 aggregated: (await conn.selectFrom(tInstantMoment).where(tInstantMoment.id.in([1, 11])).selectOneColumn(conn.aggregateAsArrayOfOneColumn(tInstantMoment.ts)).executeSelectOne()).map(instantText),
                 currentDrift: Math.abs(Number((await conn.selectFromNoTable().selectOneColumn(conn.currentInstant()).executeSelectOne()).since(beforeInstant).total('millisecond'))),
                 repeated: instantText(await conn.selectFrom(tInstantMoment).where(tInstantMoment.id.equals(7)).selectOneColumn(tInstantMoment.ts).executeSelectOne()),
+            // Its epoch, its date and time in the zone of the database, and a wall clock of that zone as an instant
+            methods: await conn.selectFrom(tInstantMoment).where(tInstantMoment.id.equals(11)).select({
+                milliseconds: tInstantMoment.ts.epochMilliseconds(), nanoseconds: tInstantMoment.tstz.epochNanoseconds(),
+                wall: tInstantMoment.ts.toPlainDateTime(), zonedWall: tInstantMoment.tstz.toPlainDateTime(), hour: tInstantMoment.tstz.toPlainDateTime().hour(),
+                instant: tInstantMoment.tsPlain.toInstant(),
+                // A date and time without zone gives the parts of its digits, the wall clock of Madrid
+                plainHour: tInstantMoment.tsPlain.hour(), plainDay: tInstantMoment.tsPlain.toPlainDate(),
+            }).executeSelectOne().then(row => ({ ...row, nanoseconds: String(row.nanoseconds), wall: String(row.wall), zonedWall: String(row.zonedWall), instant: String(row.instant), plainDay: String(row.plainDay) })),
             }
             return { session, stored, read, whereTs, whereOld, whereT, aggregated, currentTimestampDrift, constTimeToday, summerTime, timeAfterMidnight, timeWithTimeZone, repeated, skipped, instant }
         } finally {

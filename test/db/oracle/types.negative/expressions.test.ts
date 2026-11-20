@@ -643,6 +643,14 @@ function _typeNegatives() {
     void tInstantValue.instantAt.equals(tColMatrixPlain.mDatetime)
     // @ts-expect-error an instant has no year without a zone, as in Temporal
     void tInstantValue.instantAt.year()
+    // Its epoch, and its date and time in the zone of the database; a date and time as an instant
+    void tInstantValue.instantAt.epochNanoseconds()
+    void tInstantValue.instantAt.toPlainDateTime().hour()
+    void tColMatrixPlain.mDatetime.toInstant()
+    // @ts-expect-error a date has no instant without a time of the day
+    void tColMatrixPlain.mDate.toInstant()
+    // @ts-expect-error an instant has no hour without a zone, as in Temporal
+    void tInstantValue.instantAt.hour()
 }
 
 test('expressions-negative-types', () => {

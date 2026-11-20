@@ -1,3 +1,4 @@
+import { isPlainTemporalClass } from '../utils/plainTemporalValues.js'
 import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import type { ToSql, SelectData, WithValuesData, OrderByEntry, FlatQueryColumns } from './SqlBuilder.js'
 import { flattenQueryColumns } from './SqlBuilder.js'
@@ -667,12 +668,16 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
 }
 
 /**
- * The instant of a localDateTime or a localTime of a database outside UTC, as a timestamptz the database completes with
+ * The instant of a localDateTime, a localTime or an instant of a database outside UTC, as a timestamptz the database completes with
  * the zone of its session (the zone of the database): `<sql>::timestamptz`, a no-op on a timestamptz; a localTime on
  * the day of the localTimeReferenceDate, `(date '1970-01-01' + <sql>)::timestamptz` or `(current_date + <sql>)…`.
  * Undefined for any other type.
  */
 export function postgreSqlZonedValueSql(sql: string, typeClass: DataTypeClass, localTimeReferenceDate: string | undefined): string | undefined {
+    if (isPlainTemporalClass(typeClass)) {
+        // A Temporal value without zone is a wall clock: nothing completes it
+        return undefined
+    }
     const fields = __temporalFieldsOf(typeClass)
     if (fields === 'timestamp') {
         // A parameter of a database outside UTC is already a timestamptz

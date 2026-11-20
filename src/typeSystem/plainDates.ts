@@ -11,6 +11,7 @@ import { __newSqlOperationConstValueSource } from '../nodes/constants.js'
 import { getOptionalType2 } from '../nodes/operands.js'
 import { isValueSource } from '../nodes/NodeStrategy.js'
 import { DurationType } from './durations.js'
+import { InstantType } from './instants.js'
 import type { operandTypeName } from '../utils/symbols.js'
 import { IntType } from './number.js'
 import { __typeClassOf } from '../nodes/dataTypeClassOf.js'
@@ -344,6 +345,14 @@ export abstract class PlainDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
     toPlainTime(): ValueSource<SourceOf<this>, PlainTimeType, OptionalityOf<this>>
     toPlainTime(): any {
         return __operation0(this as any, '_toPlainTime', PlainTimeType)
+    }
+    /**
+     * The instant of this date and time as a wall clock of the zone of the database, an instant: Temporal's
+     * `toZonedDateTime(zone).toInstant()` with the zone of the database, which completes it
+     */
+    toInstant(): ValueSource<SourceOf<this>, InstantType, OptionalityOf<this>>
+    toInstant(): any {
+        return __operation0(this as any, '_toInstant', InstantType)
     }
 
     /**

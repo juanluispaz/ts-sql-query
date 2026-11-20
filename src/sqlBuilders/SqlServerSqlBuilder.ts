@@ -1078,6 +1078,17 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _epochMilliseconds(context: SqlBuildContext, valueSource: ToSql): string {
         return "datediff_big(millisecond, '1970-01-01 00:00:00', " + this._appendSql(valueSource, context, false) + ")"
     }
+    override _epochNanoseconds(context: SqlBuildContext, valueSource: ToSql): string {
+        // The microseconds since the epoch and the nanoseconds below them (SQL Server keeps hundreds of them), as a
+        // bigint, which tedious gives as its text: a decimal would arrive as a rounded number. Beyond its 64 bits
+        // (before 1678, after 2262) SQL Server fails with an arithmetic overflow
+        const value = this._appendSql(valueSource, context, false)
+        return "datediff_big(microsecond, '1970-01-01 00:00:00', " + value + ') * 1000 + datepart(nanosecond, ' + value + ') % 1000'
+    }
+    override _instantToPlainDateTime(context: SqlBuildContext, valueSource: ToSql): string {
+        // The database is in UTC: the wall clock in UTC, of a datetimeoffset too, whatever offset it was stored with
+        return 'cast(' + this._appendDateTimeInUtc(context, valueSource) + ' as datetime2)'
+    }
     override _year(context: SqlBuildContext, valueSource: ToSql): string {
         return 'datepart(year, ' + this._appendDateTimeInUtc(context, valueSource) + ')'
     }

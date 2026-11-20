@@ -500,6 +500,10 @@ export interface SqlFunction0 {
     _toPlainDate(context: SqlBuildContext, valueSource: ToSql): string
     _toPlainTime(context: SqlBuildContext, valueSource: ToSql): string
     _toPlainDateTime(context: SqlBuildContext, valueSource: ToSql): string
+    // An instant: its nanoseconds since the epoch, and its date and time in the zone of the database; and back
+    _epochNanoseconds(context: SqlBuildContext, valueSource: ToSql): string
+    _instantToPlainDateTime(context: SqlBuildContext, valueSource: ToSql): string
+    _toInstant(context: SqlBuildContext, valueSource: ToSql): string
     // Uuid
     _asString(context: SqlBuildContext, valueSource: ToSql): string
     // Oracle recursive

@@ -1,6 +1,16 @@
 import type { SqlDataType } from '../TypeAdapter.js'
 import { ComparableType } from './comparable.js'
 import type { TemporalInstant } from './temporal.js'
+import type { OptionalityOf, SourceOf, ValueSource } from './base.js'
+import { __operation0 } from '../nodes/operations.js'
+import { IntType } from './number.js'
+import { BigintType } from './bigint.js'
+import { PlainDateTimeType, PlainDateType, PlainTimeType } from './plainDates.js'
+
+/** The date and time of the instant in the zone of the database: a plainDateTime */
+function plainDateTimeOf(valueSource: unknown): any {
+    return __operation0(valueSource as any, '_instantToPlainDateTime', PlainDateTimeType)
+}
 
 /*
  * An exact moment as Temporal has it: an instant (a Temporal.Instant), the same everywhere, with nanoseconds. It is kept
@@ -20,6 +30,35 @@ export const instantSqlDataType: SqlDataType = { family: 'datetime', fields: 'ti
  */
 export abstract class InstantsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends ComparableType<VALUE_TYPE, TYPE_NAME> {
     static override readonly sqlDataType: SqlDataType | undefined = instantSqlDataType
+
+    /** The milliseconds since 1970-01-01T00:00Z, as an int, rounded down: Temporal's `epochMilliseconds` */
+    epochMilliseconds(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
+    epochMilliseconds(): any {
+        return __operation0(this as any, '_epochMilliseconds', IntType)
+    }
+    /** The nanoseconds since 1970-01-01T00:00Z, as a bigint: Temporal's `epochNanoseconds` */
+    epochNanoseconds(): ValueSource<SourceOf<this>, BigintType, OptionalityOf<this>>
+    epochNanoseconds(): any {
+        return __operation0(this as any, '_epochNanoseconds', BigintType)
+    }
+    /**
+     * The date and time of the instant in the zone of the database, a plainDateTime: Temporal's
+     * `toZonedDateTimeISO(zone).toPlainDateTime()` with the zone of the database
+     */
+    toPlainDateTime(): ValueSource<SourceOf<this>, PlainDateTimeType, OptionalityOf<this>>
+    toPlainDateTime(): any {
+        return plainDateTimeOf(this)
+    }
+    /** The date of the instant in the zone of the database, a plainDate: `toZonedDateTimeISO(zone).toPlainDate()` */
+    toPlainDate(): ValueSource<SourceOf<this>, PlainDateType, OptionalityOf<this>>
+    toPlainDate(): any {
+        return __operation0(plainDateTimeOf(this), '_toPlainDate', PlainDateType)
+    }
+    /** The time of the day of the instant in the zone of the database, a plainTime: `toZonedDateTimeISO(zone).toPlainTime()` */
+    toPlainTime(): ValueSource<SourceOf<this>, PlainTimeType, OptionalityOf<this>>
+    toPlainTime(): any {
+        return __operation0(plainDateTimeOf(this), '_toPlainTime', PlainTimeType)
+    }
 }
 
 /** An exact moment, a Temporal.Instant */

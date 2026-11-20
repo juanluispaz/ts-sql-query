@@ -1218,6 +1218,18 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         }
         return 'round((julianday(' + v + modifier + ') - 2440587.5) * 86400000.0)'
     }
+    override _epochNanoseconds(context: SqlBuildContext, valueSource: ToSql): string {
+        // Its milliseconds, an integer (round gives a real, which a product would keep inexact): SQLite keeps no digit
+        // below them. A Unix time kept as an integer already is one
+        const format = this._getValueSourceDateTimeFormat(valueSource)
+        const milliseconds = this._epochMilliseconds(context, valueSource)
+        const integer = format === 'Unix time seconds as integer' || format === 'Unix time milliseconds as integer' ? milliseconds : 'cast(' + milliseconds + ' as integer)'
+        return '(' + integer + ' * 1000000)'
+    }
+    override _instantToPlainDateTime(context: SqlBuildContext, valueSource: ToSql): string {
+        // An instant is kept in the format of a localDateTime, as a plainDateTime is: the same text or number
+        return this._appendSql(valueSource, context, false)
+    }
     override _year(context: SqlBuildContext, valueSource: ToSql): string {
         return "cast(strftime('%Y', " + this._dateFunctionArgument(context, valueSource) + ") as integer)"
     }

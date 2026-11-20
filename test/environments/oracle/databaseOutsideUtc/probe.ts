@@ -57,6 +57,8 @@ class TInstantMoment extends Table<MadridConnection, 'TInstantMoment'> {
     ts = this.optionalColumn('ts', 'instant')
     dx = this.optionalColumn('dx', 'instant')
     tz = this.optionalColumn('tz', 'instant')
+    // The same column, as a date and time of the zone of the database
+    tsPlain = this.optionalColumn('ts', 'plainDateTime')
     constructor() {
         super(tableName)
     }
@@ -106,7 +108,7 @@ export interface ScenarioResult {
     skipped?: string
     summerTime?: { stored: unknown[], read: unknown }
     timeAfterMidnight?: { stored: unknown[], where: number[] }
-    instant?: { sql: string[], stored: unknown[], read: unknown[], where: number[], whereDx: number[], returning: unknown, aggregated: unknown[], currentDrift: number, repeated: unknown }
+    instant?: { sql: string[], stored: unknown[], read: unknown[], where: number[], whereDx: number[], returning: unknown, aggregated: unknown[], currentDrift: number, repeated: unknown, methods: unknown }
 }
 
 async function scenario(): Promise<ScenarioResult> {
@@ -207,6 +209,14 @@ async function scenario(): Promise<ScenarioResult> {
             aggregated: (await conn.selectFrom(tInstantMoment).where(tInstantMoment.id.in([1, 12])).selectOneColumn(conn.aggregateAsArrayOfOneColumn(tInstantMoment.ts)).executeSelectOne()).map(instantText),
             currentDrift: Math.abs(Number((await conn.selectFromNoTable().selectOneColumn(conn.currentInstant()).executeSelectOne()).since(beforeInstant).total('millisecond'))),
             repeated: instantText(await conn.selectFrom(tInstantMoment).where(tInstantMoment.id.equals(7)).selectOneColumn(tInstantMoment.ts).executeSelectOne()),
+            // Its epoch, its date and time in the zone of the database, and a wall clock of that zone as an instant
+            methods: await conn.selectFrom(tInstantMoment).where(tInstantMoment.id.equals(12)).select({
+                milliseconds: tInstantMoment.ts.epochMilliseconds(), nanoseconds: tInstantMoment.tz.epochNanoseconds(),
+                wall: tInstantMoment.ts.toPlainDateTime(), zonedWall: tInstantMoment.tz.toPlainDateTime(), hour: tInstantMoment.tz.toPlainDateTime().hour(),
+                instant: tInstantMoment.tsPlain.toInstant(),
+                // A date and time without zone gives the parts of its digits, the wall clock of Madrid
+                plainHour: tInstantMoment.tsPlain.hour(), plainDay: tInstantMoment.tsPlain.toPlainDate(),
+            }).executeSelectOne().then(row => ({ ...row, nanoseconds: String(row.nanoseconds), wall: String(row.wall), zonedWall: String(row.zonedWall), instant: String(row.instant), plainDay: String(row.plainDay) })),
         }
         // A wall clock that Madrid skips when it changes to summer time can't be read: ORA-01878
         await raw(`insert into ${tableName} (id, ts) values (4, timestamp '2024-03-31 02:30:00')`)

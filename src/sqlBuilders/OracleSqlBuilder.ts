@@ -1373,6 +1373,17 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         const utc = this._appendUtcTimestamp(context, valueSource)
         return "(trunc(" + utc + ") - date '1970-01-01') * 86400000 + to_number(to_char(" + utc + ", 'SSSSSFF3'))"
     }
+    override _epochNanoseconds(context: SqlBuildContext, valueSource: ToSql): string {
+        // Its wall clock in UTC with all its digits (a value without zone, a DATE too, is completed with the zone of the
+        // session): the whole days, the seconds since midnight and the nanoseconds ('SSSSSFF9'), always forward
+        const utc = 'sys_extract_utc(cast(' + this._appendSql(valueSource, context, false) + ' as timestamp(9) with time zone))'
+        return "(trunc(" + utc + ") - date '1970-01-01') * 86400000000000 + to_number(to_char(" + utc + ", 'SSSSSFF9'))"
+    }
+    override _instantToPlainDateTime(context: SqlBuildContext, valueSource: ToSql): string {
+        // The wall clock of the session (the zone of the database), with all its digits: a value without zone, a DATE
+        // too, is completed with it first (`at local` rejects a DATE, ORA-30084)
+        return 'cast(cast(' + this._appendSql(valueSource, context, false) + ' as timestamp(9) with time zone) at local as timestamp(9))'
+    }
     override _year(context: SqlBuildContext, valueSource: ToSql): string {
         return 'extract(year from ' + (this._appendZonedUtcTimestamp(context, valueSource) ?? this._appendSql(valueSource, context, false)) + ')'
     }
@@ -1819,13 +1830,17 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
 }
 
 /**
- * The instant of a localDateTime or a localTime of a database outside UTC, as a timestamp with time zone the database
+ * The instant of a localDateTime, a localTime or an instant of a database outside UTC, as a timestamp with time zone the database
  * completes with the zone of its session (the zone of the database): `cast(<sql> as timestamp with time zone)`; a
  * localTime on the day of the localTimeReferenceDate, replacing the day it is stored with (Oracle has no type of a
  * time alone): `cast(timestamp '1970-01-01 00:00:00' + (<sql> - trunc(<sql>)) as timestamp with time zone)`, or the
  * current date of the session for `'today'`. A wall clock the zone skips gives ORA-01878. Undefined for any other type.
  */
 export function oracleZonedValueSql(sql: string, typeClass: DataTypeClass, localTimeReferenceDate: string | undefined): string | undefined {
+    if (isPlainTemporalClass(typeClass)) {
+        // A Temporal value without zone is a wall clock: nothing completes it
+        return undefined
+    }
     const fields = __temporalFieldsOf(typeClass)
     if (fields === 'timestamp') {
         return 'cast(' + sql + ' as timestamp with time zone)'

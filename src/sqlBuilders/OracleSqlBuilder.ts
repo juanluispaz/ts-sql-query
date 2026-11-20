@@ -1841,12 +1841,6 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         // Oracle has no minus of an interval: an interval times -1
         return '(' + this._appendSqlParenthesis(valueSource, context, false) + ' * -1)'
     }
-    override _addMonthsToDate(_context: SqlBuildContext, date: string, months: string): string {
-        return this._appendKeepingTheDay(date, months)
-    }
-    override _datePartOfDate(_context: SqlBuildContext, date: string, part: 'year' | 'month' | 'day'): string {
-        return 'extract(' + part + ' from ' + date + ')'
-    }
     override _nanosecondsSinceMidnight(context: SqlBuildContext, valueSource: ToSql): string {
         const value = this._appendSql(valueSource, context, false)
         const sinceMidnight = '(cast(' + value + ' as timestamp(9)) - trunc(' + value + '))'

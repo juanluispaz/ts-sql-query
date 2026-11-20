@@ -4896,12 +4896,14 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return !((difference.smallestUnit === 'nanosecond' || (d.fields === 'date' && difference.smallestUnit === 'day')) && difference.increment === 1)
     }
     /**
-     * Whether a difference is rounded to the calendar: with weeks, months or years, Temporal rounds counting them from
-     * the first value, and a rounding of the days that reaches the next one gives it; the function of the library
-     * tsq_duration_round does it (without variables, the SQL would write each piece many times over)
+     * Whether a difference is computed by the function of the library tsq_duration_round: in months or years, Temporal
+     * counts the whole months from the first value without passing the second one, and no database counts them so;
+     * rounded with weeks, months or years, it rounds counting them from the first value, and a rounding of the days that
+     * reaches the next one gives it
      */
     _differenceIsRoundedToTheCalendar(d: PlainTemporalDifferenceSql): boolean {
-        return unitIndex[d.difference.largestUnit]! <= 2 && this._differenceIsRounded(d)
+        const largest = unitIndex[d.difference.largestUnit]!
+        return largest <= 1 || (largest === 2 && this._differenceIsRounded(d))
     }
     /**
      * The duration of a difference rounded to the calendar, with the function of the library tsq_duration_round: the
@@ -4926,27 +4928,19 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return 'tsq_duration_round'
     }
     /**
-     * A field of a difference without rounding. Temporal counts the whole months from the first value without passing
-     * the second one, the day of the first not kept in the month (Jan 31 to Feb 29 is no month); then the days to the
-     * second one from the first plus those months (with the day kept in the month); the time is the rest
+     * A field of a difference without rounding, in weeks, days or a unit of the time (see
+     * _differenceIsRoundedToTheCalendar): the whole difference (in days for a date, in nanoseconds otherwise) balanced up
+     * to the largest unit, each field with the sign of the difference
      */
     _differenceUnrounded(context: SqlBuildContext, d: PlainTemporalDifferenceSql, field: PlainTemporalDifferenceField): string {
         switch (d.difference.largestUnit) {
-            case 'year':
-                switch (field) {
-                    case 'years':
-                        return this._truncatedDivision(this._differenceMonths(context, d), '12')
-                    case 'months':
-                        return '(' + this._integerRemainder(this._differenceMonths(context, d), '12') + ')'
-                    case 'days':
-                        return this._differenceDaysAfterMonths(context, d)
-                    default:
-                        return this._differenceAdjustedTime(context, d)
+            case 'week': {
+                if (field === 'time') {
+                    return '(' + this._integerRemainder(this._differenceTotal(context, d), d.day) + ')'
                 }
-            case 'month':
-                return field === 'months' ? this._differenceMonths(context, d) : field === 'days' ? this._differenceDaysAfterMonths(context, d) : this._differenceAdjustedTime(context, d)
-            case 'week':
-                return field === 'weeks' ? this._truncatedDivision(this._differenceAdjustedDays(context, d), '7') : field === 'days' ? '(' + this._integerRemainder(this._differenceAdjustedDays(context, d), '7') + ')' : this._differenceAdjustedTime(context, d)
+                const days = d.fields === 'date' ? this._differenceDays(context, d) : this._integerOfBigint(this._differenceDivision(d, this._differenceTotal(context, d), d.day))
+                return field === 'weeks' ? this._truncatedDivision(days, '7') : '(' + this._integerRemainder(days, '7') + ')'
+            }
             case 'day':
                 if (d.fields === 'date') {
                     return this._differenceDays(context, d)
@@ -5041,61 +5035,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _wideTruncatedDivision(dividend: string, divisor: string): string {
         return 'div(' + dividend + ', ' + divisor + ')'
     }
-    /**
-     * The day the second date and time is moved to when its time has the sign the days haven't, as Temporal does: a
-     * day less (-1) when the days go forward and the time back, a day more (1) the other way round
-     */
-    _differenceShift(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
-        return 'case when ' + this._differenceTime(context, d) + ' > 0 and ' + this._differenceDays(context, d) + ' < 0 then 1 when ' + this._differenceTime(context, d) + ' < 0 and ' + this._differenceDays(context, d) + ' > 0 then -1 else 0 end'
-    }
-    /** The date of the second value, moved by the shift for a date and time */
-    _differenceAdjustedDate(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
-        if (d.fields === 'date') {
-            return this._differenceDateOf(context, d, d.two)
-        }
-        return this._addDaysToDate(context, this._dateOfValue(context, d.two), this._differenceShift(context, d))
-    }
-    /** The days from the date of the first value to the date of the second, moved by the shift for a date and time */
-    _differenceAdjustedDays(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
-        return d.fields === 'date' ? this._differenceDays(context, d) : '(' + this._differenceDays(context, d) + ' + ' + this._differenceShift(context, d) + ')'
-    }
-    /** The time of the difference of a date and time, after the shift */
-    _differenceAdjustedTime(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
-        return '(' + this._differenceTime(context, d) + ' - ' + this._differenceShift(context, d) + ' * ' + d.day + ')'
-    }
-    /**
-     * The whole months from the first date to the second (moved by the shift), not passing it with the day of the first
-     * date: each date as (year * 12 + month) * 32 + day, which orders them, its difference divided by 32 truncated
-     */
-    _differenceMonths(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
-        let second: string
-        if (d.fields === 'date') {
-            second = '(' + this._integerPart(this._year(context, d.two)) + ' * 12 + ' + this._integerPart(this._month(context, d.two)) + ') * 32 + ' + this._integerPart(this._day(context, d.two))
-        } else {
-            second = '(' + this._datePartOfDate(context, this._differenceAdjustedDate(context, d), 'year') + ' * 12 + ' + this._datePartOfDate(context, this._differenceAdjustedDate(context, d), 'month') + ') * 32 + ' + this._datePartOfDate(context, this._differenceAdjustedDate(context, d), 'day')
-        }
-        const first = '(' + this._integerPart(this._year(context, d.one)) + ' * 12 + ' + this._integerPart(this._month(context, d.one)) + ') * 32 - ' + this._integerPart(this._day(context, d.one))
-        return this._truncatedDivision('(' + second + ' - ' + first + ')', '32')
-    }
-    /** The days from the first date plus the whole months (with its day kept in the month) to the second (moved by the shift) */
-    _differenceDaysAfterMonths(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
-        return this._daysBetween(context, this._differenceAdjustedDate(context, d), this._addMonthsToDate(context, this._differenceDateOf(context, d, d.one), this._differenceMonths(context, d)))
-    }
     /** The days from one date to another; the dates appear in the SQL in this order (to, from) where the order matters */
     _daysBetween(_context: SqlBuildContext, to: string, from: string): string {
         return '(' + to + ' - ' + from + ')'
     }
-    /** A date plus a number of months, the day kept in the month (Jan 31 plus a month is Feb 29) */
-    _addMonthsToDate(_context: SqlBuildContext, date: string, months: string): string {
-        return 'cast(' + date + ' + make_interval(months => ' + months + ') as date)'
-    }
     /** A date plus a number of days */
     _addDaysToDate(_context: SqlBuildContext, date: string, days: string): string {
         return '(' + date + ' + ' + days + ')'
-    }
-    /** The year, the month or the day of a date, as an integer */
-    _datePartOfDate(_context: SqlBuildContext, date: string, part: 'year' | 'month' | 'day'): string {
-        return 'extract(' + part + ' from ' + date + ')::integer'
     }
     /** An integer computed from bigints, as the integer the database takes where it needs one (PostgreSQL's make_interval) */
     _integerOfBigint(sql: string): string {

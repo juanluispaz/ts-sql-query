@@ -168,11 +168,19 @@ describe(ctx.label, () => {
                 days: january31.until(Temporal.PlainDate.from('2024-03-30')).total('days'),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.tsq_duration_total(((datepart(year, @0) * 12 + datepart(month, @0)) * 32 + datepart(day, @0) - (datepart(year, @1) * 12 + datepart(month, @1)) * 32 - datepart(day, @1)) / 32, 0, datediff(day, dateadd(month, ((datepart(year, @0) * 12 + datepart(month, @0)) * 32 + datepart(day, @0) - (datepart(year, @1) * 12 + datepart(month, @1)) * 32 - datepart(day, @1)) / 32, @1), @0), 0, 0, datepart(year, @2), datepart(month, @2), datepart(day, @2), 'month') as months, dbo.tsq_duration_total(0, 0, datediff(day, @4, @3), 0, 0, 0, 0, 0, 'day') as days"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.tsq_duration_total(dbo.tsq_duration_part(dbo.tsq_duration_round(datepart(year, @0), datepart(month, @0), datepart(day, @0), 0, datepart(year, @1), datepart(month, @1), datepart(day, @1), 0, 'month', 'day', 1, 'trunc', 1), 'M'), dbo.tsq_duration_part(dbo.tsq_duration_round(datepart(year, @2), datepart(month, @2), datepart(day, @2), 0, datepart(year, @3), datepart(month, @3), datepart(day, @3), 0, 'month', 'day', 1, 'trunc', 1), 'weeks'), dbo.tsq_duration_part(dbo.tsq_duration_round(datepart(year, @4), datepart(month, @4), datepart(day, @4), 0, datepart(year, @5), datepart(month, @5), datepart(day, @5), 0, 'month', 'day', 1, 'trunc', 1), 'days'), dbo.tsq_duration_part(dbo.tsq_duration_round(datepart(year, @6), datepart(month, @6), datepart(day, @6), 0, datepart(year, @7), datepart(month, @7), datepart(day, @7), 0, 'month', 'day', 1, 'trunc', 1), 'S'), dbo.tsq_duration_part(dbo.tsq_duration_round(datepart(year, @8), datepart(month, @8), datepart(day, @8), 0, datepart(year, @9), datepart(month, @9), datepart(day, @9), 0, 'month', 'day', 1, 'trunc', 1), 'N'), datepart(year, @10), datepart(month, @10), datepart(day, @10), 'month') as months, dbo.tsq_duration_total(0, 0, datediff(day, @12, @11), 0, 0, 0, 0, 0, 'day') as days"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
+            "2024-01-31",
             "2024-03-30",
             "2024-01-31",
+            "2024-03-30",
+            "2024-01-31",
+            "2024-03-30",
+            "2024-01-31",
+            "2024-03-30",
+            "2024-01-31",
+            "2024-03-30",
             "2024-01-31",
             "2024-03-30",
             "2024-01-31",

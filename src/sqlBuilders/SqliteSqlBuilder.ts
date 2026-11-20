@@ -1423,17 +1423,8 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     override _daysBetween(_context: SqlBuildContext, to: string, from: string): string {
         return 'cast(julianday(' + to + ') - julianday(' + from + ') as integer)'
     }
-    override _addMonthsToDate(_context: SqlBuildContext, date: string, months: string): string {
-        // The first of the month, the months added, and the day of the date or the last one of that month (SQLite's
-        // `+N months` moves Jan 31 to Mar 2)
-        const month = 'date(' + date + ", 'start of month', (" + months + ") || ' months')"
-        return 'date(' + month + ", (min(cast(strftime('%d', " + date + ") as integer), cast(strftime('%d', " + month + ", '+1 months', '-1 days') as integer)) - 1) || ' days')"
-    }
     override _addDaysToDate(_context: SqlBuildContext, date: string, days: string): string {
         return 'date(' + date + ', (' + days + ") || ' days')"
-    }
-    override _datePartOfDate(_context: SqlBuildContext, date: string, part: 'year' | 'month' | 'day'): string {
-        return "cast(strftime('" + (part === 'year' ? '%Y' : part === 'month' ? '%m' : '%d') + "', " + date + ') as integer)'
     }
     override _nanosecondsSinceMidnight(context: SqlBuildContext, valueSource: ToSql): string {
         // The date functions keep milliseconds

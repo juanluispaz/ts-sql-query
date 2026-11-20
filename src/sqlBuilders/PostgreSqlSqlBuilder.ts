@@ -4,7 +4,7 @@ import type { ToSql, SelectData, WithValuesData, OrderByEntry, FlatQueryColumns 
 import { flattenQueryColumns } from './SqlBuilder.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
-import { AbstractSqlBuilder, secondsOfNanosecondsText, type SelectColumnSql, type ZonedDurationPartsSql } from './AbstractSqlBuilder.js'
+import { AbstractSqlBuilder, secondsOfNanosecondsText, type PlainTemporalDifferenceSql, type SelectColumnSql, type ZonedDurationPartsSql } from './AbstractSqlBuilder.js'
 import type { ZonedDisambiguation, ZonedInterpretation } from '../utils/zonedOptions.js'
 import type { PlainTemporalRoundingMode } from '../utils/plainTemporalRounding.js'
 import type { DBColumn } from '../utils/Column.js'
@@ -767,6 +767,24 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     }
     override _zonedOfUtc(utc: string, _zone: string): string {
         return '(' + utc + ") at time zone 'UTC'"
+    }
+    /**
+     * The duration of a difference: in days of two dates and times without rounding, PostgreSQL's own difference of
+     * them, an interval of days and time with the sign of the difference, as Temporal balances it
+     */
+    override _durationOfDifference(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
+        if (d.fields === 'timestamp' && d.difference.largestUnit === 'day' && !this._differenceIsRounded(d)) {
+            const [from, to] = d.difference.negated ? [d.two, d.one] : [d.one, d.two]
+            return '(' + this._appendSqlParenthesis(to, context, false) + ' - ' + this._appendSqlParenthesis(from, context, false) + ')'
+        }
+        return super._durationOfDifference(context, d)
+    }
+    /** The whole difference of two times or dates and times in nanoseconds: the seconds of their difference, an interval, exact */
+    override _differenceTotal(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
+        if (d.fields === 'date') {
+            return super._differenceTotal(context, d)
+        }
+        return '(extract(epoch from ' + this._appendSqlParenthesis(d.two, context, false) + ' - ' + this._appendSqlParenthesis(d.one, context, false) + ') * 1000000000)'
     }
     /*
      * A wall clock taken to its zone: PostgreSQL's own `timestamp at time zone`, which takes the later instant of a wall

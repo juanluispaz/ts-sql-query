@@ -169,11 +169,19 @@ describe(ctx.label, () => {
                 days: january31.until(Temporal.PlainDate.from('2024-03-30')).total('days'),
             })
             .executeSelectOne())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_duration_total(cast(((cast(strftime('%Y', ?1) as integer) * 12 + cast(strftime('%m', ?1) as integer)) * 32 + cast(strftime('%d', ?1) as integer) - (cast(strftime('%Y', ?2) as integer) * 12 + cast(strftime('%m', ?2) as integer)) * 32 - cast(strftime('%d', ?2) as integer)) / 32 as integer), 0, cast(julianday(date(?1)) - julianday(date(date(date(?2), 'start of month', (cast(((cast(strftime('%Y', ?1) as integer) * 12 + cast(strftime('%m', ?1) as integer)) * 32 + cast(strftime('%d', ?1) as integer) - (cast(strftime('%Y', ?2) as integer) * 12 + cast(strftime('%m', ?2) as integer)) * 32 - cast(strftime('%d', ?2) as integer)) / 32 as integer)) || ' months'), (min(cast(strftime('%d', date(?2)) as integer), cast(strftime('%d', date(date(?2), 'start of month', (cast(((cast(strftime('%Y', ?1) as integer) * 12 + cast(strftime('%m', ?1) as integer)) * 32 + cast(strftime('%d', ?1) as integer) - (cast(strftime('%Y', ?2) as integer) * 12 + cast(strftime('%m', ?2) as integer)) * 32 - cast(strftime('%d', ?2) as integer)) / 32 as integer)) || ' months'), '+1 months', '-1 days') as integer)) - 1) || ' days')) as integer), 0, 0, cast(strftime('%Y', ?3) as integer), cast(strftime('%m', ?3) as integer), cast(strftime('%d', ?3) as integer), 'month') as months, tsq_duration_total(0, 0, cast(julianday(date(?4)) - julianday(date(?5)) as integer), 0, 0, 0, 0, 0, 'day') as days"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_duration_total(tsq_duration_part(tsq_duration_round(cast(strftime('%Y', ?1) as integer), cast(strftime('%m', ?1) as integer), cast(strftime('%d', ?1) as integer), 0, cast(strftime('%Y', ?2) as integer), cast(strftime('%m', ?2) as integer), cast(strftime('%d', ?2) as integer), 0, 'month', 'day', 1, 'trunc', 1), 'M'), tsq_duration_part(tsq_duration_round(cast(strftime('%Y', ?3) as integer), cast(strftime('%m', ?3) as integer), cast(strftime('%d', ?3) as integer), 0, cast(strftime('%Y', ?4) as integer), cast(strftime('%m', ?4) as integer), cast(strftime('%d', ?4) as integer), 0, 'month', 'day', 1, 'trunc', 1), 'weeks'), tsq_duration_part(tsq_duration_round(cast(strftime('%Y', ?5) as integer), cast(strftime('%m', ?5) as integer), cast(strftime('%d', ?5) as integer), 0, cast(strftime('%Y', ?6) as integer), cast(strftime('%m', ?6) as integer), cast(strftime('%d', ?6) as integer), 0, 'month', 'day', 1, 'trunc', 1), 'days'), tsq_duration_part(tsq_duration_round(cast(strftime('%Y', ?7) as integer), cast(strftime('%m', ?7) as integer), cast(strftime('%d', ?7) as integer), 0, cast(strftime('%Y', ?8) as integer), cast(strftime('%m', ?8) as integer), cast(strftime('%d', ?8) as integer), 0, 'month', 'day', 1, 'trunc', 1), 'S'), tsq_duration_part(tsq_duration_round(cast(strftime('%Y', ?9) as integer), cast(strftime('%m', ?9) as integer), cast(strftime('%d', ?9) as integer), 0, cast(strftime('%Y', ?10) as integer), cast(strftime('%m', ?10) as integer), cast(strftime('%d', ?10) as integer), 0, 'month', 'day', 1, 'trunc', 1), 'N'), cast(strftime('%Y', ?11) as integer), cast(strftime('%m', ?11) as integer), cast(strftime('%d', ?11) as integer), 'month') as months, tsq_duration_total(0, 0, cast(julianday(date(?12)) - julianday(date(?13)) as integer), 0, 0, 0, 0, 0, 'day') as days"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
+            "2024-01-31",
             "2024-03-30",
             "2024-01-31",
+            "2024-03-30",
+            "2024-01-31",
+            "2024-03-30",
+            "2024-01-31",
+            "2024-03-30",
+            "2024-01-31",
+            "2024-03-30",
             "2024-01-31",
             "2024-03-30",
             "2024-01-31",

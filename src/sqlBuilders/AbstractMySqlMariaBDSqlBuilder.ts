@@ -1085,6 +1085,13 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     override _durationOfDifference(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
         return this._durationTextOfDifference(context, d)
     }
+    /** The whole difference of two dates and times in nanoseconds: their microseconds apart, as timestampdiff counts them */
+    override _differenceTotal(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
+        if (d.fields !== 'timestamp') {
+            return super._differenceTotal(context, d)
+        }
+        return '(cast(timestampdiff(microsecond, ' + this._appendSql(d.one, context, false) + ', ' + this._appendSql(d.two, context, false) + ') as decimal(65)) * 1000)'
+    }
     override _temporalOperand(operand: ToSql): ToSql {
         // The parameters are positional: a const is a parameter each time it is written
         return operand
@@ -1099,14 +1106,8 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     override _daysBetween(_context: SqlBuildContext, to: string, from: string): string {
         return 'datediff(' + to + ', ' + from + ')'
     }
-    override _addMonthsToDate(_context: SqlBuildContext, date: string, months: string): string {
-        return 'date_add(' + date + ', interval ' + months + ' month)'
-    }
     override _addDaysToDate(_context: SqlBuildContext, date: string, days: string): string {
         return 'date_add(' + date + ', interval ' + days + ' day)'
-    }
-    override _datePartOfDate(_context: SqlBuildContext, date: string, part: 'year' | 'month' | 'day'): string {
-        return 'cast(' + part + '(' + date + ') as signed)'
     }
     override _nanosecondsSinceMidnight(context: SqlBuildContext, valueSource: ToSql): string {
         // floor: MariaDB's time_to_sec keeps the fraction of the second, MySQL's drops it. time_to_sec takes the time

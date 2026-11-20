@@ -1240,14 +1240,8 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _daysBetween(_context: SqlBuildContext, to: string, from: string): string {
         return 'datediff(day, ' + from + ', ' + to + ')'
     }
-    override _addMonthsToDate(_context: SqlBuildContext, date: string, months: string): string {
-        return 'dateadd(month, ' + months + ', ' + date + ')'
-    }
     override _addDaysToDate(_context: SqlBuildContext, date: string, days: string): string {
         return 'dateadd(day, ' + days + ', ' + date + ')'
-    }
-    override _datePartOfDate(_context: SqlBuildContext, date: string, part: 'year' | 'month' | 'day'): string {
-        return 'datepart(' + part + ', ' + date + ')'
     }
     override _nanosecondsSinceMidnight(context: SqlBuildContext, valueSource: ToSql): string {
         return "(cast(datediff(second, cast('00:00' as time), cast(" + this._appendSql(valueSource, context, false) + ' as time)) as bigint) * 1000000000 + datepart(nanosecond, ' + this._appendSql(valueSource, context, false) + '))'

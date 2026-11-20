@@ -311,7 +311,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as version, make_interval(hours => cast(div(-(extract(epoch from published_at - deployed_at) * 1000000000), 3600000000000) as integer), secs => -(extract(epoch from published_at - deployed_at) * 1000000000) % 3600000000000 / 1000000000.0) as "afterPublishing", date_bin(interval '1 hours', deployed_at, date_trunc('day', deployed_at)) as hour, date_bin(interval '1 hours', deployed_at + interval '3599999999 microseconds', date_trunc('day', deployed_at)) + $1::interval as "reviewBy" from project_release where deployed_at is not null order by version"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as version, make_interval(hours => cast(div(-(extract(epoch from published_at - deployed_at) * 1000000000), 3600000000000) as integer), secs => -(extract(epoch from published_at - deployed_at) * 1000000000) % 3600000000000 / 1000000000.0) as "afterPublishing", date_bin(interval '1 hours', deployed_at, date_trunc('day', deployed_at)) as hour, date_bin(interval '1 hours', deployed_at + interval '1 hours' - interval '1 microsecond', date_trunc('day', deployed_at)) + $1::interval as "reviewBy" from project_release where deployed_at is not null order by version"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             Duration {},

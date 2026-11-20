@@ -830,19 +830,19 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         const half = microseconds / 2n
         switch (rounding.mode) {
             case 'trunc':
-                return pgBin(stride, timestamp, 0n, origin)
+                return pgBin(stride, timestamp, '', origin)
             case 'ceil':
-                return pgBin(stride, timestamp, microseconds - 1n, origin)
+                return pgBin(stride, timestamp, stride + " - interval '1 microsecond'", origin)
             case 'halfTrunc':
-                return pgBin(stride, timestamp, microseconds - half - 1n, origin)
+                return pgBin(stride, timestamp, microseconds - half === 1n ? '' : pgIntervalOfMicroseconds(microseconds - half) + " - interval '1 microsecond'", origin)
             case 'halfEven':
                 if (microseconds % 2n === 0n) {
                     // Exactly half way, the even bin: the bin of twice the step of the value moved half a step
-                    return '(case when ' + timestamp + ' - ' + pgBin(stride, timestamp, 0n, origin) + ' = ' + pgIntervalOfMicroseconds(half) + ' then ' + pgBin(pgIntervalOfMicroseconds(microseconds * 2n), timestamp, half, origin) + ' else ' + pgBin(stride, timestamp, half, origin) + ' end)'
+                    return '(case when ' + timestamp + ' - ' + pgBin(stride, timestamp, '', origin) + ' = ' + pgIntervalOfMicroseconds(half) + ' then ' + pgBin(pgIntervalOfMicroseconds(microseconds * 2n), timestamp, pgIntervalOfMicroseconds(half), origin) + ' else ' + pgBin(stride, timestamp, pgIntervalOfMicroseconds(half), origin) + ' end)'
                 }
-                return pgBin(stride, timestamp, half, origin)
+                return pgBin(stride, timestamp, pgIntervalOfMicroseconds(half), origin)
             default:
-                return pgBin(stride, timestamp, half, origin)
+                return pgBin(stride, timestamp, pgIntervalOfMicroseconds(half), origin)
         }
     }
     /*
@@ -1152,6 +1152,6 @@ function pgIntervalOfMicroseconds(microseconds: bigint): string {
 }
 
 /** The bin of the stride from the origin of a timestamp moved forward by a number of microseconds */
-function pgBin(stride: string, timestamp: string, moved: bigint, origin: string): string {
-    return 'date_bin(' + stride + ', ' + timestamp + (moved === 0n ? '' : ' + ' + pgIntervalOfMicroseconds(moved)) + ', ' + origin + ')'
+function pgBin(stride: string, timestamp: string, moved: string, origin: string): string {
+    return 'date_bin(' + stride + ', ' + timestamp + (moved === '' ? '' : ' + ' + moved) + ', ' + origin + ')'
 }

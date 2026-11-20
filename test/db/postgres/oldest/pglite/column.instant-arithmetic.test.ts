@@ -292,7 +292,7 @@ describe(ctx.label, () => {
                 day: ctx.conn.const(instant, 'instant').round({ smallestUnit: 'hour', roundingIncrement: 24 }),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date_bin(interval '1 minutes', $1, date_trunc('day', $1)) as trunc, date_bin(interval '1 minutes', $2 + interval '59999999 microseconds', date_trunc('day', $2)) as ceil, date_bin(interval '1 day', $3 + interval '12 hours', date_trunc('day', $3)) as day"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date_bin(interval '1 minutes', $1, date_trunc('day', $1)) as trunc, date_bin(interval '1 minutes', $2 + interval '1 minutes' - interval '1 microsecond', date_trunc('day', $2)) as ceil, date_bin(interval '1 day', $3 + interval '12 hours', date_trunc('day', $3)) as day"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
             "1969-12-31T23:59:30.5Z",

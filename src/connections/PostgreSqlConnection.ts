@@ -3,7 +3,8 @@ import { argumentNumber, nativeNameFor, nativeTypeParts } from '../utils/sqlData
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import { PostgreSqlSqlBuilder, postgreSqlZonedValueSql } from '../sqlBuilders/PostgreSqlSqlBuilder.js'
 import type { IntervalSqlDataTypeFields, SqlDataType, SqlDataTypeNative, TypeAdapterProjectionContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
-import { __isInstantClass, __isLocalDateTimeClass, __isLocalTimeClass } from '../typeSystem/dataTypeQuestions.js'
+import { __isInstantClass, __isLocalDateTimeClass, __isLocalTimeClass, __isZonedDateTimeClass } from '../typeSystem/dataTypeQuestions.js'
+import { TsSqlProcessingError } from '../TsSqlError.js'
 import { AbstractAdvancedConnection } from './AbstractAdvancedConnection.js'
 import type { AggregatedArrayColumns, SourceOfAggregatedArray, TransactionIsolationLevel } from './AbstractConnection.js'
 import type { ResultObjectValuesForAggregatedArray } from '../complexProjections/resultWithOptionalsAsUndefined.js'
@@ -80,6 +81,16 @@ export abstract class PostgreSqlConnection<NAME extends string> extends Abstract
      * the JSON of an aggregated array
      */
     protected override transformProjection(sql: string, context: TypeAdapterProjectionContext): string {
+        if (__isZonedDateTimeClass(context.requestedType)) {
+            // A zoned date and time leaves the database as a text of its instant and its zone, which the SQL builder writes
+            // with the zone the query knows (it compares as equal for the same instant and zone); inside the JSON of an
+            // aggregated array its zone isn't known
+            if (context.output === 'aggregatedArrayValue') {
+                throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_QUERY' }, 'PostgreSQL keeps no time zone with a value: a zoned date and time can\'t be in an aggregated array')
+            }
+            context.comparison = 'equality'
+            return sql
+        }
         if (this.isDatabaseOutsideUtc()) {
             const zoned = postgreSqlZonedValueSql(sql, context.requestedType, this.localTimeReferenceDate)
             if (zoned) {

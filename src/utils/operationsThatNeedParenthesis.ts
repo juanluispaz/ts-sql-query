@@ -50,6 +50,15 @@ export const operationsThatNeedParenthesis: OperationsThatNeedParenthesis = {
     _instantSubtractDuration: true,
     _instantFromEpochMilliseconds: true,
     _instantFromEpochNanoseconds: true,
+    // A zoned date and time computed on its wall clock in UTC: `(<utc>) at time zone 'UTC'`, which binds tighter than
+    // the operators it is embedded in only by its left
+    _plainDateTimeToZoned: true,
+    _zonedOfWallClockIn: true,
+    _zonedAddDuration: true,
+    _zonedSubtractDuration: true,
+    _zonedAddDurationRejecting: true,
+    _zonedSubtractDurationRejecting: true,
+    _zonedRoundToDay: true,
     // `<x> collate <name>` binds looser than the operators it is embedded in, so it needs wrapping when used as an
     // operand (`(x collate name) = …`). The receiver's own parenthesis is handled by `_appendSqlParenthesis` inside
     // `_collate`.

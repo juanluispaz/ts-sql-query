@@ -4,7 +4,7 @@ import type { ToSql, SelectData, WithValuesData, OrderByEntry, FlatQueryColumns 
 import { flattenQueryColumns } from './SqlBuilder.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
-import { AbstractSqlBuilder, type SelectColumnSql } from './AbstractSqlBuilder.js'
+import { AbstractSqlBuilder, type SelectColumnSql, type ZonedDurationPartsSql } from './AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import { __columnPathsOf } from '../utils/columnPaths.js'
 import { __getColumnOfObject } from '../utils/Column.js'
@@ -14,7 +14,14 @@ import { postgreSqlParamType } from '../utils/postgreSql/postgreSqlParamTypes.js
 import { isPostgreSqlReservedWord } from '../utils/postgreSql/postgreSqlReservedWords.js'
 import type { AnyValueSource, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
 import { __isBooleanValueSource } from '../typeSystem/valueSource.js'
-import { __isColumn, __asDBColumnValueSource, __asNodeValueSource, isValueSource } from '../typeSystem/valueSourceFactory.js'
+import { __isColumn, __isConst, __asDBColumnValueSource, __asNodeValueSource, isValueSource } from '../typeSystem/valueSourceFactory.js'
+import { __isZonedDateTimeClass } from '../typeSystem/dataTypeQuestions.js'
+import { noopValueSourceNode } from '../nodes/operations.js'
+import { isZonedDateTimeValue } from '../utils/instantValues.js'
+import { __temporal } from '../typeSystem/temporal.js'
+import { TsSqlProcessingError } from '../TsSqlError.js'
+import { durationOfParts, isZeroDuration } from '../utils/durationValues.js'
+import { plainTemporalDifferenceOf } from '../utils/plainTemporalDifference.js'
 import { __classOf, __adaptedTypeClassOf } from '../nodes/adaptedTypeClass.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
 import { __arithmeticOperandClassOf } from '../typeSystem/dataTypeClasses.js'
@@ -42,6 +49,9 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         // PostgreSQL 18+: a column reference on a `.oldValues()` table-or-view is
         // emitted as `old.col` inside RETURNING. Bare references to the updated
         // table emit unqualified column names, which is the post-update value.
+        if (__isZonedDateTimeClass(__classOf(__asNodeValueSource(column as unknown as AnyValueSource)))) {
+            return this._pgZonedColumnUnsupported()
+        }
         if (this._connectionConfiguration.compatibilityVersion >= 18_000_000) {
             const nodeColumn = __asDBColumnValueSource(column)
             const tableOrView = nodeColumn.__tableOrView
@@ -649,6 +659,242 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     // The date-part family (`_epochMilliseconds` / `_monthFromZero` / `_dayOfWeekFromSunday` / …) lives in
     // AbstractSqlBuilder, written in this dialect's form, and PostgreSQL reaches it
     // unmodified — do not re-add overrides here; change the base instead.
+    /*
+     * A zoned date and time: PostgreSQL keeps no zone with a value, so a zoned date and time is computed in the query,
+     * never a column: its SQL is its instant, a timestamptz, which compares, orders and groups it as Temporal's compare;
+     * its zone is known when the query is built, from the operation that computed it (_pgZoneOf)
+     */
+    override _supportZonedDateTimes(): boolean {
+        return true
+    }
+    /** A column can't be a zonedDateTime: PostgreSQL would keep its instant without its zone */
+    override _appendColumnName(column: DBColumn, context: SqlBuildContext): string {
+        if (__isZonedDateTimeClass(__classOf(__asNodeValueSource(column as unknown as AnyValueSource)))) {
+            return this._pgZonedColumnUnsupported()
+        }
+        return super._appendColumnName(column, context)
+    }
+    _pgZonedColumnUnsupported(): never {
+        throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_QUERY' }, 'PostgreSQL keeps no time zone with a value: a column can\'t be a zonedDateTime; keep its instant in a timestamptz and its zone in a text, and compute it with toZonedDateTimeISO')
+    }
+    /**
+     * The zone of a zoned date and time, as `at time zone` takes it (see _zonedTimeZoneSql): the one of the operation
+     * that computed it (toZonedDateTimeISO, toZonedDateTime, withTimeZone), of a value, or of the zoned date and time
+     * its arithmetic starts from. Any other one (a column, valueWhenNull, a case, an aggregate, a column of a subquery)
+     * has no zone the query knows
+     */
+    _pgZoneOf(context: SqlBuildContext, zoned: ToSql): string {
+        let node: any = isValueSource(zoned) ? __asNodeValueSource(zoned as unknown as AnyValueSource) : undefined
+        while (node) {
+            if (__isConst(node)) {
+                const value = (node as unknown as { __value: unknown }).__value
+                if (isZonedDateTimeValue(value)) {
+                    return this._zonedTimeZoneSql(context, value.timeZoneId)
+                }
+                break
+            }
+            switch (node.__operation) {
+                case '_instantToZoned':
+                case '_plainDateTimeToZoned':
+                    return this._zonedTimeZoneSql(context, node.__value)
+                case '_zonedOfWallClockIn':
+                    node = isValueSource(node.__value) ? __asNodeValueSource(node.__value) : undefined
+                    continue
+                case '_zonedAddDuration':
+                case '_zonedSubtractDuration':
+                case '_zonedAddDurationRejecting':
+                case '_zonedSubtractDurationRejecting':
+                case '_zonedRoundToDay':
+                case '_zonedOperandReference':
+                    node = node.__valueSource
+                    continue
+            }
+            if (node.__node === noopValueSourceNode) {
+                node = node.__valueSource
+                continue
+            }
+            break
+        }
+        throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_QUERY' }, 'PostgreSQL keeps no time zone with a value: the zone of a zoned date and time is known only where the query computes it, with toZonedDateTimeISO, toZonedDateTime, withTimeZone, a value or its arithmetic')
+    }
+    /**
+     * A time zone where `at time zone` takes it: the name Temporal checked as Temporal writes it, as a text; an offset
+     * as an interval (PostgreSQL reads a text like '+05:30' as a POSIX zone, west of UTC); a string of the query as it
+     * is (see _pgWallAt)
+     */
+    override _zonedTimeZoneSql(context: SqlBuildContext, value: unknown): string {
+        const zone = __isConst(value) ? (value as unknown as { __value: unknown }).__value : value
+        if (typeof zone === 'string') {
+            const id = new (__temporal('zonedDateTime').ZonedDateTime)(0n, zone).timeZoneId
+            return (id.startsWith('+') || id.startsWith('-') ? "interval '" : "'") + id.replace(/'/g, "''") + "'"
+        }
+        return this._appendSqlParenthesis(value as ToSql, context, false)
+    }
+    /** The text of a zone (see _zonedTimeZoneSql): its name, its offset, or the string of the query */
+    _pgZoneText(zone: string): string {
+        return zone.startsWith("interval '") ? zone.slice('interval '.length) : zone
+    }
+    /**
+     * The wall clock of a timestamptz in a zone (see _zonedTimeZoneSql). A string of the query is an offset when it
+     * starts with its sign, which PostgreSQL reads as a POSIX zone, west of UTC: its sign is inverted
+     */
+    _pgWallAt(timestamptz: string, zone: string): string {
+        if (zone.startsWith("'") || zone.startsWith("interval '")) {
+            return '(' + timestamptz + ' at time zone ' + zone + ')'
+        }
+        return '(' + timestamptz + ' at time zone (case when ' + zone + " ~ '^[+-]' then translate(" + zone + ", '+-', '-+') else " + zone + ' end))'
+    }
+    /**
+     * PostgreSQL pulls a subquery up into the query that uses it, writing its value again in each place it is used,
+     * unless it has an offset: without it a chain of operations would be planned with an exponential expression
+     */
+    override _zonedComputedOnceFence(): string {
+        return ' offset 0'
+    }
+    override _zonedZoneOf(context: SqlBuildContext, zoned: ToSql, _sql: string): string {
+        return this._pgZoneOf(context, zoned)
+    }
+    override _zonedUtcOf(sql: string): string {
+        return '(' + sql + " at time zone 'UTC')"
+    }
+    override _zonedWallOf(sql: string, zone: string): string {
+        return this._pgWallAt(sql, zone)
+    }
+    override _zonedWallOfUtc(utc: string, zone: string): string {
+        return this._pgWallAt('(' + utc + " at time zone 'UTC')", zone)
+    }
+    override _zonedOfUtc(utc: string, _zone: string): string {
+        return '(' + utc + ") at time zone 'UTC'"
+    }
+    override _zonedDayInterval(): string {
+        return "interval '1 day'"
+    }
+    override _zonedSecondsInterval(seconds: string): string {
+        return 'make_interval(secs => ' + seconds + ')'
+    }
+    override _zonedMidnightOf(wall: string, nextDay: boolean): string {
+        return "date_trunc('day', " + wall + ')' + (nextDay ? " + interval '1 day'" : '')
+    }
+    override _zonedHoursOf(interval: string): string {
+        return '(extract(epoch from ' + interval + ') / 3600)::float8'
+    }
+    /** A wall clock plus the months (the day kept in the month, as PostgreSQL adds them, or rejected) and the days of a duration */
+    override _zonedWallPlusDate(context: SqlBuildContext, wall: string, months: string | undefined, days: string | undefined, reject: boolean): string {
+        let added = wall + ' + make_interval(' + (months === undefined ? '' : 'months => ' + months + (days === undefined ? '' : ', ')) + (days === undefined ? '' : 'days => ' + days) + ')'
+        if (reject && months !== undefined) {
+            // The day of the value in the month reached, checked, minus the day of the value: no day
+            const monthIndex = '(extract(year from ' + wall + ')::integer * 12 + extract(month from ' + wall + ')::integer - 1 + ' + months + ')'
+            const checkedDay = this._validDayOrError(context, this._truncatedDivision(monthIndex, '12'), this._integerRemainder(monthIndex, '12') + ' + 1', 'extract(day from ' + wall + ')::integer')
+            added = this._shiftDays(context, added, '(' + checkedDay + ' - extract(day from ' + wall + ')::integer)', 'timestamp')
+        }
+        return '(' + added + ')'
+    }
+    /**
+     * The parts of a duration (multiplied by sign) a zoned date and time adds (see ZonedDurationPartsSql): an interval
+     * keeps its months, its days and its time apart, so 28 hours are a time, as in Temporal
+     */
+    override _zonedDurationParts(context: SqlBuildContext, value: unknown, sign: 1 | -1): ZonedDurationPartsSql | undefined {
+        const int = __registeredDataType('int')
+        if (!isValueSource(value)) {
+            const parts = this._constantDurationParts(value, __registeredDataType('zonedDateTime'), 'timestamp', sign)!
+            if (isZeroDuration(parts)) {
+                return undefined
+            }
+            return {
+                months: parts.months === 0 ? undefined : this._appendValue(parts.months, context, int, false),
+                days: parts.days === 0 ? undefined : this._appendValue(parts.days, context, int, false),
+                seconds: parts.seconds === 0 && parts.nanoseconds === 0 ? undefined : this._appendValue(durationOfParts({ months: 0, days: 0, seconds: parts.seconds, nanoseconds: parts.nanoseconds }, 'duration'), context, __registeredDataType('duration'), true),
+                hasDate: undefined,
+            }
+        }
+        const duration = __asNodeValueSource(value as AnyValueSource) as unknown as ToSql
+        const sql = this._isZonedOperandWrittenInPlace(duration) ? this._appendSqlParenthesis(duration, context, false) : 'tsq_z.d'
+        const negative = sign < 0 ? '-' : ''
+        if (this._isDurationKeptAsText(duration)) {
+            const months = this._durationPartFunctionName() + '(' + sql + ", 'M')::integer"
+            const days = this._durationPartFunctionName() + '(' + sql + ", 'D')::integer"
+            const seconds = 'make_interval(secs => ' + negative + this._durationPartFunctionName() + '(' + sql + ", 'S') + " + negative + this._durationPartFunctionName() + '(' + sql + ", 'N') / 1000000000.0)"
+            return { months: negative + months, days: negative + days, seconds, hasDate: months + ' <> 0 or ' + days + ' <> 0' }
+        }
+        const months = '(extract(year from ' + sql + ') * 12 + extract(month from ' + sql + '))::integer'
+        const days = 'extract(day from ' + sql + ')::integer'
+        return { months: negative + months, days: negative + days, seconds: negative + '(' + sql + " - date_trunc('day', " + sql + '))', hasDate: months + ' <> 0 or ' + days + ' <> 0' }
+    }
+    /** The SQL of a zoned date and time, its instant: a value with its type (a timestamptz) */
+    _pgZonedSql(context: SqlBuildContext, valueSource: ToSql): string {
+        return this._appendSqlParenthesis(valueSource, context, this._isConstOperand(valueSource))
+    }
+    /** A zoned date and time is its instant, a timestamptz */
+    override _zonedToInstant(context: SqlBuildContext, valueSource: ToSql): string {
+        return this._pgZonedSql(context, valueSource)
+    }
+    override _zonedToPlainDateTime(context: SqlBuildContext, valueSource: ToSql): string {
+        return this._pgWallAt(this._pgZonedSql(context, valueSource), this._pgZoneOf(context, valueSource))
+    }
+    /** The name of its zone: a name given, as Temporal writes it; a string of the query, as it is */
+    override _zonedTimeZoneId(context: SqlBuildContext, valueSource: ToSql): string {
+        return this._pgZoneText(this._pgZoneOf(context, valueSource))
+    }
+    /** Its offset at its instant, as Temporal writes it: `+01:00`, with its seconds when it has them (`-00:14:44`) */
+    override _zonedOffset(context: SqlBuildContext, valueSource: ToSql): string {
+        const zoned = this._pgZonedSql(context, valueSource)
+        const zone = this._pgZoneOf(context, valueSource)
+        let result = "(select case when o.s < 0 then '-' else '+' end || lpad((abs(o.s) / 3600)::text, 2, '0') || ':' || lpad((abs(o.s) / 60 % 60)::text, 2, '0')"
+        result += " || case when abs(o.s) % 60 <> 0 then ':' || lpad((abs(o.s) % 60)::text, 2, '0') else '' end"
+        return result + ' from (select extract(epoch from ' + this._pgWallAt(zoned, zone) + ' - ' + this._zonedUtcOf(zoned) + ')::integer as s) o)'
+    }
+    override _zonedOffsetNanoseconds(context: SqlBuildContext, valueSource: ToSql): string {
+        const zoned = this._pgZonedSql(context, valueSource)
+        return '(extract(epoch from ' + this._pgWallAt(zoned, this._pgZoneOf(context, valueSource)) + ' - ' + this._zonedUtcOf(zoned) + ') * 1000000000)::bigint'
+    }
+    /** The instant in a zone: the instant itself, a timestamptz; the zone is the one of the query (see _pgZoneOf) */
+    override _instantToZoned(context: SqlBuildContext, valueSource: ToSql, _value: any, _typeClass: DataTypeClass): string {
+        const sql = this._appendSql(valueSource, context, this._isConstOperand(valueSource))
+        // A parameter with its type, and the instant of a zoned date and time, are already a timestamptz
+        if (/^\$\d+::timestamptz$/.test(sql) || (isValueSource(valueSource) && (__asNodeValueSource(valueSource as unknown as AnyValueSource) as { __operation?: unknown }).__operation === '_zonedToInstant')) {
+            return sql
+        }
+        return (/^(?:[\w."]+|\$\d+)$/.test(sql) ? sql : '(' + sql + ')') + '::timestamptz'
+    }
+    override _zonedInUtc(context: SqlBuildContext, valueSource: ToSql): string {
+        return this._zonedUtcOf(this._pgZonedSql(context, valueSource))
+    }
+    /**
+     * The duration from one zoned date and time to another in days or larger units, as Temporal's `until` (or `since`),
+     * with the function of the library tsq_zoned_until, which receives the instant and the zone of each one
+     */
+    override _zonedUntil(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, _typeClass: DataTypeClass): string {
+        return this._pgZonedDifference(context, valueSource, value, value2, false)
+    }
+    override _zonedSince(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, _typeClass: DataTypeClass): string {
+        return this._pgZonedDifference(context, valueSource, value, value2, true)
+    }
+    _pgZonedDifference(context: SqlBuildContext, valueSource: ToSql, other: ToSql, options: unknown, since: boolean): string {
+        const difference = plainTemporalDifferenceOf(options, 'timestamp', since, 'hour')
+        if (!difference) {
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value: options, typeName: 'duration' }, 'Invalid options of ' + (since ? 'since' : 'until') + ': ' + JSON.stringify(options))
+        }
+        let result = 'tsq_zoned_until(' + this._pgZonedSql(context, valueSource) + ', ' + this._pgZoneText(this._pgZoneOf(context, valueSource)) + ', '
+        result += this._pgZonedSql(context, other) + ', ' + this._pgZoneText(this._pgZoneOf(context, other)) + ', '
+        return result + "'" + difference.largestUnit + "', '" + difference.smallestUnit + "', " + difference.increment + ", '" + difference.mode + "', " + (difference.negated ? '-1' : '1') + ')'
+    }
+    /**
+     * A zoned date and time leaves the database as the text Temporal reads: its instant in UTC with all its digits and
+     * its era, and its zone in brackets (null for a null instant: PostgreSQL concatenates a null as a null)
+     */
+    override _appendResultColumnProjection(value: AnyValueSource, sql: string, context: SqlBuildContext): string {
+        if (isValueSource(value) && __isZonedDateTimeClass(__classOf(__asNodeValueSource(value)))) {
+            if (sql === '') {
+                // Only whether the column is converted is asked
+                return 'zonedDateTime'
+            }
+            const zone = this._pgZoneText(this._pgZoneOf(context, value as unknown as ToSql))
+            const instant = /^(?:[\w."]+|\$\d+(?:::timestamptz)?)$/.test(sql) ? sql : '(' + sql + ')'
+            const bracketed = zone.startsWith("'") ? "'[" + zone.slice(1, -1) + "]'" : "'[' || " + zone + " || ']'"
+            return "to_char(" + instant + " at time zone 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\" BC') || " + bracketed
+        }
+        return super._appendResultColumnProjection(value, sql, context)
+    }
     override _supportDatabaseOutsideUtc(): boolean {
         return true
     }
@@ -684,8 +930,8 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
  * Undefined for any other type.
  */
 export function postgreSqlZonedValueSql(sql: string, typeClass: DataTypeClass, localTimeReferenceDate: string | undefined): string | undefined {
-    if (isPlainTemporalClass(typeClass)) {
-        // A Temporal value without zone is a wall clock: nothing completes it
+    if (isPlainTemporalClass(typeClass) || __isZonedDateTimeClass(typeClass)) {
+        // A Temporal value without zone is a wall clock: nothing completes it; a zoned date and time is a timestamptz
         return undefined
     }
     const fields = __temporalFieldsOf(typeClass)

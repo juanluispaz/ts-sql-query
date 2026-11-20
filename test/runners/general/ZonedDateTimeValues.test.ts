@@ -1,10 +1,12 @@
 // Zoned dates and times (Temporal.ZonedDateTime) as the library takes them: the text it reads of one (its instant and
 // its zone in brackets, as Temporal writes it or as Oracle gives it, the zone in capitals), the zone of a value checked
-// as Temporal checks it, the options of toZonedDateTime and of the arithmetic of a zoned date and time, and the
-// databases without zones, where a query with one fails when it is built and nothing is sent.
+// as Temporal checks it, the options of toZonedDateTime and of the arithmetic of a zoned date and time, PostgreSQL, which
+// computes one in the query and knows its zone only from the operation that computed it, and the databases without
+// zones, where a query with one fails when it is built and nothing is sent.
 
 import { describe, expect, test } from '../../lib/testRunner.js'
 import { PostgreSqlConnection } from '../../../src/connections/PostgreSqlConnection.js'
+import { MySqlConnection } from '../../../src/connections/MySqlConnection.js'
 import { OracleConnection } from '../../../src/connections/OracleConnection.js'
 import { MockQueryRunner } from '../../../src/queryRunners/MockQueryRunner.js'
 import { Table } from '../../../src/exports/v2/index.js'
@@ -19,9 +21,17 @@ const runner = () => new MockQueryRunner(() => {
 })
 
 class PostgreSqlDBConnection extends PostgreSqlConnection<'PostgreSqlDBConnection'> {}
+class MySqlDBConnection extends MySqlConnection<'MySqlDBConnection'> {}
 class OracleDBConnection extends OracleConnection<'OracleDBConnection'> {}
 
 const tPostgreSqlEvent = new class TPostgreSqlEvent extends Table<PostgreSqlDBConnection, 'TPostgreSqlEvent'> {
+    id = this.primaryKey('id', 'int')
+    at = this.column('at', 'instant')
+    zone = this.optionalColumn('zone', 'string')
+    zoned = this.optionalColumn('zoned', 'zonedDateTime')
+    constructor() { super('event') }
+}()
+const tMySqlEvent = new class TMySqlEvent extends Table<MySqlDBConnection, 'TMySqlEvent'> {
     id = this.primaryKey('id', 'int')
     at = this.column('at', 'instant')
     constructor() { super('event') }
@@ -107,11 +117,36 @@ describe('ZonedDateTimeValues', () => {
         expect(sql).toBe("select id as \"result\" from event where at = (from_tz(to_timestamp(:0, 'YYYY-MM-DD HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN'), '+00:00') at time zone 'Europe/Madrid')")
     })
 
-    test('a-database-without-zones-fails-the-query-when-it-is-built', async () => {
-        // PostgreSQL keeps no zone with each value: nothing is sent, for a value source and for a value
-        const connection = new PostgreSqlDBConnection(runner())
+    test('postgresql-knows-the-zone-of-a-zoned-date-and-time-only-where-the-query-computes-it', async () => {
+        // A zoned date and time sent is its instant; a column can't be one, and a value whose zone the query doesn't know
+        // (valueWhenNull of two, which may have different zones) can't be read: nothing is sent
+        let sql = ''
+        let params: unknown[] = []
+        const connection = new PostgreSqlDBConnection(new MockQueryRunner((_type, query, sent) => {
+            queries++
+            sql = query
+            params = sent
+            return []
+        }))
+        const madrid = Temporal.ZonedDateTime.from('2024-01-14T10:00:00.123456+01:00[Europe/Madrid]')
+        await connection.selectFromNoTable().select({ at: connection.const(madrid, 'zonedDateTime') }).executeSelectOne().catch(() => undefined)
+        expect([sql, params.map(String)]).toEqual(["select to_char($1::timestamptz at time zone 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\" BC') || '[Europe/Madrid]' as at", [madrid.toString()]])
         queries = 0
-        expect(await reasonOf(() => connection.selectFrom(tPostgreSqlEvent).select({ at: tPostgreSqlEvent.at.toZonedDateTimeISO('Europe/Madrid') }).executeSelectMany())).toBe('UNSUPPORTED_QUERY')
+        const zoned = tPostgreSqlEvent.at.toZonedDateTimeISO(tPostgreSqlEvent.zone)
+        expect(await Promise.all([
+            reasonOf(() => connection.selectFrom(tPostgreSqlEvent).select({ zoned: tPostgreSqlEvent.zoned }).executeSelectMany()),
+            reasonOf(() => connection.selectFrom(tPostgreSqlEvent).select({ zoned: zoned.valueWhenNull(tPostgreSqlEvent.at.toZonedDateTimeISO('UTC')) }).executeSelectMany()),
+            reasonOf(() => connection.selectFrom(tPostgreSqlEvent).select({ hour: zoned.valueWhenNull(tPostgreSqlEvent.at.toZonedDateTimeISO('UTC')).hour() }).executeSelectMany()),
+            reasonOf(() => connection.selectFrom(tPostgreSqlEvent).select({ zoneName: zoned.timeZoneId(), instant: zoned.valueWhenNull(madrid).toInstant() }).executeSelectMany()),
+        ])).toEqual(['UNSUPPORTED_QUERY', 'UNSUPPORTED_QUERY', 'UNSUPPORTED_QUERY', 'no error'])
+        expect(queries).toBe(1)
+    })
+
+    test('a-database-without-zones-fails-the-query-when-it-is-built', async () => {
+        // MySQL computes with no zones of IANA: nothing is sent, for a value source and for a value
+        const connection = new MySqlDBConnection(runner())
+        queries = 0
+        expect(await reasonOf(() => connection.selectFrom(tMySqlEvent).select({ at: tMySqlEvent.at.toZonedDateTimeISO('Europe/Madrid') }).executeSelectMany())).toBe('UNSUPPORTED_QUERY')
         expect(await reasonOf(() => connection.selectFromNoTable().select({ at: connection.const(Temporal.ZonedDateTime.from('2024-01-14T10:00:00+01:00[Europe/Madrid]'), 'zonedDateTime') }).executeSelectOne())).toBe('UNSUPPORTED_QUERY')
         expect(queries).toBe(0)
     })

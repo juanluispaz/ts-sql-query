@@ -45,7 +45,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // NOT-SUPPORTED: this database keeps no time zone with each value: a zonedDateTime is only kept and computed on Oracle
+    // NOT-SUPPORTED: this database computes no time zone with the rules of IANA: a zonedDateTime is kept on Oracle, and computed on Oracle and PostgreSQL
     /*
     test('a-zoned-date-and-time-kept-and-read', async () => {
         // A zoned date and time sent keeps its instant and its zone; one read is the one kept
@@ -67,7 +67,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: this database keeps no time zone with each value: a zonedDateTime is only kept and computed on Oracle
+    // NOT-SUPPORTED: this database computes no time zone with the rules of IANA: a zonedDateTime is kept on Oracle, and computed on Oracle and PostgreSQL
     /*
     test('the-parts-of-a-zoned-date-and-time', async () => {
         ctx.mockNext(zoned.map((value, i) => ({
@@ -110,7 +110,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: this database keeps no time zone with each value: a zonedDateTime is only kept and computed on Oracle
+    // NOT-SUPPORTED: this database computes no time zone with the rules of IANA: a zonedDateTime is kept on Oracle, and computed on Oracle and PostgreSQL
     /*
     test('an-instant-in-a-zone', async () => {
         // The same instant in another zone, in the zone of a column (none in row 3), and an instant given in an offset zone
@@ -141,7 +141,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: this database keeps no time zone with each value: a zonedDateTime is only kept and computed on Oracle
+    // NOT-SUPPORTED: this database computes no time zone with the rules of IANA: a zonedDateTime is kept on Oracle, and computed on Oracle and PostgreSQL
     /*
     test('a-wall-clock-in-a-zone-with-each-disambiguation', async () => {
         // Row 1's wall clock is repeated in Madrid, row 2's skipped: compatible takes the earlier of a repeated one and
@@ -173,7 +173,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: this database keeps no time zone with each value: a zonedDateTime is only kept and computed on Oracle
+    // NOT-SUPPORTED: this database computes no time zone with the rules of IANA: a zonedDateTime is kept on Oracle, and computed on Oracle and PostgreSQL
     /*
     test('reject-fails-for-a-wall-clock-the-zone-repeats-or-skips', async () => {
         // As Temporal: row 1's wall clock is repeated in Madrid and row 2's skipped; row 3's is a wall clock of Madrid
@@ -190,7 +190,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: this database keeps no time zone with each value: a zonedDateTime is only kept and computed on Oracle
+    // NOT-SUPPORTED: this database computes no time zone with the rules of IANA: a zonedDateTime is kept on Oracle, and computed on Oracle and PostgreSQL
     /*
     test('zoned-date-and-times-compared-by-their-instant', async () => {
         // Compared and ordered by their instant, as Temporal's compare: row 2 in Tokyo is row 2 (Temporal's equals also
@@ -221,7 +221,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: this database keeps no time zone with each value: a zonedDateTime is only kept and computed on Oracle
+    // NOT-SUPPORTED: this database computes no time zone with the rules of IANA: a zonedDateTime is kept on Oracle, and computed on Oracle and PostgreSQL
     /*
     test('a-zoned-date-and-time-plus-a-duration', async () => {
         // Days are added to the wall clock in the zone: row 1 plus a day is 02:30 on the next day, an hour later in UTC,
@@ -250,7 +250,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: this database keeps no time zone with each value: a zonedDateTime is only kept and computed on Oracle
+    // NOT-SUPPORTED: this database computes no time zone with the rules of IANA: a zonedDateTime is kept on Oracle, and computed on Oracle and PostgreSQL
     /*
     test('a-zoned-date-and-time-with-other-fields-rounded-and-at-the-start-of-its-day', async () => {
         // Row 1 is in the first 02:30 of a day Madrid repeats, with 25 hours: with keeps its offset when the zone still
@@ -284,7 +284,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: this database keeps no time zone with each value: a zonedDateTime is only kept and computed on Oracle
+    // NOT-SUPPORTED: this database computes no time zone with the rules of IANA: a zonedDateTime is kept on Oracle, and computed on Oracle and PostgreSQL
     /*
     test('operations-on-a-computed-zoned-date-and-time', async () => {
         // A value computed from another one is computed once and named in the query; each operation is Temporal's
@@ -306,7 +306,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: this database keeps no time zone with each value: a zonedDateTime is only kept and computed on Oracle
+    // NOT-SUPPORTED: this database computes no time zone with the rules of IANA: a zonedDateTime is kept on Oracle, and computed on Oracle and PostgreSQL
     /*
     test('reject-fails-for-a-day-the-month-has-not-or-an-offset-the-zone-has-not', async () => {
         // As Temporal: row 1 is in October, a month later November has its day 27; February has no day 30; Madrid has
@@ -325,7 +325,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: this database keeps no time zone with each value: a zonedDateTime is only kept and computed on Oracle
+    // NOT-SUPPORTED: this database computes no time zone with the rules of IANA: a zonedDateTime is kept on Oracle, and computed on Oracle and PostgreSQL
     /*
     test('the-duration-between-two-zoned-dates-and-times', async () => {
         // In hours by default, the difference of their instants; in days, the days of the calendar in their zone: row 1
@@ -354,7 +354,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: this database keeps no time zone with each value: a zonedDateTime is only kept and computed on Oracle
+    // NOT-SUPPORTED: this database computes no time zone with the rules of IANA: a zonedDateTime is kept on Oracle, and computed on Oracle and PostgreSQL
     /*
     test('a-difference-in-days-needs-the-same-zone', async () => {
         // As Temporal, which rejects it: row 2 is in Kolkata, the other value in Madrid; in hours any two are compared

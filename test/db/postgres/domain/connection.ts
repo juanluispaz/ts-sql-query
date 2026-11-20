@@ -1237,6 +1237,17 @@ export const tInstantValue = new class TInstantValue extends Table<DBConnection,
     constructor() { super('instant_value') }
 }()
 
+// zoned_value: exact moments in a time zone (Temporal.ZonedDateTime), which PostgreSQL computes: the instant instantAt
+// in the zone valueZone (see zonedAt in the tests); wallAt a wall clock to take to a zone, zoneName the name of a zone
+export const tZonedValue = new class TZonedValue extends Table<DBConnection, 'TZonedValue'> {
+    id        = this.primaryKey('id', 'int')
+    instantAt = this.column('instant_at', 'instant')
+    valueZone = this.column('value_zone', 'string')
+    wallAt    = this.optionalColumn('wall_at', 'plainDateTime')
+    zoneName  = this.optionalColumn('zone_name', 'string')
+    constructor() { super('zoned_value') }
+}()
+
 // Time-tracking worklog: surfaces the date-only / time-only / nullable
 // bigint / nullable plain-boolean / optional-with-default / plain-enum
 // column kinds the original four tables don't expose.

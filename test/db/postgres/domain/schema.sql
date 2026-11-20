@@ -18,6 +18,7 @@ DROP TABLE IF EXISTS col_matrix CASCADE;
 DROP TABLE IF EXISTS temporal_precision CASCADE;
 DROP TABLE IF EXISTS duration_value CASCADE;
 DROP TABLE IF EXISTS instant_value CASCADE;
+DROP TABLE IF EXISTS zoned_value CASCADE;
 DROP TABLE IF EXISTS country CASCADE;
 DROP TABLE IF EXISTS issue CASCADE;
 DROP TABLE IF EXISTS project CASCADE;
@@ -418,6 +419,16 @@ CREATE TABLE instant_value (
     session_at TIMESTAMPTZ
 );
 
+-- zoned_value: exact moments in a time zone (Temporal.ZonedDateTime), which PostgreSQL computes: the instant instant_at
+-- in the zone value_zone; wall_at a wall clock to take to a zone, zone_name the name of a zone.
+CREATE TABLE zoned_value (
+    id INTEGER PRIMARY KEY,
+    instant_at TIMESTAMPTZ NOT NULL,
+    value_zone TEXT NOT NULL,
+    wall_at TIMESTAMP,
+    zone_name TEXT
+);
+
 -- View side of col_matrix — surfaces the same per-kind read marshalling through
 -- the View column / optionalColumn factories (vColMatrix).
 CREATE VIEW col_matrix_view AS
@@ -648,6 +659,225 @@ BEGIN
     RETURN make_interval(years => (years * negation)::integer, months => (months * negation)::integer, weeks => (weeks * negation)::integer, days => (days * negation)::integer, secs => t * negation / 1000000000.0);
 END
 $$;
+
+-- tsq_zoned_at: the wall clock in a zone (a name or an offset like '+05:30') of the instant of a wall clock in UTC, or
+-- with to_utc the instant (its wall clock in UTC) of a wall clock in the zone, as Temporal's 'compatible' disambiguates
+-- it; tsq_zoned_until: the duration from one zoned date and time to another (each one its instant and the name of its
+-- zone, the same one) as Temporal's until with a largest unit of days or larger ('day', 'week', 'month', 'year'),
+-- rounded to the smallest unit, increment and mode given, the functions of the library that count the days of the
+-- calendar in the zone, each one with its length there (23 or 25 hours where the zone changes its offset); since passes
+-- its mode negated and -1 to negate the result. Two zones that aren't the same are an error, as in Temporal.
+CREATE OR REPLACE FUNCTION tsq_zoned_at(t timestamp, zone text, to_utc boolean) RETURNS timestamp LANGUAGE plpgsql IMMUTABLE AS $$
+DECLARE
+    v_before timestamp;
+    v_after timestamp;
+BEGIN
+    IF NOT to_utc THEN
+        IF zone ~ '^[+-]' THEN
+            RETURN (t AT TIME ZONE 'UTC') AT TIME ZONE zone::interval;
+        END IF;
+        RETURN (t AT TIME ZONE 'UTC') AT TIME ZONE zone;
+    END IF;
+    v_before := t - (tsq_zoned_at(t - interval '1 day', zone, false) - (t - interval '1 day'));
+    v_after := t - (tsq_zoned_at(t + interval '1 day', zone, false) - (t + interval '1 day'));
+    IF tsq_zoned_at(v_before, zone, false) <> t AND tsq_zoned_at(v_after, zone, false) = t THEN
+        RETURN v_after;
+    END IF;
+    RETURN v_before;
+END $$;
+
+CREATE OR REPLACE FUNCTION tsq_zoned_until(one timestamptz, one_zone text, two timestamptz, two_zone text, largest_unit text, smallest_unit text, increment bigint, rounding_mode text, negation integer) RETURNS interval LANGUAGE plpgsql IMMUTABLE AS $$
+DECLARE
+    v_u1 timestamp;
+    v_u2 timestamp;
+    v_w1 timestamp;
+    v_w2 timestamp;
+    v_d1 date;
+    v_t1 interval;
+    v_sign integer;
+    v_years bigint := 0;
+    v_months bigint := 0;
+    v_weeks bigint := 0;
+    v_days bigint := 0;
+    v_t numeric := 0;
+    v_inter date;
+    v_correction integer;
+    v_found boolean := false;
+    v_m bigint;
+    v_r1 bigint;
+    v_start timestamp;
+    v_end timestamp;
+    v_nudged timestamp;
+    v_num numeric;
+    v_den numeric;
+    v_mode text;
+    v_rounded numeric;
+    v_step numeric;
+    v_beyond numeric;
+    v_q numeric;
+    v_low numeric;
+    v_up boolean;
+    v_expanded boolean := false;
+    v_unit integer;
+    v_largest integer;
+    v_ey bigint;
+    v_em bigint;
+    v_ew bigint;
+    v_pass integer;
+BEGIN
+    IF one IS NULL OR one_zone IS NULL OR two IS NULL OR two_zone IS NULL OR largest_unit IS NULL OR smallest_unit IS NULL OR increment IS NULL OR rounding_mode IS NULL OR negation IS NULL THEN RETURN NULL; END IF;
+    IF upper(one_zone) <> upper(two_zone) THEN
+        RAISE EXCEPTION 'tsq_zoned_until: a difference in days or larger units needs both zoned dates and times in the same time zone';
+    END IF;
+    v_u1 := one AT TIME ZONE 'UTC';
+    v_u2 := two AT TIME ZONE 'UTC';
+    IF v_u1 = v_u2 THEN
+        RETURN interval '0';
+    END IF;
+    v_w1 := tsq_zoned_at(v_u1, one_zone, false);
+    v_w2 := tsq_zoned_at(v_u2, one_zone, false);
+    v_d1 := v_w1::date;
+    v_t1 := v_w1 - v_d1::timestamp;
+    v_sign := CASE WHEN v_u2 < v_u1 THEN -1 ELSE 1 END;
+    -- Temporal's DifferenceZonedDateTime: the days of the calendar to a day of the second at the time of the first that
+    -- doesn't pass it, and the exact time from there
+    IF v_w2::date = v_d1 THEN
+        v_t := extract(epoch from v_u2 - v_u1) * 1000000000;
+    ELSE
+        v_correction := CASE WHEN sign(extract(epoch from (v_w2 - v_w2::date::timestamp) - v_t1)) = -v_sign THEN 1 ELSE 0 END;
+        WHILE v_correction <= CASE WHEN v_sign = 1 THEN 2 ELSE 1 END AND NOT v_found LOOP
+            v_inter := v_w2::date - v_correction * v_sign;
+            v_t := extract(epoch from v_u2 - tsq_zoned_at(v_inter + v_t1, one_zone, true)) * 1000000000;
+            IF sign(v_t) <> -v_sign THEN v_found := true; END IF;
+            v_correction := v_correction + 1;
+        END LOOP;
+        -- Temporal's CalendarDateUntil: the whole months from the first date that don't pass the other one (the day of the
+        -- first not kept in the month), then the days
+        IF largest_unit IN ('year', 'month') THEN
+            v_m := (extract(year from v_inter) * 12 + extract(month from v_inter)) - (extract(year from v_d1) * 12 + extract(month from v_d1));
+            IF v_sign > 0 AND extract(day from v_d1) > extract(day from v_inter) THEN v_m := v_m - 1; END IF;
+            IF v_sign < 0 AND extract(day from v_d1) < extract(day from v_inter) THEN v_m := v_m + 1; END IF;
+            IF largest_unit = 'year' THEN v_years := trunc(v_m / 12.0); END IF;
+            v_months := v_m - v_years * 12;
+        END IF;
+        v_days := v_inter - (v_d1 + make_interval(months => (v_years * 12 + v_months)::integer))::date;
+        IF largest_unit = 'week' THEN
+            v_weeks := trunc(v_days / 7.0);
+            v_days := v_days - v_weeks * 7;
+        END IF;
+    END IF;
+    -- Temporal's RoundRelativeDuration
+    IF smallest_unit <> 'nanosecond' OR increment <> 1 THEN
+        v_mode := CASE rounding_mode
+            WHEN 'ceil' THEN CASE WHEN v_sign < 0 THEN 'zero' ELSE 'infinity' END
+            WHEN 'floor' THEN CASE WHEN v_sign < 0 THEN 'infinity' ELSE 'zero' END
+            WHEN 'halfCeil' THEN CASE WHEN v_sign < 0 THEN 'halfZero' ELSE 'halfInfinity' END
+            WHEN 'halfFloor' THEN CASE WHEN v_sign < 0 THEN 'halfInfinity' ELSE 'halfZero' END
+            WHEN 'expand' THEN 'infinity' WHEN 'trunc' THEN 'zero' WHEN 'halfExpand' THEN 'halfInfinity' WHEN 'halfTrunc' THEN 'halfZero'
+            ELSE 'halfEven' END;
+        IF smallest_unit IN ('year', 'month', 'week', 'day') THEN
+            -- NudgeToCalendarUnit: between the duration truncated to the unit and one increment more, by the instants
+            IF smallest_unit = 'year' THEN
+                v_r1 := trunc(v_years / increment::numeric) * increment;
+                v_ey := v_r1; v_em := 0; v_ew := 0; v_m := 0;
+            ELSIF smallest_unit = 'month' THEN
+                v_r1 := trunc(v_months / increment::numeric) * increment;
+                v_ey := v_years; v_em := v_r1; v_ew := 0; v_m := 0;
+            ELSIF smallest_unit = 'week' THEN
+                v_r1 := trunc((v_weeks + trunc(v_days / 7.0)) / increment::numeric) * increment;
+                v_ey := v_years; v_em := v_months; v_ew := v_r1; v_m := 0;
+            ELSE
+                v_r1 := trunc(v_days / increment::numeric) * increment;
+                v_ey := v_years; v_em := v_months; v_ew := v_weeks; v_m := v_r1;
+            END IF;
+            -- The start and the end: the first wall clock plus the duration truncated, and plus one increment more
+            v_start := tsq_zoned_at((v_d1 + make_interval(months => (v_ey * 12 + v_em)::integer))::date + (v_ew * 7 + v_m)::integer + v_t1, one_zone, true);
+            IF smallest_unit = 'year' THEN v_ey := v_ey + increment * v_sign;
+            ELSIF smallest_unit = 'month' THEN v_em := v_em + increment * v_sign;
+            ELSIF smallest_unit = 'week' THEN v_ew := v_ew + increment * v_sign;
+            ELSE v_m := v_m + increment * v_sign;
+            END IF;
+            v_end := tsq_zoned_at((v_d1 + make_interval(months => (v_ey * 12 + v_em)::integer))::date + (v_ew * 7 + v_m)::integer + v_t1, one_zone, true);
+            v_num := abs(extract(epoch from v_u2 - v_start));
+            v_den := abs(extract(epoch from v_end - v_start));
+            v_up := v_num <> 0 AND (v_num = v_den OR v_mode = 'infinity' OR v_mode LIKE 'half%' AND (2 * v_num > v_den OR 2 * v_num = v_den AND (v_mode = 'halfInfinity' OR v_mode = 'halfEven' AND mod(abs(v_r1) / increment, 2) <> 0)));
+            IF v_up THEN
+                v_expanded := true;
+                v_r1 := v_r1 + increment * v_sign;
+                v_nudged := v_end;
+            ELSE
+                v_nudged := v_start;
+            END IF;
+            IF smallest_unit = 'year' THEN
+                v_years := v_r1; v_months := 0; v_weeks := 0; v_days := 0;
+            ELSIF smallest_unit = 'month' THEN
+                v_months := v_r1; v_weeks := 0; v_days := 0;
+            ELSIF smallest_unit = 'week' THEN
+                v_weeks := v_r1; v_days := 0;
+            ELSE
+                v_days := v_r1;
+            END IF;
+            v_t := 0;
+        ELSE
+            -- NudgeToZonedTime: the time rounded in the day it is in, which may round to the next day (of its length there)
+            v_step := CASE smallest_unit WHEN 'hour' THEN 3600000000000 WHEN 'minute' THEN 60000000000 WHEN 'second' THEN 1000000000 WHEN 'millisecond' THEN 1000000 WHEN 'microsecond' THEN 1000 ELSE 1 END * increment;
+            v_start := tsq_zoned_at((v_d1 + make_interval(months => (v_years * 12 + v_months)::integer))::date + (v_weeks * 7 + v_days)::integer + v_t1, one_zone, true);
+            v_end := tsq_zoned_at((v_d1 + make_interval(months => (v_years * 12 + v_months)::integer))::date + (v_weeks * 7 + v_days + v_sign)::integer + v_t1, one_zone, true);
+            v_pass := 0;
+            v_beyond := v_t;
+            -- The time rounded (Temporal's RoundNumberToIncrement), and again beyond the day when it reaches its end
+            LOOP
+                v_q := abs(v_beyond) / v_step;
+                v_low := floor(v_q);
+                v_mode := CASE rounding_mode
+                    WHEN 'ceil' THEN CASE WHEN v_beyond < 0 THEN 'zero' ELSE 'infinity' END
+                    WHEN 'floor' THEN CASE WHEN v_beyond < 0 THEN 'infinity' ELSE 'zero' END
+                    WHEN 'halfCeil' THEN CASE WHEN v_beyond < 0 THEN 'halfZero' ELSE 'halfInfinity' END
+                    WHEN 'halfFloor' THEN CASE WHEN v_beyond < 0 THEN 'halfInfinity' ELSE 'halfZero' END
+                    WHEN 'expand' THEN 'infinity' WHEN 'trunc' THEN 'zero' WHEN 'halfExpand' THEN 'halfInfinity' WHEN 'halfTrunc' THEN 'halfZero'
+                    ELSE 'halfEven' END;
+                v_up := v_q <> v_low AND (v_mode = 'infinity' OR v_mode LIKE 'half%' AND (2 * (v_q - v_low) > 1 OR 2 * (v_q - v_low) = 1 AND (v_mode = 'halfInfinity' OR v_mode = 'halfEven' AND mod(v_low, 2) <> 0)));
+                v_rounded := sign(v_beyond) * (v_low + CASE WHEN v_up THEN 1 ELSE 0 END) * v_step;
+                EXIT WHEN v_pass = 1;
+                v_beyond := v_rounded - extract(epoch from v_end - v_start) * 1000000000;
+                IF sign(v_beyond) = -v_sign THEN
+                    v_nudged := v_start + make_interval(secs => v_rounded / 1000000000);
+                    EXIT;
+                END IF;
+                v_expanded := true;
+                v_days := v_days + v_sign;
+                v_pass := 1;
+            END LOOP;
+            IF v_pass = 1 THEN
+                v_nudged := v_end + make_interval(secs => v_rounded / 1000000000);
+            END IF;
+            v_t := v_rounded;
+        END IF;
+        -- BubbleRelativeDuration: a unit that reached the next larger one gives it, up to the largest unit
+        IF v_expanded AND smallest_unit <> 'week' THEN
+            v_largest := CASE largest_unit WHEN 'year' THEN 0 WHEN 'month' THEN 1 WHEN 'week' THEN 2 ELSE 3 END;
+            v_unit := CASE smallest_unit WHEN 'year' THEN 0 WHEN 'month' THEN 1 WHEN 'week' THEN 2 ELSE 3 END - 1;
+            WHILE v_unit >= v_largest LOOP
+                IF v_unit <> 2 OR v_largest = 2 THEN
+                    v_ey := v_years; v_em := v_months; v_ew := v_weeks;
+                    IF v_unit = 0 THEN
+                        v_ey := v_years + v_sign; v_em := 0; v_ew := 0;
+                    ELSIF v_unit = 1 THEN
+                        v_em := v_months + v_sign; v_ew := 0;
+                    ELSE
+                        v_ew := v_weeks + v_sign;
+                    END IF;
+                    IF sign(extract(epoch from v_nudged - tsq_zoned_at((v_d1 + make_interval(months => (v_ey * 12 + v_em)::integer))::date + (v_ew * 7)::integer + v_t1, one_zone, true))) = -v_sign THEN
+                        EXIT;
+                    END IF;
+                    v_years := v_ey; v_months := v_em; v_weeks := v_ew; v_days := 0; v_t := 0;
+                END IF;
+                v_unit := v_unit - 1;
+            END LOOP;
+        END IF;
+    END IF;
+    RETURN make_interval(years => (v_years * negation)::integer, months => (v_months * negation)::integer, weeks => (v_weeks * negation)::integer, days => (v_days * negation)::integer, secs => v_t * negation / 1000000000.0);
+END $$;
 
 -- tsq_duration_total: a duration (its months, its years too; its weeks; its days; the whole seconds of its time and the
 -- nanoseconds of the second, each with the sign of the duration) in a unit ('year' ... 'nanosecond'), the function of

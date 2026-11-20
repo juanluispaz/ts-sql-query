@@ -27,12 +27,13 @@ export function instantUtcDateTime(value: unknown): TemporalPlainDateTime | unde
 }
 
 /**
- * The text of an instant as PostgreSQL reads it: its wall clock in UTC with the offset `+00`, which makes it the same
- * value for a `timestamptz` and for a `timestamp` (that ignores the offset), and the era for a year before 1
- * (`0044-03-15 09:15:30+00 BC`); undefined for any other value
+ * The text of an instant (or of the instant of a zoned date and time) as PostgreSQL reads it: its wall clock in UTC with
+ * the offset `+00`, which makes it the same value for a `timestamptz` and for a `timestamp` (that ignores the offset),
+ * and the era for a year before 1 (`0044-03-15 09:15:30+00 BC`); undefined for any other value
  */
 export function postgreSqlInstantText(value: unknown): string | undefined {
-    const dateTime = instantUtcDateTime(value)
+    // A zoned date and time goes as its instant, which PostgreSQL keeps (its zone is written in the query)
+    const dateTime = instantUtcDateTime(isZonedDateTimeValue(value) ? value.toInstant() : value)
     if (!dateTime) {
         return undefined
     }

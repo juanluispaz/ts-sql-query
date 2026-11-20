@@ -442,17 +442,22 @@ PostgreSQL, `a-plain-date-before-the-year-1` are commented out with
 `instants-are-returned-by-a-delete` (PostgreSQL, MariaDB) and, on PostgreSQL,
 `an-instant-selected-as-a-constant`, in the same cells.
 
-### Only Oracle keeps a time zone with each value
+### Zoned dates and times are kept on Oracle, and computed on Oracle and PostgreSQL
 
-A `zonedDateTime` (a `Temporal.ZonedDateTime`) needs a column that keeps the zone of each value and a database that
-computes with the rules of the zone: Oracle's `TIMESTAMP WITH TIME ZONE` keeps its region. PostgreSQL's `timestamptz`
-keeps one normalized instant, SQL Server's `datetimeoffset` an offset, MariaDB and MySQL convert only with time zone
-tables loaded and leave a value before 1970 unconverted, SQL Server's `AT TIME ZONE` knows only Windows names, and
-SQLite has no zones. On them a query with a `zonedDateTime` fails when it is built (`UNSUPPORTED_QUERY`).
+A `zonedDateTime` (a `Temporal.ZonedDateTime`) needs a database that computes with the rules of the zone. Oracle's
+`TIMESTAMP WITH TIME ZONE` keeps its region with each value. PostgreSQL computes with the IANA zones but its
+`timestamptz` keeps one normalized instant, so a zoned date and time is computed in the query (its instant and the zone
+the query gives it) and can't be a column (`UNSUPPORTED_QUERY`). SQL Server's `datetimeoffset` keeps an offset, MariaDB
+and MySQL convert only with time zone tables loaded and leave a value before 1970 unconverted, SQL Server's `AT TIME
+ZONE` knows only Windows names, and SQLite has no zones: on them a query with a `zonedDateTime` fails when it is built
+(`UNSUPPORTED_QUERY`). Bun SQL delivers the wall clock of a zoned date and time on PostgreSQL as a `Date`, without the
+digits below the millisecond (its zoned value itself is read as text, with every digit).
 
 **Tests:** `column.zoned-date-time.test.ts` — every test but
-`a-zoned-date-and-time-needs-a-database-with-zones` is commented out with `// NOT-SUPPORTED:` outside the `oracle/*`
-cells, and `docs.configuration.dates-and-times.test.ts` — `docs:dates-and-times/zoned-dates-and-times` in the same cells.
+`a-zoned-date-and-time-needs-a-database-with-zones` is commented out with `// NOT-SUPPORTED:` outside the `oracle/*` and
+`postgres/*` cells, and `the-parts-of-a-zoned-date-and-time` in the `postgres/*/bun_sql_postgres` cells;
+`docs.configuration.dates-and-times.test.ts` — `docs:dates-and-times/zoned-dates-and-times` and
+`docs:dates-and-times/the-arithmetic-of-a-zoned-date-and-time` in the same cells.
 
 ### SQL Server's date and time types start at the year 1
 

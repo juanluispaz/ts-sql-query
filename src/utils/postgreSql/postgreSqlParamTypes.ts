@@ -147,7 +147,7 @@ export function postgreSqlParamType(requestedType: DataTypeClass | undefined, va
                     return zoned ? timestamptz : time
                 }
                 if (sqlDataType.fields === 'timestamp') {
-                    return zoned || sqlDataType.timeZone === 'instant' ? timestamptz : timestamp
+                    return zoned || sqlDataType.timeZone === 'instant' || sqlDataType.timeZone === 'kept' ? timestamptz : timestamp
                 }
                 break
             default:
@@ -242,7 +242,7 @@ export function postgreSqlDriverParams(params: any[]): any[] {
         const param = existingParamContextOf(params, i)
         const requestedType = param?.requestedType
         // A Temporal value without zone goes as its text, with all the digits of its fraction of a second, an instant
-        // as the text of its wall clock in UTC with its offset (see postgreSqlInstantText); a duration
+        // (and a zoned date and time) as the text of its wall clock in UTC with its offset (see postgreSqlInstantText); a duration
         // as its ISO 8601 text, with the sign of a negative one in each field and its weeks as days (PostgreSQL rejects
         // `-P1D`, and has no weeks)
         const plainText = plainTemporalText(value, true) ?? postgreSqlInstantText(value) ?? (isDurationValue(value) ? durationIsoTextWithoutWeeks(value, true) : undefined)

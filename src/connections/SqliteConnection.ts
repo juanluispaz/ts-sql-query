@@ -13,9 +13,9 @@ import { __createAggregateFunction1, __createAggregateFunction1or2, __createAggr
 import type { QueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import type { SameDB } from '../utils/ITableOrView.js'
 import type { SqlDataType, SqlDataTypeNative, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
-import { __isBigintClass, __isLocalDateClass, __isLocalDateTimeClass, __isLocalTimeClass, __isPlainDateClass, __isPlainTimeClass } from '../typeSystem/dataTypeQuestions.js'
+import { __isBigintClass, __isInstantClass, __isLocalDateClass, __isLocalDateTimeClass, __isLocalTimeClass, __isPlainDateClass, __isPlainTimeClass } from '../typeSystem/dataTypeQuestions.js'
 import { isPlainTemporalClass } from '../utils/plainTemporalValues.js'
-import { plainDateText } from '../utils/plainDateTimeText.js'
+import { parseInstantText, plainDateText } from '../utils/plainDateTimeText.js'
 import { __temporal, type TemporalPlainDate, type TemporalPlainDateTime, type TemporalPlainTime } from '../typeSystem/temporal.js'
 import { __isExactDecimalSql } from '../typeSystem/dataTypes.js'
 import { isDateTimeTextOutOfCalendar } from '../utils/utcDateTimeText.js'
@@ -227,6 +227,29 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
                 return super.transformValueFromDB(new Date(this.__sqliteMillisecondsOfNumber(number, kind)), context)
             }
             return super.transformValueFromDB(value, context)
+        }
+        if (__isInstantClass(context.requestedType)) {
+            // An instant kept as a number (a Julian day, a Unix time) is that instant; a text, with all its digits, the
+            // instant of its offset, or else of the zone its format says (getDateTimeFormat('dateTime'), as a localDateTime)
+            const temporal = __temporal(context.requestedType.type)
+            if (value instanceof temporal.Instant) {
+                return value
+            }
+            const number = typeof value === 'number' || typeof value === 'bigint' ? Number(value) : typeof value === 'string' && value.trim() !== '' && !isNaN(+value) ? +value : undefined
+            if (number !== undefined) {
+                const milliseconds = this.__sqliteMillisecondsOfNumber(number, 'dateTime')
+                if (!isNaN(milliseconds)) {
+                    return temporal.Instant.fromEpochMilliseconds(milliseconds)
+                }
+            } else if (typeof value === 'string') {
+                const format = this.getDateTimeFormat('dateTime')
+                const textZone = format.startsWith('UTC') || (!format.startsWith('localdate') && this.treatUnexpectedStringDateTimeAsUTC) ? 'UTC' : temporal.Now.timeZoneId()
+                const received = parseInstantText(value, textZone, context.requestedType.type)
+                if (received) {
+                    return received
+                }
+            }
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: context.requestedType.type }, 'Invalid instant value received from the db: ' + String(value))
         }
         if (__isLocalDateClass(context.requestedType)) {
             if (typeof value === 'string') {
@@ -527,6 +550,14 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
                 return value.toString()
             }
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: context.requestedType.type }, 'Invalid bigint value to send to the db: ' + String(value))
+        }
+        if (__isInstantClass(context.requestedType)) {
+            // Checked by the connection: an instant, kept in the format of a localDateTime (getDateTimeFormat('dateTime')):
+            // a text of its wall clock in UTC, or in the zone of the process for a localdate format, or its number
+            const checked = super.transformValueToDB(value, context) as { toZonedDateTimeISO(zone: string): { toPlainDateTime(): TemporalPlainDateTime } }
+            const format = this.getDateTimeFormat('dateTime')
+            const zone = format.startsWith('localdate') ? __temporal(context.requestedType.type).Now.timeZoneId() : 'UTC'
+            return sqlitePlainTemporalValue(checked.toZonedDateTimeISO(zone).toPlainDateTime(), 'dateTime', format)
         }
         if (isPlainTemporalClass(context.requestedType)) {
             // Checked by the connection: a Temporal value of the type, kept in the format of its type (getDateTimeFormat)

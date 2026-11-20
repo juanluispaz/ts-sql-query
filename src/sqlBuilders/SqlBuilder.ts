@@ -427,6 +427,7 @@ export interface SqlFunctionStatic0 {
     _currentDate(context: SqlBuildContext): string
     _currentTime(context: SqlBuildContext): string
     _currentTimestamp(context: SqlBuildContext): string
+    _currentInstant(context: SqlBuildContext): string
     _default(context: SqlBuildContext): string
     _true(context: SqlBuildContext): string
     _false(context: SqlBuildContext): string

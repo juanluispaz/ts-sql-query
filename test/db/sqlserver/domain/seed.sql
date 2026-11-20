@@ -95,6 +95,11 @@ INSERT INTO duration_value (id, span, span_calendar, span_text) VALUES
     (1, 'P3DT4H5M6.789S', 'P1Y2M', 'P1Y2M3DT4H5M6.789S'),
     (2, '-P1DT2H', NULL, '-PT26H'),
     (3, 'PT1H30M', NULL, 'PT90M');
+-- instant_value: 1 is 2024-01-14T09:15:30.123456Z, written with the offset +09:00 where the column keeps one;
+-- 2 is 1969-07-20T20:17:40Z, without session_at (a MySQL and MariaDB TIMESTAMP starts in 1970).
+INSERT INTO instant_value (id, instant_at, wall_at, session_at) VALUES
+    (1, '2024-01-14 18:15:30.123456 +09:00', '2024-01-14 09:15:30.123456', '2024-01-14 18:15:30.123456 +09:00'),
+    (2, '1969-07-20 20:17:40 +00:00', '1969-07-20 20:17:40', NULL);
 -- flight_leg: 1 and 2 depart at the same instant (2024-07-01 01:30:15.1234567 UTC)
 -- written with different offsets; 3 departs later (03:00 UTC), but its text, with
 -- -05:00, is the smallest.

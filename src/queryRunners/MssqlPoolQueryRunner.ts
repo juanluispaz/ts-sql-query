@@ -7,6 +7,7 @@ import { getMssqlErrorReason, isMssqlError } from './connectorErrorMappers/Mssql
 import { isProcessInUtc } from '../utils/processTimeZone.js'
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { isPlainTemporalValue, plainTemporalResultColumns } from '../utils/plainTemporalValues.js'
+import { isInstantValue } from '../utils/instantValues.js'
 import { sqlServerTemporalDate, sqlServerTemporalText } from '../utils/sqlServer/sqlServerParamTypes.js'
 import { __temporalIfAvailable } from '../typeSystem/temporal.js'
 import { __sqlDataTypeDescribes, __typeSqlDataTypeOf } from '../typeSystem/dataTypes.js'
@@ -337,7 +338,7 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
             const length = sqlDataType.length
             return TYPES.VarChar(length !== undefined && !sqlDataType.largeObject && value.length <= length ? length : mssql.MAX)
         }
-        if (sqlDataType.family === 'datetime' && sqlDataType.fields === 'timestamp' && (value instanceof Date || value === null || isPlainTemporalValue(value))) {
+        if (sqlDataType.family === 'datetime' && sqlDataType.fields === 'timestamp' && (value instanceof Date || value === null || isPlainTemporalValue(value) || isInstantValue(value))) {
             const native = existingQueryContextOf(params)?.connectionConfiguration?.nativeSqlDataTypeOf(sqlDataType)
             if (native === 'datetime') {
                 return { type: TYPES.DateTime }
@@ -442,6 +443,9 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
             // A Temporal value without zone: a PlainDate, a PlainTime or a PlainDateTime
             const temporal = __temporalIfAvailable()!
             return value instanceof temporal.PlainDate ? TYPES.Date : value instanceof temporal.PlainTime ? TYPES.Time : TYPES.DateTime2
+        } else if (isInstantValue(value)) {
+            // An instant, as the wall clock of its instant in UTC (see sqlServerTemporalDate)
+            return TYPES.DateTime2
         } else if (typeof value === 'string') {
             if (/^-?\d+$/.test(value)) {
                 if (value.length > 9) {

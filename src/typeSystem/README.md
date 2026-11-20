@@ -375,6 +375,8 @@ extend them.
 | [`uuidText.ts`](./uuidText.ts) | `UuidTextType`, the text of a uuid, only for the run time |
 | [`localDates.ts`](./localDates.ts) | the families and the data types of the dates, the times and both, whose values are a `Date` |
 | [`plainDates.ts`](./plainDates.ts) | the families and the data types of the dates, the times and both whose values are Temporal values without zone (`plainDate`, `plainTime`, `plainDateTime`) |
+| [`durations.ts`](./durations.ts) | the family and the data type of an amount of time, whose value is a `Temporal.Duration` (`duration`) |
+| [`instants.ts`](./instants.ts) | the family and the data type of an exact moment, whose value is a `Temporal.Instant` (`instant`) |
 | [`temporal.ts`](./temporal.ts) | Temporal as the library reaches it: its types taken from the global object (so a declaration never names `Temporal`), and the object read at run time |
 | [`aggregatedArrays.ts`](./aggregatedArrays.ts) | `AggregatedArraysType` and its two data types, the arrays an aggregate as array gives |
 | [`valueSource.ts`](./valueSource.ts) | what every value source has whatever its data type: the optionality (`OptionalType`, `CombinedOptionality`, `__mergeOptional`, ...), `AnyValueSource`, `TypedValueSource`, the types of the value of a result (`ValueSourceValueType*`), the executable queries, and the questions the SQL builders ask about the value of a value source by its SQL data type (`__isBooleanValueSource`, ...) |

@@ -28,6 +28,10 @@ interface UpdateAssignment {
 }
 
 export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
+    override _currentInstant(_context: SqlBuildContext): string {
+        // The UTC date and time of now with its microseconds, whatever the zone of the session
+        return 'utc_timestamp(6)'
+    }
     override _buildSelectWithColumnsInfoForCompound(query: SelectData, context: SqlBuildContext, columnsForInsert: { [name: string]: DBColumn | undefined }, isOutermostQuery: boolean, needsGrouping: boolean): string {
         if (needsGrouping) {
             // MySQL 5.7 and MariaDB 10.3 don't accept a compound in parentheses as an operand of another one

@@ -65,6 +65,18 @@ function checkScenario(out: ScenarioResult): void {
     // changes to summer time is moved forward by PostgreSQL
     expect(out.repeated).toBe('2024-10-27T01:30:00.000Z')
     expect(out.skipped).toBe('2024-03-31T01:30:00.000Z')
+    // An instant: stored as the wall clock of Madrid of the instant, read, compared and aggregated as its instant
+    expect(out.instant.stored).toEqual([{ ts: '2024-01-14 10:15:30.123', tstz_utc: '2024-01-14 09:15:30.123' }])
+    expect(out.instant.read).toEqual([
+        { id: 1, ts: '2024-01-14T09:15:30.123Z', tstz: '2024-01-14T09:15:30.123Z' },
+        { id: 3, ts: '2024-01-14T09:15:30.123Z', tstz: '2024-01-14T09:15:30.123Z' },
+        { id: 11, ts: '2024-01-14T09:15:30.123Z', tstz: '2024-01-14T09:15:30.123Z' },
+    ])
+    expect(out.instant.where).toEqual([1, 3, 11])
+    expect(out.instant.aggregated).toEqual(['2024-01-14T09:15:30.123Z', '2024-01-14T09:15:30.123Z'])
+    expect(out.instant.currentDrift).toBeLessThan(60_000)
+    // A wall clock that Madrid repeats is taken in winter time by PostgreSQL
+    expect(out.instant.repeated).toBe('2024-10-27T01:30:00Z')
 }
 
 // A localDateTime and a localTime with a type driverTypeOf gives them (a timestamp and a time; postgres.js and PGlite,

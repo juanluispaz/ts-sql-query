@@ -20,6 +20,7 @@ DROP TABLE IF EXISTS issue_worklog;
 DROP TABLE IF EXISTS col_matrix;
 DROP TABLE IF EXISTS temporal_precision;
 DROP TABLE IF EXISTS duration_value;
+DROP TABLE IF EXISTS instant_value;
 DROP TABLE IF EXISTS country;
 DROP TABLE IF EXISTS issue;
 DROP TABLE IF EXISTS project;
@@ -322,6 +323,16 @@ CREATE TABLE duration_value (
     span VARCHAR(64) NOT NULL,
     span_calendar VARCHAR(64),
     span_text VARCHAR(64)
+);
+
+-- instant_value: exact moments (Temporal.Instant) in the columns a database has for them: instant_at in the one
+-- recommended for an instant, wall_at without zone (its wall clock in UTC), session_at converted with the zone of the
+-- session where the database has such a column (else as instant_at).
+CREATE TABLE instant_value (
+    id INTEGER PRIMARY KEY,
+    instant_at DATETIME NOT NULL,
+    wall_at DATETIME,
+    session_at DATETIME
 );
 
 CREATE VIEW col_matrix_view AS

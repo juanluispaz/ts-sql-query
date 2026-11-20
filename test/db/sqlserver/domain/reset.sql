@@ -25,6 +25,7 @@ DELETE FROM issue_worklog;
 DELETE FROM col_matrix;
 DELETE FROM temporal_precision;
 DELETE FROM duration_value;
+DELETE FROM instant_value;
 DELETE FROM flight_leg;
 DELETE FROM country;
 DELETE FROM issue;

@@ -98,6 +98,10 @@ INSERT INTO temporal_precision (id, micro_stamp) VALUES
 INSERT INTO duration_value (id, span, span_calendar, span_text) VALUES (1, INTERVAL '3 04:05:06.789' DAY TO SECOND, INTERVAL '1-2' YEAR TO MONTH, 'P1Y2M3DT4H5M6.789S');
 INSERT INTO duration_value (id, span, span_calendar, span_text) VALUES (2, INTERVAL '-1 02:00:00' DAY TO SECOND, NULL, '-PT26H');
 INSERT INTO duration_value (id, span, span_calendar, span_text) VALUES (3, INTERVAL '0 01:30:00' DAY TO SECOND, NULL, 'PT90M');
+-- instant_value: 1 is 2024-01-14T09:15:30.123456Z, written with the offset +09:00 where the column keeps one;
+-- 2 is 1969-07-20T20:17:40Z, without session_at (a MySQL and MariaDB TIMESTAMP starts in 1970).
+INSERT INTO instant_value (id, instant_at, wall_at, session_at) VALUES (1, TIMESTAMP '2024-01-14 18:15:30.123456 +09:00', TIMESTAMP '2024-01-14 09:15:30.123456', TIMESTAMP '2024-01-14 18:15:30.123456 +09:00');
+INSERT INTO instant_value (id, instant_at, wall_at, session_at) VALUES (2, TIMESTAMP '1969-07-20 20:17:40 +00:00', TIMESTAMP '1969-07-20 20:17:40', NULL);
 INSERT INTO service_plan (id, name, description) VALUES (1, 'Enterprise', NULL);
 INSERT INTO standup_meeting (id, starts_at, ends_at, daily_at) VALUES (1, TO_DATE('2024-03-15 09:05:07', 'YYYY-MM-DD HH24:MI:SS'), TO_DATE('2024-03-15 09:20:45', 'YYYY-MM-DD HH24:MI:SS'), TO_DATE('1970-01-01 08:30:15', 'YYYY-MM-DD HH24:MI:SS'));
 INSERT INTO standup_meeting (id, starts_at, ends_at, daily_at) VALUES (2, TO_DATE('2024-03-18 14:40:00', 'YYYY-MM-DD HH24:MI:SS'), NULL, TO_DATE('1970-01-01 16:45:30', 'YYYY-MM-DD HH24:MI:SS'));

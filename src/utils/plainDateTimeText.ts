@@ -2,20 +2,25 @@
 // it: the same grammar as the text of a localDate, a localTime or a localDateTime (utcDateTimeText.ts), keeping all the
 // digits of the fraction of a second, up to the nanosecond.
 
-import { __temporal, type TemporalPlainDate, type TemporalPlainDateTime, type TemporalPlainTime } from '../typeSystem/temporal.js'
+import { __temporal, type TemporalInstant, type TemporalPlainDate, type TemporalPlainDateTime, type TemporalPlainTime } from '../typeSystem/temporal.js'
 
 // A date, a time or both, with an optional offset and an optional PostgreSQL era (see utcDateTimeText.ts)
 const dateTimeTextPattern = /^(?:([+-]?\d{4,6})-(\d\d)-(\d\d))?(?:(?:^|[T ])(\d\d):(\d\d)(?::(\d\d)(?:[.,](\d+))?)?)?(?:\s*(Z|[+-]\d\d(?::?\d\d(?::?\d\d)?)?))?( BC| AD)?$/i
 
+/** The digits of a text of a date, a time or both, and the seconds of its offset when it has one */
+interface DateTimeTextParts {
+    readonly dateTime: TemporalPlainDateTime
+    readonly offsetSeconds: number | undefined
+}
+
 /**
- * The PlainDateTime of a text of a date, a time or both, as the database writes it: its digits when the text has no
- * offset, and with one (`Z`, `+09`, `+05:30`, `-03:30:45`) the digits of the instant it gives in the zone of the
- * database, the zone of the session that wrote them. A date without a time is at 00:00, a time without a date is on
- * 1970-01-01. The fraction of a second is kept up to the nanosecond, and the digits beyond are dropped. Every year is
- * read as it is written (`0099` is the year 99), and `BC` (PostgreSQL) is a year before 1 (`0044 BC` is the year -43).
- * Undefined when the text is not one of these forms or its digits are out of the calendar (`2024-02-30`, `24:00:00`).
+ * The digits of a text of a date, a time or both, as the database writes it, and its offset (`Z`, `+09`, `+05:30`,
+ * `-03:30:45`) when it has one. A date without a time is at 00:00, a time without a date is on 1970-01-01. The fraction
+ * of a second is kept up to the nanosecond, and the digits beyond are dropped. Every year is read as it is written
+ * (`0099` is the year 99), and `BC` (PostgreSQL) is a year before 1 (`0044 BC` is the year -43). Undefined when the text
+ * is not one of these forms or its digits are out of the calendar (`2024-02-30`, `24:00:00`).
  */
-export function parsePlainDateTimeText(text: string, databaseTimeZone: string, typeName: string): TemporalPlainDateTime | undefined {
+function parseDateTimeText(text: string, typeName: string): DateTimeTextParts | undefined {
     const match = dateTimeTextPattern.exec(text.trim())
     if (!match) {
         return undefined
@@ -38,9 +43,9 @@ export function parsePlainDateTimeText(text: string, databaseTimeZone: string, t
     }
     const fraction = fractionText === undefined ? '000000000' : (fractionText + '00000000').slice(0, 9)
     const temporal = __temporal(typeName)
-    let result: TemporalPlainDateTime
+    let dateTime: TemporalPlainDateTime
     try {
-        result = temporal.PlainDateTime.from({
+        dateTime = temporal.PlainDateTime.from({
             year, month, day,
             hour: hoursText === undefined ? 0 : Number(hoursText),
             minute: minutesText === undefined ? 0 : Number(minutesText),
@@ -53,7 +58,7 @@ export function parsePlainDateTimeText(text: string, databaseTimeZone: string, t
         return undefined
     }
     if (offsetText === undefined) {
-        return result
+        return { dateTime, offsetSeconds: undefined }
     }
     let offsetSeconds = 0
     if (offsetText.toUpperCase() !== 'Z') {
@@ -63,8 +68,51 @@ export function parsePlainDateTimeText(text: string, databaseTimeZone: string, t
             offsetSeconds = -offsetSeconds
         }
     }
-    const epochNanoseconds = result.toZonedDateTime('UTC').epochNanoseconds - BigInt(offsetSeconds) * 1_000_000_000n
-    return temporal.Instant.fromEpochNanoseconds(epochNanoseconds).toZonedDateTimeISO(databaseTimeZone).toPlainDateTime()
+    return { dateTime, offsetSeconds }
+}
+
+/** The instant of the digits of a text with that offset */
+function instantOfParts(parts: DateTimeTextParts & { readonly offsetSeconds: number }, typeName: string): TemporalInstant | undefined {
+    try {
+        return __temporal(typeName).Instant.fromEpochNanoseconds(parts.dateTime.toZonedDateTime('UTC').epochNanoseconds - BigInt(parts.offsetSeconds) * 1_000_000_000n)
+    } catch {
+        // Beyond the range of an instant
+        return undefined
+    }
+}
+
+/**
+ * The PlainDateTime of a text of a date, a time or both, as the database writes it (see parseDateTimeText): its digits
+ * when the text has no offset, and with one the digits of the instant it gives in the zone of the database, the zone
+ * of the session that wrote them. Undefined when the text is not one of these forms or its digits are out of the
+ * calendar.
+ */
+export function parsePlainDateTimeText(text: string, databaseTimeZone: string, typeName: string): TemporalPlainDateTime | undefined {
+    const parts = parseDateTimeText(text, typeName)
+    if (!parts || parts.offsetSeconds === undefined) {
+        return parts?.dateTime
+    }
+    return instantOfParts(parts as DateTimeTextParts & { readonly offsetSeconds: number }, typeName)?.toZonedDateTimeISO(databaseTimeZone).toPlainDateTime()
+}
+
+/**
+ * The Instant of a text of a date and a time, as the database writes it (see parseDateTimeText): the instant it gives
+ * with its offset, and without one the instant of its digits as a wall clock of the zone of the database. Undefined
+ * when the text is not one of these forms, its digits are out of the calendar, or it is beyond the range of an instant.
+ */
+export function parseInstantText(text: string, databaseTimeZone: string, typeName: string): TemporalInstant | undefined {
+    const parts = parseDateTimeText(text, typeName)
+    if (!parts) {
+        return undefined
+    }
+    if (parts.offsetSeconds !== undefined) {
+        return instantOfParts(parts as DateTimeTextParts & { readonly offsetSeconds: number }, typeName)
+    }
+    try {
+        return parts.dateTime.toZonedDateTime(databaseTimeZone).toInstant()
+    } catch {
+        return undefined
+    }
 }
 
 /** The PlainDateTime whose digits are the UTC getters of a Date, as a driver that gives a Date delivers a value without zone */

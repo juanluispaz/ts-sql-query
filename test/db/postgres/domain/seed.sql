@@ -94,3 +94,8 @@ INSERT INTO duration_value (id, span, span_calendar, span_text) VALUES
     (1, '3 days 04:05:06.789', '1 year 2 months', 'P1Y2M3DT4H5M6.789S'),
     (2, '-1 days -02:00:00', NULL, '-PT26H'),
     (3, '01:30:00', NULL, 'PT90M');
+-- instant_value: 1 is 2024-01-14T09:15:30.123456Z, written with the offset +09:00 where the column keeps one;
+-- 2 is 1969-07-20T20:17:40Z, without session_at (a MySQL and MariaDB TIMESTAMP starts in 1970).
+INSERT INTO instant_value (id, instant_at, wall_at, session_at) VALUES
+    (1, '2024-01-14 18:15:30.123456+09', '2024-01-14 09:15:30.123456', '2024-01-14 18:15:30.123456+09'),
+    (2, '1969-07-20 20:17:40+00', '1969-07-20 20:17:40', NULL);

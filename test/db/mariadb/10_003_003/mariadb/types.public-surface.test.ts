@@ -126,7 +126,7 @@ describe(ctx.label, () => {
         expect(Object.keys(root).sort()).toEqual([
             'AdditiveType', 'ArithmeticType', 'BigintType', 'BooleanType', 'ComparableType', 'ConsoleLogQueryRunner',
             'CustomBooleanTypeAdapter', 'DecimalsType', 'DivisibleType', 'DoubleType', 'DurationType', 'DurationsType', 'EnumType', 'EqualableType',
-            'ForceTypeCast', 'IntType', 'IntegersType', 'InterceptorQueryRunner', 'LocalDateTimeType',
+            'ForceTypeCast', 'InstantType', 'InstantsType', 'IntType', 'IntegersType', 'InterceptorQueryRunner', 'LocalDateTimeType',
             'LocalDateTimesType', 'LocalDateType', 'LocalDatesType', 'LocalTimeType', 'LocalTimesType',
             'LoggingQueryRunner', 'MockQueryRunner', 'MultipliableType', 'NoExecutionQueryRunner', 'NoopQueryRunner',
             'PlainDateTimeType', 'PlainDateTimesType', 'PlainDateType', 'PlainDatesType', 'PlainTimeType', 'PlainTimesType',

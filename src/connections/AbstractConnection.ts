@@ -29,7 +29,7 @@ import type { NAggregate, NDB, NNoTableOrViewRequired, NNotNestedAggregate, NSou
 import type { DataToProject, GetDataToProjectSource } from '../complexProjections/dataToProject.js'
 import type { ResultObjectValuesForAggregatedArray } from '../complexProjections/resultWithOptionalsAsUndefined.js'
 import type { ResultObjectValuesProjectedAsNullableForAggregatedArray } from '../complexProjections/resultWithOptionalsAsNull.js'
-import { __isAggregatedArrayClass, __isBigintClass, __isBooleanClass, __isDoubleClass, __isExactDecimalClass, __isIntClass, __isLocalDateClass, __isLocalDateTimeClass, __isLocalTimeClass, __isPlainDateClass, __isPlainDateTimeClass, __isPlainTimeClass, __isStringClass, __isDurationClass, __isUuidClass } from '../typeSystem/dataTypeQuestions.js'
+import { __isAggregatedArrayClass, __isBigintClass, __isBooleanClass, __isDoubleClass, __isExactDecimalClass, __isIntClass, __isLocalDateClass, __isLocalDateTimeClass, __isLocalTimeClass, __isPlainDateClass, __isPlainDateTimeClass, __isPlainTimeClass, __isStringClass, __isDurationClass, __isInstantClass, __isUuidClass } from '../typeSystem/dataTypeQuestions.js'
 import { __durationSqlDataTypeOf } from '../typeSystem/dataTypes.js'
 import { parseUtcDateTimeText } from '../utils/utcDateTimeText.js'
 import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, ValueSourceOf, TypedValueSource } from '../typeSystem/valueSource.js'
@@ -46,7 +46,8 @@ import type { FragmentExpression } from '../typeSystem/fragments.js'
 import { LocalDateTimeType, LocalTimeType, LocalDateType } from '../typeSystem/localDates.js'
 import { __temporal, type TemporalPlainDateTime } from '../typeSystem/temporal.js'
 import { PlainDateTimeType, PlainDateType, PlainTimeType } from '../typeSystem/plainDates.js'
-import { parsePlainDateTimeText, plainDateTimeOfUtcDate } from '../utils/plainDateTimeText.js'
+import { InstantType } from '../typeSystem/instants.js'
+import { parseInstantText, parsePlainDateTimeText, plainDateTimeOfUtcDate } from '../utils/plainDateTimeText.js'
 import { durationOfReceivedValue, isDurationValue } from '../utils/durationValues.js'
 import type { NumberType } from '../typeSystem/number.js'
 import type { BigintType } from '../typeSystem/bigint.js'
@@ -658,6 +659,14 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     currentPlainDateTime(): any {
         return __createStatic0('_currentTimestamp', PlainDateTimeType, 'required')
     }
+    /**
+     * The instant of now in the database, as a Temporal.Instant: Temporal's `Temporal.Now.instant()`, with the digits of
+     * the fraction of a second the database gives
+     */
+    currentInstant(): ValueSource<NNoTableOrViewRequired<DB>, InstantType, 'required'>
+    currentInstant(): any {
+        return __createStatic0('_currentInstant', InstantType, 'required')
+    }
 
     const<TYPE extends DataTypeName>(value: DataTypeValueOfName<TYPE>, type: TYPE, adapter?: TypeAdapter): DataTypeValueSources<NNoTableOrViewRequired<DB>, 'required'>[TYPE]
     const<TYPE extends NullableType<any>>(value: ValueTypeOf<TYPE>, type: TypeClass<TYPE>, adapter?: TypeAdapter): ValueSource<NNoTableOrViewRequired<DB>, TYPE, 'required'>
@@ -1252,6 +1261,19 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             }
             return received
         }
+        if (__isInstantClass(context.requestedType)) {
+            // Its text with all the digits of its fraction of a second: with an offset it is that instant, without one
+            // the wall clock of the zone of the database; or a valid Date, from a driver that gives one, its instant
+            const temporal = __temporal(type)
+            if (value instanceof temporal.Instant) {
+                return value
+            }
+            const received = value instanceof Date ? (isNaN(value.getTime()) ? undefined : temporal.Instant.fromEpochMilliseconds(value.getTime())) : typeof value === 'string' ? parseInstantText(value, this.databaseTimeZone, type) : undefined
+            if (!received) {
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid instant value received from the db: ' + String(value))
+            }
+            return received
+        }
         if (__isDurationClass(context.requestedType)) {
             // Its ISO text, the text of a PostgreSQL interval, an interval of oracledb or the number of its
             // microseconds, whatever the storage: a duration whose fields mix signs (PostgreSQL's `-1 days +02:03:00`)
@@ -1401,6 +1423,12 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 return value
             }
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid plainDateTime value to send to the db: ' + String(value))
+        }
+        if (__isInstantClass(context.requestedType)) {
+            if (value instanceof __temporal(type).Instant) {
+                return value
+            }
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid instant value to send to the db: ' + String(value))
         }
         if (__isDurationClass(context.requestedType)) {
             if (!isDurationValue(value)) {

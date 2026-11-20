@@ -3739,6 +3739,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _currentTimestamp(_context: SqlBuildContext): string {
         return 'current_timestamp'
     }
+    /** The instant of now, with all the digits of the fraction of a second the database gives: the current date and time */
+    _currentInstant(context: SqlBuildContext): string {
+        return this._currentTimestamp(context)
+    }
     _default(_context: SqlBuildContext): string {
         return 'default'
     }

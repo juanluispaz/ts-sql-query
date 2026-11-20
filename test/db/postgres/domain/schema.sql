@@ -17,6 +17,7 @@ DROP TABLE IF EXISTS issue_worklog CASCADE;
 DROP TABLE IF EXISTS col_matrix CASCADE;
 DROP TABLE IF EXISTS temporal_precision CASCADE;
 DROP TABLE IF EXISTS duration_value CASCADE;
+DROP TABLE IF EXISTS instant_value CASCADE;
 DROP TABLE IF EXISTS country CASCADE;
 DROP TABLE IF EXISTS issue CASCADE;
 DROP TABLE IF EXISTS project CASCADE;
@@ -403,6 +404,16 @@ CREATE TABLE duration_value (
     span INTERVAL NOT NULL,
     span_calendar INTERVAL,
     span_text VARCHAR(64)
+);
+
+-- instant_value: exact moments (Temporal.Instant) in the columns a database has for them: instant_at in the one
+-- recommended for an instant, wall_at without zone (its wall clock in UTC), session_at converted with the zone of the
+-- session where the database has such a column (else as instant_at).
+CREATE TABLE instant_value (
+    id INTEGER PRIMARY KEY,
+    instant_at TIMESTAMPTZ NOT NULL,
+    wall_at TIMESTAMP,
+    session_at TIMESTAMPTZ
 );
 
 -- View side of col_matrix — surfaces the same per-kind read marshalling through

@@ -934,6 +934,10 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _currentTime(): string {
         return 'convert(time, current_timestamp)'
     }
+    override _currentInstant(): string {
+        // The UTC date and time of now, a datetime2(7), whatever the zone of the operating system
+        return 'sysutcdatetime()'
+    }
     override _random(): string {
         return 'rand()'
     }

@@ -9,9 +9,10 @@ import { oracleSessionTimeZone } from '../utils/oracle/oracleSessionTimeZone.js'
 import { oracleOutParam, queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import type { DataTypeClass, SqlDataType } from '../TypeAdapter.js'
 import { __sqlDataTypeDescribes, __temporalFieldsOf, __typeSqlDataTypeOf } from '../typeSystem/dataTypes.js'
-import { isOracleZonedParam, oraclePlainTemporalForm, oracleTemporalBind } from '../utils/oracle/oracleParamTypes.js'
+import { isOracleZonedParam, oraclePlainTemporalFormOfParam, oracleTemporalBind } from '../utils/oracle/oracleParamTypes.js'
 import { durationIsoTextWithoutWeeks, isDurationValue } from '../utils/durationValues.js'
 import { isPlainTemporalClass } from '../utils/plainTemporalValues.js'
+import { __isInstantClass } from '../typeSystem/dataTypeQuestions.js'
 import { oracleDateParam } from '../utils/metadataSymbols.js'
 import type { QueryParamContext } from '../QueryContext.js'
 import { existingParamContextOf, existingQueryContextOf } from '../internal/QueryContextImpl.js'
@@ -213,11 +214,11 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
                 // gives it as its instant, where it builds a date or a timestamp with the zone of the process
                 // A text of a column its SQL data type says (withSqlDataType) is a large object is returned as a CLOB
                 // (a VARCHAR2 can't hold it, ORA-22835), and one of a known length in a buffer of that length
-                // A Temporal value without zone is returned as the text its RETURNING writes (to_char), and a duration
+                // A Temporal value without zone and an instant are returned as the text its RETURNING writes (to_char), and a duration
                 // as the text of its interval: both without a type, as a string
                 const sqlDataType = param?.requestedSqlDataType?.family === 'character string' && __sqlDataTypeDescribes(param.requestedSqlDataType, requestedType) ? param.requestedSqlDataType : undefined
                 const lob = sqlDataType?.largeObject ? (sqlDataType.national ? oracleDb.DB_TYPE_NCLOB : oracleDb.DB_TYPE_CLOB) : undefined
-                const dbType = declared ?? lob ?? (isPlainTemporalClass(requestedType) ? undefined : __temporalFieldsOf(requestedType) !== undefined ? oracleDb.DB_TYPE_TIMESTAMP_TZ : this.oracleDbType(requestedType, nativeBoolean))
+                const dbType = declared ?? lob ?? (isPlainTemporalClass(requestedType) || (requestedType !== undefined && __isInstantClass(requestedType)) ? undefined : __temporalFieldsOf(requestedType) !== undefined ? oracleDb.DB_TYPE_TIMESTAMP_TZ : this.oracleDbType(requestedType, nativeBoolean))
                 // A text, or a value received as one, is returned in a buffer of maxSize bytes; a character of a text
                 // is up to 4 bytes (AL32UTF8)
                 const lengthBytes = sqlDataType?.length !== undefined && !sqlDataType.largeObject ? (sqlDataType.lengthUnit === 'octets' ? sqlDataType.length : sqlDataType.length * 4) : undefined
@@ -253,7 +254,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
                 continue
             }
             // A Temporal value without zone is bound as its text, which its placeholder converts (see oraclePlaceholder)
-            const plain = oraclePlainTemporalForm(value, param?.getMetadata(oracleDateParam) === true)
+            const plain = oraclePlainTemporalFormOfParam(params, i, value)
             if (plain) {
                 result[i] = plain.text
                 continue

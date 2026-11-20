@@ -3,6 +3,7 @@ import { __sqlDataTypeDescribes, __temporalFieldsOf, __typeSqlDataTypeOf } from 
 import { connectionClassIdOf, keepDerivedOfSqlDataType, keptDerivedOfSqlDataType } from '../sqlDataTypeNames.js'
 import { utcDateText, utcTimeText } from '../utcDateTimeText.js'
 import { plainTemporalText } from '../plainTemporalValues.js'
+import { postgreSqlInstantText } from '../instantValues.js'
 import { durationIsoTextWithoutWeeks, isDurationValue } from '../durationValues.js'
 import { postgreSqlZonedParam } from '../metadataSymbols.js'
 import { existingParamContextOf, existingQueryContextOf } from '../../internal/QueryContextImpl.js'
@@ -146,7 +147,7 @@ export function postgreSqlParamType(requestedType: DataTypeClass | undefined, va
                     return zoned ? timestamptz : time
                 }
                 if (sqlDataType.fields === 'timestamp') {
-                    return zoned ? timestamptz : timestamp
+                    return zoned || sqlDataType.timeZone === 'instant' ? timestamptz : timestamp
                 }
                 break
             default:
@@ -240,10 +241,11 @@ export function postgreSqlDriverParams(params: any[]): any[] {
         const value = params[i]
         const param = existingParamContextOf(params, i)
         const requestedType = param?.requestedType
-        // A Temporal value without zone goes as its text, with all the digits of its fraction of a second; a duration
+        // A Temporal value without zone goes as its text, with all the digits of its fraction of a second, an instant
+        // as the text of its wall clock in UTC with its offset (see postgreSqlInstantText); a duration
         // as its ISO 8601 text, with the sign of a negative one in each field and its weeks as days (PostgreSQL rejects
         // `-P1D`, and has no weeks)
-        const plainText = plainTemporalText(value, true) ?? (isDurationValue(value) ? durationIsoTextWithoutWeeks(value, true) : undefined)
+        const plainText = plainTemporalText(value, true) ?? postgreSqlInstantText(value) ?? (isDurationValue(value) ? durationIsoTextWithoutWeeks(value, true) : undefined)
         if (plainText === undefined && (!(value instanceof Date) || requestedType === undefined)) {
             continue
         }

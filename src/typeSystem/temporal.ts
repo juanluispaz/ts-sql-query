@@ -26,6 +26,8 @@ export type TemporalPlainDate = InstanceOf<'PlainDate'>
 export type TemporalPlainTime = InstanceOf<'PlainTime'>
 /** `Temporal.PlainDateTime`: a date and a time of the day without a zone */
 export type TemporalPlainDateTime = InstanceOf<'PlainDateTime'>
+/** `Temporal.Instant`: an exact moment, the same everywhere, with nanoseconds */
+export type TemporalInstant = InstanceOf<'Instant'>
 /** `Temporal.Duration`: an amount of time, in years, months, weeks, days, hours ... nanoseconds */
 export type TemporalDuration = InstanceOf<'Duration'>
 /**

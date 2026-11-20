@@ -9,6 +9,7 @@ import type { UuidType } from './uuids.js'
 import type { LocalDateTimeType, LocalDateType, LocalTimeType } from './localDates.js'
 import type { PlainDateTimeType, PlainDateType, PlainTimeType } from './plainDates.js'
 import type { DurationType } from './durations.js'
+import type { InstantType } from './instants.js'
 import type { AnyType, IValueSource, ValueSource, ValueTypeOf } from './base.js'
 import type { FragmentExpression } from './fragments.js'
 
@@ -43,6 +44,7 @@ export interface DataTypes {
     plainTime: PlainTimeType
     plainDateTime: PlainDateTimeType
     duration: DurationType
+    instant: InstantType
 }
 
 /** The name of a data type known by name: a built-in one, or one of yours declared in DataTypes */

@@ -61,6 +61,16 @@ class TMoment extends Table<MadridConnection, 'TMoment'> {
     }
 }
 const tMoment = new TMoment()
+// The same table, its date and time columns read as instants (Temporal.Instant)
+class TInstantMoment extends Table<MadridConnection, 'TInstantMoment'> {
+    id = this.primaryKey('id', 'int')
+    ts = this.optionalColumn('ts', 'instant')
+    tstz = this.optionalColumn('tstz', 'instant')
+    constructor() {
+        super(tableName)
+    }
+}
+const tInstantMoment = new TInstantMoment()
 
 // 09:15:30.123Z is 10:15:30.123 in Madrid in winter, 11:15:30.123 in summer; in 1960 Madrid was at +01:00 in summer
 const winter = new Date('2024-01-14T09:15:30.123Z')
@@ -136,6 +146,7 @@ export interface ScenarioResult {
     timeWithTimeZone: { delivered: unknown, read: unknown, hours: unknown }
     repeated: unknown
     skipped: unknown
+    instant: { stored: unknown[], read: unknown[], where: number[], aggregated: unknown[], currentDrift: number, repeated: unknown }
 }
 
 async function scenario(): Promise<ScenarioResult> {
@@ -199,7 +210,22 @@ async function scenario(): Promise<ScenarioResult> {
             await raw(`insert into ${tableName} (id, ts) values (7, '2024-10-27 02:30:00'), (8, '2024-03-31 02:30:00')`)
             const repeated = iso(await conn.selectFrom(tMoment).where(tMoment.id.equals(7)).selectOneColumn(tMoment.ts).executeSelectOne())
             const skipped = iso(await conn.selectFrom(tMoment).where(tMoment.id.equals(8)).selectOneColumn(tMoment.ts).executeSelectOne())
-            return { session, stored, read, whereTs, whereOld, whereT, aggregated, currentTimestampDrift, constTimeToday, summerTime, timeAfterMidnight, timeWithTimeZone, repeated, skipped }
+            // An instant: stored as the wall clock of Madrid of the instant, read, compared and aggregated as its
+            // instant, the current instant of the database, and a wall clock that Madrid repeats taken in winter time
+            const instantWinter = Temporal.Instant.from('2024-01-14T09:15:30.123Z')
+            await conn.insertInto(tInstantMoment).set({ id: 11, ts: instantWinter, tstz: instantWinter }).executeInsert()
+            const instantText = (value: unknown): unknown => value instanceof Temporal.Instant ? value.toString() : value
+            const beforeInstant = Temporal.Now.instant()
+            const instant = {
+                stored: await raw(`select ts::text as ts, to_char(tstz at time zone 'UTC', 'YYYY-MM-DD HH24:MI:SS.MS') as tstz_utc from ${tableName} where id = 11`),
+                read: (await conn.selectFrom(tInstantMoment).where(tInstantMoment.id.in([1, 3, 11])).select({ id: tInstantMoment.id, ts: tInstantMoment.ts, tstz: tInstantMoment.tstz }).orderBy('id').executeSelectMany())
+                    .map(row => ({ id: row.id, ts: instantText(row.ts), tstz: instantText(row.tstz) })),
+                where: await idsWhere(conn.selectFrom(tInstantMoment).where(tInstantMoment.ts.equals(instantWinter)).select({ id: tInstantMoment.id }).orderBy('id')),
+                aggregated: (await conn.selectFrom(tInstantMoment).where(tInstantMoment.id.in([1, 11])).selectOneColumn(conn.aggregateAsArrayOfOneColumn(tInstantMoment.ts)).executeSelectOne()).map(instantText),
+                currentDrift: Math.abs(Number((await conn.selectFromNoTable().selectOneColumn(conn.currentInstant()).executeSelectOne()).since(beforeInstant).total('millisecond'))),
+                repeated: instantText(await conn.selectFrom(tInstantMoment).where(tInstantMoment.id.equals(7)).selectOneColumn(tInstantMoment.ts).executeSelectOne()),
+            }
+            return { session, stored, read, whereTs, whereOld, whereT, aggregated, currentTimestampDrift, constTimeToday, summerTime, timeAfterMidnight, timeWithTimeZone, repeated, skipped, instant }
         } finally {
             await raw('drop table ' + tableName)
         }

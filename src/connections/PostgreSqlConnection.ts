@@ -3,7 +3,7 @@ import { argumentNumber, nativeNameFor, nativeTypeParts } from '../utils/sqlData
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import { PostgreSqlSqlBuilder, postgreSqlZonedValueSql } from '../sqlBuilders/PostgreSqlSqlBuilder.js'
 import type { IntervalSqlDataTypeFields, SqlDataType, SqlDataTypeNative, TypeAdapterProjectionContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
-import { __isLocalDateTimeClass, __isLocalTimeClass } from '../typeSystem/dataTypeQuestions.js'
+import { __isInstantClass, __isLocalDateTimeClass, __isLocalTimeClass } from '../typeSystem/dataTypeQuestions.js'
 import { AbstractAdvancedConnection } from './AbstractAdvancedConnection.js'
 import type { AggregatedArrayColumns, SourceOfAggregatedArray, TransactionIsolationLevel } from './AbstractConnection.js'
 import type { ResultObjectValuesForAggregatedArray } from '../complexProjections/resultWithOptionalsAsUndefined.js'
@@ -62,13 +62,13 @@ export abstract class PostgreSqlConnection<NAME extends string> extends Abstract
     protected override compatibilityVersion: number = Number.POSITIVE_INFINITY
 
     /**
-     * With a databaseTimeZone other than UTC, a localDateTime or a localTime parameter goes as a timestamptz of its
+     * With a databaseTimeZone other than UTC, a localDateTime, a localTime or an instant parameter goes as a timestamptz of its
      * instant, which the database converts with its session (the zone of the database) into the wall clock it stores
      * or compares with
      */
     protected override transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext): unknown {
         if (this.isDatabaseOutsideUtc()) {
-            if (__isLocalDateTimeClass(context.requestedType) || __isLocalTimeClass(context.requestedType)) {
+            if (__isLocalDateTimeClass(context.requestedType) || __isLocalTimeClass(context.requestedType) || __isInstantClass(context.requestedType)) {
                 context.setMetadata(postgreSqlZonedParam, true)
             }
         }

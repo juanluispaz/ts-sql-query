@@ -54,6 +54,24 @@ for (const { version, compatibilityVersion, label } of await environmentVersions
                     { id: 5, ts: '1960-07-14T09:15:30.123Z', t: '1970-01-01T17:00:00.000Z', ...winter, day: 4, month: 6, year: 1960, time: Date.parse('1960-07-14T09:15:30.123Z'), tHours: 17 },
                 ])
                 // Compared: with the wall clock of Madrid of the instant, cast to the type of the column, with its index
+                // An instant: stored as the wall clock of Madrid of the instant (a DATE with its whole seconds), read,
+                // compared (with the wall clock of the session, a timestamp) and aggregated as its instant
+                expect(out.instant.sql).toEqual([
+                    "select id as \"id\" from rt_ora_madrid where ts = cast(from_tz(to_timestamp(:0, 'YYYY-MM-DD HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN'), '+00:00') at local as timestamp) order by \"id\"",
+                    "select id as \"id\" from rt_ora_madrid where dx = cast(from_tz(to_timestamp(:0, 'YYYY-MM-DD HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN'), '+00:00') at local as timestamp) order by \"id\"",
+                ])
+                expect(out.instant.stored).toEqual([{ TS: '2024-01-14 10:15:30.123', DX: '2024-01-14 10:15:30', TZ_UTC: '2024-01-14 09:15:30.123' }])
+                expect(out.instant.read).toEqual([
+                    { id: 1, ts: '2024-01-14T09:15:30.123Z', dx: '2024-01-14T09:15:30Z', tz: '2024-01-14T09:15:30.123Z' },
+                    { id: 3, ts: '2024-01-14T09:15:30.123Z', dx: '2024-01-14T09:15:30Z', tz: undefined },
+                    { id: 12, ts: '2024-01-14T09:15:30.123Z', dx: '2024-01-14T09:15:30Z', tz: '2024-01-14T09:15:30.123Z' },
+                ])
+                expect(out.instant.where).toEqual([1, 3, 6, 12])
+                expect(out.instant.whereDx).toEqual([1, 3, 12])
+                expect(out.instant.returning).toBe('2024-01-14T09:15:30.123Z')
+                expect(out.instant.aggregated).toEqual(['2024-01-14T09:15:30.123Z', '2024-01-14T09:15:30.123Z'])
+                expect(out.instant.currentDrift).toBeLessThan(60_000)
+                expect(out.instant.repeated).toBe('2024-10-27T01:30:00Z')
                 expect(out.whereSql).toEqual({
                     ts: 'select id as "id" from rt_ora_madrid where ts = cast(:0 as timestamp)',
                     dx: 'select id as "id" from rt_ora_madrid where dx = cast(:0 as date)',

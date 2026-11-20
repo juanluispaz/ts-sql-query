@@ -17,7 +17,7 @@ import { test, expect } from '../../../lib/testRunner.js'
 import { PostgreSqlConnection } from '../../../../src/connections/PostgreSqlConnection.js'
 import { Table } from '../../../../src/Table.js'
 import type { DBConnection } from '../domain/connection.js'
-import { tColMatrixColumn as t, tColMatrixPlain, tDurationValue } from '../domain/connection.js'
+import { tColMatrixColumn as t, tColMatrixPlain, tDurationValue, tInstantValue } from '../domain/connection.js'
 import { EnumType } from '../../../../src/exports/v2/index.js'
 import { DecimalsType, IntegersType, RealsType } from '../../../../src/exports/v2/index.js'
 
@@ -643,6 +643,15 @@ function _typeNegatives() {
     void tDurationValue.span.add(3600)
     // @ts-expect-error a time of the day isn't a duration
     void tDurationValue.span.subtract(tColMatrixPlain.mTime)
+    // An instant compares with an instant: a Temporal.Instant or a value of the type instant
+    void tInstantValue.instantAt.lessThan(tInstantValue.wallAt)
+    void tInstantValue.instantAt.equals(Temporal.Instant.from('2024-01-14T09:15:30Z'))
+    // @ts-expect-error a Date isn't an instant
+    void tInstantValue.instantAt.equals(new Date())
+    // @ts-expect-error a date and a time without zone isn't an instant
+    void tInstantValue.instantAt.equals(tColMatrixPlain.mDatetime)
+    // @ts-expect-error an instant has no year without a zone, as in Temporal
+    void tInstantValue.instantAt.year()
 }
 
 test('expressions-negative-types', () => {

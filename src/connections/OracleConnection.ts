@@ -10,7 +10,7 @@ import type { SameDB } from '../utils/ITableOrView.js'
 import type { Default } from '../expressions/Default.js'
 import { DefaultImpl } from '../expressions/Default.js'
 import type { SqlDataType, SqlDataTypeNative, TypeAdapterProjectionContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
-import { __isBooleanClass, __isDurationClass, __isLocalDateTimeClass, __isLocalTimeClass, __isPlainDateClass, __isPlainDateTimeClass, __isPlainTimeClass } from '../typeSystem/dataTypeQuestions.js'
+import { __isBooleanClass, __isDurationClass, __isInstantClass, __isLocalDateTimeClass, __isLocalTimeClass, __isPlainDateClass, __isPlainDateTimeClass, __isPlainTimeClass } from '../typeSystem/dataTypeQuestions.js'
 import { __durationSqlDataTypeOf } from '../typeSystem/dataTypes.js'
 import { isDurationValue } from '../utils/durationValues.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
@@ -203,7 +203,7 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
      * converts with its session (the zone of the database) into the wall clock it stores or compares with
      */
     protected override transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext): unknown {
-        if ((__isLocalDateTimeClass(context.requestedType) || __isLocalTimeClass(context.requestedType)) && this.isDatabaseOutsideUtc()) {
+        if ((__isLocalDateTimeClass(context.requestedType) || __isLocalTimeClass(context.requestedType) || __isInstantClass(context.requestedType)) && this.isDatabaseOutsideUtc()) {
             context.setMetadata(oracleZonedParam, true)
         }
         const durationSqlDataType = __isDurationClass(context.requestedType) ? __durationSqlDataTypeOf(context.requestedSqlDataType, context.requestedType) : undefined
@@ -231,6 +231,14 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
      * inside the JSON of an aggregated array, where Oracle writes it as a text with its zone
      */
     protected override transformProjection(sql: string, context: TypeAdapterProjectionContext): string {
+        if (context.output === 'resultColumn' && __isInstantClass(context.requestedType)) {
+            // oracledb delivers a date and a time as a Date, which drops the digits below the millisecond: an instant
+            // leaves the database as the text of its wall clock in UTC, with all its digits and the era always written.
+            // A value without zone is completed with the zone of the session (the zone of the database). It compares
+            // like the value but doesn't order like it (a year BC)
+            context.comparison = 'equality'
+            return "to_char(sys_extract_utc(cast(" + sql + " as timestamp(9) with time zone)), 'YYYY-MM-DD\"T\"HH24:MI:SS.FF9\"Z\" BC', 'NLS_DATE_LANGUAGE=AMERICAN')"
+        }
         if (this.isDatabaseOutsideUtc()) {
             const zoned = oracleZonedValueSql(sql, context.requestedType, this.localTimeReferenceDate)
             if (zoned) {

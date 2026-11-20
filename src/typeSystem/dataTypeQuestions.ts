@@ -9,6 +9,7 @@ import { UuidsType } from './uuids.js'
 import { LocalDatesType, LocalDateTimesType, LocalTimesType } from './localDates.js'
 import { PlainDatesType, PlainDateTimesType, PlainTimesType } from './plainDates.js'
 import { DurationsType } from './durations.js'
+import { InstantsType } from './instants.js'
 import { AggregatedArraysType } from './aggregatedArrays.js'
 
 /*
@@ -78,6 +79,10 @@ export function __isPlainDateTimeClass(typeClass: DataTypeClass): boolean {
 /** A duration whose value is like a Temporal.Duration: a duration, or a type of the user of its family */
 export function __isDurationClass(typeClass: DataTypeClass): boolean {
     return isOf(typeClass, DurationsType)
+}
+/** An exact moment whose value is like a Temporal.Instant: an instant, or a type of the user of its family */
+export function __isInstantClass(typeClass: DataTypeClass): boolean {
+    return isOf(typeClass, InstantsType)
 }
 export function __isAggregatedArrayClass(typeClass: DataTypeClass): boolean {
     return isOf(typeClass, AggregatedArraysType)

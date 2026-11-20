@@ -150,6 +150,11 @@ export {
 } from '../../typeSystem/durations.js'
 
 export {
+    InstantType,
+    InstantsType,
+} from '../../typeSystem/instants.js'
+
+export {
     EnumType,
 } from '../../typeSystem/enum.js'
 

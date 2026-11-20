@@ -1226,6 +1226,16 @@ export const tDurationValue = new class TDurationValue extends Table<DBConnectio
     constructor() { super('duration_value') }
 }()
 
+// instant_value: exact moments (Temporal.Instant) in the column recommended for an instant (instant_at), in a column
+// without zone (wall_at) and in one converted with the zone of the session where the database has it (session_at)
+export const tInstantValue = new class TInstantValue extends Table<DBConnection, 'TInstantValue'> {
+    id        = this.primaryKey('id', 'int')
+    instantAt = this.column('instant_at', 'instant')
+    wallAt    = this.optionalColumn('wall_at', 'instant')
+    sessionAt = this.optionalColumn('session_at', 'instant')
+    constructor() { super('instant_value') }
+}()
+
 // Time-tracking worklog: surfaces the date-only / time-only / nullable
 // bigint / nullable plain-boolean / optional-with-default / plain-enum
 // column kinds the original four tables don't expose.

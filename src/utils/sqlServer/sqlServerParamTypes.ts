@@ -4,6 +4,7 @@ import { __typeSqlDataTypeOf } from '../../typeSystem/dataTypes.js'
 import { existingParamContextOf } from '../../internal/QueryContextImpl.js'
 import { __temporalIfAvailable, type TemporalPlainDateTime, type TemporalPlainTime } from '../../typeSystem/temporal.js'
 import { utcDateText, utcTimeText } from '../utcDateTimeText.js'
+import { instantUtcDateTime } from '../instantValues.js'
 
 /**
  * The placeholder of a parameter on SQL Server, for every query runner of it. An exact number sent as its text (a
@@ -51,7 +52,12 @@ export function sqlServerTemporalDate(value: unknown): Date | undefined {
         return result
     }
     let time: TemporalPlainTime | TemporalPlainDateTime
-    if (value instanceof temporal.PlainDateTime) {
+    if (value instanceof temporal.Instant) {
+        // An instant, as the wall clock of its instant in UTC (a datetimeoffset column takes it with +00:00)
+        const dateTime = instantUtcDateTime(value)!
+        result.setUTCFullYear(dateTime.year, dateTime.month - 1, dateTime.day)
+        time = dateTime
+    } else if (value instanceof temporal.PlainDateTime) {
         result.setUTCFullYear(value.year, value.month - 1, value.day)
         time = value
     } else if (value instanceof temporal.PlainTime) {

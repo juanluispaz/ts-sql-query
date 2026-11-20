@@ -17,6 +17,7 @@ IF OBJECT_ID('issue_worklog', 'U') IS NOT NULL DROP TABLE issue_worklog;
 IF OBJECT_ID('col_matrix', 'U') IS NOT NULL DROP TABLE col_matrix;
 IF OBJECT_ID('temporal_precision', 'U') IS NOT NULL DROP TABLE temporal_precision;
 IF OBJECT_ID('duration_value', 'U') IS NOT NULL DROP TABLE duration_value;
+IF OBJECT_ID('instant_value', 'U') IS NOT NULL DROP TABLE instant_value;
 IF OBJECT_ID('flight_leg', 'U') IS NOT NULL DROP TABLE flight_leg;
 IF OBJECT_ID('country', 'U') IS NOT NULL DROP TABLE country;
 IF OBJECT_ID('issue', 'U') IS NOT NULL DROP TABLE issue;
@@ -419,6 +420,17 @@ CREATE TABLE duration_value (
     span NVARCHAR(64) NOT NULL,
     span_calendar NVARCHAR(64),
     span_text NVARCHAR(64)
+);
+GO
+
+-- instant_value: exact moments (Temporal.Instant) in the columns a database has for them: instant_at in the one
+-- recommended for an instant, wall_at without zone (its wall clock in UTC), session_at converted with the zone of the
+-- session where the database has such a column (else as instant_at).
+CREATE TABLE instant_value (
+    id INT PRIMARY KEY,
+    instant_at DATETIMEOFFSET(7) NOT NULL,
+    wall_at DATETIME2(7),
+    session_at DATETIMEOFFSET(7)
 );
 GO
 

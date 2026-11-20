@@ -3,6 +3,7 @@ import { exactDecimalDigitsOf, rejectExactDecimalParam } from '../exactDecimalPa
 import { __temporalFieldsOf, __typeSqlDataTypeOf } from '../../typeSystem/dataTypes.js'
 import { utcDateText, utcTimeText } from '../utcDateTimeText.js'
 import { plainTemporalText } from '../plainTemporalValues.js'
+import { instantUtcDateTime } from '../instantValues.js'
 import { existingParamContextOf } from '../../internal/QueryContextImpl.js'
 
 /**
@@ -66,8 +67,9 @@ export function mySqlMariaDBDriverParams(params: any[]): any[] {
         const value = params[i]
         const param = existingParamContextOf(params, i)
         const requestedType = param?.requestedType
-        // A Temporal value without zone goes as its text, with all the digits of its fraction of a second
-        const plainText = plainTemporalText(value)
+        // A Temporal value without zone goes as its text, with all the digits of its fraction of a second; an instant
+        // as the text of its wall clock in UTC
+        const plainText = plainTemporalText(value) ?? plainTemporalText(instantUtcDateTime(value))
         if (plainText === undefined && (!(value instanceof Date) || requestedType === undefined)) {
             continue
         }

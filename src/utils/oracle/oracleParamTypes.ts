@@ -4,6 +4,7 @@ import { __durationSqlDataTypeOf, __temporalFieldsOf, __typeSqlDataTypeOf } from
 import { oracleDateParam, oracleZonedParam } from '../metadataSymbols.js'
 import { existingParamContextOf } from '../../internal/QueryContextImpl.js'
 import { isDurationValue } from '../durationValues.js'
+import { instantUtcDateTime, isInstantValue } from '../instantValues.js'
 import { __temporalIfAvailable, type TemporalPlainDateTime, type TemporalPlainTime } from '../../typeSystem/temporal.js'
 
 /**
@@ -80,7 +81,13 @@ export function isOracleZonedParam(params: any[], index: number): boolean {
  * timestamp)))`. A null, or any other parameter, keeps the bare placeholder.
  */
 export function oraclePlaceholder(placeholder: string, params: any[], index: number, value: unknown): string {
-    const plain = oraclePlainTemporalForm(value, existingParamContextOf(params, index)?.getMetadata(oracleDateParam) === true)
+    const plain = oraclePlainTemporalFormOfParam(params, index, value)
+    if (plain !== undefined && isInstantValue(value) && isOracleZonedParam(params, index)) {
+        // An instant of a database outside UTC: the wall clock of its instant in UTC, converted to the wall clock of the
+        // session (the zone of the database), the one a column without zone keeps and compares with
+        const ofDate = existingParamContextOf(params, index)?.getMetadata(oracleDateParam) === true && (value as { epochNanoseconds: bigint }).epochNanoseconds % 1_000_000_000n === 0n
+        return 'cast(from_tz(' + plain.conversion + '(' + placeholder + ", '" + plain.format + "', 'NLS_DATE_LANGUAGE=AMERICAN'), '+00:00') at local as " + (ofDate ? 'date)' : 'timestamp)')
+    }
     if (plain !== undefined) {
         // A Temporal value without zone is sent as its text, converted with a format of its own, whatever the formats
         // and the language of the session (NLS_DATE_FORMAT, NLS_TIMESTAMP_FORMAT, NLS_DATE_LANGUAGE)
@@ -121,6 +128,10 @@ export function oraclePlainTemporalForm(value: unknown, ofDate: boolean): { text
     if (!temporal || value === null || typeof value !== 'object') {
         return undefined
     }
+    if (value instanceof temporal.Instant) {
+        // An instant, as the wall clock of its instant in UTC
+        value = instantUtcDateTime(value)
+    }
     if (value instanceof temporal.PlainDate) {
         return { text: oracleDateText(value.year, value.month, value.day), conversion: 'to_date', format: 'YYYY-MM-DD BC' }
     }
@@ -143,6 +154,16 @@ export function oraclePlainTemporalForm(value: unknown, ofDate: boolean): { text
     }
     const fraction = pad(time.millisecond, 3) + pad(time.microsecond, 3) + pad(time.nanosecond, 3)
     return { text: day + ' ' + clock + '.' + fraction + era, conversion: 'to_timestamp', format: 'YYYY-MM-DD HH24:MI:SS.FF9 BC' }
+}
+
+/**
+ * How the parameter at that index is sent when it is a Temporal value without zone or an instant (see
+ * oraclePlainTemporalForm): an instant of a database outside UTC always as a TIMESTAMP, which its placeholder converts
+ * (see oraclePlaceholder)
+ */
+export function oraclePlainTemporalFormOfParam(params: any[], index: number, value: unknown): { text: string, conversion: 'to_date' | 'to_timestamp', format: string } | undefined {
+    const ofDate = existingParamContextOf(params, index)?.getMetadata(oracleDateParam) === true && !(isInstantValue(value) && isOracleZonedParam(params, index))
+    return oraclePlainTemporalForm(value, ofDate)
 }
 
 /** `YYYY-MM-DD AD`, or `YYYY-MM-DD BC` for a year before 1 (the year 0 is 1 BC) */

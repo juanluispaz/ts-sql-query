@@ -614,6 +614,13 @@ interface DurationValueSource extends EqualableValueSource<Temporal.Duration, 'd
 }
 
 /**
+ * Represents an exact moment (using a Temporal.Instant), kept in any column of a date and a time: one with zone holds
+ * its instant, one without zone its wall clock in the zone of the database. Ordered by its moment
+ */
+interface InstantValueSource extends ComparableValueSource<Temporal.Instant, 'instant'> {
+}
+
+/**
  * Represents a local date without time of a type of yours that extends `LocalDatesType`. The getters give its parts in
  * UTC, as the getUTC… methods of the Date read
  */
@@ -761,6 +768,8 @@ interface Connection {
     currentPlainDate(): PlainDateValueSource
     currentPlainTime(): PlainTimeValueSource
     currentPlainDateTime(): PlainDateTimeValueSource
+    /** The instant of now in the database, as Temporal's Now.instant(), with the digits of the fraction of a second it gives */
+    currentInstant(): InstantValueSource
     true(): BooleanValueSource
     false(): BooleanValueSource
 
@@ -2323,7 +2332,7 @@ interface DataTypes {
     stringDecimal: StringDecimalValueSource, string: StringValueSource, uuid: UuidValueSource,
     localDate: LocalDateValueSource, localTime: LocalTimeValueSource, localDateTime: LocalDateTimeValueSource,
     plainDate: PlainDateValueSource, plainTime: PlainTimeValueSource, plainDateTime: PlainDateTimeValueSource,
-    duration: DurationValueSource
+    duration: DurationValueSource, instant: InstantValueSource
 }
 type DataTypeName = keyof DataTypes
 /** Registers a data type of the user by the type name of its class (its static type) */

@@ -51,6 +51,17 @@ class TMoment extends Table<MadridConnection, 'TMoment'> {
     }
 }
 const tMoment = new TMoment()
+// The same table, its date and time columns read as instants (Temporal.Instant)
+class TInstantMoment extends Table<MadridConnection, 'TInstantMoment'> {
+    id = this.primaryKey('id', 'int')
+    ts = this.optionalColumn('ts', 'instant')
+    dx = this.optionalColumn('dx', 'instant')
+    tz = this.optionalColumn('tz', 'instant')
+    constructor() {
+        super(tableName)
+    }
+}
+const tInstantMoment = new TInstantMoment()
 
 // 09:15:30.123Z is 10:15:30.123 in Madrid in winter, 11:15:30.123 in summer; in 1960 Madrid was at +01:00 in summer
 const winter = new Date('2024-01-14T09:15:30.123Z')
@@ -95,6 +106,7 @@ export interface ScenarioResult {
     skipped?: string
     summerTime?: { stored: unknown[], read: unknown }
     timeAfterMidnight?: { stored: unknown[], where: number[] }
+    instant?: { sql: string[], stored: unknown[], read: unknown[], where: number[], whereDx: number[], returning: unknown, aggregated: unknown[], currentDrift: number, repeated: unknown }
 }
 
 async function scenario(): Promise<ScenarioResult> {
@@ -175,6 +187,27 @@ async function scenario(): Promise<ScenarioResult> {
         // A wall clock that is repeated when Madrid leaves summer time is taken in winter time
         await raw(`insert into ${tableName} (id, ts) values (7, timestamp '2024-10-27 02:30:00')`)
         out.repeated = iso(await conn.selectFrom(tMoment).where(tMoment.id.equals(7)).selectOneColumn(tMoment.ts).executeSelectOne())
+        // An instant: stored as the wall clock of Madrid of the instant, read, compared and aggregated as its
+        // instant, the current instant of the database, and a wall clock that Madrid repeats taken in winter time
+        const instantWinter = Temporal.Instant.from('2024-01-14T09:15:30.123Z')
+        const instantWhole = Temporal.Instant.from('2024-01-14T09:15:30Z')
+        const instantText = (value: unknown): unknown => value instanceof Temporal.Instant ? value.toString() : value
+        await conn.insertInto(tInstantMoment).set({ id: 12, ts: instantWinter, dx: instantWhole, tz: instantWinter }).executeInsert()
+        const beforeInstant = Temporal.Now.instant()
+        const instantWhere = conn.selectFrom(tInstantMoment).where(tInstantMoment.ts.equals(instantWinter)).select({ id: tInstantMoment.id }).orderBy('id')
+        const instantWhereDx = conn.selectFrom(tInstantMoment).where(tInstantMoment.dx.equals(instantWhole)).select({ id: tInstantMoment.id }).orderBy('id')
+        out.instant = {
+            sql: [instantWhere.query(), instantWhereDx.query()],
+            stored: await raw(`select to_char(ts, 'YYYY-MM-DD HH24:MI:SS.FF3') as ts, to_char(dx, 'YYYY-MM-DD HH24:MI:SS') as dx, to_char(sys_extract_utc(tz), 'YYYY-MM-DD HH24:MI:SS.FF3') as tz_utc from ${tableName} where id = 12`),
+            read: (await conn.selectFrom(tInstantMoment).where(tInstantMoment.id.in([1, 3, 12])).select({ id: tInstantMoment.id, ts: tInstantMoment.ts, dx: tInstantMoment.dx, tz: tInstantMoment.tz }).orderBy('id').executeSelectMany())
+                .map(row => ({ id: row.id, ts: instantText(row.ts), dx: instantText(row.dx), tz: instantText(row.tz) })),
+            where: await idsWhere(instantWhere),
+            whereDx: await idsWhere(instantWhereDx),
+            returning: instantText((await conn.insertInto(tInstantMoment).set({ id: 13, ts: instantWinter }).returning({ ts: tInstantMoment.ts }).executeInsertOne()).ts),
+            aggregated: (await conn.selectFrom(tInstantMoment).where(tInstantMoment.id.in([1, 12])).selectOneColumn(conn.aggregateAsArrayOfOneColumn(tInstantMoment.ts)).executeSelectOne()).map(instantText),
+            currentDrift: Math.abs(Number((await conn.selectFromNoTable().selectOneColumn(conn.currentInstant()).executeSelectOne()).since(beforeInstant).total('millisecond'))),
+            repeated: instantText(await conn.selectFrom(tInstantMoment).where(tInstantMoment.id.equals(7)).selectOneColumn(tInstantMoment.ts).executeSelectOne()),
+        }
         // A wall clock that Madrid skips when it changes to summer time can't be read: ORA-01878
         await raw(`insert into ${tableName} (id, ts) values (4, timestamp '2024-03-31 02:30:00')`)
         out.skipped = await outcomeOf(() => conn.selectFrom(tMoment).where(tMoment.id.equals(4)).selectOneColumn(tMoment.ts).executeSelectOne())

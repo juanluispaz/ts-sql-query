@@ -427,7 +427,7 @@ Bun SQL (`BunSqlPostgresQueryRunner`, `BunSqlMySqlQueryRunner`) gives a
 PostgreSQL `timestamp` and a MySQL / MariaDB `datetime` as a `Date`, which
 stops at the millisecond, and has no option to give its text: its `raw()`
 values are the binary protocol (measured on Bun 1.4.4). A `plainDateTime`
-read through it loses the digits below the millisecond, which every other
+or an `instant` read through it loses the digits below the millisecond, which every other
 driver keeps (pg and PGlite with text parsers per query, postgres.js `raw()`
 with the parser of each column, mysql2 / mariadb `dateStrings`). A `date`
 and a `time` keep all their digits.
@@ -436,7 +436,11 @@ and a `time` keep all their digits.
 `a-plain-date-time-keeps-the-microseconds`,
 `a-plain-date-time-is-stored-with-the-digits-the-column-keeps` and, on
 PostgreSQL, `a-plain-date-before-the-year-1` are commented out with
-`// NOT-SUPPORTED:` in the `bun_sql_postgres` and `bun_sql_mysql` cells.
+`// NOT-SUPPORTED:` in the `bun_sql_postgres` and `bun_sql_mysql` cells;
+`column.instant.test.ts` — `instant-columns-are-read-as-instants` and
+`an-instant-is-stored-with-the-digits-the-column-keeps`, plus
+`instants-are-returned-by-a-delete` (PostgreSQL, MariaDB) and, on PostgreSQL,
+`an-instant-selected-as-a-constant`, in the same cells.
 
 ### SQL Server's date and time types start at the year 1
 
@@ -447,7 +451,8 @@ rejects such a parameter before sending it (`Validation failed for parameter
 Known limits).
 
 **Tests:** `column.plain-temporal.test.ts` — `a-plain-date-before-the-year-1`
-is commented out with `// NOT-SUPPORTED:` in the `sqlserver/*` cells.
+and `column.instant.test.ts` — `an-instant-before-the-year-1` are commented
+out with `// NOT-SUPPORTED:` in the `sqlserver/*` cells.
 
 # 2. Engine version gates
 

@@ -1267,6 +1267,10 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     override _currentDate(_context: SqlBuildContext): string {
         return 'trunc(current_timestamp)'
     }
+    override _currentInstant(_context: SqlBuildContext): string {
+        // A timestamp with time zone, its instant whatever the zone of the session
+        return 'systimestamp'
+    }
     override _currentTime(_context: SqlBuildContext): string {
         // Oracle has no type of a time alone: a localTime is kept on the day 1970-01-01, and the current time is put on
         // that day, so it compares with a localTime only by the time of the day (`localtimestamp` carries today)

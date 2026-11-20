@@ -307,6 +307,38 @@ describe(ctx.label, () => {
     })
     */
 
+    // NOT-SUPPORTED: Bun SQL's sqlite adapter exposes neither a user-defined-function API nor its bun:sqlite `Database`, so the tsq_duration_add UDF can't be registered
+    /*
+    test('docs:dates-and-times/durations-added-together', async () => {
+        ctx.mockNext([
+            { version: '0.9.0', withMargin: '2 days 12:00:00', shorter: '1 day 23:45:00' },
+            { version: '1.2.0', withMargin: '2 days', shorter: '1 day 11:45:00' },
+            { version: '1.3.0-beta.1', withMargin: '12:45:00', shorter: '00:30:00' },
+        ])
+        const connection = ctx.conn
+
+        // doc-start
+        const releases = await connection.selectFrom(tRelease)
+            .select({
+                version: tRelease.version,
+                withMargin: tRelease.rolloutTime.add({ hours: 12 }),
+                shorter: tRelease.rolloutTime.subtract(Temporal.Duration.from('PT15M')),
+            })
+            .orderBy('version')
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams.map(String)).toMatchInlineSnapshot()
+        assertType<Exact<typeof releases, Array<{ version: string; withMargin?: Temporal.Duration; shorter?: Temporal.Duration }>>>()
+        expect(releases.map(release => [release.version, release.withMargin?.toString(), release.shorter?.toString()])).toEqual([
+            ['0.9.0', 'P2DT12H', 'P1DT23H45M'],
+            ['1.2.0', 'P2D', 'P1DT11H45M'],
+            ['1.3.0-beta.1', 'PT12H45M', 'PT30M'],
+        ])
+    })
+    */
+
     test('docs:dates-and-times/changing-a-field-and-rounding', async () => {
         ctx.mockNext([
             { version: '0.9.0', monthOfRelease: '2024-03-01', cutoffSlot: '18:00:00' },

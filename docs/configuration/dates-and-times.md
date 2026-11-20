@@ -761,7 +761,7 @@ MariaDB, MySQL and SQLite have no date that fails: there the error is the one of
 
 ### A duration kept as text: the function `tsq_duration_part`
 
-On MariaDB, MySQL, SQLite and SQL Server, and in a column of PostgreSQL or Oracle that keeps a duration as text, a duration is its ISO 8601 text. To add one that the database holds, like `tRelease.rolloutTime`, or to read its fields, its sign, or to negate it, the query reads its parts with `tsq_duration_part`, a function of the library: create it once in the database. A duration given as a value doesn't need it to be added, and neither does reading, writing or comparing a duration. Without the function, the query fails with the error of the database for a function that doesn't exist.
+On MariaDB, MySQL, SQLite and SQL Server, and in a column of PostgreSQL or Oracle that keeps a duration as text, a duration is its ISO 8601 text. To add one that the database holds, like `tRelease.rolloutTime`, to a date or to another duration, or to read its fields, its sign or its total, or to negate it, the query reads its parts with `tsq_duration_part`, a function of the library: create it once in the database. A duration given as a value doesn't need it to be added, and neither does reading, writing or comparing a duration. Without the function, the query fails with the error of the database for a function that doesn't exist.
 
 === "MariaDB"
     ```sql
@@ -2347,6 +2347,194 @@ On Oracle, a date before 15 October 1582 is in the Julian calendar: a total coun
         SET @q = (@x - @rest) / @b;
         IF 2 * @rest > @b OR 2 * @rest = @b AND @q % 2 = 1 SET @q = @q + 1;
         RETURN CASE WHEN @a < 0 THEN -1 ELSE 1 END * CAST(@q AS FLOAT) * POWER(CAST(2 AS FLOAT), -@s);
+    END
+    GO
+    ```
+
+## Durations added and subtracted together
+
+`add` and `subtract` of a duration give it plus or minus another one, as Temporal's `add` and `subtract` of a `Temporal.Duration` do. The other one is a `Temporal.Duration`, its fields (`{ hours: 12 }`), or a value of the type duration, like a column. A day is 24 hours, and the sum is written up to the largest field of the two: `PT90M` plus `PT30M` is `PT120M`, in minutes, and `P1D` plus `PT25H` is `P2DT1H`. Here the time of each rollout with a margin of 12 hours, and 15 minutes shorter:
+
+```ts
+const releases = await connection.selectFrom(tRelease)
+    .select({
+        version: tRelease.version,
+        withMargin: tRelease.rolloutTime.add({ hours: 12 }),
+        shorter: tRelease.rolloutTime.subtract(Temporal.Duration.from('PT15M')),
+    })
+    .orderBy('version')
+    .executeSelectMany()
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        version as version, 
+        tsq_duration_add(tsq_duration_part(rollout_time, 'largest'), tsq_duration_part(rollout_time, 'days'), tsq_duration_part(rollout_time, 'S'), tsq_duration_part(rollout_time, 'N'), 4, 0, 43200, 0, 1) as withMargin, 
+        tsq_duration_add(tsq_duration_part(rollout_time, 'largest'), tsq_duration_part(rollout_time, 'days'), tsq_duration_part(rollout_time, 'S'), tsq_duration_part(rollout_time, 'N'), 5, 0, 900, 0, -1) as shorter 
+    from project_release 
+    order by version
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        version as version, 
+        tsq_duration_add(tsq_duration_part(rollout_time, 'largest'), tsq_duration_part(rollout_time, 'days'), tsq_duration_part(rollout_time, 'S'), tsq_duration_part(rollout_time, 'N'), 4, 0, 43200, 0, 1) as withMargin, 
+        tsq_duration_add(tsq_duration_part(rollout_time, 'largest'), tsq_duration_part(rollout_time, 'days'), tsq_duration_part(rollout_time, 'S'), tsq_duration_part(rollout_time, 'N'), 5, 0, 900, 0, -1) as shorter 
+    from project_release 
+    order by version
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        version as "version", 
+        tsq_duration_add(case when extract(day from rollout_time) <> 0 then 3 when extract(hour from rollout_time) <> 0 then 4 when extract(minute from rollout_time) <> 0 then 5 when trunc(extract(second from rollout_time)) <> 0 then 6 when mod(abs(extract(second from rollout_time)) * 1000000000, 1000000000) >= 1000000 then 7 when mod(abs(extract(second from rollout_time)) * 1000000000, 1000000000) >= 1000 then 8 when mod(abs(extract(second from rollout_time)) * 1000000000, 1000000000) <> 0 then 9 else 10 end, extract(day from rollout_time), extract(hour from rollout_time) * 3600 + extract(minute from rollout_time) * 60 + trunc(extract(second from rollout_time)), mod(extract(second from rollout_time) * 1000000000, 1000000000), 4, 0, 43200, 0, 1) as "withMargin", 
+        tsq_duration_add(case when extract(day from rollout_time) <> 0 then 3 when extract(hour from rollout_time) <> 0 then 4 when extract(minute from rollout_time) <> 0 then 5 when trunc(extract(second from rollout_time)) <> 0 then 6 when mod(abs(extract(second from rollout_time)) * 1000000000, 1000000000) >= 1000000 then 7 when mod(abs(extract(second from rollout_time)) * 1000000000, 1000000000) >= 1000 then 8 when mod(abs(extract(second from rollout_time)) * 1000000000, 1000000000) <> 0 then 9 else 10 end, extract(day from rollout_time), extract(hour from rollout_time) * 3600 + extract(minute from rollout_time) * 60 + trunc(extract(second from rollout_time)), mod(extract(second from rollout_time) * 1000000000, 1000000000), 5, 0, 900, 0, -1) as "shorter" 
+    from project_release 
+    order by "version"
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        version as version, 
+        tsq_duration_add(case when extract(year from rollout_time) <> 0 or extract(month from rollout_time) <> 0 then 1 when extract(day from rollout_time) <> 0 then 3 when extract(hour from rollout_time) <> 0 then 4 when extract(minute from rollout_time) <> 0 then 5 when trunc(extract(second from rollout_time)) <> 0 then 6 when abs(cast(extract(microseconds from rollout_time) as bigint) % 1000000) >= 1000 then 7 when abs(cast(extract(microseconds from rollout_time) as bigint) % 1000000) <> 0 then 8 else 10 end, cast(extract(day from rollout_time) as bigint), cast(extract(hour from rollout_time) * 3600 + extract(minute from rollout_time) * 60 + trunc(extract(second from rollout_time)) as bigint), cast(extract(microseconds from rollout_time) as bigint) % 1000000 * 1000, 4, 0, 43200, 0, 1) as "withMargin", 
+        tsq_duration_add(case when extract(year from rollout_time) <> 0 or extract(month from rollout_time) <> 0 then 1 when extract(day from rollout_time) <> 0 then 3 when extract(hour from rollout_time) <> 0 then 4 when extract(minute from rollout_time) <> 0 then 5 when trunc(extract(second from rollout_time)) <> 0 then 6 when abs(cast(extract(microseconds from rollout_time) as bigint) % 1000000) >= 1000 then 7 when abs(cast(extract(microseconds from rollout_time) as bigint) % 1000000) <> 0 then 8 else 10 end, cast(extract(day from rollout_time) as bigint), cast(extract(hour from rollout_time) * 3600 + extract(minute from rollout_time) * 60 + trunc(extract(second from rollout_time)) as bigint), cast(extract(microseconds from rollout_time) as bigint) % 1000000 * 1000, 5, 0, 900, 0, -1) as shorter 
+    from project_release 
+    order by version
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        version as version, 
+        tsq_duration_add(tsq_duration_part(rollout_time, 'largest'), tsq_duration_part(rollout_time, 'days'), tsq_duration_part(rollout_time, 'S'), tsq_duration_part(rollout_time, 'N'), 4, 0, 43200, 0, 1) as withMargin, 
+        tsq_duration_add(tsq_duration_part(rollout_time, 'largest'), tsq_duration_part(rollout_time, 'days'), tsq_duration_part(rollout_time, 'S'), tsq_duration_part(rollout_time, 'N'), 5, 0, 900, 0, -1) as shorter 
+    from project_release 
+    order by version
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        version as version, 
+        dbo.tsq_duration_add(dbo.tsq_duration_part(rollout_time, 'largest'), dbo.tsq_duration_part(rollout_time, 'days'), dbo.tsq_duration_part(rollout_time, 'S'), dbo.tsq_duration_part(rollout_time, 'N'), 4, 0, 43200, 0, 1) as withMargin, 
+        dbo.tsq_duration_add(dbo.tsq_duration_part(rollout_time, 'largest'), dbo.tsq_duration_part(rollout_time, 'days'), dbo.tsq_duration_part(rollout_time, 'S'), dbo.tsq_duration_part(rollout_time, 'N'), 5, 0, 900, 0, -1) as shorter 
+    from project_release 
+    order by version
+    ```
+
+The parameters are: `[]`
+
+| version | withMargin | shorter |
+|---|---|---|
+| `'0.9.0'` | `P2DT12H` | `P1DT23H45M` |
+| `'1.2.0'` | `P2D` | `P1DT11H45M` |
+| `'1.3.0-beta.1'` | `PT12H45M` | `PT30M` |
+
+A month, a year and a week have no fixed length: a duration with years, months or weeks, given or of the database, fails the query, as Temporal's `add` throws. To add them, add each duration to a date (see [Adding and subtracting a duration](#adding-and-subtracting-a-duration)).
+
+As with `until` and `since`, on PostgreSQL the sum is an interval, which keeps it as days and a time (`PT120M` is read as `PT2H`) with its microseconds; on the other databases, Oracle too, it is the ISO 8601 text Temporal writes.
+
+### The function `tsq_duration_add`
+
+The sum is computed by `tsq_duration_add`, a function of the library, on every database. It takes, of each duration, its largest field that isn't zero (`tsq_duration_part` gives it with `'largest'`), its days, the whole seconds of its time and the nanoseconds of the second, and the sign of the second one (1 to add it, -1 to subtract it). Create it once in the database, as `tsq_duration_part`; on MariaDB, MySQL, Oracle and SQL Server it writes the text with `tsq_duration_text` (see [The functions `tsq_duration_text` and `tsq_duration_round`](#the-functions-tsq_duration_text-and-tsq_duration_round)). Without it, the query fails with the error of the database for a function that doesn't exist.
+
+=== "MariaDB"
+    ```sql
+    DROP FUNCTION IF EXISTS tsq_duration_add;
+    DELIMITER //
+    CREATE FUNCTION tsq_duration_add(largest1 INT, days1 BIGINT, seconds1 BIGINT, nanoseconds1 BIGINT, largest2 INT, days2 BIGINT, seconds2 BIGINT, nanoseconds2 BIGINT, sgn INT) RETURNS VARCHAR(100) CHARACTER SET ascii DETERMINISTIC NO SQL
+    BEGIN
+        DECLARE v_day DECIMAL(65, 0) DEFAULT 86400000000000;
+        DECLARE v_largest INT;
+        DECLARE v_total DECIMAL(65, 0);
+        DECLARE v_days DECIMAL(65, 0) DEFAULT 0;
+        IF largest1 IS NULL OR days1 IS NULL OR seconds1 IS NULL OR nanoseconds1 IS NULL OR largest2 IS NULL OR days2 IS NULL OR seconds2 IS NULL OR nanoseconds2 IS NULL OR sgn IS NULL THEN RETURN NULL; END IF;
+        SET v_largest = LEAST(largest1, largest2);
+        IF v_largest <= 2 THEN
+            SIGNAL SQLSTATE '22023' SET MESSAGE_TEXT = 'tsq_duration_add: a duration with years, months or weeks can''t be added nor subtracted';
+        END IF;
+        SET v_total = (days1 + sgn * days2) * v_day + (seconds1 + sgn * seconds2) * CAST(1000000000 AS DECIMAL(65, 0)) + nanoseconds1 + sgn * nanoseconds2;
+        IF v_largest = 3 THEN SET v_days = (v_total - MOD(v_total, v_day)) DIV v_day; END IF;
+        RETURN tsq_duration_text(0, 0, 0, v_days, v_total - v_days * v_day, CASE WHEN v_largest <= 4 THEN 'hour' WHEN v_largest = 5 THEN 'minute' ELSE 'second' END);
+    END
+    //
+    DELIMITER ;
+    ```
+=== "MySQL"
+    ```sql
+    DROP FUNCTION IF EXISTS tsq_duration_add;
+    DELIMITER //
+    CREATE FUNCTION tsq_duration_add(largest1 INT, days1 BIGINT, seconds1 BIGINT, nanoseconds1 BIGINT, largest2 INT, days2 BIGINT, seconds2 BIGINT, nanoseconds2 BIGINT, sgn INT) RETURNS VARCHAR(100) CHARACTER SET ascii DETERMINISTIC NO SQL
+    BEGIN
+        DECLARE v_day DECIMAL(65, 0) DEFAULT 86400000000000;
+        DECLARE v_largest INT;
+        DECLARE v_total DECIMAL(65, 0);
+        DECLARE v_days DECIMAL(65, 0) DEFAULT 0;
+        IF largest1 IS NULL OR days1 IS NULL OR seconds1 IS NULL OR nanoseconds1 IS NULL OR largest2 IS NULL OR days2 IS NULL OR seconds2 IS NULL OR nanoseconds2 IS NULL OR sgn IS NULL THEN RETURN NULL; END IF;
+        SET v_largest = LEAST(largest1, largest2);
+        IF v_largest <= 2 THEN
+            SIGNAL SQLSTATE '22023' SET MESSAGE_TEXT = 'tsq_duration_add: a duration with years, months or weeks can''t be added nor subtracted';
+        END IF;
+        SET v_total = (days1 + sgn * days2) * v_day + (seconds1 + sgn * seconds2) * CAST(1000000000 AS DECIMAL(65, 0)) + nanoseconds1 + sgn * nanoseconds2;
+        IF v_largest = 3 THEN SET v_days = (v_total - MOD(v_total, v_day)) DIV v_day; END IF;
+        RETURN tsq_duration_text(0, 0, 0, v_days, v_total - v_days * v_day, CASE WHEN v_largest <= 4 THEN 'hour' WHEN v_largest = 5 THEN 'minute' ELSE 'second' END);
+    END
+    //
+    DELIMITER ;
+    ```
+=== "Oracle"
+    ```sql
+    CREATE OR REPLACE FUNCTION tsq_duration_add(largest1 IN NUMBER, days1 IN NUMBER, seconds1 IN NUMBER, nanoseconds1 IN NUMBER, largest2 IN NUMBER, days2 IN NUMBER, seconds2 IN NUMBER, nanoseconds2 IN NUMBER, sgn IN NUMBER) RETURN VARCHAR2 DETERMINISTIC IS
+        v_day CONSTANT NUMBER := 86400000000000;
+        v_largest NUMBER;
+        v_total NUMBER;
+        v_days NUMBER := 0;
+    BEGIN
+        IF largest1 IS NULL OR days1 IS NULL OR seconds1 IS NULL OR nanoseconds1 IS NULL OR largest2 IS NULL OR days2 IS NULL OR seconds2 IS NULL OR nanoseconds2 IS NULL OR sgn IS NULL THEN RETURN NULL; END IF;
+        v_largest := LEAST(largest1, largest2);
+        IF v_largest <= 2 THEN
+            RAISE_APPLICATION_ERROR(-20001, 'tsq_duration_add: a duration with years, months or weeks can''t be added nor subtracted');
+        END IF;
+        v_total := (days1 + sgn * days2) * v_day + (seconds1 + sgn * seconds2) * 1000000000 + nanoseconds1 + sgn * nanoseconds2;
+        IF v_largest = 3 THEN v_days := TRUNC(v_total / v_day); END IF;
+        RETURN tsq_duration_text(0, 0, 0, v_days, v_total - v_days * v_day, CASE WHEN v_largest <= 4 THEN 'hour' WHEN v_largest = 5 THEN 'minute' ELSE 'second' END);
+    END;
+    ```
+===+ "PostgreSQL"
+    ```sql
+    CREATE OR REPLACE FUNCTION tsq_duration_add(largest1 bigint, days1 bigint, seconds1 bigint, nanoseconds1 bigint, largest2 bigint, days2 bigint, seconds2 bigint, nanoseconds2 bigint, sgn integer) RETURNS interval LANGUAGE plpgsql IMMUTABLE STRICT AS $$
+    DECLARE
+        day_ns CONSTANT numeric := 86400000000000;
+        largest bigint := least(largest1, largest2);
+        total numeric := (days1 + sgn * days2) * day_ns + (seconds1 + sgn * seconds2) * 1000000000::numeric + nanoseconds1 + sgn * nanoseconds2;
+        days numeric := 0;
+        t numeric;
+    BEGIN
+        IF largest <= 2 THEN
+            RAISE EXCEPTION 'tsq_duration_add: a duration with years, months or weeks can''t be added nor subtracted';
+        END IF;
+        IF largest = 3 THEN
+            days := div(total, day_ns);
+        END IF;
+        t := total - days * day_ns;
+        RETURN make_interval(days => days::integer, secs => div(t, 1000000000)::double precision) + make_interval(secs => mod(t, 1000000000) / 1000000000.0);
+    END
+    $$;
+    ```
+=== "SQLite"
+    `registerSqliteFunctions` registers it, written in JavaScript, with the other functions of the library: see [The SQL functions of the library](query-runners/recommended/bun_sqlite.md#the-sql-functions-of-the-library). Bun SQL's SQLite has no way to register a function.
+=== "SQL Server"
+    ```sql
+    CREATE OR ALTER FUNCTION dbo.tsq_duration_add(@largest1 INT, @days1 BIGINT, @seconds1 BIGINT, @nanoseconds1 BIGINT, @largest2 INT, @days2 BIGINT, @seconds2 BIGINT, @nanoseconds2 BIGINT, @sign INT) RETURNS VARCHAR(100) WITH SCHEMABINDING AS
+    BEGIN
+        IF @largest1 IS NULL OR @days1 IS NULL OR @seconds1 IS NULL OR @nanoseconds1 IS NULL OR @largest2 IS NULL OR @days2 IS NULL OR @seconds2 IS NULL OR @nanoseconds2 IS NULL OR @sign IS NULL RETURN NULL;
+        DECLARE @day DECIMAL(38, 0) = 86400000000000, @largest INT = CASE WHEN @largest1 < @largest2 THEN @largest1 ELSE @largest2 END, @total DECIMAL(38, 0), @days DECIMAL(38, 0) = 0;
+        IF @largest <= 2
+            RETURN CAST(CAST('tsq_duration_add: a duration with years, months or weeks can''t be added nor subtracted, sign ' + CAST(@sign AS VARCHAR(2)) AS INT) AS VARCHAR(100));
+        SET @total = CAST(@days1 + @sign * @days2 AS DECIMAL(38, 0)) * @day + CAST(@seconds1 + @sign * @seconds2 AS DECIMAL(38, 0)) * 1000000000 + @nanoseconds1 + @sign * @nanoseconds2;
+        IF @largest = 3 SET @days = (@total - @total % @day) / @day;
+        RETURN dbo.tsq_duration_text(0, 0, 0, @days, @total - @days * @day, CASE WHEN @largest <= 4 THEN 'hour' WHEN @largest = 5 THEN 'minute' ELSE 'second' END);
     END
     GO
     ```

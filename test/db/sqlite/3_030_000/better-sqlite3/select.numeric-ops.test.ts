@@ -322,6 +322,23 @@ describe(ctx.label, () => {
         }
     })
 
+    test('a-double-keeps-every-digit', async () => {
+        // 982.3500870738889 has 16 digits, and comes back as the same double, not the one next to it
+        ctx.mockNext({ r: 982.3500870738889 })
+        const result = await ctx.conn.selectFromNoTable()
+            .select({ r: ctx.conn.const(982.3500870738889, 'double').power(1) })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select power(?1, ?2) as r"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            982.3500870738889,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, { r: number }>>()
+        expect(result.r).toBe(982.3500870738889)
+    })
+
     test('exp-and-ln', async () => {
         // exp + ln are inverses; ln(exp(2)) should be 2.
         const expected = [{ id: 1, lnExp: 2 }]

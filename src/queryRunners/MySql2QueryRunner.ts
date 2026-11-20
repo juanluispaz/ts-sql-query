@@ -7,6 +7,8 @@ import { isTransactionOpenAfterMySqlMariaDBError } from '../utils/mySqlMariaDB/m
 import { queryRunnerParamBindings } from '../utils/queryRunnerParams.js'
 import { mySqlMariaDBDriverParams } from '../utils/mySqlMariaDB/mySqlMariaDBParamTypes.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
+import { existingQueryContextOf } from '../internal/QueryContextImpl.js'
+import { __isDoubleClass } from '../typeSystem/dataTypeQuestions.js'
 import type { DataTypeName } from '../typeSystem/dataTypeNames.js'
 
 
@@ -29,11 +31,14 @@ export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
     private config: MySql2QueryRunnerConfig
     /** The options of every query of the library (see mySql2QueryOptions) */
     private readonly queryOptions: MySql2QueryOptions
+    /** The options of a query of the library with a double in its result: the typeCast that reads it whole */
+    private readonly queryOptionsWithDoubles: MySql2QueryOptions
 
     constructor(connection: Connection, config: MySql2QueryRunnerConfig = {}) {
         super()
         this.connection = connection
         this.queryOptions = mySql2QueryOptions(connection)
+        this.queryOptionsWithDoubles = { ...this.queryOptions, typeCast: mySql2TypeCast }
         this.config = config
         this.currentDatabase = config.database || 'mySql'
     }
@@ -65,7 +70,8 @@ export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
 
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
         return this.rejectWhenRolledBackByTheDatabase() || new Promise<any[]>((resolve, reject) => {
-            this.connection.query({ ...this.queryOptions, sql: query }, mySqlMariaDBDriverParams(params), (error: QueryError | null, results: RowDataPacket[]) => {
+            const options = hasDoubleResultColumn(params) ? this.queryOptionsWithDoubles : this.queryOptions
+            this.connection.query({ ...options, sql: query }, mySqlMariaDBDriverParams(params), (error: QueryError | null, results: RowDataPacket[]) => {
                 if (error) {
                     reject(error)
                 } else {
@@ -178,8 +184,9 @@ interface MySql2QueryOptions {
     /** The rows as objects: the library reads each column by its name */
     readonly rowsAsArray: false
     /**
-     * Only when the connection has a typeCast of its own, typeCast false or decimalNumbers: a DECIMAL as its text, and
-     * every other value as mysql2 reads it with these options
+     * Only when the connection has a typeCast of its own, typeCast false or decimalNumbers, or the result of the query
+     * has a double: a DECIMAL as its text, a DOUBLE and a FLOAT read from their text, and every other value as mysql2
+     * reads it with these options
      */
     readonly typeCast?: (field: { type: string, string(encoding?: string): string | null }, next: () => unknown) => unknown
 }
@@ -193,8 +200,9 @@ interface MySql2QueryOptions {
  * - `rowsAsArray: false`: the rows as objects, the library reads each column by its name;
  * - a `typeCast` only when the connection has one of its own, `typeCast: false` (every value as a Buffer) or
  *   `decimalNumbers` (which mysql2 reads only from the connection): a typeCast given with the query replaces the one of
- *   the connection, and this one reads a DECIMAL as its text and every other value as mysql2 does with the options above
- *   (`next`).
+ *   the connection, and this one reads a DECIMAL as its text, a DOUBLE and a FLOAT from their text, and every other value
+ *   as mysql2 does with the options above (`next`). A query whose result has a double gets it too (see
+ *   hasDoubleResultColumn).
  */
 function mySql2QueryOptions(connection: Connection): MySql2QueryOptions {
     const config = (connection as { config?: { typeCast?: unknown, decimalNumbers?: unknown } }).config
@@ -206,12 +214,32 @@ function mySql2QueryOptions(connection: Connection): MySql2QueryOptions {
 }
 
 /**
- * The typeCast given with the query when the connection has one that would change the values: a DECIMAL as its text,
- * the rest as mysql2 does
+ * The typeCast given with the query when the connection has one that would change the values, or the result has a
+ * double: a DECIMAL as its text, a DOUBLE and a FLOAT read from their text with the parser of JavaScript (mysql2 reads a
+ * short one digit by digit, which can give the double next to the one MySQL sent: 982.3500870738889 is read as
+ * 982.3500870738887), the rest as mysql2 does
  */
 function mySql2TypeCast(field: { type: string, string(encoding?: string): string | null }, next: () => unknown): unknown {
     if (field.type === 'NEWDECIMAL' || field.type === 'DECIMAL') {
         return field.string('ascii')
     }
+    if (field.type === 'DOUBLE' || field.type === 'FLOAT') {
+        const text = field.string('ascii')
+        return text === null ? null : Number.parseFloat(text)
+    }
     return next()
+}
+
+/** Whether the result of a query of the library has a column read as a double (its typeCast reads it whole) */
+function hasDoubleResultColumn(params: any[]): boolean {
+    const columns = existingQueryContextOf(params)?.resultColumns
+    if (!columns) {
+        return false
+    }
+    for (const column of columns) {
+        if (column.requestedType !== undefined && __isDoubleClass(column.requestedType)) {
+            return true
+        }
+    }
+    return false
 }

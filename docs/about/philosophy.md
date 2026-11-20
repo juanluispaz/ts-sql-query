@@ -30,13 +30,13 @@ The library sends to the database only the query you asked for. The exceptions a
 
 ## Unified SQL dialect and database-specific features
 
-`ts-sql-query` uses a **single SQL dialect**, inspired primarily by [PostgreSQL](../configuration/supported-databases/postgresql.md) and [SQLite](../configuration/supported-databases/sqlite.md), with naming conventions adapted to the JavaScript and TypeScript ecosystem.
+`ts-sql-query` uses a **single SQL dialect**, inspired primarily by [PostgreSQL](../configuration/supported-databases/postgresql/index.md) and [SQLite](../configuration/supported-databases/sqlite/index.md), with naming conventions adapted to the JavaScript and TypeScript ecosystem.
 
 The methods are named after what they do in the query, not after the keywords of one database, like `equals`, `startsWith`, `containsIfValue` and `orderByFromString`. The library writes them as the SQL of the database you use.
 
 ### Cross-database compatibility
 
-A query that uses what the databases have in common is written in the same way for [MariaDB](../configuration/supported-databases/mariadb.md), [MySQL](../configuration/supported-databases/mysql.md), [Oracle](../configuration/supported-databases/oracle.md), [PostgreSQL](../configuration/supported-databases/postgresql.md), [SQLite](../configuration/supported-databases/sqlite.md) and [SQL Server](../configuration/supported-databases/sqlserver.md).
+A query that uses what the databases have in common is written in the same way for [MariaDB](../configuration/supported-databases/mariadb/index.md), [MySQL](../configuration/supported-databases/mysql/index.md), [Oracle](../configuration/supported-databases/oracle/index.md), [PostgreSQL](../configuration/supported-databases/postgresql/index.md), [SQLite](../configuration/supported-databases/sqlite/index.md) and [SQL Server](../configuration/supported-databases/sqlserver/index.md).
 
 You choose the database by extending its connection class. From that point on, the SQL is written for that database, and the compiler offers only what it has.
 

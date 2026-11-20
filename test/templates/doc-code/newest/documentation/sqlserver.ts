@@ -186,7 +186,7 @@ const tRelease = new class TRelease extends Table<DBConnection, 'TRelease'> {
 }()
 void tRelease
 
-// A date and time with its zone, read and written as text (docs/configuration/supported-databases/sqlserver.md)
+// A date and time with its zone, read and written as text (docs/configuration/supported-databases/sqlserver/index.md)
 type ZonedDateTime = string
 class ZonedDateTimeTypeAdapter implements TypeAdapter {
     transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {

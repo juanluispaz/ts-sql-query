@@ -23,7 +23,7 @@ Use the methods of the library first. They are translated to each database and c
 | SQL at a fixed position of the statement, or a name for its execution | `customizeQuery` | [Customizing queries](#customizing-queries-with-raw-sql) |
 | SQL of your own in a method of a data type of yours | `this.fragmentWithType` in its class | [Methods of your own](../advanced/data-types/methods-of-your-own.md#sql-of-your-own-in-a-method) |
 | A function or a stored procedure of the database | `executeFunction`, `executeProcedure` | [Calling a function of the database](../configuration/mapping.md#calling-a-function-of-the-database), [Calling a stored procedure](../configuration/mapping.md#calling-a-stored-procedure) |
-| A function SQLite doesn't have | Registering it in the connection of the driver | [SQLite functions and extensions](../configuration/supported-databases/sqlite-extensions.md) |
+| A function SQLite doesn't have | Registering it in the connection of the driver | [SQLite functions and extensions](../configuration/supported-databases/sqlite/functions.md) |
 
 `fragmentWithType` and `aggregateFragmentWithType` have no arguments: you write them directly in the query, and they are public methods of the connection. The `build...` methods are `protected`: you call them in your connection class, and the result is a function you can use in any query.
 
@@ -874,7 +874,7 @@ The `${...}` of the `fragment` only takes the columns of that table. A type adap
 - In a [table customization](#table-or-view-customization).
 - In [`onConflictOnConstraint`](insert-on-conflict.md).
 
-This is how you use features the library doesn't support, for example the temporal tables of [SQL Server](../configuration/supported-databases/sqlserver.md):
+This is how you use features the library doesn't support, for example the temporal tables of [SQL Server](../configuration/supported-databases/sqlserver/index.md):
 
 ```typescriptreact
 const from = connection.const(new Date('2019-01-01'), 'localDateTime')
@@ -987,7 +987,7 @@ What it means for the rest of the query:
 
 ## Table or view customization
 
-Some databases need something extra next to the name of a table in the `from`. For example, [SQL Server](../configuration/supported-databases/sqlserver.md) and [MariaDB](../configuration/supported-databases/mariadb.md) have temporal tables that track all the changes in a table, so you can read a row as it was at a specific moment, which you indicate in the `from`. [Oracle](../configuration/supported-databases/oracle.md) offers something similar called "Oracle Flashback Technology", with a different syntax.
+Some databases need something extra next to the name of a table in the `from`. For example, [SQL Server](../configuration/supported-databases/sqlserver/index.md) and [MariaDB](../configuration/supported-databases/mariadb/index.md) have temporal tables that track all the changes in a table, so you can read a row as it was at a specific moment, which you indicate in the `from`. [Oracle](../configuration/supported-databases/oracle/index.md) offers something similar called "Oracle Flashback Technology", with a different syntax.
 
 `createTableOrViewCustomization` is a `protected` method for that, which you call in your connection class. It receives a function that returns the raw fragment to write. That function receives the name of the table, its alias, and up to five arguments of yours. The result is a function that receives the table or view, a name for the customization, and your arguments.
 
@@ -1099,7 +1099,7 @@ const customerInSystemTime: Promise<{
 }[]>
 ```
 
-On [Oracle](../configuration/supported-databases/oracle.md), use a flashback version query instead, for example `${table} versions between timestamp minvalue and maxvalue ${alias}`; explicit bounds older than the last DDL of the table fail with `ORA-01466`.
+On [Oracle](../configuration/supported-databases/oracle/index.md), use a flashback version query instead, for example `${table} versions between timestamp minvalue and maxvalue ${alias}`; explicit bounds older than the last DDL of the table fail with `ORA-01466`.
 
 ## Customizing queries with raw SQL
 

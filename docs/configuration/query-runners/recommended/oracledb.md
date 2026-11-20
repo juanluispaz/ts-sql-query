@@ -9,7 +9,7 @@ This page explains how to use `ts-sql-query` with the [oracledb](https://www.npm
 
 !!! success "Supported databases"
 
-    - [Oracle](../../supported-databases/oracle.md)
+    - [Oracle](../../supported-databases/oracle/index.md)
 
 !!! info "Tested with"
 

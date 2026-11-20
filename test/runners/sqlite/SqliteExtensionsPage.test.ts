@@ -9,7 +9,7 @@ import Database from 'better-sqlite3'
 import { describe, expect, test } from '../../lib/testRunner.js'
 import { buildSqliteExtension, sqliteExtensionCompileCommand } from './sqliteExtensions.js'
 
-const page = readFileSync(fileURLToPath(new URL('../../../docs/configuration/supported-databases/sqlite-extensions.md', import.meta.url)), 'utf8')
+const page = readFileSync(fileURLToPath(new URL('../../../docs/configuration/supported-databases/sqlite/functions.md', import.meta.url)), 'utf8')
 const isBun = typeof (globalThis as { Bun?: unknown }).Bun !== 'undefined'
 
 // The `cc` lines of a tab of the page, with the indentation of the tab removed

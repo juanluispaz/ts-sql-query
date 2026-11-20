@@ -5,11 +5,11 @@ search:
 <!-- doc-code-template: postgresql -->
 # Bun SQL for PostgreSQL
 
-This page explains how to use `ts-sql-query` with the [Bun SQL](https://bun.com/docs/runtime/sql) driver, allowing `ts-sql-query` to execute queries on [PostgreSQL](../../supported-databases/postgresql.md) databases.
+This page explains how to use `ts-sql-query` with the [Bun SQL](https://bun.com/docs/runtime/sql) driver, allowing `ts-sql-query` to execute queries on [PostgreSQL](../../supported-databases/postgresql/index.md) databases.
 
 !!! success "Supported databases"
 
-    - [PostgreSQL](../../supported-databases/postgresql.md)
+    - [PostgreSQL](../../supported-databases/postgresql/index.md)
 
 !!! info "Tested with"
 
@@ -105,7 +105,7 @@ async function main() {
 
 ## A statement you run with Bun SQL itself
 
-A statement that fails leaves a PostgreSQL transaction failed, even if its error is caught ([details](../../supported-databases/postgresql.md#a-statement-that-fails-inside-a-transaction)). `ts-sql-query` notices it for the statements it runs, but not for one you run with the connection of the transaction yourself (`connection.queryRunner.getCurrentNativeConnection()`): if that one fails and you catch its error, Bun SQL commits the transaction as if nothing had failed, and nothing of it is saved.
+A statement that fails leaves a PostgreSQL transaction failed, even if its error is caught ([details](../../supported-databases/postgresql/index.md#a-statement-that-fails-inside-a-transaction)). `ts-sql-query` notices it for the statements it runs, but not for one you run with the connection of the transaction yourself (`connection.queryRunner.getCurrentNativeConnection()`): if that one fails and you catch its error, Bun SQL commits the transaction as if nothing had failed, and nothing of it is saved.
 
 ## The type of the parameters
 

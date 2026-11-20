@@ -45,7 +45,7 @@ The files below are at `https://ts-sql-query.readthedocs.io/en/latest/<file>`:
 | `llms-dynamic-functions-<database>.txt` | A function of your own that returns a dynamic select, typed from the database or a business model, and the helper types |
 | `llms-types.txt` | The types of a row of a table, and extracting columns from an object |
 | **When the library does not write your SQL** | |
-| `llms-own-sql-<database>.txt` | Fragments of SQL of your own, customizing a query, and the functions and extensions of SQLite |
+| `llms-own-sql-<database>.txt` | Fragments of SQL of your own, customizing a query, and the functions to create in each database (and the extensions of SQLite) |
 | **Extend the library** | |
 | `llms-data-types-<database>.txt` | A data type of your own: branded and opaque types, its methods, its type in the database, its conversions with type adapters and the context of a conversion |
 | `llms-api-data-types.txt` | The families, the statics of a class of a data type, the type adapters and the SQL data types |

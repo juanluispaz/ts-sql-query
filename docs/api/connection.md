@@ -333,7 +333,7 @@ interface DynamicConditionExpression {
 }
 ```
 
-Each connection adds protected configuration properties of its own. The page of each database explains them: [MariaDB](../configuration/supported-databases/mariadb.md), [MySQL](../configuration/supported-databases/mysql.md), [Oracle](../configuration/supported-databases/oracle.md), [PostgreSQL](../configuration/supported-databases/postgresql.md), [SQLite](../configuration/supported-databases/sqlite.md) and [SQL Server](../configuration/supported-databases/sqlserver.md).
+Each connection adds protected configuration properties of its own. The page of each database explains them: [MariaDB](../configuration/supported-databases/mariadb/index.md), [MySQL](../configuration/supported-databases/mysql/index.md), [Oracle](../configuration/supported-databases/oracle/index.md), [PostgreSQL](../configuration/supported-databases/postgresql/index.md), [SQLite](../configuration/supported-databases/sqlite/index.md) and [SQL Server](../configuration/supported-databases/sqlserver/index.md).
 
 ```typescript
 interface MariaDBConnectionConfiguration {

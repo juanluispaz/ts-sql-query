@@ -9,7 +9,7 @@ This page explains how to use `ts-sql-query` with the [mssql](https://www.npmjs.
 
 !!! success "Supported databases"
 
-    - [SQL Server](../../supported-databases/sqlserver.md)
+    - [SQL Server](../../supported-databases/sqlserver/index.md)
 
 !!! info "Tested with"
 

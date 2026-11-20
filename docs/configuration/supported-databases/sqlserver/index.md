@@ -5,7 +5,7 @@ search:
 <!-- doc-code-template: sqlserver -->
 # SQL Server
 
-This page has what is particular to SQL Server: what it offers and what it doesn't, how to declare its version, how a boolean is stored, `.length()`, how `minValue` and `maxValue` treat `null`, `replaceAll`, and UUIDs. To define the connection and map your tables, the pages to read are [Connection](../connection.md) and [Mapping](../mapping.md).
+This page has what is particular to SQL Server: what it offers and what it doesn't, how to declare its version, how a boolean is stored, `.length()`, how `minValue` and `maxValue` treat `null`, `replaceAll`, and UUIDs. The functions to create in the database are in [SQL Server functions](functions.md). To define the connection and map your tables, the pages to read are [Connection](../../connection.md) and [Mapping](../../mapping.md).
 
 ## Defining the connection
 
@@ -15,11 +15,11 @@ import { SqlServerConnection } from "ts-sql-query/sqlserver";
 class DBConnection extends SqlServerConnection<'DBConnection'> { }
 ```
 
-Create a connection object for each request, and don't share it between concurrent requests: see [Instantiating the connection](../connection.md#instantiating-the-connection-with-the-database-connection).
+Create a connection object for each request, and don't share it between concurrent requests: see [Instantiating the connection](../../connection.md#instantiating-the-connection-with-the-database-connection).
 
 !!! tip
 
-    SQL Server has no boolean data type: `ts-sql-query` assumes that a boolean is stored in a bit where `0` is false, and `1` is true, and converts the values for you. If you need a different way to store a boolean, see [Custom booleans values](../../advanced/data-types/custom-booleans-values.md) for more information.
+    SQL Server has no boolean data type: `ts-sql-query` assumes that a boolean is stored in a bit where `0` is false, and `1` is true, and converts the values for you. If you need a different way to store a boolean, see [Custom booleans values](../../../advanced/data-types/custom-booleans-values.md) for more information.
 
 ## What it offers and what it doesn't
 
@@ -27,19 +27,19 @@ What isn't offered doesn't compile on this connection. On a version older than t
 
 | What | On this database |
 |---|---|
-| [`returning` in an insert](../../queries/insert.md#availability-per-database) | Yes, written as `output` |
-| [`returning` in an update](../../queries/update.md#availability-in-each-database) | Yes, written as `output` |
-| [`returning` in a delete](../../queries/delete.md#availability-in-each-database) | Yes, written as `output` |
-| [`oldValues()` in an update](../../queries/update.md#availability-in-each-database) | Yes |
-| [Insert on conflict](../../queries/insert-on-conflict.md#what-each-database-offers) | Not offered |
-| Other tables in an [update](../../queries/update.md#availability-in-each-database) or a [delete](../../queries/delete.md#availability-in-each-database) | `from` and `using` (written as `from`). A join right after `update` or `deleteFrom` isn't offered |
-| [Compound queries](../../queries/compound-select.md#availability-in-each-database) | `union`, `unionAll`, `intersect`, `except`, `minus`. Their `All` versions aren't offered |
-| [Recursive queries](../../queries/recursive-select.md#availability-in-each-database) | `recursiveUnionAll`. `recursiveUnion`, `startWith` and `connectBy` aren't offered |
-| [Arrays of objects from an aggregate](../../queries/aggregate-as-object-array.md#availability-in-each-database) | Yes. The `Distinct` versions aren't offered |
-| [`stringConcatDistinct`, `anyValue`](../../queries/aggregate-and-group-by.md#how-each-function-is-written-in-each-database) | Not offered |
-| [Sequences](../mapping.md#using-a-sequence) | Yes |
-| [Stored procedures](../mapping.md#calling-a-stored-procedure) and [functions](../mapping.md#calling-a-function-of-the-database) | Yes |
-| [Isolation levels](../../queries/transaction.md#what-each-database-offers) | `read uncommitted`, `read committed`, `repeatable read`, `snapshot` (needs a database option), `serializable` |
+| [`returning` in an insert](../../../queries/insert.md#availability-per-database) | Yes, written as `output` |
+| [`returning` in an update](../../../queries/update.md#availability-in-each-database) | Yes, written as `output` |
+| [`returning` in a delete](../../../queries/delete.md#availability-in-each-database) | Yes, written as `output` |
+| [`oldValues()` in an update](../../../queries/update.md#availability-in-each-database) | Yes |
+| [Insert on conflict](../../../queries/insert-on-conflict.md#what-each-database-offers) | Not offered |
+| Other tables in an [update](../../../queries/update.md#availability-in-each-database) or a [delete](../../../queries/delete.md#availability-in-each-database) | `from` and `using` (written as `from`). A join right after `update` or `deleteFrom` isn't offered |
+| [Compound queries](../../../queries/compound-select.md#availability-in-each-database) | `union`, `unionAll`, `intersect`, `except`, `minus`. Their `All` versions aren't offered |
+| [Recursive queries](../../../queries/recursive-select.md#availability-in-each-database) | `recursiveUnionAll`. `recursiveUnion`, `startWith` and `connectBy` aren't offered |
+| [Arrays of objects from an aggregate](../../../queries/aggregate-as-object-array.md#availability-in-each-database) | Yes. The `Distinct` versions aren't offered |
+| [`stringConcatDistinct`, `anyValue`](../../../queries/aggregate-and-group-by.md#how-each-function-is-written-in-each-database) | Not offered |
+| [Sequences](../../mapping.md#using-a-sequence) | Yes |
+| [Stored procedures](../../mapping.md#calling-a-stored-procedure) and [functions](../../mapping.md#calling-a-function-of-the-database) | Yes |
+| [Isolation levels](../../../queries/transaction.md#what-each-database-offers) | `read uncommitted`, `read committed`, `repeatable read`, `snapshot` (needs a database option), `serializable` |
 
 ## Compatibility version
 
@@ -49,9 +49,9 @@ Recognized breakpoints:
 
 - `compatibilityVersion >= 16_000_000` (SQL Server 2022): `minValue(...)` / `maxValue(...)` emit the native `LEAST(a, b)` / `GREATEST(a, b)` functions added in SQL Server 2022, instead of a `IIF(a < b, a, b)` emulation that evaluates each argument twice.
 - `compatibilityVersion >= 17_000_000` (SQL Server 2025):
-    - [`aggregateAsArray`](../../queries/aggregate-as-object-array.md) and `aggregateAsArrayOfOneColumn` emit the native `JSON_ARRAYAGG` / `JSON_OBJECT` aggregates instead of a `string_agg`/`string_escape`-based emulation. The `aggregateAsArrayDistinct` / `aggregateAsArrayOfOneColumnDistinct` variants always use the emulation regardless of `compatibilityVersion`, because `JSON_ARRAYAGG` does not accept `DISTINCT`.
+    - [`aggregateAsArray`](../../../queries/aggregate-as-object-array.md) and `aggregateAsArrayOfOneColumn` emit the native `JSON_ARRAYAGG` / `JSON_OBJECT` aggregates instead of a `string_agg`/`string_escape`-based emulation. The `aggregateAsArrayDistinct` / `aggregateAsArrayOfOneColumnDistinct` variants always use the emulation regardless of `compatibilityVersion`, because `JSON_ARRAYAGG` does not accept `DISTINCT`.
     - `substringToEnd(...)` / `substrToEnd(...)` emit `substring(x, start + 1)` (relying on the now-optional `length` argument) instead of `substring(x, start + 1, 2147483647)`, which is how earlier versions spell "to the end of the string". Both forms return the same value.
-    - `currentDate()` emits the native `CURRENT_DATE` keyword introduced in SQL Server 2025, which returns a `date` value. On earlier versions it emits `cast(getdate() as date)` — also a proper `date`, matching what [`currentDate()`](../../api/connection.md) promises.
+    - `currentDate()` emits the native `CURRENT_DATE` keyword introduced in SQL Server 2025, which returns a `date` value. On earlier versions it emits `cast(getdate() as date)` — also a proper `date`, matching what [`currentDate()`](../../../api/connection.md) promises.
 
 On older SQL Server versions, set `compatibilityVersion` to your actual version so the right emulation is chosen automatically. It is recommended to keep this value in sync with your real database version so future ts-sql-query releases that gate additional features on it pick the right behavior automatically.
 
@@ -65,7 +65,7 @@ class DBConnection extends SqlServerConnection<'DBConnection'> {
 
 ## Collations & case sensitivity
 
-SQL Server's default collation (`SQL_Latin1_General_CP1_CI_AS`) is **case-insensitive**, accent-sensitive — so `equals` / `contains` / `like` fold case out of the box, where PostgreSQL, Oracle and SQLite would not. The plain string operations follow that configured collation; the `*Insensitive` operations force case-insensitivity over it. SQL Server has **no session collation**, so to force a different collation you use `.collate('<name>')` per value, `insensitiveCollation` connection-wide, or the column / database collation. See the dedicated [Collations & case sensitivity](../collations.md) page and the [SQL Server tab](../collations.md#per-database) for the collation names to use.
+SQL Server's default collation (`SQL_Latin1_General_CP1_CI_AS`) is **case-insensitive**, accent-sensitive — so `equals` / `contains` / `like` fold case out of the box, where PostgreSQL, Oracle and SQLite would not. The plain string operations follow that configured collation; the `*Insensitive` operations force case-insensitivity over it. SQL Server has **no session collation**, so to force a different collation you use `.collate('<name>')` per value, `insensitiveCollation` connection-wide, or the column / database collation. See the dedicated [Collations & case sensitivity](../../collations.md) page and the [SQL Server tab](../../collations.md#per-database) for the collation names to use.
 
 !!! warning "Validate the case sensitivity, then configure the connection"
 
@@ -100,7 +100,7 @@ class DBConnection extends SqlServerConnection<'DBConnection'> {
 }
 ```
 
-Set it to another collation name to force a different one, or to the empty string (`''`) to opt out and emit the bare native `replace(...)`. For a deliberately **case-insensitive** replace, use [`.replaceAllInsensitive(...)`](../collations.md#replaceallinsensitive-the-insensitive-twin) instead. Full detail on the [Collations page](../collations.md#replacecollation-sql-server-and-oracle).
+Set it to another collation name to force a different one, or to the empty string (`''`) to opt out and emit the bare native `replace(...)`. For a deliberately **case-insensitive** replace, use [`.replaceAllInsensitive(...)`](../../collations.md#replaceallinsensitive-the-insensitive-twin) instead. Full detail on the [Collations page](../../collations.md#replacecollation-sql-server-and-oracle).
 
 ## UUID management
 
@@ -136,15 +136,15 @@ class DBConnection extends SqlServerConnection<'DBConnection'> {
 
 !!! tip "Generating UUIDs"
 
-    Prefer **UUID v7** over UUID v4 — v7 keeps the rest of the supported databases time-ordered on the primary-key index. SQL Server's `uniqueidentifier` is the exception: it uses a non-byte-order comparison that ignores the leading bytes, so the chronological ordering of v7 is not preserved inside the index. Uniqueness and cross-database identifier portability are still preserved. SQL Server has no server-side v7 generator, but provides `NEWID()` (random) and `NEWSEQUENTIALID()` (which produces GUIDs that match `uniqueidentifier`'s sort order — useful as a column `DEFAULT` if you accept a SQL Server-specific format instead of RFC 9562 v7). See the [column types](../data-types.md) page for more context.
+    Prefer **UUID v7** over UUID v4 — v7 keeps the rest of the supported databases time-ordered on the primary-key index. SQL Server's `uniqueidentifier` is the exception: it uses a non-byte-order comparison that ignores the leading bytes, so the chronological ordering of v7 is not preserved inside the index. Uniqueness and cross-database identifier portability are still preserved. SQL Server has no server-side v7 generator, but provides `NEWID()` (random) and `NEWSEQUENTIALID()` (which produces GUIDs that match `uniqueidentifier`'s sort order — useful as a column `DEFAULT` if you accept a SQL Server-specific format instead of RFC 9562 v7). See the [column types](../../data-types.md) page for more context.
 
 ## A date and time with its offset
 
-A `datetimeoffset` keeps, with each value, the offset it was written with, like `+09:00`. A `localDateTime` column reads only its instant, because tedious, the driver of mssql, gives a `Date`, which has no zone (see [The zone stored with each value](../time-zones.md#4-the-zone-stored-with-each-value)). When the offset is part of the value, like the local time of departure of a flight, declare the column with a [type adapter](../../advanced/data-types/type-adapters.md) that keeps the value as the text the database writes:
+A `datetimeoffset` keeps, with each value, the offset it was written with, like `+09:00`. A `localDateTime` column reads only its instant, because tedious, the driver of mssql, gives a `Date`, which has no zone (see [The zone stored with each value](../../time-zones.md#4-the-zone-stored-with-each-value)). When the offset is part of the value, like the local time of departure of a flight, declare the column with a [type adapter](../../../advanced/data-types/type-adapters.md) that keeps the value as the text the database writes:
 
-- `transformProjection` has the database give the value as text, with `convert(nvarchar(40), …, 126)`, in the columns of the result (also those of an `output`) and inside the JSON of an aggregated array (see [The SQL of a value read from the database](../../advanced/data-types/type-adapters.md#the-sql-of-a-value-read-from-the-database)).
+- `transformProjection` has the database give the value as text, with `convert(nvarchar(40), …, 126)`, in the columns of the result (also those of an `output`) and inside the JSON of an aggregated array (see [The SQL of a value read from the database](../../../advanced/data-types/type-adapters.md#the-sql-of-a-value-read-from-the-database)).
 - `transformPlaceholder` converts the text sent with a `cast` to `datetimeoffset`.
-- `transformProjection` also says, in its context, that the converted SQL compares as `'none'`: the text doesn't compare as the instant (the same instant written with two offsets is two texts), nor order as it, so the query compares and orders the values (see [How the converted SQL compares](../../advanced/data-types/type-adapters.md#how-the-converted-sql-compares)).
+- `transformProjection` also says, in its context, that the converted SQL compares as `'none'`: the text doesn't compare as the instant (the same instant written with two offsets is two texts), nor order as it, so the query compares and orders the values (see [How the converted SQL compares](../../../advanced/data-types/type-adapters.md#how-the-converted-sql-compares)).
 - `transformValueFromDB` and `transformValueToDB` keep the text as the value.
 
 The column is a `ComparableType` of `string`: it can be compared and ordered, its values aren't converted by the library, and the text is sent as an `nvarchar`. A `LocalDateTimesType` doesn't serve for it: its parameters are sent as a `datetime2`, which the driver makes from a `Date`, so `'2024-07-01T10:30:15.1234567+09:00'` is stored as `2024-07-01T01:30:15.1230000+00:00`.
@@ -329,19 +329,7 @@ class DBConnection extends SqlServerConnection<'DBConnection'> {
 
 Mind the mapping: `minValue` (floor) returns the **larger** value, so it uses the `greatest`-like function; `maxValue` (cap) returns the **smaller**, so it uses the `least`-like one. Scalar functions must be called two-part-named on SQL Server, hence the `dbo.` prefix; the names are yours.
 
-A scalar function is not polymorphic on SQL Server, so `float` covers the numeric operands (`int` / `bigint` widen to it), and the `CASE` comparison works on every version (no dependency on the 2022+ `least` / `greatest`):
-
-```sql
-CREATE FUNCTION dbo.greatest_strict(@a FLOAT, @b FLOAT) RETURNS FLOAT AS
-BEGIN
-    RETURN CASE WHEN @a IS NULL OR @b IS NULL THEN NULL WHEN @a >= @b THEN @a ELSE @b END
-END;
-GO
-CREATE FUNCTION dbo.least_strict(@a FLOAT, @b FLOAT) RETURNS FLOAT AS
-BEGIN
-    RETURN CASE WHEN @a IS NULL OR @b IS NULL THEN NULL WHEN @a <= @b THEN @a ELSE @b END
-END;
-```
+Create the functions in the database: their code is in [SQL Server functions](functions.md#the-functions-of-minvaluefunction-and-maxvaluefunction).
 
 With the options set, the emitted SQL calls them once per operand:
 

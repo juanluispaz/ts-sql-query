@@ -5,7 +5,7 @@ search:
 <!-- doc-code-template: oracle -->
 # Oracle
 
-This page has what is particular to Oracle: what it offers and what it doesn't, how to declare its version, [how a boolean is stored](#how-a-boolean-is-stored), [a date and time in a `DATE` column](#a-date-and-time-in-a-date-column), [dates before 1582](#dates-before-1582), how `concat` treats `null`, `replaceAll`, and the UUID strategies. To define the connection and map your tables, the pages to read are [Connection](../connection.md) and [Mapping](../mapping.md).
+This page has what is particular to Oracle: what it offers and what it doesn't, how to declare its version, [how a boolean is stored](#how-a-boolean-is-stored), [a date and time in a `DATE` column](#a-date-and-time-in-a-date-column), [dates before 1582](#dates-before-1582), how `concat` treats `null`, `replaceAll`, and the UUID strategies. The functions to create in the database are in [Oracle functions](functions.md). To define the connection and map your tables, the pages to read are [Connection](../../connection.md) and [Mapping](../../mapping.md).
 
 ## Defining the connection
 
@@ -15,7 +15,7 @@ import { OracleConnection } from "ts-sql-query/oracle";
 class DBConnection extends OracleConnection<'DBConnection'> { }
 ```
 
-Create a connection object for each request, and don't share it between concurrent requests: see [Instantiating the connection](../connection.md#instantiating-the-connection-with-the-database-connection).
+Create a connection object for each request, and don't share it between concurrent requests: see [Instantiating the connection](../../connection.md#instantiating-the-connection-with-the-database-connection).
 
 ## What it offers and what it doesn't
 
@@ -23,19 +23,19 @@ What isn't offered doesn't compile on this connection. On a version older than t
 
 | What | On this database |
 |---|---|
-| [`returning` in an insert](../../queries/insert.md#availability-per-database) | Yes, written as `returning into`; not from a select |
-| [`returning` in an update](../../queries/update.md#availability-in-each-database) | Yes, written as `returning into` |
-| [`returning` in a delete](../../queries/delete.md#availability-in-each-database) | Yes, written as `returning into` |
-| [`oldValues()` in an update](../../queries/update.md#availability-in-each-database) | Not offered |
-| [Insert on conflict](../../queries/insert-on-conflict.md#what-each-database-offers) | Not offered |
-| Other tables in an [update](../../queries/update.md#availability-in-each-database) or a [delete](../../queries/delete.md#availability-in-each-database) | `from` and `using` from Oracle 23ai. A join right after `update` or `deleteFrom` isn't offered |
-| [Compound queries](../../queries/compound-select.md#availability-in-each-database) | All of them, written with `minus` for `except` |
-| [Recursive queries](../../queries/recursive-select.md#availability-in-each-database) | `recursiveUnionAll`, and `startWith` and `connectBy`. `recursiveUnion` isn't offered |
-| [Arrays of objects from an aggregate](../../queries/aggregate-as-object-array.md#availability-in-each-database) | Yes. The `Distinct` versions aren't offered |
-| [`stringConcatDistinct`, `anyValue`](../../queries/aggregate-and-group-by.md#how-each-function-is-written-in-each-database) | Yes; `stringConcatDistinct` needs Oracle 19c |
-| [Sequences](../mapping.md#using-a-sequence) | Yes |
-| [Stored procedures](../mapping.md#calling-a-stored-procedure) and [functions](../mapping.md#calling-a-function-of-the-database) | Yes |
-| [Isolation levels](../../queries/transaction.md#what-each-database-offers) | `read committed`, `snapshot` |
+| [`returning` in an insert](../../../queries/insert.md#availability-per-database) | Yes, written as `returning into`; not from a select |
+| [`returning` in an update](../../../queries/update.md#availability-in-each-database) | Yes, written as `returning into` |
+| [`returning` in a delete](../../../queries/delete.md#availability-in-each-database) | Yes, written as `returning into` |
+| [`oldValues()` in an update](../../../queries/update.md#availability-in-each-database) | Not offered |
+| [Insert on conflict](../../../queries/insert-on-conflict.md#what-each-database-offers) | Not offered |
+| Other tables in an [update](../../../queries/update.md#availability-in-each-database) or a [delete](../../../queries/delete.md#availability-in-each-database) | `from` and `using` from Oracle 23ai. A join right after `update` or `deleteFrom` isn't offered |
+| [Compound queries](../../../queries/compound-select.md#availability-in-each-database) | All of them, written with `minus` for `except` |
+| [Recursive queries](../../../queries/recursive-select.md#availability-in-each-database) | `recursiveUnionAll`, and `startWith` and `connectBy`. `recursiveUnion` isn't offered |
+| [Arrays of objects from an aggregate](../../../queries/aggregate-as-object-array.md#availability-in-each-database) | Yes. The `Distinct` versions aren't offered |
+| [`stringConcatDistinct`, `anyValue`](../../../queries/aggregate-and-group-by.md#how-each-function-is-written-in-each-database) | Yes; `stringConcatDistinct` needs Oracle 19c |
+| [Sequences](../../mapping.md#using-a-sequence) | Yes |
+| [Stored procedures](../../mapping.md#calling-a-stored-procedure) and [functions](../../mapping.md#calling-a-function-of-the-database) | Yes |
+| [Isolation levels](../../../queries/transaction.md#what-each-database-offers) | `read committed`, `snapshot` |
 
 ## Compatibility version
 
@@ -43,7 +43,7 @@ The `compatibilityVersion` property says which Oracle Database version the SQL m
 
 Recognized breakpoints:
 
-- `compatibilityVersion >= 23_004_000` (Oracle Database 23ai): the [`Values`](../mapping.md#mapping-constant-values-as-view) feature emits the SQL-standard `WITH name(cols) AS (VALUES (…), …)` table constructor introduced in 23ai. On earlier Oracle versions ts-sql-query emulates it as `WITH name(cols) AS (SELECT … FROM dual UNION ALL SELECT … FROM dual)` so the feature still works.
+- `compatibilityVersion >= 23_004_000` (Oracle Database 23ai): the [`Values`](../../mapping.md#mapping-constant-values-as-view) feature emits the SQL-standard `WITH name(cols) AS (VALUES (…), …)` table constructor introduced in 23ai. On earlier Oracle versions ts-sql-query emulates it as `WITH name(cols) AS (SELECT … FROM dual UNION ALL SELECT … FROM dual)` so the feature still works.
 
 On older Oracle versions, set `compatibilityVersion` to your actual version so the right emulation is chosen automatically. It is recommended to keep this value in sync with your real database version so future ts-sql-query releases that gate additional features on it pick the right behavior automatically.
 
@@ -76,7 +76,7 @@ class DBConnection extends OracleConnection<'DBConnection'> {
 }
 ```
 
-A column stored the other way is declared with a [custom boolean](../../advanced/data-types/custom-booleans-values.md): with `'boolean'`, a `NUMBER(1)` column takes `new CustomBooleanTypeAdapter(1, 0)`; with `'number'`, a `CHAR(1)` column with `'Y'` and `'N'` takes `new CustomBooleanTypeAdapter('Y', 'N')`. The library then writes that column in the form you chose wherever it's used as a boolean, so it can be compared, combined and assigned with the other boolean columns: with `'boolean'`, a `NUMBER(1)` column `invoiced` is read as `(invoiced = 1)`, and `select billable ... union select (invoiced = 1) ...` works. Without the custom boolean, Oracle rejects a `NUMBER(1)` and a `BOOLEAN` in the two sides of a `union` (`ORA-01790`).
+A column stored the other way is declared with a [custom boolean](../../../advanced/data-types/custom-booleans-values.md): with `'boolean'`, a `NUMBER(1)` column takes `new CustomBooleanTypeAdapter(1, 0)`; with `'number'`, a `CHAR(1)` column with `'Y'` and `'N'` takes `new CustomBooleanTypeAdapter('Y', 'N')`. The library then writes that column in the form you chose wherever it's used as a boolean, so it can be compared, combined and assigned with the other boolean columns: with `'boolean'`, a `NUMBER(1)` column `invoiced` is read as `(invoiced = 1)`, and `select billable ... union select (invoiced = 1) ...` works. Without the custom boolean, Oracle rejects a `NUMBER(1)` and a `BOOLEAN` in the two sides of a `union` (`ORA-01790`).
 
 ## A time of the day
 
@@ -161,11 +161,11 @@ On a column of any other type, the adapter does nothing. A column stored in a `T
 
 ## A date and time with its time zone
 
-A `TIMESTAMP WITH TIME ZONE` keeps, with each value, the zone it was written with: an offset like `+09:00`, or a region like `Europe/Madrid`. A `localDateTime` column reads only its instant, because oracledb gives a `Date`, which has no zone (see [The zone stored with each value](../time-zones.md#4-the-zone-stored-with-each-value)). When the zone is part of the value, like the local time of departure of a flight, declare the column with a [type adapter](../../advanced/data-types/type-adapters.md) that keeps the value as the text the database writes:
+A `TIMESTAMP WITH TIME ZONE` keeps, with each value, the zone it was written with: an offset like `+09:00`, or a region like `Europe/Madrid`. A `localDateTime` column reads only its instant, because oracledb gives a `Date`, which has no zone (see [The zone stored with each value](../../time-zones.md#4-the-zone-stored-with-each-value)). When the zone is part of the value, like the local time of departure of a flight, declare the column with a [type adapter](../../../advanced/data-types/type-adapters.md) that keeps the value as the text the database writes:
 
-- `transformProjection` has the database give the value as text, with `to_char`, in the columns of the result (also those of a `returning`) and inside the JSON of an aggregated array (see [The SQL of a value read from the database](../../advanced/data-types/type-adapters.md#the-sql-of-a-value-read-from-the-database)).
+- `transformProjection` has the database give the value as text, with `to_char`, in the columns of the result (also those of a `returning`) and inside the JSON of an aggregated array (see [The SQL of a value read from the database](../../../advanced/data-types/type-adapters.md#the-sql-of-a-value-read-from-the-database)).
 - `transformPlaceholder` converts the text sent with `to_timestamp_tz`, which reads an offset or a region.
-- `transformProjection` also says, in its context, that the converted SQL compares as `'none'`: the text doesn't compare as the instant (the same instant written with two offsets is two texts), nor order as it, so the query compares and orders the values (see [How the converted SQL compares](../../advanced/data-types/type-adapters.md#how-the-converted-sql-compares)).
+- `transformProjection` also says, in its context, that the converted SQL compares as `'none'`: the text doesn't compare as the instant (the same instant written with two offsets is two texts), nor order as it, so the query compares and orders the values (see [How the converted SQL compares](../../../advanced/data-types/type-adapters.md#how-the-converted-sql-compares)).
 - `transformValueFromDB` and `transformValueToDB` keep the text as the value.
 
 The column is a `ComparableType` of `string`: it can be compared and ordered, its values aren't converted by the library, and the text is sent as text.
@@ -342,7 +342,7 @@ Only the leanest check the build-time optionality needs is emitted: a concatenat
 
 !!! tip "Only for `concat` — `concatIgnoringNull` is untouched"
 
-    Everything on this section is about `concat`, whose contract is to propagate NULL. When you *want* a NULL operand read as the empty string, use [`concatIgnoringNull`](../../api/value-expressions.md) instead of reconfiguring the connection: it is a separate operation with its own contract, it emits Oracle's bare `||` (no `CASE`, nothing to opt out of), and the same call means the same thing on every database. The settings below only change how `concat` — and the affix predicates — handle NULL.
+    Everything on this section is about `concat`, whose contract is to propagate NULL. When you *want* a NULL operand read as the empty string, use [`concatIgnoringNull`](../../../api/value-expressions.md) instead of reconfiguring the connection: it is a separate operation with its own contract, it emits Oracle's bare `||` (no `CASE`, nothing to opt out of), and the same call means the same thing on every database. The settings below only change how `concat` — and the affix predicates — handle NULL.
 
 ### Keeping Oracle's native ignore-NULL behavior
 
@@ -370,45 +370,7 @@ class DBConnection extends OracleConnection<'DBConnection'> {
 }
 ```
 
-The name is yours; the one above is only what this page's example calls it.
-
-!!! warning "It must be a package, not a standalone function"
-
-    Oracle cannot overload standalone subprograms — a second `CREATE OR REPLACE FUNCTION` of the same name **replaces** the first. Overloads live in a package, and you want the overloads: without them a `CLOB` argument is implicitly converted to `VARCHAR2` and silently truncated at 32767 characters.
-
-    Four overloads, not two. With only `(VARCHAR2, VARCHAR2)` and `(CLOB, CLOB)`, Oracle cannot resolve the commonest call of all — a `CLOB` column against a `VARCHAR2` literal — and raises `ORA-06553: PLS-307: too many declarations of ... match this call`. The two mixed overloads are what make it resolvable. `NVARCHAR2` and `NCLOB` arguments reach these through implicit conversion and need no overloads of their own.
-
-```oracle
-CREATE OR REPLACE PACKAGE string_util AS
-    FUNCTION concat_strict(a IN VARCHAR2, b IN VARCHAR2) RETURN VARCHAR2;
-    FUNCTION concat_strict(a IN CLOB, b IN CLOB) RETURN CLOB;
-    FUNCTION concat_strict(a IN CLOB, b IN VARCHAR2) RETURN CLOB;
-    FUNCTION concat_strict(a IN VARCHAR2, b IN CLOB) RETURN CLOB;
-END string_util;
-
-CREATE OR REPLACE PACKAGE BODY string_util AS
-    FUNCTION concat_strict(a IN VARCHAR2, b IN VARCHAR2) RETURN VARCHAR2 IS
-    BEGIN
-        IF a IS NULL OR b IS NULL THEN RETURN NULL; END IF;
-        RETURN a || b;
-    END;
-    FUNCTION concat_strict(a IN CLOB, b IN CLOB) RETURN CLOB IS
-    BEGIN
-        IF a IS NULL OR b IS NULL THEN RETURN NULL; END IF;
-        RETURN a || b;
-    END;
-    FUNCTION concat_strict(a IN CLOB, b IN VARCHAR2) RETURN CLOB IS
-    BEGIN
-        IF a IS NULL OR b IS NULL THEN RETURN NULL; END IF;
-        RETURN a || b;
-    END;
-    FUNCTION concat_strict(a IN VARCHAR2, b IN CLOB) RETURN CLOB IS
-    BEGIN
-        IF a IS NULL OR b IS NULL THEN RETURN NULL; END IF;
-        RETURN a || b;
-    END;
-END string_util;
-```
+The name is yours; the one above is only what this page's example calls it. Create it in the database, as a package: its code is in [Oracle functions](functions.md#the-function-of-concatfunction).
 
 With the option set, the emitted SQL calls it on both halves, each operand appearing once:
 
@@ -423,7 +385,7 @@ select id from issue where title like string_util.concat_strict(:0, '%') escape 
 
 ## Collations & case sensitivity
 
-Oracle's default collation is **`BINARY`** — case- and accent-**sensitive**, the JavaScript-sensible default, so no configuration is needed unless you want the insensitive direction. The plain string operations follow the session collation; the `*Insensitive` operations force case-insensitivity over it. Oracle has a **session collation that reaches everything** (`ALTER SESSION SET NLS_COMP = LINGUISTIC; NLS_SORT = <coll>`), which flips `equals` / `like` / `distinct` / `order` session-wide; you can also force a collation per value with `.collate('<name>')` or connection-wide with `insensitiveCollation`. See the dedicated [Collations & case sensitivity](../collations.md) page and the [Oracle tab](../collations.md#per-database) for the collation names (e.g. `binary_ci`, `binary_ai`).
+Oracle's default collation is **`BINARY`** — case- and accent-**sensitive**, the JavaScript-sensible default, so no configuration is needed unless you want the insensitive direction. The plain string operations follow the session collation; the `*Insensitive` operations force case-insensitivity over it. Oracle has a **session collation that reaches everything** (`ALTER SESSION SET NLS_COMP = LINGUISTIC; NLS_SORT = <coll>`), which flips `equals` / `like` / `distinct` / `order` session-wide; you can also force a collation per value with `.collate('<name>')` or connection-wide with `insensitiveCollation`. See the dedicated [Collations & case sensitivity](../../collations.md) page and the [Oracle tab](../../collations.md#per-database) for the collation names (e.g. `binary_ci`, `binary_ai`).
 
 ### `replaceAll` and collation
 
@@ -446,7 +408,7 @@ class DBConnection extends OracleConnection<'DBConnection'> {
 
 Set it to another collation name to force a different one, or to the empty string (`''`) to opt out and emit the bare native `replace(...)`.
 
-For a deliberately **case-insensitive** replace, use [`.replaceAllInsensitive(...)`](../collations.md#replaceallinsensitive-the-insensitive-twin) instead. Because Oracle's default is case-sensitive, it forces a case-insensitive collation on the operands: `insensitiveCollation` when it names one, otherwise the **`replaceInsensitiveCollation`** property, which defaults to Oracle's neutral `BINARY_CI`:
+For a deliberately **case-insensitive** replace, use [`.replaceAllInsensitive(...)`](../../collations.md#replaceallinsensitive-the-insensitive-twin) instead. Because Oracle's default is case-sensitive, it forces a case-insensitive collation on the operands: `insensitiveCollation` when it names one, otherwise the **`replaceInsensitiveCollation`** property, which defaults to Oracle's neutral `BINARY_CI`:
 
 ```ts
 import { OracleConnection } from "ts-sql-query/oracle";
@@ -456,14 +418,14 @@ class DBConnection extends OracleConnection<'DBConnection'> {
 }
 ```
 
-Set `replaceInsensitiveCollation` (or `insensitiveCollation`) to `''` to opt out to the bare native `replace(...)`. Full detail on the [Collations page](../collations.md#replacecollation-sql-server-and-oracle).
+Set `replaceInsensitiveCollation` (or `insensitiveCollation`) to `''` to opt out to the bare native `replace(...)`. Full detail on the [Collations page](../../collations.md#replacecollation-sql-server-and-oracle).
 
 ## UUID strategies
 
 `ts-sql-query` provides different strategies to handle UUID values in Oracle. These strategies control how UUID values are represented in JavaScript and stored in the database. In every case, UUIDs are exchanged as `string` at the JavaScript layer.
 
 - `'built-in'` *(default strategy)*: UUIDs are stored as `RAW(16)` and converted using Oracle's built-in `UUID_TO_RAW` / `RAW_TO_UUID` functions, available since **Oracle Database 23ai (23.9)**. The bytes are stored in canonical order. Note that these built-ins validate the value through Oracle's `IS_UUID` check, which **accepts only version-4 UUIDs**: a non-v4 value (v1, v7, …) is rejected at runtime with `ORA-62432: … is not a valid UUID value`. Use this strategy when your application uses **UUID v4**; for any other version (including v7) use `'custom-functions'`.
-- `'custom-functions'`: same `RAW(16)` storage, but `ts-sql-query` calls user-provided functions named `uuid_to_raw` and `raw_to_uuid` instead. Use this option on Oracle versions older than 23.9 (where the built-ins don't exist), when you need a UUID version the built-ins reject (such as **v7** or v1), or when you want to inject your own conversion logic — for example, the v1-style byte reordering shown below. Because these functions do the conversion themselves, they accept any UUID version. Oracle resolves identifiers case-insensitively, so the names match the built-ins on 23.9+ and your functions take precedence over them if both exist.
+- `'custom-functions'`: same `RAW(16)` storage, but `ts-sql-query` calls user-provided functions named `uuid_to_raw` and `raw_to_uuid` instead. Use this option on Oracle versions older than 23.9 (where the built-ins don't exist), when you need a UUID version the built-ins reject (such as **v7** or v1), or when you want to inject your own conversion logic — for example, the v1-style byte reordering shown in [Oracle functions](functions.md#uuid_to_raw-and-raw_to_uuid). Because these functions do the conversion themselves, they accept any UUID version. Oracle resolves identifiers case-insensitively, so the names match the built-ins on 23.9+ and your functions take precedence over them if both exist.
 - `'string'`: UUIDs are stored as text in character-based columns such as `CHAR(36)` or `VARCHAR2(36)`. No conversion functions are involved. The library sends and reads the text of a uuid in lower case, the case the other strategies and databases give it: a uuid sent in upper case is stored and read in lower case, and an equality with it finds the uuid stored by the library.
 - `'string as sent'`: as `'string'`, but the text of a uuid is sent and read as it is, in the case it has. A uuid stored in upper case is read in upper case, and an equality compares the text as the column's collation does. Choose it for a column that other applications fill in upper case and compare as it is.
 
@@ -479,59 +441,4 @@ class DBConnection extends OracleConnection<'DBConnection'> {
 
 !!! tip "Generating UUIDs"
 
-    For **chronologically sortable** primary keys, generate **UUID v7** and use the `'custom-functions'` strategy with the canonical implementation shown in [UUID utility functions for Oracle](#uuid-utility-functions-for-oracle): it stores the 16 bytes as-is, so v7's leading timestamp keeps inserts clustered at the end of the primary-key index. The default `'built-in'` strategy **cannot** store v7 (or v1) values — Oracle's `UUID_TO_RAW` only accepts v4 and rejects other versions with `ORA-62432`. If you use **UUID v4** (random, no clustering benefit), the `'built-in'` strategy works out of the box; Oracle 23ai (23.9)+ also provides a server-side `UUID()` function that returns v4 — useful if you want the database to generate the value as a column `DEFAULT`. There is no server-side v7 generator, so v7 must be generated in the application. See the [column types](../data-types.md) page for more context.
-
-## UUID utility functions for Oracle
-
-The `'custom-functions'` strategy requires the `uuid_to_raw` and `raw_to_uuid` functions to exist in the database. Two implementations are documented below — pick the one that matches the UUID version your application generates, since each preserves the time-ordering of a different version. The `'built-in'` strategy doesn't need either implementation, because Oracle 23ai (23.9)+ already ships built-ins that behave like the canonical (non-reordering) variant — but those built-ins accept **only version-4 UUIDs**, so reach for `'custom-functions'` (the canonical implementation below) whenever you store v7 or v1 values.
-
-### For UUID v7 (or UUID v4) — preserve canonical byte order
-
-UUID v7 already places the 48-bit timestamp at the start of the value, so storing the bytes as-is yields a chronologically sortable `RAW(16)`. UUID v4 is random, so byte ordering is irrelevant. **This is the recommended implementation for new applications:**
-
-```oracle
-CREATE FUNCTION uuid_to_raw(uuid IN char) RETURN raw AS
-BEGIN 
-    RETURN HEXTORAW(REPLACE(uuid, '-'));
-END uuid_to_raw;
-
-CREATE FUNCTION raw_to_uuid(raw_uuid IN raw) RETURN char IS
-	hex_text char(32);
-BEGIN 
-	hex_text := RAWTOHEX(raw_uuid);
-    -- If you want the lower-case version wrap the expression in lower( ... )
-    RETURN SUBSTR (hex_text, 1, 8) || '-' || 
-           SUBSTR (hex_text, 9, 4) || '-' || 
-           SUBSTR (hex_text, 13, 4) || '-' || 
-           SUBSTR (hex_text, 17, 4) || '-' || 
-           SUBSTR (hex_text, 21);
-END raw_to_uuid;
-```
-
-### For UUID v1 — reorder bytes so the timestamp segment sorts first
-
-UUID v1 places the 60-bit timestamp split across the `time-low`, `time-mid` and `time-hi` fields, with `time-low` at the start of the string but the most-significant bits sitting in `time-hi`. To make a v1 UUID sortable inside `RAW(16)`, the fields are rearranged on store and put back on read. **Use this only if your application generates UUID v1; it will scramble v7's timestamp prefix.**
-
-```oracle
-CREATE FUNCTION uuid_to_raw(uuid IN char) RETURN raw IS
-	hex_text nvarchar2(36);
-BEGIN 
-	hex_text := REPLACE(uuid, '-');
-	RETURN HEXTORAW(SUBSTR (hex_text, 13, 4) || 
-                    SUBSTR (hex_text, 9, 4) || 
-                    SUBSTR (hex_text, 0, 8) || 
-                    SUBSTR (hex_text, 17));
-END uuid_to_raw;
-
-CREATE FUNCTION raw_to_uuid(raw_uuid IN raw) RETURN char IS
-	hex_text char(32);
-BEGIN 
-	hex_text := RAWTOHEX(raw_uuid);
-    -- If you want the lower-case version wrap the expression in lower( ... )
-    RETURN SUBSTR (hex_text, 9, 8) || '-' || 
-           SUBSTR (hex_text, 5, 4) || '-' || 
-           SUBSTR (hex_text, 0, 4) || '-' || 
-           SUBSTR (hex_text, 17, 4) || '-' || 
-           SUBSTR (hex_text, 21);
-END raw_to_uuid;
-```
+    For **chronologically sortable** primary keys, generate **UUID v7** and use the `'custom-functions'` strategy with the canonical implementation shown in [Oracle functions](functions.md#uuid_to_raw-and-raw_to_uuid): it stores the 16 bytes as-is, so v7's leading timestamp keeps inserts clustered at the end of the primary-key index. The default `'built-in'` strategy **cannot** store v7 (or v1) values — Oracle's `UUID_TO_RAW` only accepts v4 and rejects other versions with `ORA-62432`. If you use **UUID v4** (random, no clustering benefit), the `'built-in'` strategy works out of the box; Oracle 23ai (23.9)+ also provides a server-side `UUID()` function that returns v4 — useful if you want the database to generate the value as a column `DEFAULT`. There is no server-side v7 generator, so v7 must be generated in the application. See the [column types](../../data-types.md) page for more context.

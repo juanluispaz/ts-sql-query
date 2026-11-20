@@ -6,7 +6,7 @@ search:
 
 ## How does ts-sql-query model queries?
 
-Writing a query in `ts-sql-query` closely mirrors SQL, so you can anticipate the SQL it generates. Its design is inspired by [SQLite](../configuration/supported-databases/sqlite.md) and [PostgreSQL](../configuration/supported-databases/postgresql.md), and when JavaScript or TypeScript have an idiomatic way to express something, `ts-sql-query` tries to reflect it.
+Writing a query in `ts-sql-query` closely mirrors SQL, so you can anticipate the SQL it generates. Its design is inspired by [SQLite](../configuration/supported-databases/sqlite/index.md) and [PostgreSQL](../configuration/supported-databases/postgresql/index.md), and when JavaScript or TypeScript have an idiomatic way to express something, `ts-sql-query` tries to reflect it.
 
 `ts-sql-query` executes the query in a single call to the database, in the same way you write it, and no intermediate data is processed in your backend. The exception is the [select page](../queries/select-page.md), where a first query returns the data of the page, and a second one gets the count. The statements of a [transaction](../queries/transaction.md) go on their own too.
 

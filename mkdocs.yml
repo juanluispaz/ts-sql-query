@@ -78,6 +78,8 @@ plugins:
         'advanced/query-execution-metadata.md': 'advanced/running-queries/query-execution-metadata.md'
         'advanced/metadata.md': 'advanced/running-queries/metadata.md'
         'about/limimitations.md': 'about/limitations.md'
+        # The page of each database moved to <db>/index.md, which keeps its address: only sqlite-extensions.md needs a redirect
+        'configuration/supported-databases/sqlite-extensions.md': 'configuration/supported-databases/sqlite/functions.md'
         'api/type-adpaters.md': 'api/type-adapters.md'
         'keywords/functions-oprators.md': 'keywords/functions-operators.md'
         'about/examples.md': 'queries/basic-query-structure.md'
@@ -201,13 +203,24 @@ nav:
     - Time zones: configuration/time-zones.md
     - Collations: configuration/collations.md
     - Supported databases:
-      - MariaDB: configuration/supported-databases/mariadb.md
-      - MySQL: configuration/supported-databases/mysql.md
-      - Oracle: configuration/supported-databases/oracle.md
-      - PostgreSQL: configuration/supported-databases/postgresql.md
-      - SQLite: configuration/supported-databases/sqlite.md
-      - SQLite functions and extensions: configuration/supported-databases/sqlite-extensions.md
-      - SQL Server: configuration/supported-databases/sqlserver.md
+      - MariaDB:
+        - Configuration: configuration/supported-databases/mariadb/index.md
+        - Functions: configuration/supported-databases/mariadb/functions.md
+      - MySQL:
+        - Configuration: configuration/supported-databases/mysql/index.md
+        - Functions: configuration/supported-databases/mysql/functions.md
+      - Oracle:
+        - Configuration: configuration/supported-databases/oracle/index.md
+        - Functions: configuration/supported-databases/oracle/functions.md
+      - PostgreSQL:
+        - Configuration: configuration/supported-databases/postgresql/index.md
+        - Functions: configuration/supported-databases/postgresql/functions.md
+      - SQLite:
+        - Configuration: configuration/supported-databases/sqlite/index.md
+        - Functions and extensions: configuration/supported-databases/sqlite/functions.md
+      - SQL Server:
+        - Configuration: configuration/supported-databases/sqlserver/index.md
+        - Functions: configuration/supported-databases/sqlserver/functions.md
     - Query runners: configuration/query-runners/index.md
     - Recommended query runners: 
       - better-sqlite3: configuration/query-runners/recommended/better-sqlite3.md

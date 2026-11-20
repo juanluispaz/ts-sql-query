@@ -226,7 +226,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 }
 ```
 
-`transformPlaceholder` no longer receives `forceTypeCast` nor the value sent: it is `transformPlaceholder(placeholder, context)` in the connection, with `next` at the end in a type adapter, the value sent is `context.valueSentToDB`, and it receives the placeholder as the query runner wrote it, with the cast when there is one. To decide whether the database must receive the type of a parameter, set `context.forceTypeCast` in `transformValueToDB`; an override that cast every parameter on PostgreSQL is no longer needed, the library gives the type where PostgreSQL needs it (see [The type of a parameter](../../configuration/supported-databases/postgresql.md#the-type-of-a-parameter)).
+`transformPlaceholder` no longer receives `forceTypeCast` nor the value sent: it is `transformPlaceholder(placeholder, context)` in the connection, with `next` at the end in a type adapter, the value sent is `context.valueSentToDB`, and it receives the placeholder as the query runner wrote it, with the cast when there is one. To decide whether the database must receive the type of a parameter, set `context.forceTypeCast` in `transformValueToDB`; an override that cast every parameter on PostgreSQL is no longer needed, the library gives the type where PostgreSQL needs it (see [The type of a parameter](../../configuration/supported-databases/postgresql/index.md#the-type-of-a-parameter)).
 
 A rule like this one, that only sends an integer of yours to `int`, is no longer needed: a custom type is converted as its family says (see [Custom types are converted as their family](#custom-types-are-converted-as-their-family)).
 
@@ -273,20 +273,20 @@ class DBConnection extends SqlServerConnection<'DBConnection'> {
 
 | If your database is older than | Value for that version | What the default emits and it doesn't accept |
 |---|---|---|
-| [PostgreSQL](../../configuration/supported-databases/postgresql.md#compatibility-version) 18 | `17_000_000` | `oldValues()` as `returning old.column` |
-| [MySQL](../../configuration/supported-databases/mysql.md#compatibility-version) 8.0.19 | `8_000_018` | `insert ... as _new_ on duplicate key update` |
+| [PostgreSQL](../../configuration/supported-databases/postgresql/index.md#compatibility-version) 18 | `17_000_000` | `oldValues()` as `returning old.column` |
+| [MySQL](../../configuration/supported-databases/mysql/index.md#compatibility-version) 8.0.19 | `8_000_018` | `insert ... as _new_ on duplicate key update` |
 | MySQL 8.0.17 | `8_000_016` | `cast(x as double)` in `.asDouble()`, `.divide(...)` and `average(...)` |
 | MySQL 8.0 | `5_007_000` | `with`, which is then written inline in the `from` |
-| [MariaDB](../../configuration/supported-databases/mariadb.md#compatibility-version) 10.5 | `10_004_000` | `insert ... returning` to read the last inserted id |
+| [MariaDB](../../configuration/supported-databases/mariadb/index.md#compatibility-version) 10.5 | `10_004_000` | `insert ... returning` to read the last inserted id |
 | MariaDB 10.4 | `10_003_000` | `cast(x as double)` in `.asDouble()`, `.divide(...)` and `average(...)` |
 | MariaDB 10.3.3 | `10_003_002` | `value(column)` in `on duplicate key update` |
-| [SQLite](../../configuration/supported-databases/sqlite.md#compatibility-version) 3.42 | `3_041_000` | `unixepoch(x, 'subsec')` |
+| [SQLite](../../configuration/supported-databases/sqlite/index.md#compatibility-version) 3.42 | `3_041_000` | `unixepoch(x, 'subsec')` |
 | SQLite 3.38 | `3_037_000` | `unixepoch(x)` |
 | SQLite 3.35 | `3_034_000` | `insert ... returning` to read the last inserted id |
 | SQLite 3.30 | `3_029_000` | `nulls first`, `nulls last` |
-| [SQL Server](../../configuration/supported-databases/sqlserver.md#compatibility-version) 2025 | `16_000_000` | `current_date`, `json_arrayagg`, `json_object`, `substring` without a length |
+| [SQL Server](../../configuration/supported-databases/sqlserver/index.md#compatibility-version) 2025 | `16_000_000` | `current_date`, `json_arrayagg`, `json_object`, `substring` without a length |
 | SQL Server 2022 | `15_000_000` | `greatest`, `least` |
-| [Oracle](../../configuration/supported-databases/oracle.md#compatibility-version) 23ai | `19_000_000` | `Values` written with the `values` table constructor |
+| [Oracle](../../configuration/supported-databases/oracle/index.md#compatibility-version) 23ai | `19_000_000` | `Values` written with the `values` table constructor |
 
 This only chooses the syntax. The changes in values and transactions apply whatever the version.
 
@@ -459,7 +459,7 @@ update my_table set my_column = substr(my_column, 1, 8) where length(my_column) 
 update my_table set my_column = substr(my_column, 1, 8) || 'Z' where length(my_column) > 9;
 ```
 
-The same statements work with the space and with the `T` separator. Columns with a `localDate` don't change, and neither do the numeric strategies. If the schema or a trigger writes the value, like a `default current_timestamp`, use the expression of your strategy: see [Values generated by the database](../../configuration/supported-databases/sqlite.md#values-generated-by-the-database).
+The same statements work with the space and with the `T` separator. Columns with a `localDate` don't change, and neither do the numeric strategies. If the schema or a trigger writes the value, like a `default current_timestamp`, use the expression of your strategy: see [Values generated by the database](../../configuration/supported-databases/sqlite/index.md#values-generated-by-the-database).
 
 Choose `seconds` if other code writes in those columns with SQLite's own functions, which have no decimals: `UTC seconds as text` is the text of `current_timestamp`.
 

@@ -5,11 +5,11 @@ search:
 <!-- doc-code-template: postgresql -->
 # pglite
 
-This page explains how to use `ts-sql-query` with the [pglite](https://www.npmjs.com/package/@electric-sql/pglite) driver for local [PostgreSQL](../../supported-databases/postgresql.md) databases.
+This page explains how to use `ts-sql-query` with the [pglite](https://www.npmjs.com/package/@electric-sql/pglite) driver for local [PostgreSQL](../../supported-databases/postgresql/index.md) databases.
 
 !!! success "Supported databases"
 
-    - [PostgreSQL](../../supported-databases/postgresql.md)
+    - [PostgreSQL](../../supported-databases/postgresql/index.md)
 
 !!! info "Tested with"
 

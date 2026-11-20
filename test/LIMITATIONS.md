@@ -129,15 +129,15 @@ when the index isn't built.
 
 **Engines split into two camps:**
 
-- **Strict** — [SQL Server](../docs/configuration/supported-databases/sqlserver.md)
-  and [Oracle](../docs/configuration/supported-databases/oracle.md)
+- **Strict** — [SQL Server](../docs/configuration/supported-databases/sqlserver/index.md)
+  and [Oracle](../docs/configuration/supported-databases/oracle/index.md)
   require **every** non-aggregated column that appears in the SELECT
   to also appear in the `GROUP BY`. Forgetting one is a runtime SQL
   error.
-- **Permissive** — [PostgreSQL](../docs/configuration/supported-databases/postgresql.md)
-  (since 9.1, when the PK is in the GROUP BY), [MySQL](../docs/configuration/supported-databases/mysql.md),
-  [MariaDB](../docs/configuration/supported-databases/mariadb.md) and
-  [SQLite](../docs/configuration/supported-databases/sqlite.md) accept
+- **Permissive** — [PostgreSQL](../docs/configuration/supported-databases/postgresql/index.md)
+  (since 9.1, when the PK is in the GROUP BY), [MySQL](../docs/configuration/supported-databases/mysql/index.md),
+  [MariaDB](../docs/configuration/supported-databases/mariadb/index.md) and
+  [SQLite](../docs/configuration/supported-databases/sqlite/index.md) accept
   forms where some non-aggregated columns are omitted from GROUP BY.
   MySQL only within limits: `ONLY_FULL_GROUP_BY`, in the default `sql_mode`
   since 5.7.5, rejects a non-grouped column unless it is functionally

@@ -221,7 +221,7 @@ is **pinned** (no floating `latest`), and may be a **different repository**
 hand-maintained image per folder.
 
 The map has **one entry per version folder**, taken from the documented
-breakpoints of every engine (`docs/configuration/supported-databases/<db>.md`):
+breakpoints of every engine (`docs/configuration/supported-databases/<db>/index.md`):
 the folder name is the key. An engine's **highest** breakpoint has no folder: its compat emits SQL identical to
 `newest`, so `newest` covers it.
 

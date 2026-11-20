@@ -9,8 +9,8 @@ This page explains how to use `ts-sql-query` with the [mariadb](https://www.npmj
 
 !!! success "Supported databases"
 
-    - [MariaDB](../../supported-databases/mariadb.md)
-    - [MySQL](../../supported-databases/mysql.md)
+    - [MariaDB](../../supported-databases/mariadb/index.md)
+    - [MySQL](../../supported-databases/mysql/index.md)
 
 !!! info "Tested with"
 

@@ -519,7 +519,7 @@ async function applyResetAndSeedToOpenedConnection(conn: import('oracledb').Conn
 // runner creates these as user-defined functions in the worker schema before
 // applying schema/seed; Oracle resolves the names case-insensitively, so they
 // stand in for the missing built-ins. Canonical (non-reordering) bodies from
-// docs/configuration/supported-databases/oracle.md § UUID utility functions —
+// docs/configuration/supported-databases/oracle/functions.md § uuid_to_raw and raw_to_uuid —
 // the 16 bytes are stored as-is (accepts any hex, including the v4 uuids in the
 // seed), and the read wraps in `lower(...)` so the output matches Oracle 23ai's
 // lowercase built-in and the same value assertions pass on both images. The

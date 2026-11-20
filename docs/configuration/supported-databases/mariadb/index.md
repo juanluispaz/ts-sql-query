@@ -5,7 +5,7 @@ search:
 <!-- doc-code-template: mariadb -->
 # MariaDB
 
-This page has what is particular to MariaDB: what it offers and what it doesn't, how to declare its version, sequences, the limit of `stringConcat`, what `snapshot` protects, the UUID strategies, and rounding. To define the connection and map your tables, the pages to read are [Connection](../connection.md) and [Mapping](../mapping.md).
+This page has what is particular to MariaDB: what it offers and what it doesn't, how to declare its version, sequences, the limit of `stringConcat`, what `snapshot` protects, the UUID strategies, and rounding. The functions to create in the database are in [MariaDB functions](functions.md). To define the connection and map your tables, the pages to read are [Connection](../../connection.md) and [Mapping](../../mapping.md).
 
 ## Defining the connection
 
@@ -15,7 +15,7 @@ import { MariaDBConnection } from "ts-sql-query/mariadb";
 class DBConnection extends MariaDBConnection<'DBConnection'> { }
 ```
 
-Create a connection object for each request, and don't share it between concurrent requests: see [Instantiating the connection](../connection.md#instantiating-the-connection-with-the-database-connection).
+Create a connection object for each request, and don't share it between concurrent requests: see [Instantiating the connection](../../connection.md#instantiating-the-connection-with-the-database-connection).
 
 ## What it offers and what it doesn't
 
@@ -23,19 +23,19 @@ What isn't offered doesn't compile on this connection. On a version older than t
 
 | What | On this database |
 |---|---|
-| [`returning` in an insert](../../queries/insert.md#availability-per-database) | From MariaDB 10.5 |
-| [`returning` in an update](../../queries/update.md#availability-in-each-database) | From MariaDB 13.0.1 |
-| [`returning` in a delete](../../queries/delete.md#availability-in-each-database) | From MariaDB 10.0.5 |
-| [`oldValues()` in an update](../../queries/update.md#availability-in-each-database) | From MariaDB 13.0.1 |
-| [Insert on conflict](../../queries/insert-on-conflict.md#what-each-database-offers) | `onConflictDoNothing` and `onConflictDoUpdateSet`. `onConflictOn` and `onConflictOnConstraint` aren't offered |
-| Other tables in an [update](../../queries/update.md#availability-in-each-database) or a [delete](../../queries/delete.md#availability-in-each-database) | `from`, `using`, and a join right after `update` or `deleteFrom` |
-| [Compound queries](../../queries/compound-select.md#availability-in-each-database) | `union`, `unionAll`; `intersect`, `except`, `minus` from MariaDB 10.3; their `All` versions from MariaDB 10.5 |
-| [Recursive queries](../../queries/recursive-select.md#availability-in-each-database) | `recursiveUnionAll`, `recursiveUnion`. `startWith` and `connectBy` aren't offered |
-| [Arrays of objects from an aggregate](../../queries/aggregate-as-object-array.md#availability-in-each-database) | From MariaDB 10.5, also the `Distinct` versions |
-| [`stringConcatDistinct`, `anyValue`](../../queries/aggregate-and-group-by.md#how-each-function-is-written-in-each-database) | `stringConcatDistinct` yes; `anyValue` isn't offered |
-| [Sequences](../mapping.md#using-a-sequence) | From MariaDB 10.3 |
-| [Stored procedures](../mapping.md#calling-a-stored-procedure) and [functions](../mapping.md#calling-a-function-of-the-database) | Yes |
-| [Isolation levels](../../queries/transaction.md#what-each-database-offers) | `read uncommitted`, `read committed`, `snapshot` ([with a limitation](#snapshot-isolation-and-older-versions)), `serializable` |
+| [`returning` in an insert](../../../queries/insert.md#availability-per-database) | From MariaDB 10.5 |
+| [`returning` in an update](../../../queries/update.md#availability-in-each-database) | From MariaDB 13.0.1 |
+| [`returning` in a delete](../../../queries/delete.md#availability-in-each-database) | From MariaDB 10.0.5 |
+| [`oldValues()` in an update](../../../queries/update.md#availability-in-each-database) | From MariaDB 13.0.1 |
+| [Insert on conflict](../../../queries/insert-on-conflict.md#what-each-database-offers) | `onConflictDoNothing` and `onConflictDoUpdateSet`. `onConflictOn` and `onConflictOnConstraint` aren't offered |
+| Other tables in an [update](../../../queries/update.md#availability-in-each-database) or a [delete](../../../queries/delete.md#availability-in-each-database) | `from`, `using`, and a join right after `update` or `deleteFrom` |
+| [Compound queries](../../../queries/compound-select.md#availability-in-each-database) | `union`, `unionAll`; `intersect`, `except`, `minus` from MariaDB 10.3; their `All` versions from MariaDB 10.5 |
+| [Recursive queries](../../../queries/recursive-select.md#availability-in-each-database) | `recursiveUnionAll`, `recursiveUnion`. `startWith` and `connectBy` aren't offered |
+| [Arrays of objects from an aggregate](../../../queries/aggregate-as-object-array.md#availability-in-each-database) | From MariaDB 10.5, also the `Distinct` versions |
+| [`stringConcatDistinct`, `anyValue`](../../../queries/aggregate-and-group-by.md#how-each-function-is-written-in-each-database) | `stringConcatDistinct` yes; `anyValue` isn't offered |
+| [Sequences](../../mapping.md#using-a-sequence) | From MariaDB 10.3 |
+| [Stored procedures](../../mapping.md#calling-a-stored-procedure) and [functions](../../mapping.md#calling-a-function-of-the-database) | Yes |
+| [Isolation levels](../../../queries/transaction.md#what-each-database-offers) | `read uncommitted`, `read committed`, `snapshot` ([with a limitation](#snapshot-isolation-and-older-versions)), `serializable` |
 
 ## Compatibility version
 
@@ -96,7 +96,7 @@ pool.on('connection', c => c.query('SET SESSION group_concat_max_len = 1000000')
 
 ## `snapshot` isolation and older versions
 
-`connection.isolationLevel('snapshot')` runs the transaction at MariaDB's `REPEATABLE READ`. Since MariaDB 11.6.2 a write to a row another transaction changed after the snapshot is refused (error 1020, _Record has changed since last read_), as on the other databases. Before that version, or with the `innodb_snapshot_isolation` system variable turned off, the write is not refused and another transaction's update can be lost without any error — the same defect MySQL has. The scenario, and what to do instead, is in [Transaction isolation](../../queries/transaction.md#mysql-and-mariadb-snapshot-writes).
+`connection.isolationLevel('snapshot')` runs the transaction at MariaDB's `REPEATABLE READ`. Since MariaDB 11.6.2 a write to a row another transaction changed after the snapshot is refused (error 1020, _Record has changed since last read_), as on the other databases. Before that version, or with the `innodb_snapshot_isolation` system variable turned off, the write is not refused and another transaction's update can be lost without any error — the same defect MySQL has. The scenario, and what to do instead, is in [Transaction isolation](../../../queries/transaction.md#mysql-and-mariadb-snapshot-writes).
 
 Further reading: [MDEV-35124](https://jira.mariadb.org/browse/MDEV-35124) (`innodb_snapshot_isolation` turned on by default), [Jepsen's note on MariaDB's fix](https://jepsen.io/blog/2024-11-07-mariadb-snapshot-isolation) and [Jepsen's analysis of MySQL 8.0.34](https://jepsen.io/analyses/mysql-8.0.34), whose anomalies MariaDB shared.
 
@@ -126,7 +126,7 @@ class DBConnection extends MariaDBConnection<'DBConnection'> {
 
 ## Collations & case sensitivity
 
-MariaDB's default collation (`utf8mb4_uca1400_ai_ci`) is case- **and accent-insensitive** — so `equals` / `contains` / `like` fold both case and accents out of the box, where PostgreSQL, Oracle and SQLite would not. The plain string operations follow that configured collation; the `*Insensitive` operations force case-insensitivity over it. To force the *case-sensitive* direction, use a binary collation (`utf8mb4_bin`) with `.collate('<name>')` per value or on the column — the `SET collation_connection` session variable does **not** retarget a column comparison. `REPLACE` ignores collation on MariaDB, so `replaceAll` is byte-wise case-sensitive with nothing to configure; for a case-insensitive replace use [`.replaceAllInsensitive(...)`](../collations.md#replaceallinsensitive-the-insensitive-twin). See the dedicated [Collations & case sensitivity](../collations.md) page and the [MySQL / MariaDB tab](../collations.md#per-database).
+MariaDB's default collation (`utf8mb4_uca1400_ai_ci`) is case- **and accent-insensitive** — so `equals` / `contains` / `like` fold both case and accents out of the box, where PostgreSQL, Oracle and SQLite would not. The plain string operations follow that configured collation; the `*Insensitive` operations force case-insensitivity over it. To force the *case-sensitive* direction, use a binary collation (`utf8mb4_bin`) with `.collate('<name>')` per value or on the column — the `SET collation_connection` session variable does **not** retarget a column comparison. `REPLACE` ignores collation on MariaDB, so `replaceAll` is byte-wise case-sensitive with nothing to configure; for a case-insensitive replace use [`.replaceAllInsensitive(...)`](../../collations.md#replaceallinsensitive-the-insensitive-twin). See the dedicated [Collations & case sensitivity](../../collations.md) page and the [MySQL / MariaDB tab](../../collations.md#per-database).
 
 !!! warning "Validate the case sensitivity, then configure the connection"
 
@@ -164,7 +164,7 @@ class DBConnection extends MariaDBConnection<'DBConnection'> {
 
 !!! tip "Generating UUIDs"
 
-    Prefer **UUID v7** over UUID v4. MariaDB's native `UUID` type stores UUIDs with version ≥ 6 in canonical byte order ([MDEV-29959](https://jira.mariadb.org/browse/MDEV-29959), since MariaDB 10.10.6 / 10.11.5 — predates the RFC 9562 publication), so v7 keeps its chronological ordering on the primary-key index. MariaDB 11.7+ also exposes a server-side `UUID_v7()` function. As a general rule, generating the UUID in the database as a column `DEFAULT` is preferred over generating it in application code; the latter is the fallback when the value must be known before the `INSERT`. See the [column types](../data-types.md) page for more context.
+    Prefer **UUID v7** over UUID v4. MariaDB's native `UUID` type stores UUIDs with version ≥ 6 in canonical byte order ([MDEV-29959](https://jira.mariadb.org/browse/MDEV-29959), since MariaDB 10.10.6 / 10.11.5 — predates the RFC 9562 publication), so v7 keeps its chronological ordering on the primary-key index. MariaDB 11.7+ also exposes a server-side `UUID_v7()` function. As a general rule, generating the UUID in the database as a column `DEFAULT` is preferred over generating it in application code; the latter is the fallback when the value must be known before the `INSERT`. See the [column types](../../data-types.md) page for more context.
 
 ## Rounding behavior
 

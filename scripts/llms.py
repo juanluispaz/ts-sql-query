@@ -35,9 +35,7 @@ AREAS = [
         'configuration/query-runners/combining-with-another-library.md',
     ], False),
     ('configuration', 'Mapping and configuration', 'the connection, tables and views, the types of the columns, dates and times (Temporal), time zones, collations and each database', [
-        'configuration/*.md', 'configuration/supported-databases/mariadb.md', 'configuration/supported-databases/mysql.md',
-        'configuration/supported-databases/oracle.md', 'configuration/supported-databases/postgresql.md',
-        'configuration/supported-databases/sqlite.md', 'configuration/supported-databases/sqlserver.md',
+        'configuration/*.md', 'configuration/supported-databases/*/index.md',
         'advanced/data-types/custom-booleans-values.md',
     ], True),
     ('api-mapping', 'API of the tables and views', 'the methods to declare tables, views and constant values as a view, to look up', [
@@ -80,8 +78,8 @@ AREAS = [
         'advanced/tables-and-rows/utility-types.md', 'advanced/tables-and-rows/columns-from-object.md',
     ], False),
     # When the library doesn't write the SQL you need
-    ('own-sql', 'SQL the library does not write', 'what to do when the library or the database does not write your SQL: fragments of SQL of your own, customizing a query, and the functions and extensions of SQLite', [
-        'queries/sql-fragments.md', 'configuration/supported-databases/sqlite-extensions.md',
+    ('own-sql', 'SQL the library does not write', 'what to do when the library or the database does not write your SQL: fragments of SQL of your own, customizing a query, and the functions to create in each database (and the extensions of SQLite)', [
+        'queries/sql-fragments.md', 'configuration/supported-databases/*/functions.md',
     ], True),
     # Extend the library
     ('data-types', 'Data types of your own', 'a data type of your own: branded and opaque types, methods with SQL of their own, its type in the database, its conversions with type adapters and the context of a conversion', [
@@ -137,7 +135,7 @@ ELSEWHERE = {
     'extreme-dynamic': 'columns and filters from the caller, a table or an API driven by a request, restricted values, shapes',
     'dynamic-functions': 'functions that return a dynamic select, typing them, helper types',
     'types': 'types of a row',
-    'own-sql': 'SQL fragments, customizing a query',
+    'own-sql': 'SQL fragments, customizing a query, the functions to create in each database',
     'data-types': 'data types of your own, type adapters',
     'execution': 'wrapping or writing a query runner, query context',
     'testing': 'mock query runners',
@@ -293,7 +291,7 @@ def _only_database(text, database):
 
 def _of_database(page, slug):
     """A page about one database only goes in the files of that database"""
-    match = re.fullmatch(r'configuration/supported-databases/([a-z]+)(?:-[a-z-]+)?\.md', page)
+    match = re.fullmatch(r'configuration/supported-databases/([a-z]+)/[a-z-]+\.md', page)
     return not match or match.group(1) == slug
 
 

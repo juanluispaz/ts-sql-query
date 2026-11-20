@@ -656,7 +656,7 @@ MariaDB 12.3+ accepts the SQL — only the older engines reject it.
 [MariaDB added `UPDATE ... RETURNING` (and the matching `OLD_VALUE(col)` helper) in MariaDB 13.0.1](https://jira.mariadb.org/browse/MDEV-5092)
 (GA in 13.0.2). The library tracks that via the `>= 13_000_001`
 `compatibilityVersion` breakpoint documented in
-[`docs/configuration/supported-databases/mariadb.md`](../docs/configuration/supported-databases/mariadb.md);
+[`docs/configuration/supported-databases/mariadb/index.md`](../docs/configuration/supported-databases/mariadb/index.md);
 at `newest` (the default `Number.POSITIVE_INFINITY`) the
 `MariaDBSqlBuilder` emits the new syntax, including
 `returning old_value(col)` for `tTable.oldValues()` references.
@@ -996,7 +996,7 @@ emission would make every `getDay()` / `getTime()` worse for a range few schemas
 `getDay` and `getTime` for the `0999-01-14` values in
 `test/environments/oracle/LocalTemporalValuesInAnyZone.test.ts` are declared as this engine
 limit (`oracleLimitOf`). Documented for users in
-`docs/configuration/supported-databases/oracle.md` ("Dates before 1582").
+`docs/configuration/supported-databases/oracle/index.md` ("Dates before 1582").
 
 ### Oracle multi-table `UPDATE … FROM` / `DELETE … USING` requires Oracle Database 23ai
 

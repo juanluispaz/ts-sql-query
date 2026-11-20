@@ -14,7 +14,7 @@ database has to satisfy see [`PER_DATABASE_LAYOUT.md`](./PER_DATABASE_LAYOUT.md)
 ## Adding a database
 
 0. **Read the docs first.** Open
-   `docs/configuration/supported-databases/<database>.md` for the
+   `docs/configuration/supported-databases/<database>/index.md` for the
    compatibility ladder, the type mappings and any
    sequence/`RETURNING`/dialect quirks. Open every
    `docs/configuration/query-runners/recommended/<connector>.md` you plan
@@ -172,7 +172,7 @@ above:
 A new `<compatibilityVersion>` folder under an existing database:
 
 1. **Confirm the breakpoint exists** in
-   `docs/configuration/supported-databases/<database>.md`. The highest documented
+   `docs/configuration/supported-databases/<database>/index.md`. The highest documented
    breakpoint gets no folder: it emits the same SQL as `newest`.
 
 2. **Create the folder** with the literal numeric value as its name (e.g.

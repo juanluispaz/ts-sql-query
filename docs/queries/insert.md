@@ -78,7 +78,7 @@ The executed query is:
     values (@0, @1, @2, @3)
     ```
 
-The parameters are: `[ 'John', 'Smith', 1, 2019-08-16T15:02:32.849Z ]` (on SQLite: `[ 'John', 'Smith', 1, '2019-08-16' ]`; on [Oracle](../configuration/supported-databases/oracle.md), output parameters are added at the corresponding position with the structure `{dir:3003}`) 
+The parameters are: `[ 'John', 'Smith', 1, 2019-08-16T15:02:32.849Z ]` (on SQLite: `[ 'John', 'Smith', 1, '2019-08-16' ]`; on [Oracle](../configuration/supported-databases/oracle/index.md), output parameters are added at the corresponding position with the structure `{dir:3003}`) 
 
 The result type is a promise with the id of the last inserted row:
 ```tsx
@@ -168,7 +168,7 @@ The executed query is:
         (@3, @4, @5)
     ```
 
-The parameters are: `[ 'John', 'Smith', 1, 'Other', 'Person', 1 ]` (On [Oracle](../configuration/supported-databases/oracle.md), output parameters are added at the corresponding position with the structure `{dir:3003}`)
+The parameters are: `[ 'John', 'Smith', 1, 'Other', 'Person', 1 ]` (On [Oracle](../configuration/supported-databases/oracle/index.md), output parameters are added at the corresponding position with the structure `{dir:3003}`)
 
 The result type is a promise with the id of the last inserted rows:
 ```tsx
@@ -177,7 +177,7 @@ const insertMultipleCustomers: Promise<number[]>
 
 !!! note
 
-    Returning the last inserted id of an insert with multiple rows isn't available on **[MySQL](../configuration/supported-databases/mysql.md)**, where it is a compilation error, and it needs a modern [SQLite](../configuration/supported-databases/sqlite.md) or [MariaDB](../configuration/supported-databases/mariadb.md): see [Availability per database](#availability-per-database).
+    Returning the last inserted id of an insert with multiple rows isn't available on **[MySQL](../configuration/supported-databases/mysql/index.md)**, where it is a compilation error, and it needs a modern [SQLite](../configuration/supported-databases/sqlite/index.md) or [MariaDB](../configuration/supported-databases/mariadb/index.md): see [Availability per database](#availability-per-database).
 
 ## Insert from select
 
@@ -376,7 +376,7 @@ Using a method a database doesn't offer is a compilation error; the versions are
 
 ## Insert returning
 
-If you are using [PostgreSQL](../configuration/supported-databases/postgresql.md), modern [SQLite](../configuration/supported-databases/sqlite.md), [SQL Server](../configuration/supported-databases/sqlserver.md), modern [MariaDB](../configuration/supported-databases/mariadb.md) or [Oracle](../configuration/supported-databases/oracle.md) (except for an insert from select), you can return values of the inserted record in the same query using the `returning` or `returningOneColumn` methods. This returns what is stored in the row, also what you didn't send: the generated id or a default value, without a second query. `returning` receives an object like the one of a `select`.
+If you are using [PostgreSQL](../configuration/supported-databases/postgresql/index.md), modern [SQLite](../configuration/supported-databases/sqlite/index.md), [SQL Server](../configuration/supported-databases/sqlserver/index.md), modern [MariaDB](../configuration/supported-databases/mariadb/index.md) or [Oracle](../configuration/supported-databases/oracle/index.md) (except for an insert from select), you can return values of the inserted record in the same query using the `returning` or `returningOneColumn` methods. This returns what is stored in the row, also what you didn't send: the generated id or a default value, without a second query. `returning` receives an object like the one of a `select`.
 
 ```ts
 const insertReturningCustomerData = connection.insertInto(tCustomer).set({
@@ -449,7 +449,7 @@ The executed query is:
     values (@0, @1, @2)
     ```
 
-The parameters are: `[ 'John', 'Smith', 1 ]` (On [Oracle](../configuration/supported-databases/oracle.md), output parameters are added at the corresponding position with the structure `{dir:3003}`)
+The parameters are: `[ 'John', 'Smith', 1 ]` (On [Oracle](../configuration/supported-databases/oracle/index.md), output parameters are added at the corresponding position with the structure `{dir:3003}`)
 
 The result type is a promise with the information of the inserted rows:
 ```tsx
@@ -520,7 +520,7 @@ The executed query is:
     values (@0, @1, @2)
     ```
 
-The parameters are: `[ 'John', 'Smith', 1 ]` (On [Oracle](../configuration/supported-databases/oracle.md), output parameters are added at the corresponding position with the structure `{dir:3003}`)
+The parameters are: `[ 'John', 'Smith', 1 ]` (On [Oracle](../configuration/supported-databases/oracle/index.md), output parameters are added at the corresponding position with the structure `{dir:3003}`)
 
 The result type is:
 ```tsx
@@ -636,7 +636,7 @@ The executed query is:
     values (@0, @1, @2)
     ```
 
-The parameters are: `[ 'John', 'Smith', 1 ]` (On [Oracle](../configuration/supported-databases/oracle.md), output parameters are added at the corresponding position with the structure `{dir:3003}`)
+The parameters are: `[ 'John', 'Smith', 1 ]` (On [Oracle](../configuration/supported-databases/oracle/index.md), output parameters are added at the corresponding position with the structure `{dir:3003}`)
 
 The result type is:
 ```tsx

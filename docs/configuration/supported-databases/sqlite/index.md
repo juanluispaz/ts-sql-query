@@ -5,7 +5,7 @@ search:
 <!-- doc-code-template: sqlite -->
 # SQLite
 
-This page has what is particular to SQLite: what it offers and what it doesn't, how to declare its version, how dates are stored, why the insensitive operations only fold ASCII, the UUID strategies, and the versions. To define the connection and map your tables, the pages to read are [Connection](../connection.md) and [Mapping](../mapping.md).
+This page has what is particular to SQLite: what it offers and what it doesn't, how to declare its version, how dates are stored, why the insensitive operations only fold ASCII, the UUID strategies, and the versions. The functions the library needs in the database, and how to register them, are in [SQLite functions and extensions](functions.md). To define the connection and map your tables, the pages to read are [Connection](../../connection.md) and [Mapping](../../mapping.md).
 
 ## Defining the connection
 
@@ -15,11 +15,11 @@ import { SqliteConnection } from "ts-sql-query/sqlite";
 class DBConnection extends SqliteConnection<'DBConnection'> { }
 ```
 
-Create a connection object for each request, and don't share it between concurrent requests: see [Instantiating the connection](../connection.md#instantiating-the-connection-with-the-database-connection).
+Create a connection object for each request, and don't share it between concurrent requests: see [Instantiating the connection](../../connection.md#instantiating-the-connection-with-the-database-connection).
 
 !!! tip
 
-    If you use [better-sqlite3](https://www.npmjs.com/package/better-sqlite3) or [sqlite-wasm](https://www.npmjs.com/package/@sqlite.org/sqlite-wasm) to connect to the database you can run your queries synchronously. See [BetterSqlite3QueryRunner](../query-runners/recommended/better-sqlite3.md), [Sqlite3WasmOO1QueryRunner](../query-runners/recommended/sqlite-wasm-OO1.md) and [Synchronous query runners](../../advanced/running-queries/synchronous-query-runners.md) for more information.
+    If you use [better-sqlite3](https://www.npmjs.com/package/better-sqlite3) or [sqlite-wasm](https://www.npmjs.com/package/@sqlite.org/sqlite-wasm) to connect to the database you can run your queries synchronously. See [BetterSqlite3QueryRunner](../../query-runners/recommended/better-sqlite3.md), [Sqlite3WasmOO1QueryRunner](../../query-runners/recommended/sqlite-wasm-OO1.md) and [Synchronous query runners](../../../advanced/running-queries/synchronous-query-runners.md) for more information.
 
 ## What it offers and what it doesn't
 
@@ -27,19 +27,19 @@ What isn't offered doesn't compile on this connection. On a version older than t
 
 | What | On this database |
 |---|---|
-| [`returning` in an insert](../../queries/insert.md#availability-per-database) | From SQLite 3.35 |
-| [`returning` in an update](../../queries/update.md#availability-in-each-database) | From SQLite 3.35 |
-| [`returning` in a delete](../../queries/delete.md#availability-in-each-database) | From SQLite 3.35 |
-| [`oldValues()` in an update](../../queries/update.md#availability-in-each-database) | Not offered |
-| [Insert on conflict](../../queries/insert-on-conflict.md#what-each-database-offers) | `onConflictDoNothing`, `onConflictDoUpdateSet` and `onConflictOn`. `onConflictOnConstraint` isn't offered |
-| Other tables in an [update](../../queries/update.md#availability-in-each-database) or a [delete](../../queries/delete.md#availability-in-each-database) | `from` in an update. `using` and a join right after `update` or `deleteFrom` aren't offered |
-| [Compound queries](../../queries/compound-select.md#availability-in-each-database) | `union`, `unionAll`, `intersect`, `except`, `minus`. Their `All` versions aren't offered |
-| [Recursive queries](../../queries/recursive-select.md#availability-in-each-database) | `recursiveUnionAll`, `recursiveUnion`. `startWith` and `connectBy` aren't offered |
-| [Arrays of objects from an aggregate](../../queries/aggregate-as-object-array.md#availability-in-each-database) | Yes, also the `Distinct` versions |
-| [`stringConcatDistinct`, `anyValue`](../../queries/aggregate-and-group-by.md#how-each-function-is-written-in-each-database) | `anyValue` yes; [`stringConcatDistinct` without a separator](#stringconcatdistinct-has-no-separator) |
-| [Sequences](../mapping.md#using-a-sequence) | Not offered: SQLite doesn't have them |
-| [Stored procedures](../mapping.md#calling-a-stored-procedure) and [functions](../mapping.md#calling-a-function-of-the-database) | SQLite has no stored procedures, and rejects the statement. A function exists only if you register it in the driver |
-| [Isolation levels](../../queries/transaction.md#what-each-database-offers) | You can't choose one: transactions are always serializable |
+| [`returning` in an insert](../../../queries/insert.md#availability-per-database) | From SQLite 3.35 |
+| [`returning` in an update](../../../queries/update.md#availability-in-each-database) | From SQLite 3.35 |
+| [`returning` in a delete](../../../queries/delete.md#availability-in-each-database) | From SQLite 3.35 |
+| [`oldValues()` in an update](../../../queries/update.md#availability-in-each-database) | Not offered |
+| [Insert on conflict](../../../queries/insert-on-conflict.md#what-each-database-offers) | `onConflictDoNothing`, `onConflictDoUpdateSet` and `onConflictOn`. `onConflictOnConstraint` isn't offered |
+| Other tables in an [update](../../../queries/update.md#availability-in-each-database) or a [delete](../../../queries/delete.md#availability-in-each-database) | `from` in an update. `using` and a join right after `update` or `deleteFrom` aren't offered |
+| [Compound queries](../../../queries/compound-select.md#availability-in-each-database) | `union`, `unionAll`, `intersect`, `except`, `minus`. Their `All` versions aren't offered |
+| [Recursive queries](../../../queries/recursive-select.md#availability-in-each-database) | `recursiveUnionAll`, `recursiveUnion`. `startWith` and `connectBy` aren't offered |
+| [Arrays of objects from an aggregate](../../../queries/aggregate-as-object-array.md#availability-in-each-database) | Yes, also the `Distinct` versions |
+| [`stringConcatDistinct`, `anyValue`](../../../queries/aggregate-and-group-by.md#how-each-function-is-written-in-each-database) | `anyValue` yes; [`stringConcatDistinct` without a separator](#stringconcatdistinct-has-no-separator) |
+| [Sequences](../../mapping.md#using-a-sequence) | Not offered: SQLite doesn't have them |
+| [Stored procedures](../../mapping.md#calling-a-stored-procedure) and [functions](../../mapping.md#calling-a-function-of-the-database) | SQLite has no stored procedures, and rejects the statement. A function exists only if you register it in the driver |
+| [Isolation levels](../../../queries/transaction.md#what-each-database-offers) | You can't choose one: transactions are always serializable |
 
 ## Working with Date and Time
 
@@ -197,7 +197,7 @@ The zone must be set when the process starts, with `TZ` or in the operating syst
 
 !!! warning "A date outside UTC-10 to UTC+13"
 
-    Outside that range, a `localDate` you read gives another day in the local getters of JavaScript, as [Time zones](../time-zones.md#read-the-values-with-the-utc-getters) says. If you write that `Date` back, that other day is stored.
+    Outside that range, a `localDate` you read gives another day in the local getters of JavaScript, as [Time zones](../../time-zones.md#read-the-values-with-the-utc-getters) says. If you write that `Date` back, that other day is stored.
 
 ## Dealing with different date and time formats coming from the database
 
@@ -222,7 +222,7 @@ SQLite keeps a date and time to the millisecond, and rounds the fractional secon
 
 ## Collations & case sensitivity
 
-SQLite's default collation is case- and accent-**sensitive** for `=` (`BINARY`), but its `LIKE` folds **ASCII** case regardless of the column collation. The built-in collations are only `BINARY`, `NOCASE` (ASCII-only case folding) and `RTRIM` — the npm SQLite builds are non-ICU, so there are no language collations. Force a collation per value with `.collate('BINARY' | 'NOCASE')`, or connection-wide with `insensitiveCollation` — but `.collate()` does not reach `LIKE` (use `PRAGMA case_sensitive_like` for that). `REPLACE` ignores collation, so `replaceAll` is byte-wise case-sensitive; for a case-insensitive replace, register a UDF and set [`replaceAllInsensitiveFunction`](../collations.md#sqlite-register-a-udf-or-accept-the-case-sensitive-fallback). See the dedicated [Collations & case sensitivity](../collations.md) page and the [SQLite tab](../collations.md#per-database). The ASCII-only limitation below is the sharp edge to know about.
+SQLite's default collation is case- and accent-**sensitive** for `=` (`BINARY`), but its `LIKE` folds **ASCII** case regardless of the column collation. The built-in collations are only `BINARY`, `NOCASE` (ASCII-only case folding) and `RTRIM` — the npm SQLite builds are non-ICU, so there are no language collations. Force a collation per value with `.collate('BINARY' | 'NOCASE')`, or connection-wide with `insensitiveCollation` — but `.collate()` does not reach `LIKE` (use `PRAGMA case_sensitive_like` for that). `REPLACE` ignores collation, so `replaceAll` is byte-wise case-sensitive; for a case-insensitive replace, register a UDF and set [`replaceAllInsensitiveFunction`](../../collations.md#sqlite-register-a-udf-or-accept-the-case-sensitive-fallback). See the dedicated [Collations & case sensitivity](../../collations.md) page and the [SQLite tab](../../collations.md#per-database). The ASCII-only limitation below is the sharp edge to know about.
 
 ## Case-insensitive operations fold ASCII only
 
@@ -244,7 +244,7 @@ Note that `.length()` is **not** affected: it counts characters correctly on SQL
 
 `ts-sql-query` offers you different strategies to handle UUIDs in Sqlite:
 
-- `uuid-extension`: *(default strategy)* In this case, the UUID is represented and stored as `blob` data type of length 16. This requires the functions `uuid`, `uuid_str` and `uuid_blob` of the [UUID extension](https://sqlite.org/src/file?name=ext/misc/uuid.c): some builds of SQLite have them built in, like the one of macOS, which Bun uses there, with a `uuid()` of version 4 UUIDs, and on the drivers that register functions written in JavaScript [`registerSqliteFunctions`](#registering-the-functions) registers them, replacing those with a `uuid()` of version 7 UUIDs. To compile and load SQLite's uuid extension yourself, see [SQLite functions and extensions](sqlite-extensions.md).
+- `uuid-extension`: *(default strategy)* In this case, the UUID is represented and stored as `blob` data type of length 16. This requires the functions `uuid`, `uuid_str` and `uuid_blob` of the [UUID extension](https://sqlite.org/src/file?name=ext/misc/uuid.c): some builds of SQLite have them built in, like the one of macOS, which Bun uses there, with a `uuid()` of version 4 UUIDs, and on the drivers that register functions written in JavaScript [`registerSqliteFunctions`](#registering-the-functions) registers them, replacing those with a `uuid()` of version 7 UUIDs. To compile and load SQLite's uuid extension yourself, see [SQLite functions and extensions](functions.md).
 - `string`: In this case, the UUID is represented as string and stored in a column with `text` data type and length 36 characters. The library sends and reads the text of a uuid in lower case, the case the other strategies and databases give it: a uuid sent in upper case is stored and read in lower case, and an equality with it finds the uuid stored by the library.
 - `string as sent`: as `string`, but the text of a uuid is sent and read as it is, in the case it has. A uuid stored in upper case is read in upper case, and an equality compares the text as the column's collation does. Choose it for a column that other applications fill in upper case and compare as it is.
 
@@ -260,11 +260,11 @@ class DBConnection extends SqliteConnection<'DBConnection'> {
 
 !!! tip "Generating UUIDs"
 
-    When generating UUIDs on the application side, prefer **UUID v7** over UUID v4. With the `'string'` strategy v7 sorts chronologically by lexicographic comparison of its 36-character text representation; with the `'uuid-extension'` strategy the blob of `uuid_blob` keeps the bytes in the order of the text, so v7 sorts on the primary-key index too. The `uuid()` that `registerSqliteFunctions` registers generates v7. See the [column types](../data-types.md) page for more context.
+    When generating UUIDs on the application side, prefer **UUID v7** over UUID v4. With the `'string'` strategy v7 sorts chronologically by lexicographic comparison of its 36-character text representation; with the `'uuid-extension'` strategy the blob of `uuid_blob` keeps the bytes in the order of the text, so v7 sorts on the primary-key index too. The `uuid()` that `registerSqliteFunctions` registers generates v7. See the [column types](../../data-types.md) page for more context.
 
 ## Exact decimals: the decimal strategies
 
-SQLite has no exact decimal type. A column declared `decimal`, `numeric` or `money` has numeric affinity, and SQLite turns the text of an [exact decimal](../data-types.md#exact-decimals) (a `stringDecimal` or a `DecimalsType` of yours) into a floating point number when it stores it: `'1.50'` is stored as `1.5`, and a value of 30 digits loses the last ones, without an error. Store it in a `TEXT` column of a `STRICT` table, which keeps the text as it was sent and accepts nothing else:
+SQLite has no exact decimal type. A column declared `decimal`, `numeric` or `money` has numeric affinity, and SQLite turns the text of an [exact decimal](../../data-types.md#exact-decimals) (a `stringDecimal` or a `DecimalsType` of yours) into a floating point number when it stores it: `'1.50'` is stored as `1.5`, and a value of 30 digits loses the last ones, without an error. Store it in a `TEXT` column of a `STRICT` table, which keeps the text as it was sent and accepts nothing else:
 
 ```sql
 create table exact_amount (
@@ -341,11 +341,11 @@ The strategies with functions write these ones, and none of SQLite: the extensio
 
 ### Registering the functions
 
-On the drivers that register functions written in JavaScript, one call of `registerSqliteFunctions` registers all of them, with the ones of the [uuid strategy](#uuid-strategies) and `ci_replace`: see the page of [better-sqlite3](../query-runners/recommended/better-sqlite3.md#the-sql-functions-of-the-library), [bun:sqlite](../query-runners/recommended/bun_sqlite.md#the-sql-functions-of-the-library), [node:sqlite](../query-runners/recommended/node_sqlite.md#the-sql-functions-of-the-library) or [sqlite-wasm OO1](../query-runners/recommended/sqlite-wasm-OO1.md#the-sql-functions-of-the-library). The functions are written with `BigInt` and give the results of SQLite's decimal extension and, for the library's own, of the other databases. A decimal function or a `ci_replace` the database already has with the same name and number of arguments is left as it is: with SQLite's decimal extension loaded before the call, its functions, written in C, compute, and the call adds the library's own. The uuid functions are always registered, replacing the ones the database has (the `uuid()` of SQLite's uuid extension generates version 4 UUIDs, which don't sort by time); `skip` keeps them. To compile and load SQLite's decimal and uuid extensions, written in C, see [SQLite functions and extensions](sqlite-extensions.md).
+On the drivers that register functions written in JavaScript, one call of `registerSqliteFunctions` registers all of them, with the ones of the [uuid strategy](#uuid-strategies) and `ci_replace`: see the page of [better-sqlite3](../../query-runners/recommended/better-sqlite3.md#the-sql-functions-of-the-library), [bun:sqlite](../../query-runners/recommended/bun_sqlite.md#the-sql-functions-of-the-library), [node:sqlite](../../query-runners/recommended/node_sqlite.md#the-sql-functions-of-the-library) or [sqlite-wasm OO1](../../query-runners/recommended/sqlite-wasm-OO1.md#the-sql-functions-of-the-library). The functions are written with `BigInt` and give the results of SQLite's decimal extension and, for the library's own, of the other databases. A decimal function or a `ci_replace` the database already has with the same name and number of arguments is left as it is: with SQLite's decimal extension loaded before the call, its functions, written in C, compute, and the call adds the library's own. The uuid functions are always registered, replacing the ones the database has (the `uuid()` of SQLite's uuid extension generates version 4 UUIDs, which don't sort by time); `skip` keeps them. To compile and load SQLite's decimal and uuid extensions, written in C, see [SQLite functions and extensions](functions.md).
 
 !!! warning "Bun SQL can't register functions"
 
-    Bun SQL for SQLite has no way to register a function nor to load an extension, so the strategies with functions don't work with it. With it, use the `canonical text` strategy (or `text`), which compares, orders and groups exactly and rejects the arithmetic; or, on Bun, use [bun:sqlite](../query-runners/recommended/bun_sqlite.md), which registers them.
+    Bun SQL for SQLite has no way to register a function nor to load an extension, so the strategies with functions don't work with it. With it, use the `canonical text` strategy (or `text`), which compares, orders and groups exactly and rejects the arithmetic; or, on Bun, use [bun:sqlite](../../query-runners/recommended/bun_sqlite.md), which registers them.
 
 ### An index on the key of a decimal
 

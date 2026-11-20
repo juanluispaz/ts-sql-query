@@ -1,6 +1,6 @@
 // postgres in the "oldest" zone — compatibilityVersion = 17_000_000,
 // representative of the `< 18_000_000` zone documented in
-// docs/configuration/supported-databases/postgresql.md. The emitted SQL
+// docs/configuration/supported-databases/postgresql/index.md. The emitted SQL
 // uses the pre-18 RETURNING / UPDATE shape (no native OLD/NEW aliases).
 
 import { Pool } from 'pg'

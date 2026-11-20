@@ -557,9 +557,9 @@ The executed query is:
 
 The parameters are: `[]`
 
-The separator of `stringConcatDistinct` isn't available on SQLite, and the function isn't available on SQL Server; there it doesn't compile. On Oracle it needs [Oracle 19c or later](../configuration/supported-databases/oracle.md).
+The separator of `stringConcatDistinct` isn't available on SQLite, and the function isn't available on SQL Server; there it doesn't compile. On Oracle it needs [Oracle 19c or later](../configuration/supported-databases/oracle/index.md).
 
-A very long text has a limit on some databases: MySQL and MariaDB cut it, by default at 1024 bytes and with only a warning ([MySQL](../configuration/supported-databases/mysql.md#stringconcat-truncates-long-results), [MariaDB](../configuration/supported-databases/mariadb.md#stringconcat-truncates-long-results)), and Oracle and SQL Server return an error.
+A very long text has a limit on some databases: MySQL and MariaDB cut it, by default at 1024 bytes and with only a warning ([MySQL](../configuration/supported-databases/mysql/index.md#stringconcat-truncates-long-results), [MariaDB](../configuration/supported-databases/mariadb/index.md#stringconcat-truncates-long-results)), and Oracle and SQL Server return an error.
 
 ### How each function is written in each database
 

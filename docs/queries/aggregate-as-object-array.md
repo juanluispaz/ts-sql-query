@@ -187,7 +187,7 @@ const acmeCompanyWithCustomers: Promise<{
 
 !!! note "SQL Server: native JSON aggregates require SQL Server 2025+"
 
-    The `json_arrayagg` and `json_object` aggregates shown above are emitted only when the connection's [`compatibilityVersion`](../configuration/supported-databases/sqlserver.md) is at least `17_000_000` (SQL Server 2025), which is the default. On older versions, set `compatibilityVersion` to your actual version (e.g. `16_000_000` for SQL Server 2022); the same query is then emitted using `string_agg`/`string_escape` to build the JSON output.
+    The `json_arrayagg` and `json_object` aggregates shown above are emitted only when the connection's [`compatibilityVersion`](../configuration/supported-databases/sqlserver/index.md) is at least `17_000_000` (SQL Server 2025), which is the default. On older versions, set `compatibilityVersion` to your actual version (e.g. `16_000_000` for SQL Server 2022); the same query is then emitted using `string_agg`/`string_escape` to build the JSON output.
 
 ## Aggregate as an array of values
 
@@ -365,7 +365,7 @@ The parameters are: `[ 1 ]`
 
 !!! warning "Limitation"
 
-    [MySQL](../configuration/supported-databases/mysql.md), [Oracle](../configuration/supported-databases/oracle.md), and [SQL Server](../configuration/supported-databases/sqlserver.md) don't accept the `DISTINCT` quantifier inside their JSON-array aggregation function. If you try to use `aggregateAsArrayDistinct` or `aggregateAsArrayOfOneColumnDistinct` on any of these databases, you will get a compilation error. A workaround is to remove the duplicates inside a subquery created with `subSelectDistinctUsing`, as shown in [Inline subquery with distinct values referencing the outer query](cte-subqueries.md#inline-subquery-with-distinct-values-referencing-the-outer-query).
+    [MySQL](../configuration/supported-databases/mysql/index.md), [Oracle](../configuration/supported-databases/oracle/index.md), and [SQL Server](../configuration/supported-databases/sqlserver/index.md) don't accept the `DISTINCT` quantifier inside their JSON-array aggregation function. If you try to use `aggregateAsArrayDistinct` or `aggregateAsArrayOfOneColumnDistinct` on any of these databases, you will get a compilation error. A workaround is to remove the duplicates inside a subquery created with `subSelectDistinctUsing`, as shown in [Inline subquery with distinct values referencing the outer query](cte-subqueries.md#inline-subquery-with-distinct-values-referencing-the-outer-query).
 
 ## An inline query as an array of objects
 
@@ -673,7 +673,7 @@ The executed query is:
         where id = @1
     ```
 
-The parameters are: `[ " ", 1 ]` (On [MariaDB](../configuration/supported-databases/mariadb.md): `[" ", " ", 1]`)
+The parameters are: `[ " ", 1 ]` (On [MariaDB](../configuration/supported-databases/mariadb/index.md): `[" ", " ", 1]`)
 
 The result type is:
 ```tsx
@@ -1042,7 +1042,7 @@ const lowCompany: Promise<{
 
 !!! warning "Limitation"
 
-    [SQL Server](../configuration/supported-databases/sqlserver.md), [Oracle](../configuration/supported-databases/oracle.md), and [MariaDB](../configuration/supported-databases/mariadb.md) don't support recursive queries that reference outer tables (using `subSelectUsing`). If you try to use this query on any of these databases, you will get a compilation error. A workaround is to avoid the outer reference in the recursive query indicating the parent id in the `parentCompanies` query.
+    [SQL Server](../configuration/supported-databases/sqlserver/index.md), [Oracle](../configuration/supported-databases/oracle/index.md), and [MariaDB](../configuration/supported-databases/mariadb/index.md) don't support recursive queries that reference outer tables (using `subSelectUsing`). If you try to use this query on any of these databases, you will get a compilation error. A workaround is to avoid the outer reference in the recursive query indicating the parent id in the `parentCompanies` query.
 
 ## When there are no values
 
@@ -1350,4 +1350,4 @@ A [type adapter](../configuration/data-types.md) runs for each value of the arra
 
 What is not offered doesn't compile on that connection. On an older version than the one in the table, the database rejects the query.
 
-On SQL Server, `json_arrayagg` needs SQL Server 2025: with a lower [`compatibilityVersion`](../configuration/supported-databases/sqlserver.md) the library builds the JSON with `string_agg` and `string_escape`.
+On SQL Server, `json_arrayagg` needs SQL Server 2025: with a lower [`compatibilityVersion`](../configuration/supported-databases/sqlserver/index.md) the library builds the JSON with `string_agg` and `string_escape`.

@@ -170,7 +170,7 @@ re-validate" loop benefits the most. Full flag reference in
    [`docs/dynamic/`](../docs/dynamic/),
    [`docs/advanced/`](../docs/advanced/) or
    [`docs/configuration/`](../docs/configuration/)) and any
-   `docs/configuration/supported-databases/<database>.md` /
+   `docs/configuration/supported-databases/<database>/index.md` /
    `docs/configuration/query-runners/recommended/<connector>.md` pages that affect the
    cells you'll touch.
 

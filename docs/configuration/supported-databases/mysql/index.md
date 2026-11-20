@@ -5,7 +5,7 @@ search:
 <!-- doc-code-template: mysql -->
 # MySQL
 
-This page has what is particular to MySQL: what it offers and what it doesn't, how to declare its version, the UUID strategies, the limit of `stringConcat`, what `snapshot` doesn't protect, and rounding. To define the connection and map your tables, the pages to read are [Connection](../connection.md) and [Mapping](../mapping.md).
+This page has what is particular to MySQL: what it offers and what it doesn't, how to declare its version, the UUID strategies, the limit of `stringConcat`, what `snapshot` doesn't protect, and rounding. The functions to create in the database are in [MySQL functions](functions.md). To define the connection and map your tables, the pages to read are [Connection](../../connection.md) and [Mapping](../../mapping.md).
 
 ## Defining the connection
 
@@ -15,7 +15,7 @@ import { MySqlConnection } from "ts-sql-query/mysql";
 class DBConnection extends MySqlConnection<'DBConnection'> { }
 ```
 
-Create a connection object for each request, and don't share it between concurrent requests: see [Instantiating the connection](../connection.md#instantiating-the-connection-with-the-database-connection).
+Create a connection object for each request, and don't share it between concurrent requests: see [Instantiating the connection](../../connection.md#instantiating-the-connection-with-the-database-connection).
 
 ## What it offers and what it doesn't
 
@@ -23,19 +23,19 @@ What isn't offered doesn't compile on this connection. On a version older than t
 
 | What | On this database |
 |---|---|
-| [`returning` in an insert](../../queries/insert.md#availability-per-database) | Not offered. `returningLastInsertedId()` is, for one row |
-| [`returning` in an update](../../queries/update.md#availability-in-each-database) | Not offered |
-| [`returning` in a delete](../../queries/delete.md#availability-in-each-database) | Not offered |
-| [`oldValues()` in an update](../../queries/update.md#availability-in-each-database) | Not offered |
-| [Insert on conflict](../../queries/insert-on-conflict.md#what-each-database-offers) | `onConflictDoNothing` and `onConflictDoUpdateSet`. `onConflictOn` and `onConflictOnConstraint` aren't offered |
-| Other tables in an [update](../../queries/update.md#availability-in-each-database) or a [delete](../../queries/delete.md#availability-in-each-database) | `from`, `using`, and a join right after `update` or `deleteFrom` |
-| [Compound queries](../../queries/compound-select.md#availability-in-each-database) | `union`, `unionAll`; the others from MySQL 8.0.31 |
-| [Recursive queries](../../queries/recursive-select.md#availability-in-each-database) | From MySQL 8.0.1; `startWith` and `connectBy` aren't offered |
-| [Arrays of objects from an aggregate](../../queries/aggregate-as-object-array.md#availability-in-each-database) | From MySQL 8.0.14. The `Distinct` versions aren't offered |
-| [`stringConcatDistinct`, `anyValue`](../../queries/aggregate-and-group-by.md#how-each-function-is-written-in-each-database) | Yes |
-| [Sequences](../mapping.md#using-a-sequence) | Not offered: MySQL doesn't have them |
-| [Stored procedures](../mapping.md#calling-a-stored-procedure) and [functions](../mapping.md#calling-a-function-of-the-database) | Yes |
-| [Isolation levels](../../queries/transaction.md#what-each-database-offers) | `read uncommitted`, `read committed`, `snapshot` ([with a limitation](#snapshot-isolation-doesnt-protect-writes)), `serializable` |
+| [`returning` in an insert](../../../queries/insert.md#availability-per-database) | Not offered. `returningLastInsertedId()` is, for one row |
+| [`returning` in an update](../../../queries/update.md#availability-in-each-database) | Not offered |
+| [`returning` in a delete](../../../queries/delete.md#availability-in-each-database) | Not offered |
+| [`oldValues()` in an update](../../../queries/update.md#availability-in-each-database) | Not offered |
+| [Insert on conflict](../../../queries/insert-on-conflict.md#what-each-database-offers) | `onConflictDoNothing` and `onConflictDoUpdateSet`. `onConflictOn` and `onConflictOnConstraint` aren't offered |
+| Other tables in an [update](../../../queries/update.md#availability-in-each-database) or a [delete](../../../queries/delete.md#availability-in-each-database) | `from`, `using`, and a join right after `update` or `deleteFrom` |
+| [Compound queries](../../../queries/compound-select.md#availability-in-each-database) | `union`, `unionAll`; the others from MySQL 8.0.31 |
+| [Recursive queries](../../../queries/recursive-select.md#availability-in-each-database) | From MySQL 8.0.1; `startWith` and `connectBy` aren't offered |
+| [Arrays of objects from an aggregate](../../../queries/aggregate-as-object-array.md#availability-in-each-database) | From MySQL 8.0.14. The `Distinct` versions aren't offered |
+| [`stringConcatDistinct`, `anyValue`](../../../queries/aggregate-and-group-by.md#how-each-function-is-written-in-each-database) | Yes |
+| [Sequences](../../mapping.md#using-a-sequence) | Not offered: MySQL doesn't have them |
+| [Stored procedures](../../mapping.md#calling-a-stored-procedure) and [functions](../../mapping.md#calling-a-function-of-the-database) | Yes |
+| [Isolation levels](../../../queries/transaction.md#what-each-database-offers) | `read uncommitted`, `read committed`, `snapshot` ([with a limitation](#snapshot-isolation-doesnt-protect-writes)), `serializable` |
 
 ## Compatibility version
 
@@ -50,7 +50,7 @@ Recognised breakpoints (with the default `Number.POSITIVE_INFINITY` every breakp
 - `>= 8_000_019`: target MySQL 8.0.19+. The row alias syntax `INSERT ... AS _new_ ON DUPLICATE KEY UPDATE col = _new_.col` is emitted to reference values being inserted (added in 8.0.19; the legacy `VALUES(col)` function reference was deprecated in 8.0.20).
 - `>= 8_000_017`: target MySQL 8.0.17+. `DOUBLE` is used as a cast target (added in 8.0.17) whenever a value must be turned into a floating point number — `.asDouble()`, both operands of `.divide(...)`. Below this breakpoint the value is multiplied by the approximate literal `1.0e0` instead, which promotes it to `DOUBLE` on any version.
 - `>= 8_000_000`: target MySQL 8.0+. The `WITH` clause is used and recursive queries are supported.
-- `< 8_000_000`: target MySQL 5. The `WITH` clause is not emitted — the inner query is inlined in the `FROM` instead — and the legacy `VALUES(col)` reference is used inside `ON DUPLICATE KEY UPDATE`. A recursive query, or one with a [`Values`](../mapping.md#mapping-constant-values-as-view) source, can't be written for that version: its promise is rejected with the error `UNSUPPORTED_QUERY`, and nothing is sent to the database.
+- `< 8_000_000`: target MySQL 5. The `WITH` clause is not emitted — the inner query is inlined in the `FROM` instead — and the legacy `VALUES(col)` reference is used inside `ON DUPLICATE KEY UPDATE`. A recursive query, or one with a [`Values`](../../mapping.md#mapping-constant-values-as-view) source, can't be written for that version: its promise is rejected with the error `UNSUPPORTED_QUERY`, and nothing is sent to the database.
 
 ```ts
 import { MySqlConnection } from "ts-sql-query/mysql";
@@ -62,7 +62,7 @@ class DBConnection extends MySqlConnection<'DBConnection'> {
 
 ## `snapshot` isolation doesn't protect writes
 
-`connection.isolationLevel('snapshot')` runs the transaction at MySQL's `REPEATABLE READ`. Its reads all see the database as of one moment, but an `UPDATE` or a `DELETE` works on the latest committed version of the row and is never refused, so a transaction can write on the strength of something that is no longer true and another transaction's update is lost without any error. Every other database `ts-sql-query` supports refuses that write; `ts-sql-query` treats it as a MySQL defect. The scenario, and what to do instead, is in [Transaction isolation](../../queries/transaction.md#mysql-and-mariadb-snapshot-writes).
+`connection.isolationLevel('snapshot')` runs the transaction at MySQL's `REPEATABLE READ`. Its reads all see the database as of one moment, but an `UPDATE` or a `DELETE` works on the latest committed version of the row and is never refused, so a transaction can write on the strength of something that is no longer true and another transaction's update is lost without any error. Every other database `ts-sql-query` supports refuses that write; `ts-sql-query` treats it as a MySQL defect. The scenario, and what to do instead, is in [Transaction isolation](../../../queries/transaction.md#mysql-and-mariadb-snapshot-writes).
 
 Further reading: [MySQL bug #117797](https://bugs.mysql.com/bug.php?id=117797), [Jepsen's analysis of MySQL 8.0.34](https://jepsen.io/analyses/mysql-8.0.34) (lost update, among other anomalies, under `REPEATABLE READ`) and [Jepsen's note on MariaDB's fix](https://jepsen.io/blog/2024-11-07-mariadb-snapshot-isolation).
 
@@ -95,7 +95,7 @@ The `on duplicate key update` of an insert (`onConflictDoUpdateSet`) is written 
 
 ## Collations & case sensitivity
 
-MySQL's default collation (`utf8mb4_0900_ai_ci`) is case- **and accent-insensitive** — so `equals` / `contains` / `like` fold both case and accents out of the box, where PostgreSQL, Oracle and SQLite would not. The plain string operations follow that configured collation; the `*Insensitive` operations force case-insensitivity over it. To force the *case-sensitive* direction, use a binary collation (`utf8mb4_bin`) with `.collate('<name>')` per value or on the column — the `SET collation_connection` session variable does **not** retarget a column comparison. `REPLACE` ignores collation on MySQL, so `replaceAll` is byte-wise case-sensitive with nothing to configure; for a case-insensitive replace use [`.replaceAllInsensitive(...)`](../collations.md#replaceallinsensitive-the-insensitive-twin). See the dedicated [Collations & case sensitivity](../collations.md) page and the [MySQL / MariaDB tab](../collations.md#per-database).
+MySQL's default collation (`utf8mb4_0900_ai_ci`) is case- **and accent-insensitive** — so `equals` / `contains` / `like` fold both case and accents out of the box, where PostgreSQL, Oracle and SQLite would not. The plain string operations follow that configured collation; the `*Insensitive` operations force case-insensitivity over it. To force the *case-sensitive* direction, use a binary collation (`utf8mb4_bin`) with `.collate('<name>')` per value or on the column — the `SET collation_connection` session variable does **not** retarget a column comparison. `REPLACE` ignores collation on MySQL, so `replaceAll` is byte-wise case-sensitive with nothing to configure; for a case-insensitive replace use [`.replaceAllInsensitive(...)`](../../collations.md#replaceallinsensitive-the-insensitive-twin). See the dedicated [Collations & case sensitivity](../../collations.md) page and the [MySQL / MariaDB tab](../../collations.md#per-database).
 
 !!! warning "Validate the case sensitivity, then configure the connection"
 
@@ -115,7 +115,7 @@ MySQL's default collation (`utf8mb4_0900_ai_ci`) is case- **and accent-insensiti
 
 `ts-sql-query` provides different strategies to handle UUID values in MySQL. These strategies control how UUID values are represented in JavaScript and stored in the database.
 
-- `'binary'` *(default strategy)*: UUIDs are treated as strings and stored using the native `BINARY(16)` column type via the `UUID_TO_BIN` / `BIN_TO_UUID` functions. These are built in from MySQL 8; on MySQL 5.7 either use the `'string'` strategy below or define them yourself (see [UUID utility functions for MySQL](#uuid-utility-functions-for-mysql)).
+- `'binary'` *(default strategy)*: UUIDs are treated as strings and stored using the native `BINARY(16)` column type via the `UUID_TO_BIN` / `BIN_TO_UUID` functions. These are built in from MySQL 8; on MySQL 5.7 either use the `'string'` strategy below or define them yourself (see [MySQL functions](functions.md#uuid_to_bin-and-bin_to_uuid-for-mysql-57)).
 - `'string'`: UUIDs are treated as strings and stored in character-based columns such as `CHAR(36)`, `VARCHAR(36)`, or `TEXT`. This option can be used with older MySQL versions or when avoiding the `BINARY` type. The library sends and reads the text of a uuid in lower case, the case the other strategies and databases give it: a uuid sent in upper case is stored and read in lower case, and an equality with it finds the uuid stored by the library.
 - `'string as sent'`: as `'string'`, but the text of a uuid is sent and read as it is, in the case it has. A uuid stored in upper case is read in upper case, and an equality compares the text as the column's collation does. Choose it for a column that other applications fill in upper case and compare as it is.
 
@@ -131,24 +131,7 @@ class DBConnection extends MySqlConnection<'DBConnection'> {
 
 !!! tip "Generating UUIDs"
 
-    Prefer **UUID v7** over UUID v4. With the `'binary'` strategy on MySQL 8+, the bytes are stored in canonical order, so a UUID v7 keeps its chronological ordering on the primary-key index. MySQL has no server-side v7 generator (its built-in `UUID()` returns v1, which does not preserve sortability under the canonical byte order of the `'binary'` strategy), so v7 must be generated in the application — the only exception to the general rule of preferring database-side generation that is laid out in the [column types](../data-types.md) page.
-
-## UUID utility functions for MySQL
-
-The `'binary'` strategy relies on the `UUID_TO_BIN` / `BIN_TO_UUID` functions, which MySQL provides as built-ins from **version 8.0**. On **MySQL 5.7** they don't exist, so either use the `'string'` strategy above, or create the two functions yourself — MySQL resolves the names case-insensitively, so `ts-sql-query`'s emitted `uuid_to_bin(...)` / `bin_to_uuid(...)` resolve to them. The implementation below matches the 8.0 built-ins with the default swap flag (`0`, natural byte order), so values stored on 5.7 read back identically on 8.0+:
-
-```sql
-CREATE FUNCTION UUID_TO_BIN(uuid CHAR(36)) RETURNS BINARY(16) DETERMINISTIC
-    RETURN UNHEX(REPLACE(uuid, '-', ''));
-
-CREATE FUNCTION BIN_TO_UUID(b BINARY(16)) RETURNS CHAR(36) DETERMINISTIC
-    RETURN IF(b IS NULL, NULL,
-        LOWER(CONCAT_WS('-',
-            SUBSTR(HEX(b), 1, 8), SUBSTR(HEX(b), 9, 4), SUBSTR(HEX(b), 13, 4),
-            SUBSTR(HEX(b), 17, 4), SUBSTR(HEX(b), 21, 12))));
-```
-
-They store the 16 bytes as-is (no version-specific reordering), so they accept any UUID version — unlike MySQL's built-in swap form `UUID_TO_BIN(uuid, 1)`, which reorders the time fields of a v1 UUID. The `NULL` guard in `BIN_TO_UUID` returns `NULL` for a `NULL` input, matching the built-in (an unguarded `CONCAT_WS` would return a stray `----` string). `CHAR` results from a stored function take the database's default collation, so keep the connection collation aligned with it (on 5.7 that is `utf8mb4_general_ci`) to avoid an `Illegal mix of collations` error when a UUID string is compared against a literal.
+    Prefer **UUID v7** over UUID v4. With the `'binary'` strategy on MySQL 8+, the bytes are stored in canonical order, so a UUID v7 keeps its chronological ordering on the primary-key index. MySQL has no server-side v7 generator (its built-in `UUID()` returns v1, which does not preserve sortability under the canonical byte order of the `'binary'` strategy), so v7 must be generated in the application — the only exception to the general rule of preferring database-side generation that is laid out in the [column types](../../data-types.md) page.
 
 ## Rounding behavior
 

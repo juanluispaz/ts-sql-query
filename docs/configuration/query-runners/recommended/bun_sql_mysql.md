@@ -5,12 +5,12 @@ search:
 <!-- doc-code-template: mysql -->
 # Bun SQL for MySQL
 
-This page explains how to use `ts-sql-query` with the [Bun SQL](https://bun.com/docs/runtime/sql) driver configured with the MySQL adapter, allowing `ts-sql-query` to execute queries on [MySQL](../../supported-databases/mysql.md) or [MariaDB](../../supported-databases/mariadb.md) databases.
+This page explains how to use `ts-sql-query` with the [Bun SQL](https://bun.com/docs/runtime/sql) driver configured with the MySQL adapter, allowing `ts-sql-query` to execute queries on [MySQL](../../supported-databases/mysql/index.md) or [MariaDB](../../supported-databases/mariadb/index.md) databases.
 
 !!! success "Supported databases"
 
-    - [MySQL](../../supported-databases/mysql.md)
-    - [MariaDB](../../supported-databases/mariadb.md)
+    - [MySQL](../../supported-databases/mysql/index.md)
+    - [MariaDB](../../supported-databases/mariadb/index.md)
 
 !!! info "Tested with"
 

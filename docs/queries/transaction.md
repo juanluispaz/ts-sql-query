@@ -128,7 +128,7 @@ The typical one is a **deadlock**: two transactions, each waiting for a row the 
 - MariaDB and MySQL: a deadlock, in the transaction chosen as its victim.
 - SQL Server: a deadlock, and the errors that doom a transaction, like a failed conversion, or any error when `XACT_ABORT` is `ON`.
 - SQLite: a conflict clause that rolls back (`ON CONFLICT ROLLBACK` in the table, `INSERT OR ROLLBACK`, `RAISE(ROLLBACK, ...)` in a trigger), and errors like a full disk.
-- PostgreSQL: any statement that fails, see [a statement that fails inside a transaction](../configuration/supported-databases/postgresql.md#a-statement-that-fails-inside-a-transaction).
+- PostgreSQL: any statement that fails, see [a statement that fails inside a transaction](../configuration/supported-databases/postgresql/index.md#a-statement-that-fails-inside-a-transaction).
 
 Oracle rolls back only the statement that failed, also on a deadlock.
 
@@ -325,7 +325,7 @@ Available access modes:
 
 !!! warning
 
-    The [Oracle](../configuration/supported-databases/oracle.md) database doesn't support specifying the isolation level and the access mode simultaneously.
+    The [Oracle](../configuration/supported-databases/oracle/index.md) database doesn't support specifying the isolation level and the access mode simultaneously.
 
 ### How each database refuses
 

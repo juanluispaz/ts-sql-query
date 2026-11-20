@@ -18,7 +18,7 @@ ts-sql-query answers that with one rule: **every value in the database is in UTC
 
     With the `plainDate`, `plainTime` and `plainDateTime` types the value in your code is a `Temporal.PlainDate`, a `Temporal.PlainTime` or a `Temporal.PlainDateTime`: the digits of the column, not an instant, so no zone of your application takes part and there are no getters to choose. The zone of the database still says what a column with a zone, like `timestamptz`, gives: the date and time it has in that zone. See [Dates and times](dates-and-times.md).
 
-It is not about collations, the other setting of a session: see [Collations & case sensitivity](collations.md). On SQLite the library writes and reads the text or the number itself, with the strategy you choose; see [SQLite → Working with Date and Time](supported-databases/sqlite.md#working-with-date-and-time).
+It is not about collations, the other setting of a session: see [Collations & case sensitivity](collations.md). On SQLite the library writes and reads the text or the number itself, with the strategy you choose; see [SQLite → Working with Date and Time](supported-databases/sqlite/index.md#working-with-date-and-time).
 
 ## The rule: every value in the database is in UTC
 
@@ -29,7 +29,7 @@ It is not about collations, the other setting of a session: see [Collations & ca
 | `localDateTime`, in a column without zone | A `Date` whose UTC getters are the stored digits | The digits of its UTC getters |
 | `localDateTime`, in a column with zone, like `timestamptz` | The instant | The instant |
 
-On SQLite the [strategy of dates](supported-databases/sqlite.md#working-with-date-and-time) decides. With a `localdate` strategy, the default, a `localTime` and a `localDateTime` are in the zone of the application: the stored text is in their **local** getters, and a `Date` is stored with its local getters, so `2024-01-14 12:30:00.000` is read in `Europe/Madrid` as `2024-01-14T11:30:00.000Z`. The `UTC` and numeric strategies follow the rule. A `localDate` is at 10:00 UTC of its day on SQLite too.
+On SQLite the [strategy of dates](supported-databases/sqlite/index.md#working-with-date-and-time) decides. With a `localdate` strategy, the default, a `localTime` and a `localDateTime` are in the zone of the application: the stored text is in their **local** getters, and a `Date` is stored with its local getters, so `2024-01-14 12:30:00.000` is read in `Europe/Madrid` as `2024-01-14T11:30:00.000Z`. The `UTC` and numeric strategies follow the rule. A `localDate` is at 10:00 UTC of its day on SQLite too.
 
 The same holds for a value inside an [aggregated array](../queries/aggregate-as-object-array.md), for a `Date` compared with a column, and for a value you read and send back: it finds its row and stores the same digits.
 
@@ -75,7 +75,7 @@ A `localDate` is at 10:00 UTC so that its local getters still give the same day 
 
 ### The date functions of a query give the parts in UTC
 
-`getFullYear()`, `getMonth()`, `getDate()`, `getDay()`, `getHours()`, `getMinutes()`, `getSeconds()` and `getMilliseconds()` of a value in a query are computed by the database, and give the parts in UTC: the same as the `getUTCFullYear()`, `getUTCMonth()`, … of the `Date` you read, not its local getters. `getTime()` gives the same as the `getTime()` of that `Date` (see [What `getTime()` does and does not promise](#what-gettime-does-and-does-not-promise)). In a column without zone the parts are its digits; in a column with zone, the parts of the instant in UTC. On SQLite, `sqliteRunsInApplicationTimeZone` makes them work in the zone of the application instead (see [SQLite](supported-databases/sqlite.md#the-date-functions-and-the-time-zone)).
+`getFullYear()`, `getMonth()`, `getDate()`, `getDay()`, `getHours()`, `getMinutes()`, `getSeconds()` and `getMilliseconds()` of a value in a query are computed by the database, and give the parts in UTC: the same as the `getUTCFullYear()`, `getUTCMonth()`, … of the `Date` you read, not its local getters. `getTime()` gives the same as the `getTime()` of that `Date` (see [What `getTime()` does and does not promise](#what-gettime-does-and-does-not-promise)). In a column without zone the parts are its digits; in a column with zone, the parts of the instant in UTC. On SQLite, `sqliteRunsInApplicationTimeZone` makes them work in the zone of the application instead (see [SQLite](supported-databases/sqlite/index.md#the-date-functions-and-the-time-zone)).
 
 ## The four kinds of temporal column
 
@@ -136,7 +136,7 @@ So a column of kind 4 works as a `localDateTime` as long as its instant is what 
 - **A value written from a `Date` is stored in UTC**: a row with `2024-01-14 17:30:15.123 +05:00` updated with the same instant keeps the instant and becomes `2024-01-14 12:30:15.123 +00:00`. The zone it had is lost.
 - **A value assigned from another column** (`set a = b`) keeps the zone of that column, because it doesn't go through a `Date`.
 
-When the zone is part of the value you need, keep the value as text: the database gives the column as text with its zone, and converts the text you send. On Oracle `to_char(<column>, 'YYYY-MM-DD"T"HH24:MI:SS.FF9TZH:TZM')` gives `2024-01-14T19:30:15.123456000+09:00`, or the name of the region with `TZR` instead of `TZH:TZM`, like `EUROPE/MADRID`, and `to_timestamp_tz(<text>, 'YYYY-MM-DD"T"HH24:MI:SS.FF TZR')` reads an offset (`2024-01-14T19:30:15.123+09:00`) or a region (`2024-07-01T19:30:15.123 Europe/Madrid`); on SQL Server `convert(nvarchar(40), <column>, 126)` gives `2024-01-14T19:30:15.1234567+09:00`, and `cast(<text> as datetimeoffset)` reads it. The text keeps the zone and the whole fraction of a second. A [type adapter](../advanced/data-types/type-adapters.md) on the column writes that SQL in every query, with `transformProjection` for the value read and `transformPlaceholder` for the value sent, and the value in your code is the text; the column still compares and orders by the instant: see [A date and time with its time zone](supported-databases/oracle.md#a-date-and-time-with-its-time-zone) on Oracle and [A date and time with its offset](supported-databases/sqlserver.md#a-date-and-time-with-its-offset) on SQL Server. In a single query, a [fragment](../queries/sql-fragments.md) of type `string` with the same SQL reads the text too. If you only need to show a value in the zone it belongs to, keep the name of that zone in a column of its own, next to the instant.
+When the zone is part of the value you need, keep the value as text: the database gives the column as text with its zone, and converts the text you send. On Oracle `to_char(<column>, 'YYYY-MM-DD"T"HH24:MI:SS.FF9TZH:TZM')` gives `2024-01-14T19:30:15.123456000+09:00`, or the name of the region with `TZR` instead of `TZH:TZM`, like `EUROPE/MADRID`, and `to_timestamp_tz(<text>, 'YYYY-MM-DD"T"HH24:MI:SS.FF TZR')` reads an offset (`2024-01-14T19:30:15.123+09:00`) or a region (`2024-07-01T19:30:15.123 Europe/Madrid`); on SQL Server `convert(nvarchar(40), <column>, 126)` gives `2024-01-14T19:30:15.1234567+09:00`, and `cast(<text> as datetimeoffset)` reads it. The text keeps the zone and the whole fraction of a second. A [type adapter](../advanced/data-types/type-adapters.md) on the column writes that SQL in every query, with `transformProjection` for the value read and `transformPlaceholder` for the value sent, and the value in your code is the text; the column still compares and orders by the instant: see [A date and time with its time zone](supported-databases/oracle/index.md#a-date-and-time-with-its-time-zone) on Oracle and [A date and time with its offset](supported-databases/sqlserver/index.md#a-date-and-time-with-its-offset) on SQL Server. In a single query, a [fragment](../queries/sql-fragments.md) of type `string` with the same SQL reads the text too. If you only need to show a value in the zone it belongs to, keep the name of that zone in a column of its own, next to the instant.
 
 !!! warning "This is not the safest option: it buys a different set of problems"
 
@@ -210,7 +210,7 @@ On Oracle, `DBTIMEZONE`, the zone in which Oracle keeps its `TIMESTAMP WITH LOCA
 
 - **MariaDB and MySQL**: the only function that converts with the session, `convert_tz`, returns a value before 1970 without converting it, and without an error.
 - **SQL Server**: `AT TIME ZONE` knows only the zones of Windows, groups of countries with the rules of today: `Romance Standard Time`, the one of Madrid, gives `+02:00` on 1960-07-14, when Madrid was at `+01:00`.
-- **SQLite**: its [strategies of dates](supported-databases/sqlite.md#working-with-date-and-time) decide.
+- **SQLite**: its [strategies of dates](supported-databases/sqlite/index.md#working-with-date-and-time) decide.
 
 ## Per database
 
@@ -285,7 +285,7 @@ Which column types fall in which kind, and what the session zone does:
     PGlite writes the zone of the process into its database when it creates it, as a fixed offset, unless it's created with `postgresqlconf: ["timezone = 'UTC'"]`, and a database in a directory keeps that zone: see [pglite → Connection requirements](query-runners/recommended/pglite.md#connection-requirements).
 
 === "SQLite"
-    SQLite has **no temporal types at all**: a date is text, a number or an integer, and *you* choose which. In ts-sql-query that choice is `getDateTimeFormat()`; see [SQLite → Working with Date and Time](supported-databases/sqlite.md#working-with-date-and-time). The `UTC` text strategies and the numeric ones keep every value in UTC; the `localdate` ones, the default, write and read the wall clock of the zone of the process.
+    SQLite has **no temporal types at all**: a date is text, a number or an integer, and *you* choose which. In ts-sql-query that choice is `getDateTimeFormat()`; see [SQLite → Working with Date and Time](supported-databases/sqlite/index.md#working-with-date-and-time). The `UTC` text strategies and the numeric ones keep every value in UTC; the `localdate` ones, the default, write and read the wall clock of the zone of the process.
 
     !!! tip "SQLite has only one zone"
 
@@ -298,7 +298,7 @@ Which column types fall in which kind, and what the session zone does:
 
         Set the zone when the process starts: on Bun with `bun:sqlite`, changing `process.env.TZ` afterwards changes JavaScript and not SQLite, and the two disagree. With a `localdate` strategy, pin your application's zone anyway: it is what keeps the stored text consistent across the machines that write it.
 
-        The date functions of the database work in UTC by default, so they can differ from what JavaScript gives when the process doesn't run in UTC. See [The date functions and the time zone](supported-databases/sqlite.md#the-date-functions-and-the-time-zone).
+        The date functions of the database work in UTC by default, so they can differ from what JavaScript gives when the process doesn't run in UTC. See [The date functions and the time zone](supported-databases/sqlite/index.md#the-date-functions-and-the-time-zone).
 
 === "SQL Server"
     | kind | types |
@@ -532,4 +532,4 @@ TZ=Europe/Madrid     value.getTime() = 1705235400000   epoch = 1705235400000
 TZ=America/New_York  value.getTime() = 1705235400000   epoch = 1705235400000
 ```
 
-On a column with zone it counts the instant, the same as the `getTime()` of the `Date` read, whatever offset the value was stored with. On a column of kind 2 the database counts from the wall clock of the session, so `getTime()` is right only with the session in UTC, as the value itself. On SQLite, the `localdate` strategies are read as the zone of the process and `getTime()` reads them as UTC, unless you set [`sqliteRunsInApplicationTimeZone`](supported-databases/sqlite.md#the-date-functions-and-the-time-zone).
+On a column with zone it counts the instant, the same as the `getTime()` of the `Date` read, whatever offset the value was stored with. On a column of kind 2 the database counts from the wall clock of the session, so `getTime()` is right only with the session in UTC, as the value itself. On SQLite, the `localdate` strategies are read as the zone of the process and `getTime()` reads them as UTC, unless you set [`sqliteRunsInApplicationTimeZone`](supported-databases/sqlite/index.md#the-date-functions-and-the-time-zone).

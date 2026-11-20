@@ -5,7 +5,7 @@ search:
 <!-- doc-code-template: sqlite -->
 # SQLite functions and extensions
 
-Some settings of a [`SqliteConnection`](sqlite.md) make the library write SQL functions that SQLite doesn't have built in. A query that uses one the database doesn't have fails with `no such function`. This page says which functions each setting needs and the two ways to give them to SQLite:
+Some settings of a [`SqliteConnection`](index.md) make the library write SQL functions that SQLite doesn't have built in. A query that uses one the database doesn't have fails with `no such function`. This page says which functions each setting needs and the two ways to give them to SQLite:
 
 - **`registerSqliteFunctions(db)`**, one call of the query runner that registers all of them, written in JavaScript. It is the usual way, and it needs nothing else installed.
 - **SQLite's own extensions written in C** (`uuid.c` and `decimal.c`), compiled and loaded by you. They compute faster than functions written in JavaScript, and they take more work: a C compiler, the source of the extension, and a driver that can load an extension.
@@ -16,25 +16,39 @@ The math functions (`sqrt`, `power`, `ln`, `sin`…) need neither: see [Math fun
 
 | Setting of the connection | Functions it writes | Where they come from |
 |---|---|---|
-| [`uuidStrategy`](sqlite.md#uuid-strategies) `'uuid-extension'` (the default) | `uuid()`, `uuid_str(x)`, `uuid_blob(x)` | SQLite's uuid extension (`ext/misc/uuid.c`); some builds of SQLite have it built in, like the one of macOS |
-| [`decimalStrategy`](sqlite.md#exact-decimals-the-decimal-strategies) `'decimal-extension and tsq-functions'` and its canonical text variant (the default) | `decimal_add`, `decimal_sub`, `decimal_mul`, `decimal_cmp`, `decimal_sum`, and the library's `tsq_decimal_ceil`, `tsq_decimal_floor`, `tsq_decimal_round`, `tsq_decimal_mod` | the first five, SQLite's decimal extension (`ext/misc/decimal.c`); the `tsq_` ones, only the library |
+| [`uuidStrategy`](index.md#uuid-strategies) `'uuid-extension'` (the default) | `uuid()`, `uuid_str(x)`, `uuid_blob(x)` | SQLite's uuid extension (`ext/misc/uuid.c`); some builds of SQLite have it built in, like the one of macOS |
+| [`decimalStrategy`](index.md#exact-decimals-the-decimal-strategies) `'decimal-extension and tsq-functions'` and its canonical text variant (the default) | `decimal_add`, `decimal_sub`, `decimal_mul`, `decimal_cmp`, `decimal_sum`, and the library's `tsq_decimal_ceil`, `tsq_decimal_floor`, `tsq_decimal_round`, `tsq_decimal_mod` | the first five, SQLite's decimal extension (`ext/misc/decimal.c`); the `tsq_` ones, only the library |
 | `decimalStrategy` `'decimal-functions'` and its canonical text variant | the same, and `tsq_decimal_key`, `tsq_decimal_abs`, `tsq_decimal_min`, `tsq_decimal_max` | the same |
 | `decimalStrategy` `'text'` and `'canonical text'` | none | — |
-| [`replaceAllInsensitiveFunction = 'ci_replace'`](../collations.md#sqlite-register-a-udf-or-accept-the-case-sensitive-fallback) | `ci_replace(text, from, to)` | only the library |
-| None: a [duration](../dates-and-times.md#durations) is kept as its text on SQLite, and a query that adds one of a column, reads its fields, computes one with `until` or `since`, its `total`, or adds two | `tsq_duration_part`, `tsq_duration_text`, `tsq_duration_round`, `tsq_duration_total`, `tsq_duration_add` | only the library |
+| [`replaceAllInsensitiveFunction = 'ci_replace'`](../../collations.md#sqlite-register-a-udf-or-accept-the-case-sensitive-fallback) | `ci_replace(text, from, to)` | only the library |
+| None: a [duration](../../dates-and-times.md#durations) is kept as its text on SQLite, and a query that adds one of a column, reads its fields, computes one with `until` or `since`, its `total`, or adds two | [`tsq_duration_part`, `tsq_duration_text`, `tsq_duration_round`, `tsq_duration_total`, `tsq_duration_add`](#the-functions-of-durations) | only the library |
 
 The functions of the library start with `tsq_`, so no function of SQLite or of one of its extensions has their name.
 
 ## Registering them with one call
 
-On better-sqlite3, node:sqlite, bun:sqlite and sqlite-wasm, `registerSqliteFunctions` of the query runner registers every function of the table, written in JavaScript: see the page of [better-sqlite3](../query-runners/recommended/better-sqlite3.md#the-sql-functions-of-the-library), [bun:sqlite](../query-runners/recommended/bun_sqlite.md#the-sql-functions-of-the-library), [node:sqlite](../query-runners/recommended/node_sqlite.md#the-sql-functions-of-the-library) or [sqlite-wasm OO1](../query-runners/recommended/sqlite-wasm-OO1.md#the-sql-functions-of-the-library). It works together with the extensions written in C:
+On better-sqlite3, node:sqlite, bun:sqlite and sqlite-wasm, `registerSqliteFunctions` of the query runner registers every function of the table, written in JavaScript: see the page of [better-sqlite3](../../query-runners/recommended/better-sqlite3.md#the-sql-functions-of-the-library), [bun:sqlite](../../query-runners/recommended/bun_sqlite.md#the-sql-functions-of-the-library), [node:sqlite](../../query-runners/recommended/node_sqlite.md#the-sql-functions-of-the-library) or [sqlite-wasm OO1](../../query-runners/recommended/sqlite-wasm-OO1.md#the-sql-functions-of-the-library). It works together with the extensions written in C:
 
 - A decimal function the database already has, with the same name and number of arguments, is left as it is. With SQLite's decimal extension loaded before the call, its functions, written in C, compute, and the call adds the library's `tsq_` ones.
 - The uuid functions are registered even when the database has them, replacing them: the `uuid()` of SQLite's uuid extension generates version 4 UUIDs, which don't sort by time, and the library's generates version 7 ones. To keep the ones of the extension, name them in `skip`: `registerSqliteFunctions(db, { skip: ['uuid', 'uuid_str', 'uuid_blob'] })`.
 
 !!! warning "Bun SQL for SQLite"
 
-    Bun SQL for SQLite can neither register a function nor load an extension. With it, only the settings that write no function work: see [Bun SQL for SQLite](../query-runners/recommended/bun_sql_sqlite.md).
+    Bun SQL for SQLite can neither register a function nor load an extension. With it, only the settings that write no function work: see [Bun SQL for SQLite](../../query-runners/recommended/bun_sql_sqlite.md).
+
+## The functions of durations
+
+SQLite keeps a [duration](../../dates-and-times.md#durations) as its ISO 8601 text, so the queries that compute with one call functions of the library. They need no setting of the connection, and `registerSqliteFunctions` registers them with the others, written in JavaScript; there is no extension written in C for them. Bun SQL for SQLite can't register them, so with it these queries fail with `no such function`.
+
+| Function | A query calls it when |
+|---|---|
+| `tsq_duration_part` | it adds a duration of the database, like a column, to a date or to another duration, reads its fields, its sign or its total, or negates it ([A duration kept as text](../../dates-and-times.md#a-duration-kept-as-text-the-function-tsq_duration_part)) |
+| `tsq_duration_text` | `until` or `since` computes a duration ([The duration between two dates and times](../../dates-and-times.md#the-duration-between-two-dates-and-times)) |
+| `tsq_duration_round` | `until` or `since` rounds to a week, a month or a year ([The options of `until` and `since`](../../dates-and-times.md#the-options-of-until-and-since)) |
+| `tsq_duration_total` | `total` of a duration ([The total of a duration in a unit](../../dates-and-times.md#the-total-of-a-duration-in-a-unit)) |
+| `tsq_duration_add` | `add` or `subtract` of two durations ([Durations added and subtracted together](../../dates-and-times.md#durations-added-and-subtracted-together)) |
+
+A duration given as a value doesn't need them to be added, and neither does reading, writing or comparing a duration.
 
 ## Math functions
 

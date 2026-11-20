@@ -8,12 +8,12 @@ A query runner that writes each statement on the standard output with `console.l
 
 !!! success "Supported databases"
 
-    - [MariaDB](../../supported-databases/mariadb.md)
-    - [MySQL](../../supported-databases/mysql.md)
-    - [Oracle](../../supported-databases/oracle.md)
-    - [PostgreSQL](../../supported-databases/postgresql.md)
-    - [SQLite](../../supported-databases/sqlite.md)
-    - [SQL Server](../../supported-databases/sqlserver.md)
+    - [MariaDB](../../supported-databases/mariadb/index.md)
+    - [MySQL](../../supported-databases/mysql/index.md)
+    - [Oracle](../../supported-databases/oracle/index.md)
+    - [PostgreSQL](../../supported-databases/postgresql/index.md)
+    - [SQLite](../../supported-databases/sqlite/index.md)
+    - [SQL Server](../../supported-databases/sqlserver/index.md)
 
 !!! tip
 

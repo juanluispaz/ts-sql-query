@@ -280,7 +280,7 @@ async function applyResetAndSeedOnConnection(conn: import('mysql2/promise').Conn
 // '----' an unguarded CONCAT_WS would produce). Kept out of the shared
 // schema.sql/seed.sql so `newest`/8.0 keep their real built-ins. These are the
 // same definitions documented for 5.7 users in
-// docs/configuration/supported-databases/mysql.md. One statement per line so
+// docs/configuration/supported-databases/mysql/functions.md. One statement per line so
 // `splitStatements` (splits on `;\n`) ships each separately.
 const MYSQL_57_UUID_FUNCTIONS_SQL = `
 DROP FUNCTION IF EXISTS UUID_TO_BIN;

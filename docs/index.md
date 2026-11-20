@@ -66,14 +66,14 @@ No extra query is sent to find anything out, and a value from a request never be
 
 ## Supported Databases
 
-- [MariaDB](configuration/supported-databases/mariadb.md)
-- [MySQL](configuration/supported-databases/mysql.md)
-- [Oracle](configuration/supported-databases/oracle.md)
-- [PostgreSQL](configuration/supported-databases/postgresql.md)
-- [SQLite](configuration/supported-databases/sqlite.md)
-- [SQL Server](configuration/supported-databases/sqlserver.md)
+- [MariaDB](configuration/supported-databases/mariadb/index.md)
+- [MySQL](configuration/supported-databases/mysql/index.md)
+- [Oracle](configuration/supported-databases/oracle/index.md)
+- [PostgreSQL](configuration/supported-databases/postgresql/index.md)
+- [SQLite](configuration/supported-databases/sqlite/index.md)
+- [SQL Server](configuration/supported-databases/sqlserver/index.md)
 
-`ts-sql-query` uses a unified dialect inspired by [SQLite](configuration/supported-databases/sqlite.md) and [PostgreSQL](configuration/supported-databases/postgresql.md), with naming conventions adapted to JavaScript. It automatically generates the correct SQL for your target database.
+`ts-sql-query` uses a unified dialect inspired by [SQLite](configuration/supported-databases/sqlite/index.md) and [PostgreSQL](configuration/supported-databases/postgresql/index.md), with naming conventions adapted to JavaScript. It automatically generates the correct SQL for your target database.
 
 ## Install
 

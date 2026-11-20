@@ -5,24 +5,24 @@ search:
 <!-- doc-code-template: sqlite -->
 # Bun SQL for SQLite
 
-This page explains how to use `ts-sql-query` with the [Bun SQL](https://bun.com/docs/runtime/sql) driver configured with the SQLite adapter, allowing `ts-sql-query` to execute queries on [SQLite](../../supported-databases/sqlite.md) databases.
+This page explains how to use `ts-sql-query` with the [Bun SQL](https://bun.com/docs/runtime/sql) driver configured with the SQLite adapter, allowing `ts-sql-query` to execute queries on [SQLite](../../supported-databases/sqlite/index.md) databases.
 
 !!! danger "On Bun, prefer bun:sqlite for SQLite"
 
     Bun SQL for SQLite can't register functions written in JavaScript nor load an extension of SQLite. So with it:
 
-    - The exact decimals ([`stringDecimal` and the `DecimalsType` of yours](../../data-types.md#exact-decimals)) have no arithmetic, sums nor roundings: the [decimal strategies](../../supported-databases/sqlite.md#exact-decimals-the-decimal-strategies) with functions, the default included, need functions it can't register.
-    - The [uuid strategy](../../supported-databases/sqlite.md#uuid-strategies) `uuid-extension`, the default, works only where the SQLite that Bun uses has the uuid extension built in, like the one of macOS (measured with SQLite 3.51.0).
+    - The exact decimals ([`stringDecimal` and the `DecimalsType` of yours](../../data-types.md#exact-decimals)) have no arithmetic, sums nor roundings: the [decimal strategies](../../supported-databases/sqlite/index.md#exact-decimals-the-decimal-strategies) with functions, the default included, need functions it can't register.
+    - The [uuid strategy](../../supported-databases/sqlite/index.md#uuid-strategies) `uuid-extension`, the default, works only where the SQLite that Bun uses has the uuid extension built in, like the one of macOS (measured with SQLite 3.51.0).
     - `replaceAllInsensitiveFunction` can't be used.
     - A [duration](../../dates-and-times.md#durations) of a column can't be added to a date or a time, nor its fields read, and `until`, `since`, `total` and the `add` and `subtract` of two durations can't be used: they need the functions of the library `tsq_duration_part`, `tsq_duration_text`, `tsq_duration_round`, `tsq_duration_total` and `tsq_duration_add`. A duration given as a value is added without them.
 
     [bun:sqlite](bun_sqlite.md) (`BunSqliteQueryRunner`) has none of these limits: one call of `registerSqliteFunctions` registers every function the library writes. If you stay with Bun SQL, set the decimal strategy to `canonical text`: it compares, orders and groups an exact decimal exactly, and rejects its arithmetic when the query is built (`UNSUPPORTED_QUERY`), so nothing gives a number that has lost digits. On a system whose SQLite lacks the uuid extension, set the uuid strategy to `string`.
 
-    Which function each setting needs is on [SQLite functions and extensions](../../supported-databases/sqlite-extensions.md).
+    Which function each setting needs is on [SQLite functions and extensions](../../supported-databases/sqlite/functions.md).
 
 !!! success "Supported databases"
 
-    - [SQLite](../../supported-databases/sqlite.md)
+    - [SQLite](../../supported-databases/sqlite/index.md)
 
 !!! info "Tested with"
 
@@ -71,11 +71,11 @@ If your queries may return integers larger than JavaScript's safe integer range,
 
 ## SQLite and UUIDs
 
-To work with [UUIDs in SQLite](../../supported-databases/sqlite.md#uuid-strategies) the default strategy is `uuid-extension`, which needs the SQL functions `uuid`, `uuid_str` and `uuid_blob` of the [uuid extension](https://sqlite.org/src/file?name=ext/misc/uuid.c). Bun SQL can't register them: they are there only if the SQLite that Bun uses has them built in, like the one of macOS. Otherwise use the `string` strategy.
+To work with [UUIDs in SQLite](../../supported-databases/sqlite/index.md#uuid-strategies) the default strategy is `uuid-extension`, which needs the SQL functions `uuid`, `uuid_str` and `uuid_blob` of the [uuid extension](https://sqlite.org/src/file?name=ext/misc/uuid.c). Bun SQL can't register them: they are there only if the SQLite that Bun uses has them built in, like the one of macOS. Otherwise use the `string` strategy.
 
 ## SQLite and exact decimals
 
-Bun SQL can't register the functions the [decimal strategies](../../supported-databases/sqlite.md#exact-decimals-the-decimal-strategies) with functions write, the default included: use the `canonical text` strategy, which compares, orders and groups an [exact decimal](../../data-types.md#exact-decimals) exactly and rejects its arithmetic, or [bun:sqlite](bun_sqlite.md).
+Bun SQL can't register the functions the [decimal strategies](../../supported-databases/sqlite/index.md#exact-decimals-the-decimal-strategies) with functions write, the default included: use the `canonical text` strategy, which compares, orders and groups an [exact decimal](../../data-types.md#exact-decimals) exactly and rejects its arithmetic, or [bun:sqlite](bun_sqlite.md).
 
 ```ts
 import { SqliteConnection } from "ts-sql-query/sqlite";

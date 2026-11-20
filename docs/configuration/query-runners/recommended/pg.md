@@ -9,7 +9,7 @@ This page explains how to use `ts-sql-query` with the [pg](https://www.npmjs.com
 
 !!! success "Supported databases"
 
-    - [PostgreSQL](../../supported-databases/postgresql.md)
+    - [PostgreSQL](../../supported-databases/postgresql/index.md)
 
 !!! info "Tested with"
 

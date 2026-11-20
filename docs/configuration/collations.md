@@ -286,7 +286,7 @@ class DBConnection extends SqlServerConnection<'DBConnection'> {
 }
 ```
 
-For the per-database detail see the [SQL Server](supported-databases/sqlserver.md#replaceall-and-collation) and [Oracle](supported-databases/oracle.md#replaceall-and-collation) pages.
+For the per-database detail see the [SQL Server](supported-databases/sqlserver/index.md#replaceall-and-collation) and [Oracle](supported-databases/oracle/index.md#replaceall-and-collation) pages.
 
 !!! danger "Upgrading from a version before `replaceCollation`"
 
@@ -324,7 +324,7 @@ class DBConnection extends SqliteConnection<'DBConnection'> {
 }
 ```
 
-Register `ci_replace` on the driver: `registerSqliteFunctions` of the query runner registers it, a case-insensitive replace of every occurrence, together with the other SQL functions the library may write. See the page of [better-sqlite3](query-runners/recommended/better-sqlite3.md#the-sql-functions-of-the-library), [bun:sqlite](query-runners/recommended/bun_sqlite.md#the-sql-functions-of-the-library), [node:sqlite](query-runners/recommended/node_sqlite.md#the-sql-functions-of-the-library) or [sqlite-wasm OO1](query-runners/recommended/sqlite-wasm-OO1.md#the-sql-functions-of-the-library), and [SQLite functions and extensions](supported-databases/sqlite-extensions.md) for every function the library may write on SQLite.
+Register `ci_replace` on the driver: `registerSqliteFunctions` of the query runner registers it, a case-insensitive replace of every occurrence, together with the other SQL functions the library may write. See the page of [better-sqlite3](query-runners/recommended/better-sqlite3.md#the-sql-functions-of-the-library), [bun:sqlite](query-runners/recommended/bun_sqlite.md#the-sql-functions-of-the-library), [node:sqlite](query-runners/recommended/node_sqlite.md#the-sql-functions-of-the-library) or [sqlite-wasm OO1](query-runners/recommended/sqlite-wasm-OO1.md#the-sql-functions-of-the-library), and [SQLite functions and extensions](supported-databases/sqlite/functions.md) for every function the library may write on SQLite.
 
 The **`bun:sql`** connector has **no user-defined-function API** (it does not expose the `bun:sqlite` database it opens either), so `replaceAllInsensitiveFunction` cannot be used — leave it unset and `replaceAllInsensitive` behaves as `replace` (case-sensitive).
 
@@ -382,7 +382,7 @@ The default collation, the collation names to use with `insensitiveCollation` / 
 
     **Session collation — full:** `ALTER SESSION SET NLS_COMP = LINGUISTIC; NLS_SORT = <coll>` flips `equals` / `like` / `distinct` / `order` session-wide. Run it [on each new connection](#beyond-the-query-the-schema-and-the-session).
 
-    **`replaceAll`:** honours the session collation, so it corrupts on a case-insensitive configuration — fixed by default via [`replaceCollation`](#replacecollation-sql-server-and-oracle). See the [Oracle page](supported-databases/oracle.md#replaceall-and-collation).
+    **`replaceAll`:** honours the session collation, so it corrupts on a case-insensitive configuration — fixed by default via [`replaceCollation`](#replacecollation-sql-server-and-oracle). See the [Oracle page](supported-databases/oracle/index.md#replaceall-and-collation).
 
 ===+ "PostgreSQL"
     **Default:** case- and accent-**sensitive** (deterministic). This is the JavaScript-sensible default — no configuration needed unless you *want* the insensitive direction.
@@ -426,7 +426,7 @@ The default collation, the collation names to use with `insensitiveCollation` / 
 
     **Session collation:** `PRAGMA case_sensitive_like = ON` makes `LIKE` case-sensitive (connection-global) — the only way to reach `LIKE`'s case behaviour, since `.collate()` doesn't. `GLOB` is case-sensitive with different wildcards.
 
-    See the [SQLite page](supported-databases/sqlite.md#case-insensitive-operations-fold-ascii-only) for the ASCII-only limitation, and [`replaceAllInsensitive` on SQLite](#sqlite-register-a-udf-or-accept-the-case-sensitive-fallback) for the UDF.
+    See the [SQLite page](supported-databases/sqlite/index.md#case-insensitive-operations-fold-ascii-only) for the ASCII-only limitation, and [`replaceAllInsensitive` on SQLite](#sqlite-register-a-udf-or-accept-the-case-sensitive-fallback) for the UDF.
 
 === "SQL Server"
     **Default:** case-**insensitive**, accent-sensitive (`SQL_Latin1_General_CP1_CI_AS`). So `equals` / `contains` fold case out of the box.
@@ -442,7 +442,7 @@ The default collation, the collation names to use with `insensitiveCollation` / 
 
     **Session collation:** **none** — SQL Server has no session collation, exactly as it has [no session time zone](time-zones.md#per-database). Reach for `.collate()` per value, `insensitiveCollation` connection-wide, `replaceCollation` for `replaceAll`, or the column / database collation.
 
-    **`replaceAll`:** honours the collation, so it corrupts on the case-insensitive default — fixed by default via [`replaceCollation`](#replacecollation-sql-server-and-oracle). See the [SQL Server page](supported-databases/sqlserver.md#replaceall-and-collation).
+    **`replaceAll`:** honours the collation, so it corrupts on the case-insensitive default — fixed by default via [`replaceCollation`](#replacecollation-sql-server-and-oracle). See the [SQL Server page](supported-databases/sqlserver/index.md#replaceall-and-collation).
 
 ## Beyond the query: the schema and the session
 

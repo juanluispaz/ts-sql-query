@@ -174,6 +174,38 @@ describe(ctx.label, () => {
         expect(quick).toEqual([{ version: '1.3.0-beta.1' }])
     })
 
+    test('docs:dates-and-times/the-fields-of-a-duration', async () => {
+        ctx.mockNext([
+            { version: '0.9.0', days: 2, hours: 0, minutes: 0, sign: 1, back: '-P2D' },
+            { version: '1.2.0', days: 1, hours: 12, minutes: 0, sign: 1, back: '-P1DT12H' },
+            { version: '1.3.0-beta.1', days: 0, hours: 0, minutes: 45, sign: 1, back: '-PT45M' },
+        ])
+        const connection = ctx.conn
+
+        // doc-start
+        const releases = await connection.selectFrom(tRelease)
+            .select({
+                version: tRelease.version,
+                days: tRelease.rolloutTime.days(),
+                hours: tRelease.rolloutTime.hours(),
+                minutes: tRelease.rolloutTime.minutes(),
+                sign: tRelease.rolloutTime.sign(),
+                back: tRelease.rolloutTime.negated(),
+            })
+            .orderBy('version')
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as version, tsq_duration_part(rollout_time, 'days') as days, tsq_duration_part(rollout_time, 'hours') as hours, tsq_duration_part(rollout_time, 'minutes') as minutes, tsq_duration_part(rollout_time, 'sign') as sign, case when substr(rollout_time, 1, 1) = '-' then substr(rollout_time, 2) when tsq_duration_part(rollout_time, 'sign') = 0 then rollout_time when substr(rollout_time, 1, 1) = '+' then '-' || substr(rollout_time, 2) else '-' || rollout_time end as back from project_release order by version"`)
+        expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof releases, Array<{ version: string; days?: number; hours?: number; minutes?: number; sign?: number; back?: Temporal.Duration }>>>()
+        expect(releases.map(release => [release.version, release.days, release.hours, release.minutes, release.sign, release.back?.toString()])).toEqual([
+            ['0.9.0', 2, 0, 0, 1, '-P2D'],
+            ['1.2.0', 1, 12, 0, 1, '-P1DT12H'],
+            ['1.3.0-beta.1', 0, 0, 45, 1, '-PT45M'],
+        ])
+    })
+
     test('docs:dates-and-times/adding-and-subtracting-a-duration', async () => {
         ctx.mockNext([
             { version: '0.9.0', supportEndsOn: '2025-09-01', rolloutEndedAt: '2024-03-04 11:00:00' },

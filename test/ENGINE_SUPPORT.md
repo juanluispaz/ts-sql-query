@@ -235,7 +235,7 @@ is written by `tsq_duration_text`, or `tsq_duration_round` when it is rounded to
 `column.plain-temporal-difference.test.ts` but `options-temporal-rejects-are-rejected` (rejected before the query is
 sent) and `docs.configuration.dates-and-times.test.ts` (`docs:dates-and-times/the-duration-between-two-values`) are
 `NOT-SUPPORTED` on those cells, and every test of `column.duration-methods.test.ts` (the fields, the sign, the negation and
-the absolute value of a duration kept as text read it with `tsq_duration_part`).
+the absolute value of a duration kept as text read it with `tsq_duration_part`), as `docs:dates-and-times/the-fields-of-a-duration`.
 
 ### SQLite RETURNING can only reference the table being modified, not a FROM/JOIN-ed column
 

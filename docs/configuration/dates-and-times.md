@@ -555,6 +555,109 @@ spanCalendar = this.column('span_calendar', 'duration', withSqlDataType({ family
 
 An interval of Oracle holds either years and months or days to seconds, never both: a duration that doesn't fit the one of its column, like `P1M` for an `INTERVAL DAY TO SECOND` or `P1D` for an `INTERVAL YEAR TO MONTH`, is rejected with `INVALID_VALUE_TO_SEND_TO_DATABASE` instead of losing a part.
 
+### The fields of a duration
+
+A duration in a query has the fields and methods of Temporal's: `years()`, `months()`, `weeks()`, `days()`, `hours()`, `minutes()`, `seconds()` (without its fraction), `milliseconds()`, `microseconds()` and `nanoseconds()` (each from 0 to 999) give each field as an `int` with the sign of the duration; `sign()` gives -1, 0 or 1; `negated()` and `abs()` give the duration with the opposite sign and without its sign. Here the fields of the time each rollout took, and that time negated:
+
+```ts
+const releases = await connection.selectFrom(tRelease)
+    .select({
+        version: tRelease.version,
+        days: tRelease.rolloutTime.days(),
+        hours: tRelease.rolloutTime.hours(),
+        minutes: tRelease.rolloutTime.minutes(),
+        sign: tRelease.rolloutTime.sign(),
+        back: tRelease.rolloutTime.negated(),
+    })
+    .orderBy('version')
+    .executeSelectMany()
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        version as version, 
+        tsq_duration_part(rollout_time, 'days') as days, 
+        tsq_duration_part(rollout_time, 'hours') as hours, 
+        tsq_duration_part(rollout_time, 'minutes') as minutes, 
+        tsq_duration_part(rollout_time, 'sign') as sign, 
+        case when substr(rollout_time, 1, 1) = '-' then substr(rollout_time, 2) when tsq_duration_part(rollout_time, 'sign') = 0 then rollout_time when substr(rollout_time, 1, 1) = '+' then concat('-', substr(rollout_time, 2)) else concat('-', rollout_time) end as back 
+    from project_release 
+    order by version
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        version as version, 
+        tsq_duration_part(rollout_time, 'days') as days, 
+        tsq_duration_part(rollout_time, 'hours') as hours, 
+        tsq_duration_part(rollout_time, 'minutes') as minutes, 
+        tsq_duration_part(rollout_time, 'sign') as sign, 
+        case when substr(rollout_time, 1, 1) = '-' then substr(rollout_time, 2) when tsq_duration_part(rollout_time, 'sign') = 0 then rollout_time when substr(rollout_time, 1, 1) = '+' then concat('-', substr(rollout_time, 2)) else concat('-', rollout_time) end as back 
+    from project_release 
+    order by version
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        version as "version", 
+        extract(day from rollout_time) as "days", 
+        extract(hour from rollout_time) as "hours", 
+        extract(minute from rollout_time) as "minutes", 
+        sign(extract(day from rollout_time) * 86400 + extract(hour from rollout_time) * 3600 + extract(minute from rollout_time) * 60 + extract(second from rollout_time)) as "sign", 
+        (rollout_time * -1) as "back" 
+    from project_release 
+    order by "version"
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        version as version, 
+        cast(extract(day from rollout_time) as integer) as days, 
+        cast(extract(hour from rollout_time) as integer) as hours, 
+        cast(extract(minute from rollout_time) as integer) as minutes, 
+        cast(sign(extract(epoch from rollout_time)) as integer) as sign, 
+        -rollout_time as back 
+    from project_release 
+    order by version
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        version as version, 
+        tsq_duration_part(rollout_time, 'days') as days, 
+        tsq_duration_part(rollout_time, 'hours') as hours, 
+        tsq_duration_part(rollout_time, 'minutes') as minutes, 
+        tsq_duration_part(rollout_time, 'sign') as sign, 
+        case when substr(rollout_time, 1, 1) = '-' then substr(rollout_time, 2) when tsq_duration_part(rollout_time, 'sign') = 0 then rollout_time when substr(rollout_time, 1, 1) = '+' then '-' || substr(rollout_time, 2) else '-' || rollout_time end as back 
+    from project_release 
+    order by version
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        version as version, 
+        dbo.tsq_duration_part(rollout_time, 'days') as days, 
+        dbo.tsq_duration_part(rollout_time, 'hours') as hours, 
+        dbo.tsq_duration_part(rollout_time, 'minutes') as minutes, 
+        dbo.tsq_duration_part(rollout_time, 'sign') as sign, 
+        case when substring(rollout_time, 1, 1) = '-' then substring(rollout_time, 2, 100) when dbo.tsq_duration_part(rollout_time, 'sign') = 0 then rollout_time when substring(rollout_time, 1, 1) = '+' then '-' + substring(rollout_time, 2, 100) else '-' + rollout_time end as back 
+    from project_release 
+    order by version
+    ```
+
+The parameters are: `[]`
+
+| version | days | hours | minutes | sign | back |
+|---|---|---|---|---|---|
+| `'0.9.0'` | `2` | `0` | `0` | `1` | `-P2D` |
+| `'1.2.0'` | `1` | `12` | `0` | `1` | `-P1DT12H` |
+| `'1.3.0-beta.1'` | `0` | `0` | `45` | `1` | `-PT45M` |
+
+The fields are the ones of the duration as the database keeps it, as Temporal reads it: a duration kept as text has the fields written (`PT90M` has 90 minutes and no hours, as `Temporal.Duration.from('PT90M')`); an interval of PostgreSQL has its months (as years and months), its days and its time in hours, minutes and seconds, and no weeks; an interval of Oracle has days to seconds, or years and months. A duration kept as text reads them with the function `tsq_duration_part` (see [below](#a-duration-kept-as-text-the-function-tsq_duration_part)).
+
 ## Adding and subtracting a duration
 
 `add` and `subtract` of a `plainDate`, a `plainTime` or a `plainDateTime` give the value plus or minus a duration, as Temporal's `add` and `subtract` do. The duration is a `Temporal.Duration`, its fields like `{ months: 18 }`, or a value of the type `duration`, like a column. Here the day the support of each release ends, 18 months after it was released, and the moment its rollout ended:
@@ -658,13 +761,13 @@ MariaDB, MySQL and SQLite have no date that fails: there the error is the one of
 
 ### A duration kept as text: the function `tsq_duration_part`
 
-On MariaDB, MySQL, SQLite and SQL Server, and in a column of PostgreSQL or Oracle that keeps a duration as text, a duration is its ISO 8601 text. To add one that the database holds, like `tRelease.rolloutTime`, the query reads its parts with `tsq_duration_part`, a function of the library: create it once in the database. A duration given as a value doesn't need it, and neither does reading, writing or comparing a duration. Without the function, the query fails with the error of the database for a function that doesn't exist.
+On MariaDB, MySQL, SQLite and SQL Server, and in a column of PostgreSQL or Oracle that keeps a duration as text, a duration is its ISO 8601 text. To add one that the database holds, like `tRelease.rolloutTime`, or to read its fields, its sign, or to negate it, the query reads its parts with `tsq_duration_part`, a function of the library: create it once in the database. A duration given as a value doesn't need it to be added, and neither does reading, writing or comparing a duration. Without the function, the query fails with the error of the database for a function that doesn't exist.
 
 === "MariaDB"
     ```sql
     DROP FUNCTION IF EXISTS tsq_duration_part;
     DELIMITER //
-    CREATE FUNCTION tsq_duration_part(d VARCHAR(100), part CHAR(1)) RETURNS BIGINT DETERMINISTIC NO SQL
+    CREATE FUNCTION tsq_duration_part(d VARCHAR(100), part VARCHAR(10)) RETURNS BIGINT DETERMINISTIC NO SQL
     BEGIN
         DECLARE i INT DEFAULT 1;
         DECLARE n INT;
@@ -673,6 +776,7 @@ On MariaDB, MySQL, SQLite and SQL Server, and in a column of PostgreSQL or Oracl
         DECLARE in_time BOOLEAN DEFAULT FALSE;
         DECLARE sgn INT DEFAULT 1;
         DECLARE r BIGINT DEFAULT 0;
+        DECLARE nonzero BOOLEAN DEFAULT FALSE;
         IF d IS NULL THEN RETURN NULL; END IF;
         SET d = UPPER(TRIM(d));
         SET n = CHAR_LENGTH(d);
@@ -683,6 +787,7 @@ On MariaDB, MySQL, SQLite and SQL Server, and in a column of PostgreSQL or Oracl
             IF c = 'T' THEN SET in_time = TRUE;
             ELSEIF c BETWEEN '0' AND '9' OR c = '.' OR c = ',' THEN SET num = CONCAT(num, IF(c = ',', '.', c));
             ELSE
+                IF REPLACE(REPLACE(num, '0', ''), '.', '') <> '' THEN SET nonzero = TRUE; END IF;
                 IF part = 'M' AND NOT in_time AND c = 'Y' THEN SET r = r + 12 * CAST(num AS SIGNED);
                 ELSEIF part = 'M' AND NOT in_time AND c = 'M' THEN SET r = r + CAST(num AS SIGNED);
                 ELSEIF part = 'D' AND c = 'W' THEN SET r = r + 7 * CAST(num AS SIGNED);
@@ -691,11 +796,13 @@ On MariaDB, MySQL, SQLite and SQL Server, and in a column of PostgreSQL or Oracl
                 ELSEIF part = 'S' AND in_time AND c = 'M' THEN SET r = r + 60 * CAST(num AS SIGNED);
                 ELSEIF part = 'S' AND c = 'S' THEN SET r = r + CAST(SUBSTRING_INDEX(num, '.', 1) AS SIGNED);
                 ELSEIF part = 'N' AND c = 'S' AND LOCATE('.', num) > 0 THEN SET r = CAST(RPAD(SUBSTRING_INDEX(num, '.', -1), 9, '0') AS SIGNED);
+                ELSEIF part = 'years' AND NOT in_time AND c = 'Y' OR part = 'months' AND NOT in_time AND c = 'M' OR part = 'weeks' AND c = 'W' OR part = 'days' AND c = 'D' OR part = 'hours' AND in_time AND c = 'H' OR part = 'minutes' AND in_time AND c = 'M' OR part = 'seconds' AND c = 'S' THEN SET r = CAST(SUBSTRING_INDEX(num, '.', 1) AS SIGNED);
                 END IF;
                 SET num = '';
             END IF;
             SET i = i + 1;
         END WHILE;
+        IF part = 'sign' THEN RETURN IF(nonzero, sgn, 0); END IF;
         RETURN sgn * r;
     END
     //
@@ -705,7 +812,7 @@ On MariaDB, MySQL, SQLite and SQL Server, and in a column of PostgreSQL or Oracl
     ```sql
     DROP FUNCTION IF EXISTS tsq_duration_part;
     DELIMITER //
-    CREATE FUNCTION tsq_duration_part(d VARCHAR(100), part CHAR(1)) RETURNS BIGINT DETERMINISTIC NO SQL
+    CREATE FUNCTION tsq_duration_part(d VARCHAR(100), part VARCHAR(10)) RETURNS BIGINT DETERMINISTIC NO SQL
     BEGIN
         DECLARE i INT DEFAULT 1;
         DECLARE n INT;
@@ -714,6 +821,7 @@ On MariaDB, MySQL, SQLite and SQL Server, and in a column of PostgreSQL or Oracl
         DECLARE in_time BOOLEAN DEFAULT FALSE;
         DECLARE sgn INT DEFAULT 1;
         DECLARE r BIGINT DEFAULT 0;
+        DECLARE nonzero BOOLEAN DEFAULT FALSE;
         IF d IS NULL THEN RETURN NULL; END IF;
         SET d = UPPER(TRIM(d));
         SET n = CHAR_LENGTH(d);
@@ -724,6 +832,7 @@ On MariaDB, MySQL, SQLite and SQL Server, and in a column of PostgreSQL or Oracl
             IF c = 'T' THEN SET in_time = TRUE;
             ELSEIF c BETWEEN '0' AND '9' OR c = '.' OR c = ',' THEN SET num = CONCAT(num, IF(c = ',', '.', c));
             ELSE
+                IF REPLACE(REPLACE(num, '0', ''), '.', '') <> '' THEN SET nonzero = TRUE; END IF;
                 IF part = 'M' AND NOT in_time AND c = 'Y' THEN SET r = r + 12 * CAST(num AS SIGNED);
                 ELSEIF part = 'M' AND NOT in_time AND c = 'M' THEN SET r = r + CAST(num AS SIGNED);
                 ELSEIF part = 'D' AND c = 'W' THEN SET r = r + 7 * CAST(num AS SIGNED);
@@ -732,11 +841,13 @@ On MariaDB, MySQL, SQLite and SQL Server, and in a column of PostgreSQL or Oracl
                 ELSEIF part = 'S' AND in_time AND c = 'M' THEN SET r = r + 60 * CAST(num AS SIGNED);
                 ELSEIF part = 'S' AND c = 'S' THEN SET r = r + CAST(SUBSTRING_INDEX(num, '.', 1) AS SIGNED);
                 ELSEIF part = 'N' AND c = 'S' AND LOCATE('.', num) > 0 THEN SET r = CAST(RPAD(SUBSTRING_INDEX(num, '.', -1), 9, '0') AS SIGNED);
+                ELSEIF part = 'years' AND NOT in_time AND c = 'Y' OR part = 'months' AND NOT in_time AND c = 'M' OR part = 'weeks' AND c = 'W' OR part = 'days' AND c = 'D' OR part = 'hours' AND in_time AND c = 'H' OR part = 'minutes' AND in_time AND c = 'M' OR part = 'seconds' AND c = 'S' THEN SET r = CAST(SUBSTRING_INDEX(num, '.', 1) AS SIGNED);
                 END IF;
                 SET num = '';
             END IF;
             SET i = i + 1;
         END WHILE;
+        IF part = 'sign' THEN RETURN IF(nonzero, sgn, 0); END IF;
         RETURN sgn * r;
     END
     //
@@ -753,6 +864,7 @@ On MariaDB, MySQL, SQLite and SQL Server, and in a column of PostgreSQL or Oracl
         in_time BOOLEAN := FALSE;
         sgn NUMBER := 1;
         r NUMBER := 0;
+        nonzero BOOLEAN := FALSE;
     BEGIN
         IF d IS NULL THEN RETURN NULL; END IF;
         s := UPPER(TRIM(d));
@@ -764,6 +876,7 @@ On MariaDB, MySQL, SQLite and SQL Server, and in a column of PostgreSQL or Oracl
             IF c = 'T' THEN in_time := TRUE;
             ELSIF c BETWEEN '0' AND '9' OR c = '.' OR c = ',' THEN num := num || CASE WHEN c = ',' THEN '.' ELSE c END;
             ELSE
+                IF TRANSLATE(num, 'x0.', 'x') IS NOT NULL THEN nonzero := TRUE; END IF;
                 IF part = 'M' AND NOT in_time AND c = 'Y' THEN r := r + 12 * TO_NUMBER(num);
                 ELSIF part = 'M' AND NOT in_time AND c = 'M' THEN r := r + TO_NUMBER(num);
                 ELSIF part = 'D' AND c = 'W' THEN r := r + 7 * TO_NUMBER(num);
@@ -772,11 +885,13 @@ On MariaDB, MySQL, SQLite and SQL Server, and in a column of PostgreSQL or Oracl
                 ELSIF part = 'S' AND in_time AND c = 'M' THEN r := r + 60 * TO_NUMBER(num);
                 ELSIF part = 'S' AND c = 'S' THEN r := r + TO_NUMBER(CASE WHEN INSTR(num, '.') > 0 THEN SUBSTR(num, 1, INSTR(num, '.') - 1) ELSE num END);
                 ELSIF part = 'N' AND c = 'S' AND INSTR(num, '.') > 0 THEN r := TO_NUMBER(RPAD(SUBSTR(num, INSTR(num, '.') + 1), 9, '0'));
+                ELSIF part = 'years' AND NOT in_time AND c = 'Y' OR part = 'months' AND NOT in_time AND c = 'M' OR part = 'weeks' AND c = 'W' OR part = 'days' AND c = 'D' OR part = 'hours' AND in_time AND c = 'H' OR part = 'minutes' AND in_time AND c = 'M' OR part = 'seconds' AND c = 'S' THEN r := TO_NUMBER(CASE WHEN INSTR(num, '.') > 0 THEN SUBSTR(num, 1, INSTR(num, '.') - 1) ELSE num END);
                 END IF;
                 num := NULL;
             END IF;
             i := i + 1;
         END LOOP;
+        IF part = 'sign' THEN RETURN CASE WHEN nonzero THEN sgn ELSE 0 END; END IF;
         RETURN sgn * r;
     END;
     ```
@@ -792,6 +907,7 @@ On MariaDB, MySQL, SQLite and SQL Server, and in a column of PostgreSQL or Oracl
         in_time boolean := false;
         sgn integer := 1;
         r bigint := 0;
+        nonzero boolean := false;
     BEGIN
         IF d IS NULL THEN RETURN NULL; END IF;
         s := upper(trim(d));
@@ -803,6 +919,7 @@ On MariaDB, MySQL, SQLite and SQL Server, and in a column of PostgreSQL or Oracl
             IF c = 'T' THEN in_time := true;
             ELSIF position(c in '0123456789.,') > 0 THEN num := num || CASE WHEN c = ',' THEN '.' ELSE c END;
             ELSE
+                IF translate(num, '0.', '') <> '' THEN nonzero := true; END IF;
                 IF part = 'M' AND NOT in_time AND c = 'Y' THEN r := r + 12 * num::bigint;
                 ELSIF part = 'M' AND NOT in_time AND c = 'M' THEN r := r + num::bigint;
                 ELSIF part = 'D' AND c = 'W' THEN r := r + 7 * num::bigint;
@@ -811,11 +928,13 @@ On MariaDB, MySQL, SQLite and SQL Server, and in a column of PostgreSQL or Oracl
                 ELSIF part = 'S' AND in_time AND c = 'M' THEN r := r + 60 * num::bigint;
                 ELSIF part = 'S' AND c = 'S' THEN r := r + split_part(num, '.', 1)::bigint;
                 ELSIF part = 'N' AND c = 'S' AND position('.' in num) > 0 THEN r := rpad(split_part(num, '.', 2), 9, '0')::bigint;
+                ELSIF part = 'years' AND NOT in_time AND c = 'Y' OR part = 'months' AND NOT in_time AND c = 'M' OR part = 'weeks' AND c = 'W' OR part = 'days' AND c = 'D' OR part = 'hours' AND in_time AND c = 'H' OR part = 'minutes' AND in_time AND c = 'M' OR part = 'seconds' AND c = 'S' THEN r := split_part(num, '.', 1)::bigint;
                 END IF;
                 num := '';
             END IF;
             i := i + 1;
         END LOOP;
+        IF part = 'sign' THEN RETURN CASE WHEN nonzero THEN sgn ELSE 0 END; END IF;
         RETURN sgn * r;
     END;
     $$;
@@ -824,10 +943,10 @@ On MariaDB, MySQL, SQLite and SQL Server, and in a column of PostgreSQL or Oracl
     `registerSqliteFunctions` registers it, written in JavaScript, with the other functions of the library: see [The SQL functions of the library](query-runners/recommended/bun_sqlite.md#the-sql-functions-of-the-library). Bun SQL's SQLite has no way to register a function.
 === "SQL Server"
     ```sql
-    CREATE OR ALTER FUNCTION dbo.tsq_duration_part(@d NVARCHAR(100), @part CHAR(1)) RETURNS BIGINT WITH SCHEMABINDING AS
+    CREATE OR ALTER FUNCTION dbo.tsq_duration_part(@d NVARCHAR(100), @part VARCHAR(10)) RETURNS BIGINT WITH SCHEMABINDING AS
     BEGIN
         IF @d IS NULL RETURN NULL;
-        DECLARE @s NVARCHAR(100) = UPPER(LTRIM(RTRIM(@d))), @i INT = 1, @n INT, @c NCHAR(1), @num NVARCHAR(40) = N'', @inTime BIT = 0, @sign INT = 1, @r BIGINT = 0;
+        DECLARE @s NVARCHAR(100) = UPPER(LTRIM(RTRIM(@d))), @i INT = 1, @n INT, @c NCHAR(1), @num NVARCHAR(40) = N'', @inTime BIT = 0, @sign INT = 1, @r BIGINT = 0, @nonzero BIT = 0;
         SET @n = LEN(@s);
         IF LEFT(@s, 1) = N'-' BEGIN SET @sign = -1; SET @i = 2; END ELSE IF LEFT(@s, 1) = N'+' SET @i = 2;
         SET @i = @i + 1;
@@ -838,6 +957,7 @@ On MariaDB, MySQL, SQLite and SQL Server, and in a column of PostgreSQL or Oracl
             ELSE IF @c LIKE N'[0-9]' OR @c = N'.' OR @c = N',' SET @num = @num + CASE WHEN @c = N',' THEN N'.' ELSE @c END;
             ELSE
             BEGIN
+                IF REPLACE(REPLACE(@num, N'0', N''), N'.', N'') <> N'' SET @nonzero = 1;
                 IF @part = 'M' AND @inTime = 0 AND @c = N'Y' SET @r = @r + 12 * CAST(@num AS BIGINT);
                 ELSE IF @part = 'M' AND @inTime = 0 AND @c = N'M' SET @r = @r + CAST(@num AS BIGINT);
                 ELSE IF @part = 'D' AND @c = N'W' SET @r = @r + 7 * CAST(@num AS BIGINT);
@@ -846,10 +966,12 @@ On MariaDB, MySQL, SQLite and SQL Server, and in a column of PostgreSQL or Oracl
                 ELSE IF @part = 'S' AND @inTime = 1 AND @c = N'M' SET @r = @r + 60 * CAST(@num AS BIGINT);
                 ELSE IF @part = 'S' AND @c = N'S' SET @r = @r + CAST(CASE WHEN CHARINDEX(N'.', @num) > 0 THEN LEFT(@num, CHARINDEX(N'.', @num) - 1) ELSE @num END AS BIGINT);
                 ELSE IF @part = 'N' AND @c = N'S' AND CHARINDEX(N'.', @num) > 0 SET @r = CAST(LEFT(SUBSTRING(@num, CHARINDEX(N'.', @num) + 1, 40) + N'000000000', 9) AS BIGINT);
+                ELSE IF @part = 'years' AND @inTime = 0 AND @c = N'Y' OR @part = 'months' AND @inTime = 0 AND @c = N'M' OR @part = 'weeks' AND @c = N'W' OR @part = 'days' AND @c = N'D' OR @part = 'hours' AND @inTime = 1 AND @c = N'H' OR @part = 'minutes' AND @inTime = 1 AND @c = N'M' OR @part = 'seconds' AND @c = N'S' SET @r = CAST(CASE WHEN CHARINDEX(N'.', @num) > 0 THEN LEFT(@num, CHARINDEX(N'.', @num) - 1) ELSE @num END AS BIGINT);
                 SET @num = N'';
             END
             SET @i = @i + 1;
         END
+        IF @part = 'sign' RETURN CASE WHEN @nonzero = 1 THEN @sign ELSE 0 END;
         RETURN @sign * @r;
     END
     GO

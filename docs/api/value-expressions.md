@@ -465,6 +465,23 @@ interface PlainDateTimeValueSource extends ComparableValueSource<Temporal.PlainD
  * Represents a duration (using a Temporal.Duration), only compared for equality; see Dates and times
  */
 interface DurationValueSource extends EqualableValueSource<Temporal.Duration, 'duration'> {
+    /** A field of the duration as it is kept, with its sign, as Temporal's years ... nanoseconds (milliseconds, microseconds and nanoseconds from 0 to 999) */
+    years(): NumberValueSource
+    months(): NumberValueSource
+    weeks(): NumberValueSource
+    days(): NumberValueSource
+    hours(): NumberValueSource
+    minutes(): NumberValueSource
+    seconds(): NumberValueSource
+    milliseconds(): NumberValueSource
+    microseconds(): NumberValueSource
+    nanoseconds(): NumberValueSource
+    /** -1, 0 or 1, as Temporal's sign */
+    sign(): NumberValueSource
+    /** The duration with the opposite sign, as Temporal's negated */
+    negated(): DurationValueSource
+    /** The duration without its sign, as Temporal's abs */
+    abs(): DurationValueSource
 }
 ```
 

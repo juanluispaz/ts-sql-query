@@ -11,6 +11,7 @@ import type { Default } from '../expressions/Default.js'
 import { DefaultImpl } from '../expressions/Default.js'
 import type { SqlDataType, SqlDataTypeNative, TypeAdapterProjectionContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
 import { __isBooleanClass, __isDurationClass, __isLocalDateTimeClass, __isLocalTimeClass, __isPlainDateClass, __isPlainDateTimeClass, __isPlainTimeClass } from '../typeSystem/dataTypeQuestions.js'
+import { __durationSqlDataTypeOf } from '../typeSystem/dataTypes.js'
 import { isDurationValue } from '../utils/durationValues.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import { oracleZonedParam } from '../utils/metadataSymbols.js'
@@ -205,10 +206,11 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
         if ((__isLocalDateTimeClass(context.requestedType) || __isLocalTimeClass(context.requestedType)) && this.isDatabaseOutsideUtc()) {
             context.setMetadata(oracleZonedParam, true)
         }
-        if (__isDurationClass(context.requestedType) && isDurationValue(value) && this.isDurationKeptAsInterval(context.requestedSqlDataType)) {
+        const durationSqlDataType = __isDurationClass(context.requestedType) ? __durationSqlDataTypeOf(context.requestedSqlDataType, context.requestedType) : undefined
+        if (__isDurationClass(context.requestedType) && isDurationValue(value) && this.isDurationKeptAsInterval(durationSqlDataType)) {
             // An interval of Oracle holds years and months, or days to seconds, never both: a duration that doesn't fit
             // the one of its column (days to seconds unless it says years to month) would lose a part
-            const yearToMonth = context.requestedSqlDataType?.family === 'interval' && context.requestedSqlDataType.fields === 'year to month'
+            const yearToMonth = durationSqlDataType?.family === 'interval' && durationSqlDataType.fields === 'year to month'
             const fits = yearToMonth
                 ? value.weeks === 0 && value.days === 0 && value.hours === 0 && value.minutes === 0 && value.seconds === 0 && value.milliseconds === 0 && value.microseconds === 0 && value.nanoseconds === 0
                 : value.years === 0 && value.months === 0

@@ -21,7 +21,9 @@ import { getWithData, hasWithData, isWithValuesData } from './SqlBuilder.js'
 import type { RawFragment } from '../utils/RawFragment.js'
 import { TsSqlError, TsSqlProcessingError } from '../TsSqlError.js'
 import { isUtcTimeZoneName } from '../utils/processTimeZone.js'
-import { __isIntegerSql, __isJsonDocumentSql, __sqlFamilyOf, __temporalFieldsOf } from '../typeSystem/dataTypes.js'
+import { __durationSqlDataTypeOf, __isIntegerSql, __isJsonDocumentSql, __sqlFamilyOf, __temporalFieldsOf } from '../typeSystem/dataTypes.js'
+import { type DurationTotalDate, type DurationTotalUnit } from '../utils/durationTotal.js'
+import type { SqlOperation2ValueSource } from '../nodes/operations.js'
 import { durationOfArgument, durationOfParts, durationPartsFor, isZeroDuration, type DurationParts, type DurationPartsSql } from '../utils/durationValues.js'
 import { plainTemporalFieldsOf } from '../utils/plainTemporalFields.js'
 import { plainTemporalRoundingOf, type PlainTemporalRounding } from '../utils/plainTemporalRounding.js'
@@ -4337,13 +4339,16 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * text: the parameters of MariaDB and MySQL are positional
      */
     _appendDifference(context: SqlBuildContext, valueSource: ToSql, other: ToSql, options: unknown, since: boolean): string {
+        return this._durationOfDifference(context, this._differenceSqlOf(valueSource, other, options, since))
+    }
+    /** The difference to write of two values with the options of until (or since) */
+    _differenceSqlOf(valueSource: ToSql, other: ToSql, options: unknown, since: boolean): PlainTemporalDifferenceSql {
         const fields = __temporalFieldsOf(__classOf(valueSource as object)) ?? 'timestamp'
         const difference = plainTemporalDifferenceOf(options, fields, since)
         if (!difference) {
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value: options, typeName: 'duration' }, 'Invalid options of ' + (since ? 'since' : 'until') + ': ' + JSON.stringify(options))
         }
-        const d: PlainTemporalDifferenceSql = { one: this._temporalOperand(valueSource), two: this._temporalOperand(other), fields, difference, day: fields === 'date' ? '' : this._bigintLiteral(nanosecondsOfUnit['day']!) }
-        return this._durationOfDifference(context, d)
+        return { one: this._temporalOperand(valueSource), two: this._temporalOperand(other), fields, difference, day: fields === 'date' ? '' : this._bigintLiteral(nanosecondsOfUnit['day']!) }
     }
     /**
      * An operand of a computation of dates and times, which writes it several times: a const is written once, and its
@@ -4646,7 +4651,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     /** Whether a duration value source is kept as its ISO 8601 text: on a database without intervals, or a text column */
     _isDurationKeptAsText(valueSource: ToSql): boolean {
-        return !this._supportNativeDurations() || __sqlDataTypeOf(__classOf(valueSource as object))?.family === 'character string'
+        return !this._supportNativeDurations() || __durationSqlDataTypeOf(__sqlDataTypeOf(__classOf(valueSource as object)), __classOf(valueSource as object))?.family === 'character string'
     }
     /**
      * A part of the ISO 8601 text of a duration, with the function of the library tsq_duration_part: 'M' the months
@@ -4727,6 +4732,61 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         let result = 'case when ' + this._textFirstCharacter(this._appendSql(valueSource, context, false)) + " in ('-', '+') then " + this._textFromSecondCharacter(this._appendSql(valueSource, context, false))
         return result + ' else ' + this._appendSql(valueSource, context, false) + ' end'
+    }
+    /**
+     * The duration in a unit, as Temporal's `total`, with the function of the library tsq_duration_total: the months
+     * (its years too), the weeks, the days, the whole seconds of the time and the nanoseconds of the second of the
+     * duration, the year, the month and the day of the date of reference (0, 0, 0 without one), and the unit. The
+     * function computes it with integers, the double rounded once as Temporal's, and fails without a date of reference
+     * for a duration with years, months or weeks, as Temporal
+     */
+    _durationTotal(context: SqlBuildContext, operand: ToSql, value: any, value2: any, _typeClass: DataTypeClass): string {
+        const total = { unit: value2 as DurationTotalUnit, relativeTo: value as DurationTotalDate | ToSql | undefined }
+        let result = this._durationTotalFunctionName() + '(' + this._durationPartsForTotal(context, this._temporalOperand(operand)) + ', '
+        const relativeTo = total.relativeTo
+        if (relativeTo === undefined) {
+            result += '0, 0, 0'
+        } else if (isValueSource(relativeTo)) {
+            const date = this._temporalOperand(relativeTo as ToSql)
+            result += this._integerPart(this._year(context, date)) + ', ' + this._integerPart(this._month(context, date)) + ', ' + this._integerPart(this._day(context, date))
+        } else {
+            // The parts of a Temporal value, integers
+            const date = relativeTo as DurationTotalDate
+            result += String(date.year) + ', ' + String(date.month) + ', ' + String(date.day)
+        }
+        return result + ", '" + total.unit + "')"
+    }
+    /**
+     * The months, the weeks, the days, the whole seconds and the nanoseconds of a duration, as the arguments of
+     * tsq_duration_total: of its ISO 8601 text, with tsq_duration_part; of an interval of PostgreSQL, its fields
+     */
+    _durationPartsForTotal(context: SqlBuildContext, valueSource: ToSql): string {
+        const operation = isValueSource(valueSource) ? (__asNodeValueSource(valueSource) as Partial<SqlOperation2ValueSource>) : undefined
+        if (operation && (operation.__operation === '_until' || operation.__operation === '_since')) {
+            const d = this._differenceSqlOf(operation.__valueSource as unknown as ToSql, operation.__value, operation.__value2, operation.__operation === '_since')
+            if (!this._differenceIsRoundedToTheCalendar(d)) {
+                // A difference gives its fields, not the duration made of them: the time as nanoseconds
+                let result = this._differenceHas(d, 'years') ? '(' + this._differenceField(context, d, 'years') + ') * 12' : ''
+                if (this._differenceHas(d, 'months')) {
+                    result += (result ? ' + ' : '') + this._differenceField(context, d, 'months')
+                }
+                result = (result || '0') + ', ' + (this._differenceHas(d, 'weeks') ? this._differenceField(context, d, 'weeks') : '0')
+                result += ', ' + (this._differenceHas(d, 'days') ? this._differenceField(context, d, 'days') : '0')
+                return result + ', 0, ' + (this._differenceHas(d, 'time') ? this._differenceField(context, d, 'time') : '0')
+            }
+        }
+        if (this._isDurationKeptAsText(valueSource)) {
+            return this._durationTextPart(context, valueSource, 'M') + ', ' + this._durationTextPart(context, valueSource, 'weeks') + ', ' + this._durationTextPart(context, valueSource, 'days') + ', '
+                + this._durationTextPart(context, valueSource, 'S') + ', ' + this._durationTextPart(context, valueSource, 'N')
+        }
+        const interval = this._appendSqlParenthesis(valueSource, context, false)
+        let result = 'cast(extract(year from ' + interval + ') * 12 + extract(month from ' + interval + ') as bigint), 0, cast(extract(day from ' + interval + ') as bigint), '
+        result += 'cast(extract(hour from ' + interval + ') * 3600 + extract(minute from ' + interval + ') * 60 + trunc(extract(second from ' + interval + ')) as bigint), '
+        return result + 'cast(extract(microseconds from ' + interval + ') as bigint) % 1000000 * 1000'
+    }
+    /** The name of the function of the library that gives the total of a duration */
+    _durationTotalFunctionName(): string {
+        return 'tsq_duration_total'
     }
     /** The first character of a text */
     _textFirstCharacter(text: string): string {

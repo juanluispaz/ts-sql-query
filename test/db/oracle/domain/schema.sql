@@ -637,3 +637,96 @@ BEGIN
     END IF;
     RETURN tsq_duration_text(v_years * negation, v_months * negation, v_weeks * negation, v_days * negation, v_t * negation, 'hour');
 END;
+
+-- tsq_duration_total: a duration (its months, its years too; its weeks; its days; the whole seconds of its time and the
+-- nanoseconds of the second, each with the sign of the duration) in a unit ('year' ... 'nanosecond'), the function of
+-- the library that gives Temporal's total. With a date of reference (its year, month and day; 0, 0, 0 without one) the
+-- duration is added to it, the months first with the day kept in the month, and the unit is counted from it, a month or
+-- a year with the days of the calendar there; without one a day is 24 hours, and a duration with months or weeks, or a
+-- unit of them, is an error. The double is the quotient rounded once, as Temporal's.
+CREATE OR REPLACE FUNCTION tsq_duration_total(months IN NUMBER, weeks IN NUMBER, days IN NUMBER, seconds IN NUMBER, nanoseconds IN NUMBER, y IN NUMBER, m IN NUMBER, d IN NUMBER, unit IN VARCHAR2) RETURN BINARY_DOUBLE DETERMINISTIC IS
+    v_day CONSTANT NUMBER := 86400000000000;
+    v_t NUMBER;
+    v_time_of_day NUMBER;
+    v_one DATE;
+    v_two DATE;
+    v_adjusted DATE;
+    v_sign NUMBER;
+    v_k NUMBER;
+    v_r1 NUMBER;
+    v_start DATE;
+    v_end DATE;
+    v_a NUMBER;
+    v_b NUMBER;
+    v_x NUMBER;
+    v_s NUMBER := 0;
+    v_q NUMBER;
+    v_rest NUMBER;
+    -- add_months gives the last day of a month to the last day of another: the days it moves past the day are taken back
+    FUNCTION plus_months(dt IN DATE, k IN NUMBER) RETURN DATE IS
+    BEGIN
+        RETURN ADD_MONTHS(dt, k) - GREATEST(0, EXTRACT(DAY FROM ADD_MONTHS(dt, k)) - EXTRACT(DAY FROM dt));
+    END;
+    -- The date plus a number of weeks, months or years, the day kept in the month
+    FUNCTION units_from(n IN NUMBER) RETURN DATE IS
+    BEGIN
+        RETURN CASE WHEN unit = 'week' THEN v_one + 7 * n ELSE plus_months(v_one, CASE WHEN unit = 'month' THEN n ELSE 12 * n END) END;
+    END;
+BEGIN
+    IF months IS NULL OR weeks IS NULL OR days IS NULL OR seconds IS NULL OR nanoseconds IS NULL OR y IS NULL OR m IS NULL OR d IS NULL OR unit IS NULL THEN RETURN NULL; END IF;
+    v_t := seconds * 1000000000 + nanoseconds;
+    IF m = 0 THEN
+        IF months <> 0 OR weeks <> 0 OR unit IN ('year', 'month', 'week') THEN
+            RAISE_APPLICATION_ERROR(-20001, 'tsq_duration_total: a duration with years, months or weeks, or a total in years, months or weeks, needs a date of reference');
+        END IF;
+        v_a := days * v_day + v_t;
+    ELSE
+        -- The duration added to the date at 00:00: the months, then the weeks, the days and the whole days of the time
+        v_time_of_day := MOD(v_t, v_day);
+        IF v_time_of_day < 0 THEN v_time_of_day := v_time_of_day + v_day; END IF;
+        v_one := ADD_MONTHS(DATE '0001-01-01', (y - 1) * 12 + m - 1) + d - 1;
+        v_two := plus_months(v_one, months) + weeks * 7 + days + (v_t - v_time_of_day) / v_day;
+        IF unit IN ('year', 'month', 'week') THEN
+            IF v_two = v_one AND v_time_of_day = 0 THEN RETURN 0; END IF;
+            -- The whole units to the end without passing it (as until), and the progress to the next one
+            v_adjusted := CASE WHEN v_time_of_day > 0 AND v_two < v_one THEN v_two + 1 ELSE v_two END;
+            v_sign := CASE WHEN (v_two - v_one) * v_day + v_time_of_day < 0 THEN -1 ELSE 1 END;
+            IF unit = 'week' THEN
+                v_r1 := TRUNC((v_adjusted - v_one) / 7);
+            ELSE
+                v_k := TRUNC(((EXTRACT(YEAR FROM v_adjusted) * 12 + EXTRACT(MONTH FROM v_adjusted)) * 32 + EXTRACT(DAY FROM v_adjusted) - (y * 12 + m) * 32 - d) / 32);
+                v_r1 := CASE WHEN unit = 'month' THEN v_k ELSE TRUNC(v_k / 12) END;
+            END IF;
+            v_start := units_from(v_r1);
+            v_end := units_from(v_r1 + v_sign);
+            IF ABS((v_two - v_start) * v_day + v_time_of_day) >= ABS((v_end - v_start) * v_day) THEN
+                -- The end beyond the next unit (the day of the date wasn't in the month of the end): from that unit
+                v_r1 := v_r1 + v_sign;
+                v_start := v_end;
+                v_end := units_from(v_r1 + v_sign);
+            END IF;
+            v_b := ABS((v_end - v_start) * v_day);
+            v_a := v_r1 * v_b + v_sign * ABS((v_two - v_start) * v_day + v_time_of_day);
+        ELSE
+            v_a := (v_two - v_one) * v_day + v_time_of_day;
+        END IF;
+    END IF;
+    IF unit NOT IN ('year', 'month', 'week') THEN
+        v_b := CASE unit WHEN 'day' THEN 86400000000000 WHEN 'hour' THEN 3600000000000 WHEN 'minute' THEN 60000000000 WHEN 'second' THEN 1000000000 WHEN 'millisecond' THEN 1000000 WHEN 'microsecond' THEN 1000 ELSE 1 END;
+    END IF;
+    -- a / b rounded once: the integer q from 2^52 to 2^53 and the exponent s with q * 2^-s the nearest to it
+    IF v_a = 0 THEN RETURN 0; END IF;
+    v_x := ABS(v_a);
+    WHILE v_x >= v_b * 9007199254740992 LOOP
+        v_b := v_b * 2;
+        v_s := v_s - 1;
+    END LOOP;
+    WHILE v_x < v_b * 4503599627370496 LOOP
+        v_x := v_x * 2;
+        v_s := v_s + 1;
+    END LOOP;
+    v_rest := MOD(v_x, v_b);
+    v_q := (v_x - v_rest) / v_b;
+    IF 2 * v_rest > v_b OR 2 * v_rest = v_b AND MOD(v_q, 2) = 1 THEN v_q := v_q + 1; END IF;
+    RETURN CASE WHEN v_a < 0 THEN -1 ELSE 1 END * TO_BINARY_DOUBLE(v_q) * POWER(2d, -v_s);
+END;

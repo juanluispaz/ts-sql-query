@@ -579,3 +579,93 @@ BEGIN
 END
 //
 DELIMITER ;
+
+-- tsq_duration_total: a duration (its months, its years too; its weeks; its days; the whole seconds of its time and the
+-- nanoseconds of the second, each with the sign of the duration) in a unit ('year' ... 'nanosecond'), the function of
+-- the library that gives Temporal's total. With a date of reference (its year, month and day; 0, 0, 0 without one) the
+-- duration is added to it, the months first with the day kept in the month, and the unit is counted from it, a month or
+-- a year with the days of the calendar there; without one a day is 24 hours, and a duration with months or weeks, or a
+-- unit of them, is an error. The double is the quotient rounded once, as Temporal's.
+DROP FUNCTION IF EXISTS tsq_duration_total;
+DELIMITER //
+CREATE FUNCTION tsq_duration_total(months BIGINT, weeks BIGINT, days BIGINT, seconds BIGINT, nanoseconds BIGINT, y INT, m INT, d INT, unit VARCHAR(11)) RETURNS DOUBLE DETERMINISTIC NO SQL
+BEGIN
+    DECLARE v_day DECIMAL(65, 0) DEFAULT 86400000000000;
+    DECLARE v_t DECIMAL(65, 0);
+    DECLARE v_time_of_day DECIMAL(65, 0);
+    DECLARE v_one DATE;
+    DECLARE v_two DATE;
+    DECLARE v_adjusted DATE;
+    DECLARE v_sign INT;
+    DECLARE v_k INT;
+    DECLARE v_ya INT;
+    DECLARE v_ma INT;
+    DECLARE v_da INT;
+    DECLARE v_r1 INT;
+    DECLARE v_start DATE;
+    DECLARE v_end DATE;
+    DECLARE v_a DECIMAL(65, 0);
+    DECLARE v_b DECIMAL(65, 0);
+    DECLARE v_x DECIMAL(65, 0);
+    DECLARE v_s INT DEFAULT 0;
+    DECLARE v_q DECIMAL(65, 0);
+    DECLARE v_rest DECIMAL(65, 0);
+    DECLARE v_result DOUBLE;
+    IF months IS NULL OR weeks IS NULL OR days IS NULL OR seconds IS NULL OR nanoseconds IS NULL OR y IS NULL OR m IS NULL OR d IS NULL OR unit IS NULL THEN RETURN NULL; END IF;
+    SET v_t = seconds * CAST(1000000000 AS DECIMAL(65, 0)) + nanoseconds;
+    IF m = 0 THEN
+        IF months <> 0 OR weeks <> 0 OR unit IN ('year', 'month', 'week') THEN
+            SIGNAL SQLSTATE '22023' SET MESSAGE_TEXT = 'tsq_duration_total: a duration with years, months or weeks, or a total in years, months or weeks, needs a date of reference';
+        END IF;
+        SET v_a = days * v_day + v_t;
+    ELSE
+        -- The duration added to the date at 00:00: the months, then the weeks, the days and the whole days of the time
+        SET v_time_of_day = MOD(v_t, v_day);
+        IF v_time_of_day < 0 THEN SET v_time_of_day = v_time_of_day + v_day; END IF;
+        SET v_one = DATE_ADD(DATE_ADD(MAKEDATE(y, 1), INTERVAL m - 1 MONTH), INTERVAL d - 1 DAY);
+        SET v_two = DATE_ADD(DATE_ADD(v_one, INTERVAL months MONTH), INTERVAL weeks * 7 + days + (v_t - v_time_of_day) DIV v_day DAY);
+        IF unit IN ('year', 'month', 'week') THEN
+            IF v_two = v_one AND v_time_of_day = 0 THEN RETURN 0; END IF;
+            -- The whole units to the end without passing it (as until), and the progress to the next one
+            SET v_adjusted = IF(v_time_of_day > 0 AND v_two < v_one, DATE_ADD(v_two, INTERVAL 1 DAY), v_two);
+            SET v_sign = IF(DATEDIFF(v_two, v_one) * v_day + v_time_of_day < 0, -1, 1);
+            IF unit = 'week' THEN
+                SET v_r1 = DATEDIFF(v_adjusted, v_one) DIV 7;
+            ELSE
+                SET v_ya = YEAR(v_adjusted), v_ma = MONTH(v_adjusted), v_da = DAY(v_adjusted);
+                SET v_k = ((v_ya * 12 + v_ma) * 32 + v_da - (y * 12 + m) * 32 - d) DIV 32;
+                SET v_r1 = IF(unit = 'month', v_k, v_k DIV 12);
+            END IF;
+            SET v_start = IF(unit = 'week', DATE_ADD(v_one, INTERVAL 7 * v_r1 DAY), DATE_ADD(v_one, INTERVAL IF(unit = 'month', v_r1, 12 * v_r1) MONTH));
+            SET v_end = IF(unit = 'week', DATE_ADD(v_one, INTERVAL 7 * (v_r1 + v_sign) DAY), DATE_ADD(v_one, INTERVAL IF(unit = 'month', v_r1 + v_sign, 12 * (v_r1 + v_sign)) MONTH));
+            IF ABS(DATEDIFF(v_two, v_start) * v_day + v_time_of_day) >= ABS(DATEDIFF(v_end, v_start) * v_day) THEN
+                -- The end beyond the next unit (the day of the date wasn't in the month of the end): from that unit
+                SET v_r1 = v_r1 + v_sign, v_start = v_end;
+                SET v_end = IF(unit = 'week', DATE_ADD(v_one, INTERVAL 7 * (v_r1 + v_sign) DAY), DATE_ADD(v_one, INTERVAL IF(unit = 'month', v_r1 + v_sign, 12 * (v_r1 + v_sign)) MONTH));
+            END IF;
+            SET v_b = ABS(DATEDIFF(v_end, v_start) * v_day);
+            SET v_a = v_r1 * v_b + v_sign * ABS(DATEDIFF(v_two, v_start) * v_day + v_time_of_day);
+        ELSE
+            SET v_a = DATEDIFF(v_two, v_one) * v_day + v_time_of_day;
+        END IF;
+    END IF;
+    IF unit NOT IN ('year', 'month', 'week') THEN
+        SET v_b = CASE unit WHEN 'day' THEN 86400000000000 WHEN 'hour' THEN 3600000000000 WHEN 'minute' THEN 60000000000 WHEN 'second' THEN 1000000000 WHEN 'millisecond' THEN 1000000 WHEN 'microsecond' THEN 1000 ELSE 1 END;
+    END IF;
+    -- a / b rounded once: the integer q from 2^52 to 2^53 and the exponent s with q * 2^-s the nearest to it
+    IF v_a = 0 THEN RETURN 0; END IF;
+    SET v_x = ABS(v_a);
+    WHILE v_x >= v_b * 9007199254740992 DO
+        SET v_b = v_b * 2, v_s = v_s - 1;
+    END WHILE;
+    WHILE v_x < v_b * 4503599627370496 DO
+        SET v_x = v_x * 2, v_s = v_s + 1;
+    END WHILE;
+    SET v_rest = MOD(v_x, v_b);
+    SET v_q = (v_x - v_rest) / v_b;
+    IF 2 * v_rest > v_b OR 2 * v_rest = v_b AND MOD(v_q, 2) = 1 THEN SET v_q = v_q + 1; END IF;
+    SET v_result = v_q;
+    RETURN IF(v_a < 0, -1, 1) * v_result * POW(2, -v_s);
+END
+//
+DELIMITER ;

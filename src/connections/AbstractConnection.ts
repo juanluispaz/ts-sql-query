@@ -30,6 +30,7 @@ import type { DataToProject, GetDataToProjectSource } from '../complexProjection
 import type { ResultObjectValuesForAggregatedArray } from '../complexProjections/resultWithOptionalsAsUndefined.js'
 import type { ResultObjectValuesProjectedAsNullableForAggregatedArray } from '../complexProjections/resultWithOptionalsAsNull.js'
 import { __isAggregatedArrayClass, __isBigintClass, __isBooleanClass, __isDoubleClass, __isExactDecimalClass, __isIntClass, __isLocalDateClass, __isLocalDateTimeClass, __isLocalTimeClass, __isPlainDateClass, __isPlainDateTimeClass, __isPlainTimeClass, __isStringClass, __isDurationClass, __isUuidClass } from '../typeSystem/dataTypeQuestions.js'
+import { __durationSqlDataTypeOf } from '../typeSystem/dataTypes.js'
 import { parseUtcDateTimeText } from '../utils/utcDateTimeText.js'
 import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, ValueSourceOf, TypedValueSource } from '../typeSystem/valueSource.js'
 import type { DataTypeName, DataTypeOfName, DataTypeValueOfName, DataTypeValueSources, DataTypeFragments } from '../typeSystem/dataTypeNames.js'
@@ -1405,7 +1406,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             if (!isDurationValue(value)) {
                 throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid duration value to send to the db: ' + String(value))
             }
-            if (!this.isDurationKeptAsInterval(context.requestedSqlDataType)) {
+            if (!this.isDurationKeptAsInterval(__durationSqlDataTypeOf(context.requestedSqlDataType, context.requestedType))) {
                 return value.toString()
             }
             // An interval of the database: each query runner gives its driver the form it needs

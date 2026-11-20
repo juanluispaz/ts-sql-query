@@ -1,6 +1,6 @@
 import type { DataTypeClass } from '../../TypeAdapter.js'
 import { exactDecimalDigitsOf, rejectExactDecimalParam } from '../exactDecimalParams.js'
-import { __temporalFieldsOf, __typeSqlDataTypeOf } from '../../typeSystem/dataTypes.js'
+import { __durationSqlDataTypeOf, __temporalFieldsOf, __typeSqlDataTypeOf } from '../../typeSystem/dataTypes.js'
 import { oracleDateParam, oracleZonedParam } from '../metadataSymbols.js'
 import { existingParamContextOf } from '../../internal/QueryContextImpl.js'
 import { isDurationValue } from '../durationValues.js'
@@ -157,6 +157,7 @@ function pad(value: number, length: number): string {
 
 /** Whether the parameter at that index is a duration of an interval of years to months (its requested SQL data type) */
 export function isYearToMonthParam(params: any[], index: number): boolean {
-    const sqlDataType = existingParamContextOf(params, index)?.requestedSqlDataType
+    const param = existingParamContextOf(params, index)
+    const sqlDataType = __durationSqlDataTypeOf(param?.requestedSqlDataType, param?.requestedType)
     return sqlDataType?.family === 'interval' && sqlDataType.fields === 'year to month'
 }

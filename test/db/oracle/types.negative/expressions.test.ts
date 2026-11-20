@@ -613,6 +613,20 @@ function _typeNegatives() {
     void tColMatrixPlain.mDate.until(tColMatrixPlain.mDate, { smallestUnit: 'hour' })
     // @ts-expect-error a time has no days
     void tColMatrixPlain.mTime.until(tColMatrixPlain.mTime, { largestUnit: 'day' })
+    // total takes a unit of days or time, or a calendar unit with a date of reference: a date or a date and time
+    void tDurationValue.span.total('hours')
+    void tDurationValue.span.total({ unit: 'month', relativeTo: tColMatrixPlain.mDate })
+    void tDurationValue.span.total({ unit: 'year', relativeTo: Temporal.PlainDateTime.from('2024-01-31T10:00') })
+    // @ts-expect-error a month has no fixed length: it needs a date of reference
+    void tDurationValue.span.total('month')
+    // @ts-expect-error a week needs a date of reference too
+    void tDurationValue.span.total({ unit: 'weeks' })
+    // @ts-expect-error a time of the day isn't a date of reference
+    void tDurationValue.span.total({ unit: 'month', relativeTo: tColMatrixPlain.mTime })
+    // @ts-expect-error a text isn't a date of reference
+    void tDurationValue.span.total({ unit: 'month', relativeTo: '2024-01-31' })
+    // @ts-expect-error a unit Temporal hasn't
+    void tDurationValue.span.total('fortnight')
 }
 
 test('expressions-negative-types', () => {

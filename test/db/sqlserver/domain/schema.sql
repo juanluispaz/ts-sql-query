@@ -653,3 +653,71 @@ BEGIN
     RETURN dbo.tsq_duration_text(@years * @negation, @months * @negation, @weeks * @negation, @days * @negation, @t * @negation, 'hour');
 END
 GO
+
+-- tsq_duration_total: a duration (its months, its years too; its weeks; its days; the whole seconds of its time and the
+-- nanoseconds of the second, each with the sign of the duration) in a unit ('year' ... 'nanosecond'), the function of
+-- the library that gives Temporal's total. With a date of reference (its year, month and day; 0, 0, 0 without one) the
+-- duration is added to it, the months first with the day kept in the month, and the unit is counted from it, a month or
+-- a year with the days of the calendar there; without one a day is 24 hours, and a duration with months or weeks, or a
+-- unit of them, is an error (a function can't raise one: a text that isn't a number, converted to one). The double is
+-- the quotient rounded once, as Temporal's.
+CREATE OR ALTER FUNCTION dbo.tsq_duration_total(@months BIGINT, @weeks BIGINT, @days BIGINT, @seconds BIGINT, @nanoseconds BIGINT, @y INT, @m INT, @d INT, @unit VARCHAR(11)) RETURNS FLOAT WITH SCHEMABINDING AS
+BEGIN
+    IF @months IS NULL OR @weeks IS NULL OR @days IS NULL OR @seconds IS NULL OR @nanoseconds IS NULL OR @y IS NULL OR @m IS NULL OR @d IS NULL OR @unit IS NULL RETURN NULL;
+    DECLARE @day DECIMAL(38, 0) = 86400000000000, @t DECIMAL(38, 0) = CAST(@seconds AS DECIMAL(38, 0)) * 1000000000 + @nanoseconds, @timeOfDay DECIMAL(38, 0);
+    DECLARE @one DATE, @two DATE, @adjusted DATE, @sign INT, @k INT, @r1 INT, @start DATE, @end DATE;
+    DECLARE @a DECIMAL(38, 0), @b DECIMAL(38, 0), @x DECIMAL(38, 0), @s INT = 0, @q DECIMAL(38, 0), @rest DECIMAL(38, 0);
+    IF @m = 0
+    BEGIN
+        IF @months <> 0 OR @weeks <> 0 OR @unit IN ('year', 'month', 'week')
+            RETURN CAST('tsq_duration_total: a duration with years, months or weeks, or a total in years, months or weeks, needs a date of reference, unit ' + @unit AS INT);
+        SET @a = @days * @day + @t;
+    END
+    ELSE
+    BEGIN
+        -- The duration added to the date at 00:00: the months, then the weeks, the days and the whole days of the time
+        SET @timeOfDay = @t % @day;
+        IF @timeOfDay < 0 SET @timeOfDay = @timeOfDay + @day;
+        SET @one = DATEFROMPARTS(@y, @m, @d);
+        SET @two = DATEADD(day, CAST(@weeks * 7 + @days + (@t - @timeOfDay) / @day AS INT), DATEADD(month, @months, @one));
+        IF @unit IN ('year', 'month', 'week')
+        BEGIN
+            IF @two = @one AND @timeOfDay = 0 RETURN 0;
+            -- The whole units to the end without passing it (as until), and the progress to the next one
+            SET @adjusted = CASE WHEN @timeOfDay > 0 AND @two < @one THEN DATEADD(day, 1, @two) ELSE @two END;
+            SET @sign = CASE WHEN DATEDIFF(day, @one, @two) * @day + @timeOfDay < 0 THEN -1 ELSE 1 END;
+            IF @unit = 'week'
+                SET @r1 = DATEDIFF(day, @one, @adjusted) / 7;
+            ELSE
+            BEGIN
+                SET @k = ((YEAR(@adjusted) * 12 + MONTH(@adjusted)) * 32 + DAY(@adjusted) - (@y * 12 + @m) * 32 - @d) / 32;
+                SET @r1 = CASE WHEN @unit = 'month' THEN @k ELSE @k / 12 END;
+            END
+            SET @start = CASE WHEN @unit = 'week' THEN DATEADD(day, 7 * @r1, @one) ELSE DATEADD(month, CASE WHEN @unit = 'month' THEN @r1 ELSE 12 * @r1 END, @one) END;
+            SET @end = CASE WHEN @unit = 'week' THEN DATEADD(day, 7 * (@r1 + @sign), @one) ELSE DATEADD(month, CASE WHEN @unit = 'month' THEN @r1 + @sign ELSE 12 * (@r1 + @sign) END, @one) END;
+            IF ABS(DATEDIFF(day, @start, @two) * @day + @timeOfDay) >= ABS(DATEDIFF(day, @start, @end) * @day)
+            BEGIN
+                -- The end beyond the next unit (the day of the date wasn't in the month of the end): from that unit
+                SET @r1 = @r1 + @sign;
+                SET @start = @end;
+                SET @end = CASE WHEN @unit = 'week' THEN DATEADD(day, 7 * (@r1 + @sign), @one) ELSE DATEADD(month, CASE WHEN @unit = 'month' THEN @r1 + @sign ELSE 12 * (@r1 + @sign) END, @one) END;
+            END
+            SET @b = ABS(DATEDIFF(day, @start, @end) * @day);
+            SET @a = @r1 * @b + @sign * ABS(DATEDIFF(day, @start, @two) * @day + @timeOfDay);
+        END
+        ELSE
+            SET @a = DATEDIFF(day, @one, @two) * @day + @timeOfDay;
+    END
+    IF @unit NOT IN ('year', 'month', 'week')
+        SET @b = CASE @unit WHEN 'day' THEN 86400000000000 WHEN 'hour' THEN 3600000000000 WHEN 'minute' THEN 60000000000 WHEN 'second' THEN 1000000000 WHEN 'millisecond' THEN 1000000 WHEN 'microsecond' THEN 1000 ELSE 1 END;
+    -- a / b rounded once: the integer q from 2^52 to 2^53 and the exponent s with q * 2^-s the nearest to it
+    IF @a = 0 RETURN 0;
+    SET @x = ABS(@a);
+    WHILE @x >= @b * 9007199254740992 BEGIN SET @b = @b * 2; SET @s = @s - 1; END
+    WHILE @x < @b * 4503599627370496 BEGIN SET @x = @x * 2; SET @s = @s + 1; END
+    SET @rest = @x % @b;
+    SET @q = (@x - @rest) / @b;
+    IF 2 * @rest > @b OR 2 * @rest = @b AND @q % 2 = 1 SET @q = @q + 1;
+    RETURN CASE WHEN @a < 0 THEN -1 ELSE 1 END * CAST(@q AS FLOAT) * POWER(CAST(2 AS FLOAT), -@s);
+END
+GO

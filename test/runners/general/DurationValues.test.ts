@@ -8,7 +8,7 @@ import { PostgreSqlConnection } from '../../../src/connections/PostgreSqlConnect
 import { OracleConnection } from '../../../src/connections/OracleConnection.js'
 import { MySqlConnection } from '../../../src/connections/MySqlConnection.js'
 import { MockQueryRunner } from '../../../src/queryRunners/MockQueryRunner.js'
-import { Table, TsSqlError, withSqlDataType } from '../../../src/exports/v2/index.js'
+import { DurationsType, Table, TsSqlError, withSqlDataType } from '../../../src/exports/v2/index.js'
 import { postgreSqlDriverParams } from '../../../src/utils/postgreSql/postgreSqlParamTypes.js'
 import { durationIsoTextWithoutWeeks, durationPartsFor } from '../../../src/utils/durationValues.js'
 import { sqliteScalarFunctions } from '../../../src/utils/sqlite/sqliteFunctions.js'
@@ -36,6 +36,17 @@ const tMySpan = new class TMySpan extends Table<MyConnection, 'TMySpan'> {
     span = this.column('span', 'duration')
     constructor() { super('span') }
 }()
+
+/** A duration of the user kept as its text, by the SQL data type of its class */
+abstract class TextDuration extends DurationsType<Temporal.Duration, 'TextDuration'> {
+    static override readonly type = 'TextDuration'
+    static override readonly sqlDataType = { family: 'character string', length: 64 } as const
+}
+/** A duration of the user kept in an interval of years to months, by the SQL data type of its class */
+abstract class CalendarDuration extends DurationsType<Temporal.Duration, 'CalendarDuration'> {
+    static override readonly type = 'CalendarDuration'
+    static override readonly sqlDataType = { family: 'interval', fields: 'year to month' } as const
+}
 
 let rowsToReturn: any[] = []
 let lastSql = ''
@@ -186,6 +197,19 @@ describe('DurationValues', () => {
         expect(await setCalendar(Temporal.Duration.from('P14M'))).toBe('sent')
         // A text column keeps any duration
         expect(await outcome(() => oracle.update(tOraSpan).set({ spanText: Temporal.Duration.from('P1M1D') }).where(tOraSpan.id.equals(1)).executeUpdate())).toBe('sent')
+    })
+
+    test('a-class-of-yours-says-how-its-durations-are-kept', async () => {
+        // A text, read with tsq_duration_part and sent as the text of Temporal, on PostgreSQL
+        rowsToReturn = [{ days: -1 }]
+        await pg.selectFromNoTable().select({ days: pg.const(Temporal.Duration.from('-P1DT2H'), TextDuration).days() }).executeSelectOne()
+        expect(lastSql).toBe("select tsq_duration_part($1::varchar, 'days') as days")
+        expect(postgreSqlDriverParams(lastParams)).toEqual(['-P1DT2H'])
+        // An interval of years to months on Oracle
+        rowsToReturn = [{ months: 2 }]
+        await oracle.selectFromNoTable().select({ months: oracle.const(Temporal.Duration.from('P1Y2M'), CalendarDuration).months() }).executeSelectOne()
+        expect(lastSql).toBe('select extract(month from to_yminterval(:0)) as "months" from dual')
+        expect(await outcome(() => oracle.selectFromNoTable().select({ months: oracle.const(Temporal.Duration.from('P1D'), CalendarDuration).months() }).executeSelectOne())).toBe('INVALID_VALUE_TO_SEND_TO_DATABASE')
     })
 
     test('a-database-without-intervals-keeps-the-iso-text', async () => {

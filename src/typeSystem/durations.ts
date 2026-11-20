@@ -1,9 +1,13 @@
 import type { SqlDataType } from '../TypeAdapter.js'
 import { EqualableType } from './equalable.js'
-import type { TemporalDuration } from './temporal.js'
-import type { DataTypeOf, OptionalityOf, SourceOf, ValueSource } from './base.js'
-import { __operation0, __operation1 } from '../nodes/operations.js'
-import { IntType } from './number.js'
+import type { TemporalDayOrTimeUnit, TemporalDuration, TemporalPlainDate, TemporalPlainDateTime, TemporalRelativeTotalOptions, TemporalTotalOptions } from './temporal.js'
+import type { DataTypeOf, IValueWithType, OptionalityOf, SourceOf, ValueSource } from './base.js'
+import type { CombinedOptionality } from './valueSource.js'
+import { __newSqlOperation2ValueSource, __operation0, __operation1 } from '../nodes/operations.js'
+import { DoubleType, IntType } from './number.js'
+import { getOptionalType2 } from '../nodes/operands.js'
+import { durationTotalOf } from '../utils/durationTotal.js'
+import { TsSqlProcessingError } from '../TsSqlError.js'
 import { __typeClassOf } from '../nodes/dataTypeClassOf.js'
 import { __computedClassOf } from '../nodes/adaptedTypeClass.js'
 
@@ -15,6 +19,15 @@ function fieldOf(valueSource: unknown, field: string): any {
 /** The duration negated or its absolute value: a duration of the same data type */
 function sameDuration(valueSource: unknown, operation: '_durationNegated' | '_durationAbs'): any {
     return __operation0(valueSource as any, operation, __computedClassOf(valueSource as object, __typeClassOf(valueSource as any)))
+}
+
+/** The duration in a unit, as Temporal's `total`: a double */
+function totalOf(valueSource: unknown, options: unknown): any {
+    const total = durationTotalOf(options)
+    if (!total) {
+        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value: options, typeName: 'duration' }, 'Invalid options of total: ' + (typeof options === 'string' ? options : JSON.stringify(options)))
+    }
+    return __newSqlOperation2ValueSource('_durationTotal', valueSource as any, total.relativeTo, total.unit, DoubleType, getOptionalType2(valueSource as any, total.relativeTo))
 }
 
 /*
@@ -100,6 +113,27 @@ export abstract class DurationsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME 
     abs(): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     abs(): any {
         return sameDuration(this, '_durationAbs')
+    }
+    /**
+     * The duration in the unit given (of days or of the time; a day is 24 hours), as a double with the fraction of the
+     * unit: Temporal's `total` without a date of reference (`PT36H` is 1.5 days). A duration with years, months or
+     * weeks fails the query: they need a date of reference
+     */
+    total(unit: TemporalDayOrTimeUnit | TemporalTotalOptions): ValueSource<SourceOf<this>, DoubleType, OptionalityOf<this>>
+    /**
+     * The duration in the unit given, as a double with the fraction of the unit, counted from the date of reference
+     * (`relativeTo`; of a date and time, its date): Temporal's `total` with `relativeTo`. The duration is added to the
+     * date, and a month or a year counts the days of the calendar there (`P1M2D` from Jan 31, 2024 is 1.069 months)
+     */
+    total(options: TemporalRelativeTotalOptions<TemporalPlainDate | TemporalPlainDateTime>): ValueSource<SourceOf<this>, DoubleType, OptionalityOf<this>>
+    /**
+     * The duration in the unit given, as a double with the fraction of the unit, counted from the date of reference
+     * (`relativeTo`, a plainDate or the date of a plainDateTime): Temporal's `total` with `relativeTo`. The duration is
+     * added to the date, and a month or a year counts the days of the calendar there
+     */
+    total<RELATIVE_TO extends IValueWithType<'type:plainDate:'> | IValueWithType<'type:plainDateTime:'>>(options: TemporalRelativeTotalOptions<RELATIVE_TO>): ValueSource<SourceOf<this> | SourceOf<RELATIVE_TO>, DoubleType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<RELATIVE_TO>>>
+    total(options: unknown): any {
+        return totalOf(this, options)
     }
 }
 

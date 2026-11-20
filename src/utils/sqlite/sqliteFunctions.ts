@@ -705,6 +705,116 @@ function durationRound(year1: unknown, month1: unknown, day1: unknown, nanosecon
     return durationText(years * resultSign, months * resultSign, weeks * resultSign, days * resultSign, time * resultSign, 'hour')
 }
 
+/**
+ * a / b (b positive) as a double rounded once, to the nearest (ties to even), as Temporal divides: the integer q from
+ * 2^52 to 2^53 and the exponent s with q * 2^-s the nearest to a / b, computed with integers
+ */
+function exactQuotient(a: bigint, b: bigint): number {
+    if (a === 0n) {
+        return 0
+    }
+    let x = absoluteBigint(a)
+    let y = b
+    let s = 0
+    const low = 2n ** 52n
+    const high = 2n ** 53n
+    while (x >= y * high) {
+        y *= 2n
+        s--
+    }
+    while (x < y * low) {
+        x *= 2n
+        s++
+    }
+    let q = x / y
+    const twice = 2n * (x - q * y)
+    if (twice > y || (twice === y && q % 2n === 1n)) {
+        q += 1n
+    }
+    const result = Number(q) * Math.pow(2, -s)
+    return a < 0n ? -result : result
+}
+
+/**
+ * tsq_duration_total: a duration (its months, its years too; its weeks; its days; the whole seconds of its time and the
+ * nanoseconds of the second, each with the sign of the duration) in a unit ('year' ... 'nanosecond'), as Temporal's
+ * total, as the same function of the library on the other databases. With a date of reference (its year, month and
+ * day; 0, 0, 0 without one) the duration is added to it, the months first and the day kept in the month, and the unit
+ * counted from it, a month or a year with the days of the calendar there; without one a day is 24 hours, and a
+ * duration with months or weeks, or a unit of them, is an error. A double, rounded once; null when an argument is null
+ */
+function durationTotal(months: unknown, weeks: unknown, days: unknown, seconds: unknown, nanoseconds: unknown, year: unknown, month: unknown, dayOfMonth: unknown, unit: unknown): number | null {
+    const mo = bigintArgument(months)
+    const w = bigintArgument(weeks)
+    const d = bigintArgument(days)
+    const sec = bigintArgument(seconds)
+    const ns = bigintArgument(nanoseconds)
+    if (mo === null || w === null || d === null || sec === null || ns === null || year === null || month === null || dayOfMonth === null || unit === null) {
+        return null
+    }
+    const y1 = Number(year)
+    const m1 = Number(month)
+    const d1 = Number(dayOfMonth)
+    const name = String(unit)
+    const day = 86_400_000_000_000n
+    const calendar = name === 'year' || name === 'month' || name === 'week'
+    if (m1 === 0) {
+        if (mo !== 0n || w !== 0n || calendar) {
+            throw new Error('tsq_duration_total: a duration with years, months or weeks, or a total in years, months or weeks, needs a date of reference')
+        }
+        return exactQuotient((d * 86_400n + sec) * 1_000_000_000n + ns, nanosecondsOfUnit[name]!)
+    }
+    // The duration added to the date at 00:00: the months, then the days, the weeks and the whole days of the time
+    const time = sec * 1_000_000_000n + ns
+    let overflow = time / day
+    if (time - overflow * day < 0n) {
+        overflow -= 1n
+    }
+    const timeOfDay = time - overflow * day
+    const e1 = daysFromCivil(y1, m1, d1)
+    const e2 = daysOfDatePlusMonths(y1, m1, d1, Number(mo)) + Number(w * 7n + d + overflow)
+    if (!calendar) {
+        return exactQuotient(BigInt(e2 - e1) * day + timeOfDay, nanosecondsOfUnit[name]!)
+    }
+    if (e2 === e1 && timeOfDay === 0n) {
+        return 0
+    }
+    // The whole units from the date to the end without passing it (as until), and the progress to the next one
+    const e2Adjusted = timeOfDay > 0n && e2 < e1 ? e2 + 1 : e2
+    const sign = BigInt(e2 - e1) * day + timeOfDay < 0n ? -1 : 1
+    let r1: number
+    if (name === 'week') {
+        r1 = Math.trunc((e2Adjusted - e1) / 7)
+    } else {
+        const z = e2Adjusted + 719468
+        const era = Math.floor(z / 146097)
+        const dayOfEra = z - era * 146097
+        const yearOfEra = Math.floor((dayOfEra - Math.floor(dayOfEra / 1460) + Math.floor(dayOfEra / 36524) - Math.floor(dayOfEra / 146096)) / 365)
+        const dayOfYear = dayOfEra - (365 * yearOfEra + Math.floor(yearOfEra / 4) - Math.floor(yearOfEra / 100))
+        const mp = Math.floor((5 * dayOfYear + 2) / 153)
+        const dA = dayOfYear - Math.floor((153 * mp + 2) / 5) + 1
+        const mA = mp < 10 ? mp + 3 : mp - 9
+        const yA = yearOfEra + era * 400 + (mA <= 2 ? 1 : 0)
+        const k = Math.trunc(((yA * 12 + mA) * 32 + dA - (y1 * 12 + m1) * 32 - d1) / 32)
+        r1 = name === 'month' ? k : Math.trunc(k / 12)
+    }
+    let start = unitsFrom(y1, m1, d1, e1, name, r1)
+    let end = unitsFrom(y1, m1, d1, e1, name, r1 + sign)
+    if (absoluteBigint(BigInt(e2 - start) * day + timeOfDay) >= absoluteBigint(BigInt(end - start) * day)) {
+        // The end beyond the next unit (the day of the date wasn't in the month of the end): from that unit
+        r1 += sign
+        start = end
+        end = unitsFrom(y1, m1, d1, e1, name, r1 + sign)
+    }
+    const den = absoluteBigint(BigInt(end - start) * day)
+    return exactQuotient(BigInt(r1) * den + BigInt(sign) * absoluteBigint(BigInt(e2 - start) * day + timeOfDay), den)
+}
+
+/** The days from 1970-01-01 to a date plus a number of weeks, months or years ('week', 'month', 'year'), the day kept in the month */
+function unitsFrom(year: number, month: number, day: number, days: number, unit: string, units: number): number {
+    return unit === 'week' ? days + 7 * units : daysOfDatePlusMonths(year, month, day, unit === 'month' ? units : 12 * units)
+}
+
 // The functions
 
 const pure = true
@@ -727,6 +837,7 @@ export const sqliteScalarFunctions: readonly SqliteScalarFunction[] = [
     { name: 'tsq_duration_part', arity: 2, deterministic: pure, fn: durationPart as SqliteScalarFunction['fn'] },
     { name: 'tsq_duration_text', arity: 6, deterministic: pure, fn: durationText as SqliteScalarFunction['fn'] },
     { name: 'tsq_duration_round', arity: 13, deterministic: pure, fn: durationRound as SqliteScalarFunction['fn'] },
+    { name: 'tsq_duration_total', arity: 9, deterministic: pure, fn: durationTotal as SqliteScalarFunction['fn'] },
 ]
 
 export const sqliteAggregateFunctions: readonly SqliteAggregateFunction[] = [

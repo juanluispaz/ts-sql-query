@@ -625,3 +625,94 @@ BEGIN
     RETURN make_interval(years => (years * negation)::integer, months => (months * negation)::integer, weeks => (weeks * negation)::integer, days => (days * negation)::integer, secs => t * negation / 1000000000.0);
 END
 $$;
+
+-- tsq_duration_total: a duration (its months, its years too; its weeks; its days; the whole seconds of its time and the
+-- nanoseconds of the second, each with the sign of the duration) in a unit ('year' ... 'nanosecond'), the function of
+-- the library that gives Temporal's total. With a date of reference (its year, month and day; 0, 0, 0 without one) the
+-- duration is added to it, the months first with the day kept in the month, and the unit is counted from it, a month or
+-- a year with the days of the calendar there; without one a day is 24 hours, and a duration with months or weeks, or a
+-- unit of them, is an error. The double is the quotient rounded once, as Temporal's.
+CREATE OR REPLACE FUNCTION tsq_duration_total(months bigint, weeks bigint, days bigint, seconds bigint, nanoseconds bigint, y integer, m integer, d integer, unit text) RETURNS double precision LANGUAGE plpgsql IMMUTABLE STRICT AS $$
+DECLARE
+    day_ns CONSTANT numeric := 86400000000000;
+    unit_ns CONSTANT numeric := CASE unit WHEN 'day' THEN 86400000000000 WHEN 'hour' THEN 3600000000000 WHEN 'minute' THEN 60000000000 WHEN 'second' THEN 1000000000 WHEN 'millisecond' THEN 1000000 WHEN 'microsecond' THEN 1000 ELSE 1 END;
+    t numeric := seconds * 1000000000::numeric + nanoseconds;
+    time_of_day numeric;
+    one date;
+    two date;
+    adjusted date;
+    sgn integer;
+    k integer;
+    r1 integer;
+    start_day date;
+    end_day date;
+    a numeric;
+    b numeric;
+    x numeric;
+    s integer := 0;
+    q numeric;
+    rest numeric;
+BEGIN
+    IF m = 0 THEN
+        IF months <> 0 OR weeks <> 0 OR unit IN ('year', 'month', 'week') THEN
+            RAISE EXCEPTION 'tsq_duration_total: a duration with years, months or weeks, or a total in years, months or weeks, needs a date of reference';
+        END IF;
+        a := days * day_ns + t;
+        b := unit_ns;
+    ELSE
+        -- The duration added to the date at 00:00: the months, then the weeks, the days and the whole days of the time
+        time_of_day := mod(t, day_ns);
+        IF time_of_day < 0 THEN
+            time_of_day := time_of_day + day_ns;
+        END IF;
+        one := make_date(y, m, d);
+        two := (one + make_interval(months => months::integer))::date + (weeks * 7 + days + (t - time_of_day) / day_ns)::integer;
+        IF unit NOT IN ('year', 'month', 'week') THEN
+            a := (two - one) * day_ns + time_of_day;
+            b := unit_ns;
+        ELSE
+            IF two = one AND time_of_day = 0 THEN
+                RETURN 0;
+            END IF;
+            -- The whole units to the end without passing it (as until), and the progress to the next one
+            adjusted := CASE WHEN time_of_day > 0 AND two < one THEN two + 1 ELSE two END;
+            sgn := CASE WHEN (two - one) * day_ns + time_of_day < 0 THEN -1 ELSE 1 END;
+            IF unit = 'week' THEN
+                r1 := (adjusted - one) / 7;
+            ELSE
+                k := ((extract(year from adjusted)::integer * 12 + extract(month from adjusted)::integer) * 32 + extract(day from adjusted)::integer - (y * 12 + m) * 32 - d) / 32;
+                r1 := CASE WHEN unit = 'month' THEN k ELSE k / 12 END;
+            END IF;
+            start_day := CASE WHEN unit = 'week' THEN one + 7 * r1 ELSE (one + make_interval(months => CASE WHEN unit = 'month' THEN r1 ELSE 12 * r1 END))::date END;
+            end_day := CASE WHEN unit = 'week' THEN one + 7 * (r1 + sgn) ELSE (one + make_interval(months => CASE WHEN unit = 'month' THEN r1 + sgn ELSE 12 * (r1 + sgn) END))::date END;
+            IF abs((two - start_day) * day_ns + time_of_day) >= abs((end_day - start_day) * day_ns) THEN
+                -- The end beyond the next unit (the day of the date wasn't in the month of the end): from that unit
+                r1 := r1 + sgn;
+                start_day := end_day;
+                end_day := CASE WHEN unit = 'week' THEN one + 7 * (r1 + sgn) ELSE (one + make_interval(months => CASE WHEN unit = 'month' THEN r1 + sgn ELSE 12 * (r1 + sgn) END))::date END;
+            END IF;
+            b := abs((end_day - start_day) * day_ns);
+            a := r1 * b + sgn * abs((two - start_day) * day_ns + time_of_day);
+        END IF;
+    END IF;
+    -- a / b rounded once: the integer q from 2^52 to 2^53 and the exponent s with q * 2^-s the nearest to it
+    IF a = 0 THEN
+        RETURN 0;
+    END IF;
+    x := abs(a);
+    WHILE x >= b * 9007199254740992 LOOP
+        b := b * 2;
+        s := s - 1;
+    END LOOP;
+    WHILE x < b * 4503599627370496 LOOP
+        x := x * 2;
+        s := s + 1;
+    END LOOP;
+    q := div(x, b);
+    rest := x - q * b;
+    IF 2 * rest > b OR 2 * rest = b AND mod(q, 2) = 1 THEN
+        q := q + 1;
+    END IF;
+    RETURN CASE WHEN a < 0 THEN -1 ELSE 1 END * q::double precision * power(2::double precision, -s);
+END
+$$;

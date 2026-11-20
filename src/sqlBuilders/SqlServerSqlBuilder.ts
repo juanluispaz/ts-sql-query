@@ -1210,6 +1210,9 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _textWithMinus(text: string): string {
         return "'-' + " + text
     }
+    override _durationTotalFunctionName(): string {
+        return 'dbo.tsq_duration_total'
+    }
     override _durationRoundFunctionName(): string {
         return 'dbo.tsq_duration_round'
     }

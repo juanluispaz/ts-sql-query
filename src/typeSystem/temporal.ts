@@ -57,6 +57,25 @@ export interface TemporalDifferenceOptions<UNIT extends string> {
     readonly roundingIncrement?: number | undefined
     readonly roundingMode?: TemporalRoundingMode | undefined
 }
+/** A unit of days or of the time, as Temporal names it, in the singular or the plural */
+export type TemporalDayOrTimeUnit = 'day' | 'days' | TemporalTimeUnit
+/**
+ * The options of Temporal's `total` of a duration without a date of reference: the unit, of days or of the time (a day
+ * is 24 hours). A duration with years, months or weeks needs a date of reference, and fails the query without it
+ */
+export interface TemporalTotalOptions {
+    readonly unit: TemporalDayOrTimeUnit
+    readonly relativeTo?: undefined
+}
+/**
+ * The options of Temporal's `total` of a duration from a date of reference (`relativeTo`, a date, or the date of a date
+ * and time): the duration is added to it, and the unit counted from it, as a month or a year has the days of the
+ * calendar there
+ */
+export interface TemporalRelativeTotalOptions<RELATIVE_TO> {
+    readonly unit: TemporalDateUnit | TemporalTimeUnit
+    readonly relativeTo: RELATIVE_TO
+}
 /** The fields `with` of a Temporal.PlainDate takes: integers; the month also as its code (`'M02'`) */
 export interface TemporalPlainDateFields {
     readonly year?: number | undefined

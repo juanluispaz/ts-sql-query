@@ -167,6 +167,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
             case '_durationSign':
             case '_durationNegated':
             case '_durationAbs':
+            case '_durationTotal':
                 return true
             case '_divide':
                 // An exact division casts the dividend to double itself

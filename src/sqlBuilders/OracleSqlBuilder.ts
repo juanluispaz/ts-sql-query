@@ -11,7 +11,7 @@ import { __columnPathsOf } from '../utils/columnPaths.js'
 import { __getColumnOfObject } from '../utils/Column.js'
 import { __isOperation1, __isOperation1IfValueOrIgnore, type __Operation1ValueSource, __isColumn, __asDBColumnValueSource, __asNodeValueSource, isValueSource } from '../typeSystem/valueSourceFactory.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
-import { __sqlFamilyOf, __temporalFieldsOf } from '../typeSystem/dataTypes.js'
+import { __durationSqlDataTypeOf, __sqlFamilyOf, __temporalFieldsOf } from '../typeSystem/dataTypes.js'
 import { isOracleReservedWord } from '../utils/oracle/oracleReservedWords.js'
 import type { AnyValueSource, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
 import { __isBooleanValueSource, __isLocalDateTimeValueSource, __isLocalTimeValueSource, __isUuidValueSource } from '../typeSystem/valueSource.js'
@@ -1575,6 +1575,17 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 return 'case when ' + interval + ' is not null then 0 end'
         }
     }
+    override _durationPartsForTotal(context: SqlBuildContext, valueSource: ToSql): string {
+        if (this._isDurationKeptAsText(valueSource)) {
+            return super._durationPartsForTotal(context, valueSource)
+        }
+        const interval = this._appendSqlParenthesis(valueSource, context, false)
+        if (this._isYearToMonthDuration(valueSource)) {
+            return 'extract(year from ' + interval + ') * 12 + extract(month from ' + interval + '), 0, 0, 0, 0'
+        }
+        let result = '0, 0, extract(day from ' + interval + '), extract(hour from ' + interval + ') * 3600 + extract(minute from ' + interval + ') * 60 + trunc(extract(second from ' + interval + ')), '
+        return result + 'mod(extract(second from ' + interval + ') * 1000000000, 1000000000)'
+    }
     override _durationSign(context: SqlBuildContext, valueSource: ToSql): string {
         if (this._isDurationKeptAsText(valueSource)) {
             return super._durationSign(context, valueSource)
@@ -1641,7 +1652,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     }
     /** Whether a duration value source is an interval of years to months (its SQL data type says it) */
     _isYearToMonthDuration(valueSource: ToSql): boolean {
-        const sqlDataType = __sqlDataTypeOf(__classOf(valueSource as object))
+        const sqlDataType = __durationSqlDataTypeOf(__sqlDataTypeOf(__classOf(valueSource as object)), __classOf(valueSource as object))
         return sqlDataType?.family === 'interval' && sqlDataType.fields === 'year to month'
     }
     override _toPlainDateTimeAt(context: SqlBuildContext, valueSource: ToSql, value: any, _typeClass: DataTypeClass): string {

@@ -18,6 +18,14 @@ export function __typeSqlDataTypeOf(typeClass: DataTypeClass | undefined): SqlDa
 }
 
 /**
+ * The SQL data type a duration is kept in: the one declared for it (its column, or the one requested for it), or the
+ * one of its data type (a class of the user can say a text with `static sqlDataType`)
+ */
+export function __durationSqlDataTypeOf(declared: SqlDataType | undefined, typeClass: DataTypeClass | undefined): SqlDataType | undefined {
+    return declared ?? __typeSqlDataTypeOf(typeClass)
+}
+
+/**
  * Whether a SQL data type declared for a value (the one of its column, or one requested for it) describes a value of
  * that requested type, comparing it with the SQL data type of the type: the same family, for a boolean, a uuid, a date,
  * a time and a timestamp (by its fields); any number or a money, for a number; any family but a number, a boolean, a

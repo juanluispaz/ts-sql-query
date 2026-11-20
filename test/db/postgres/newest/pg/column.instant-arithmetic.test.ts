@@ -247,7 +247,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(instant_at as date) + make_interval(secs => (((2 * (round(extract(epoch from cast(instant_at as time)) * 1000000)::bigint * 1000) + 3600000000000) / 7200000000000) * 3600000000000) / 1000000000.0) as hour, cast(instant_at as date) + make_interval(secs => (((2 * (round(extract(epoch from cast(instant_at as time)) * 1000000)::bigint * 1000) + 5400000000000) / 10800000000000) * 5400000000000) / 1000000000.0) as ninety, cast(instant_at as date) + make_interval(secs => (((round(extract(epoch from cast(instant_at as time)) * 1000000)::bigint * 1000) / 1000000000) * 1000000000) / 1000000000.0) as floor from instant_value order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, date_bin(interval '1 hours', instant_at + interval '30 minutes', date_trunc('day', instant_at)) as hour, date_bin(interval '90 minutes', instant_at + interval '45 minutes', date_trunc('day', instant_at)) as ninety, date_bin(interval '1 seconds', instant_at, date_trunc('day', instant_at)) as floor from instant_value order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number; hour: Temporal.Instant; ninety: Temporal.Instant; floor: Temporal.Instant }>>>()
         expect(rows.map(row => [row.id, row.hour.toString(), row.ninety.toString(), row.floor.toString()])).toEqual([deployed, landed].map((instant, i) => [
@@ -266,7 +266,7 @@ describe(ctx.label, () => {
                 day: ctx.conn.instantFromEpochMilliseconds(tInstantValue.instantAt.epochMilliseconds()).toPlainDate(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (cast(instant_at as date) + make_interval(secs => (((2 * (round(extract(epoch from cast(instant_at as time)) * 1000000)::bigint * 1000) + 3600000000000) / 7200000000000) * 3600000000000) / 1000000000.0))::timestamp as hour, (instant_at + $1::interval)::timestamp as later, cast(((date '1970-01-01' + cast(((cast(floor(extract(epoch from instant_at) * 1000) as bigint) - ((cast(floor(extract(epoch from instant_at) * 1000) as bigint) % 86400000 + 86400000) % 86400000)) / 86400000) as integer)) + make_interval(secs => (((cast(floor(extract(epoch from instant_at) * 1000) as bigint) % 86400000 + 86400000) % 86400000) * 1000000) / 1000000000.0))::timestamp as date) as day from instant_value where id = $2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (date_bin(interval '1 hours', instant_at + interval '30 minutes', date_trunc('day', instant_at)))::timestamp as hour, (instant_at + $1::interval)::timestamp as later, cast(((date '1970-01-01' + cast(((cast(floor(extract(epoch from instant_at) * 1000) as bigint) - ((cast(floor(extract(epoch from instant_at) * 1000) as bigint) % 86400000 + 86400000) % 86400000)) / 86400000) as integer)) + make_interval(secs => (((cast(floor(extract(epoch from instant_at) * 1000) as bigint) % 86400000 + 86400000) % 86400000) * 1000000) / 1000000000.0))::timestamp as date) as day from instant_value where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             Duration {},
@@ -292,12 +292,9 @@ describe(ctx.label, () => {
                 day: ctx.conn.const(instant, 'instant').round({ smallestUnit: 'hour', roundingIncrement: 24 }),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast($1::timestamptz as date) + make_interval(secs => (((round(extract(epoch from cast($2::timestamptz as time)) * 1000000)::bigint * 1000) / 60000000000) * 60000000000) / 1000000000.0) as trunc, cast($3::timestamptz as date) + make_interval(secs => ((((round(extract(epoch from cast($4::timestamptz as time)) * 1000000)::bigint * 1000) + 59999999999) / 60000000000) * 60000000000) / 1000000000.0) as ceil, cast($5::timestamptz as date) + make_interval(secs => (((2 * (round(extract(epoch from cast($6::timestamptz as time)) * 1000000)::bigint * 1000) + 86400000000000) / 172800000000000) * 86400000000000) / 1000000000.0) as day"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date_bin(interval '1 minutes', $1::timestamptz, date_trunc('day', $1::timestamptz)) as trunc, date_bin(interval '1 minutes', $2::timestamptz + interval '59999999 microseconds', date_trunc('day', $2::timestamptz)) as ceil, date_bin(interval '1 day', $3::timestamptz + interval '12 hours', date_trunc('day', $3::timestamptz)) as day"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
-            "1969-12-31T23:59:30.5Z",
-            "1969-12-31T23:59:30.5Z",
-            "1969-12-31T23:59:30.5Z",
             "1969-12-31T23:59:30.5Z",
             "1969-12-31T23:59:30.5Z",
             "1969-12-31T23:59:30.5Z",

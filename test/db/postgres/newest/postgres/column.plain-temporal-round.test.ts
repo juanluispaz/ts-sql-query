@@ -22,7 +22,7 @@ describe(ctx.label, () => {
                 same: ctx.conn.const(Temporal.PlainTime.from('10:20:30.123'), 'plainTime').round('millisecond'),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select time '00:00' + make_interval(secs => (((2 * (round(extract(epoch from $1) * 1000000)::bigint * 1000) + 60000000000) / 120000000000) * 60000000000) / 1000000000.0) as "halfUp", time '00:00' + make_interval(secs => (((2 * (round(extract(epoch from $2) * 1000000)::bigint * 1000) + 1000000000) / 2000000000) * 1000000000) / 1000000000.0) as midnight, time '00:00' + make_interval(secs => (((2 * (round(extract(epoch from $3) * 1000000)::bigint * 1000) + 60000000000) / 120000000000) * 60000000000) / 1000000000.0) as down, time '00:00' + make_interval(secs => (((2 * (round(extract(epoch from $4) * 1000000)::bigint * 1000) + 1000000) / 2000000) * 1000000) / 1000000000.0) as same"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(date_bin(interval '1 minutes', (date '2000-01-01' + $1) + interval '30 seconds', date_trunc('day', (date '2000-01-01' + $1))) as time) as "halfUp", cast(date_bin(interval '1 seconds', (date '2000-01-01' + $2) + interval '500 milliseconds', date_trunc('day', (date '2000-01-01' + $2))) as time) as midnight, cast(date_bin(interval '1 minutes', (date '2000-01-01' + $3) + interval '30 seconds', date_trunc('day', (date '2000-01-01' + $3))) as time) as down, cast(date_bin(interval '1 milliseconds', (date '2000-01-01' + $4) + interval '500 microseconds', date_trunc('day', (date '2000-01-01' + $4))) as time) as same"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
             "10:07:30",
@@ -49,22 +49,12 @@ describe(ctx.label, () => {
                 expand: at('10:00:00.001').round({ smallestUnit: 'second', roundingMode: 'expand' }),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select time '00:00' + make_interval(secs => (((2 * (round(extract(epoch from $1) * 1000000)::bigint * 1000) + 900000000000) / 1800000000000) * 900000000000) / 1000000000.0) as quarter, time '00:00' + make_interval(secs => (((2 * (round(extract(epoch from $2) * 1000000)::bigint * 1000) + 899999999999) / 1800000000000) * 900000000000) / 1000000000.0) as "halfTrunc", time '00:00' + make_interval(secs => ((((round(extract(epoch from $3) * 1000000)::bigint * 1000) / 900000000000) + case when 2 * ((round(extract(epoch from $4) * 1000000)::bigint * 1000) - ((round(extract(epoch from $5) * 1000000)::bigint * 1000) / 900000000000) * 900000000000) > 900000000000 or (2 * ((round(extract(epoch from $6) * 1000000)::bigint * 1000) - ((round(extract(epoch from $7) * 1000000)::bigint * 1000) / 900000000000) * 900000000000) = 900000000000 and ((round(extract(epoch from $8) * 1000000)::bigint * 1000) / 900000000000) % 2 = 1) then 1 else 0 end) * 900000000000) / 1000000000.0) as "halfEvenDown", time '00:00' + make_interval(secs => ((((round(extract(epoch from $9) * 1000000)::bigint * 1000) / 900000000000) + case when 2 * ((round(extract(epoch from $10) * 1000000)::bigint * 1000) - ((round(extract(epoch from $11) * 1000000)::bigint * 1000) / 900000000000) * 900000000000) > 900000000000 or (2 * ((round(extract(epoch from $12) * 1000000)::bigint * 1000) - ((round(extract(epoch from $13) * 1000000)::bigint * 1000) / 900000000000) * 900000000000) = 900000000000 and ((round(extract(epoch from $14) * 1000000)::bigint * 1000) / 900000000000) % 2 = 1) then 1 else 0 end) * 900000000000) / 1000000000.0) as "halfEvenUp", time '00:00' + make_interval(secs => ((((round(extract(epoch from $15) * 1000000)::bigint * 1000) + 3599999999999) / 3600000000000) * 3600000000000) / 1000000000.0) as ceil, time '00:00' + make_interval(secs => (((round(extract(epoch from $16) * 1000000)::bigint * 1000) / 3600000000000) * 3600000000000) / 1000000000.0) as floor, time '00:00' + make_interval(secs => ((((round(extract(epoch from $17) * 1000000)::bigint * 1000) + 999999999) / 1000000000) * 1000000000) / 1000000000.0) as expand"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(date_bin(interval '15 minutes', (date '2000-01-01' + $1) + interval '450 seconds', date_trunc('day', (date '2000-01-01' + $1))) as time) as quarter, cast(date_bin(interval '15 minutes', (date '2000-01-01' + $2) + interval '449999999 microseconds', date_trunc('day', (date '2000-01-01' + $2))) as time) as "halfTrunc", cast((case when (date '2000-01-01' + $3) - date_bin(interval '15 minutes', (date '2000-01-01' + $3), date_trunc('day', (date '2000-01-01' + $3))) = interval '450 seconds' then date_bin(interval '30 minutes', (date '2000-01-01' + $3) + interval '450 seconds', date_trunc('day', (date '2000-01-01' + $3))) else date_bin(interval '15 minutes', (date '2000-01-01' + $3) + interval '450 seconds', date_trunc('day', (date '2000-01-01' + $3))) end) as time) as "halfEvenDown", cast((case when (date '2000-01-01' + $4) - date_bin(interval '15 minutes', (date '2000-01-01' + $4), date_trunc('day', (date '2000-01-01' + $4))) = interval '450 seconds' then date_bin(interval '30 minutes', (date '2000-01-01' + $4) + interval '450 seconds', date_trunc('day', (date '2000-01-01' + $4))) else date_bin(interval '15 minutes', (date '2000-01-01' + $4) + interval '450 seconds', date_trunc('day', (date '2000-01-01' + $4))) end) as time) as "halfEvenUp", cast(date_bin(interval '1 hours', (date '2000-01-01' + $5) + interval '3599999999 microseconds', date_trunc('day', (date '2000-01-01' + $5))) as time) as ceil, cast(date_bin(interval '1 hours', (date '2000-01-01' + $6), date_trunc('day', (date '2000-01-01' + $6))) as time) as floor, cast(date_bin(interval '1 seconds', (date '2000-01-01' + $7) + interval '999999 microseconds', date_trunc('day', (date '2000-01-01' + $7))) as time) as expand"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
             "10:07:30",
             "10:07:30",
             "10:07:30",
-            "10:07:30",
-            "10:07:30",
-            "10:07:30",
-            "10:07:30",
-            "10:07:30",
-            "10:22:30",
-            "10:22:30",
-            "10:22:30",
-            "10:22:30",
-            "10:22:30",
             "10:22:30",
             "10:00:01",
             "10:59:00",
@@ -86,16 +76,12 @@ describe(ctx.label, () => {
                 sixHours: at('2024-02-29T23:59').round({ smallestUnit: 'hour', roundingIncrement: 6, roundingMode: 'floor' }),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast($1 as date) + make_interval(secs => (((2 * (round(extract(epoch from cast($2 as time)) * 1000000)::bigint * 1000) + 1000000000) / 2000000000) * 1000000000) / 1000000000.0) as "nextDay", cast($3 as date) + make_interval(secs => (((2 * (round(extract(epoch from cast($4 as time)) * 1000000)::bigint * 1000) + 86400000000000) / 172800000000000) * 86400000000000) / 1000000000.0) as "toDay", cast($5 as date) + make_interval(secs => (((2 * (round(extract(epoch from cast($6 as time)) * 1000000)::bigint * 1000) + 86400000000000) / 172800000000000) * 86400000000000) / 1000000000.0) as "sameDay", cast($7 as date) + make_interval(secs => (((round(extract(epoch from cast($8 as time)) * 1000000)::bigint * 1000) / 21600000000000) * 21600000000000) / 1000000000.0) as "sixHours""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date_bin(interval '1 seconds', $1 + interval '500 milliseconds', date_trunc('day', $1)) as "nextDay", date_bin(interval '1 day', $2 + interval '12 hours', date_trunc('day', $2)) as "toDay", date_bin(interval '1 day', $3 + interval '12 hours', date_trunc('day', $3)) as "sameDay", date_bin(interval '6 hours', $4, date_trunc('day', $4)) as "sixHours""`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
             "2024-02-29T23:59:59.5",
-            "2024-02-29T23:59:59.5",
-            "2024-02-29T12:00:00",
             "2024-02-29T12:00:00",
             "2024-02-29T11:59:59.999",
-            "2024-02-29T11:59:59.999",
-            "2024-02-29T23:59:00",
             "2024-02-29T23:59:00",
           ]
         `)
@@ -113,7 +99,7 @@ describe(ctx.label, () => {
                 halfHour: tColMatrixPlain.mTime.round({ smallestUnit: 'minute', roundingIncrement: 30 }),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(temporal_precision.micro_stamp as date) + make_interval(secs => (((2 * (round(extract(epoch from cast(temporal_precision.micro_stamp as time)) * 1000000)::bigint * 1000) + 1000000000) / 2000000000) * 1000000000) / 1000000000.0) as second, time '00:00' + make_interval(secs => (((2 * (round(extract(epoch from col_matrix.m_time) * 1000000)::bigint * 1000) + 1800000000000) / 3600000000000) * 1800000000000) / 1000000000.0) as "halfHour" from temporal_precision inner join col_matrix on col_matrix.id = temporal_precision.id where temporal_precision.id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date_bin(interval '1 seconds', temporal_precision.micro_stamp + interval '500 milliseconds', date_trunc('day', temporal_precision.micro_stamp)) as second, cast(date_bin(interval '30 minutes', (date '2000-01-01' + col_matrix.m_time) + interval '15 minutes', date_trunc('day', (date '2000-01-01' + col_matrix.m_time))) as time) as "halfHour" from temporal_precision inner join col_matrix on col_matrix.id = temporal_precision.id where temporal_precision.id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

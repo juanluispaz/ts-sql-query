@@ -309,7 +309,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as version, make_interval(hours => cast(div(-(extract(epoch from published_at - deployed_at) * 1000000000), 3600000000000) as integer), secs => -(extract(epoch from published_at - deployed_at) * 1000000000) % 3600000000000 / 1000000000.0) as "afterPublishing", cast(deployed_at as date) + make_interval(secs => (((round(extract(epoch from cast(deployed_at as time)) * 1000000)::bigint * 1000) / 3600000000000) * 3600000000000) / 1000000000.0) as hour, cast(deployed_at as date) + make_interval(secs => ((((round(extract(epoch from cast(deployed_at as time)) * 1000000)::bigint * 1000) + 3599999999999) / 3600000000000) * 3600000000000) / 1000000000.0) + $1::interval as "reviewBy" from project_release where deployed_at is not null order by version"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as version, make_interval(hours => cast(div(-(extract(epoch from published_at - deployed_at) * 1000000000), 3600000000000) as integer), secs => -(extract(epoch from published_at - deployed_at) * 1000000000) % 3600000000000 / 1000000000.0) as "afterPublishing", date_bin(interval '1 hours', deployed_at, date_trunc('day', deployed_at)) as hour, date_bin(interval '1 hours', deployed_at + interval '3599999999 microseconds', date_trunc('day', deployed_at)) + $1::interval as "reviewBy" from project_release where deployed_at is not null order by version"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             Duration {},
@@ -573,7 +573,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as version, make_date(cast(extract(year from released_on) as integer), cast(extract(month from released_on) as integer), 1) as "monthOfRelease", time '00:00' + make_interval(secs => (((2 * (round(extract(epoch from cutoff_time) * 1000000)::bigint * 1000) + 21600000000000) / 43200000000000) * 21600000000000) / 1000000000.0) as "cutoffSlot" from project_release order by version"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as version, make_date(cast(extract(year from released_on) as integer), cast(extract(month from released_on) as integer), 1) as "monthOfRelease", cast(date_bin(interval '6 hours', (date '2000-01-01' + cutoff_time) + interval '3 hours', date_trunc('day', (date '2000-01-01' + cutoff_time))) as time) as "cutoffSlot" from project_release order by version"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof releases, Array<{ version: string; monthOfRelease: Temporal.PlainDate; cutoffSlot: Temporal.PlainTime }>>>()
         expect(releases.map(release => [release.version, release.monthOfRelease.toString(), release.cutoffSlot.toString()])).toEqual([

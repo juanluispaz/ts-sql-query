@@ -6,7 +6,8 @@ import type { DataTypeClass } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 import { AbstractSqlBuilder, secondsOfNanosecondsText, type PlainTemporalDifferenceSql, type SelectColumnSql, type ZonedDurationPartsSql } from './AbstractSqlBuilder.js'
 import type { ZonedDisambiguation, ZonedInterpretation } from '../utils/zonedOptions.js'
-import type { PlainTemporalRoundingMode } from '../utils/plainTemporalRounding.js'
+import { plainTemporalRoundingOf, type PlainTemporalRounding, type PlainTemporalRoundingMode } from '../utils/plainTemporalRounding.js'
+import { instantRoundingOf } from '../utils/instantOptions.js'
 import type { DBColumn } from '../utils/Column.js'
 import { __columnPathsOf } from '../utils/columnPaths.js'
 import { __getColumnOfObject } from '../utils/Column.js'
@@ -786,6 +787,64 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         }
         return '(extract(epoch from ' + this._appendSqlParenthesis(d.two, context, false) + ' - ' + this._appendSqlParenthesis(d.one, context, false) + ') * 1000000000)'
     }
+    /**
+     * A time or a date and time rounded, as Temporal's `round`: PostgreSQL's own date_bin, the bins of the step from the
+     * midnight of its day (a step divides a day), the value moved by the mode first; a time on a day, and back to a time
+     */
+    override _roundTemporal(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
+        const fields = this._temporalFieldsOfDurationOperation(typeClass)
+        const rounding = plainTemporalRoundingOf(value, fields)
+        if (!rounding) {
+            return super._roundTemporal(context, valueSource, value, typeClass)
+        }
+        const sql = this._appendSqlParenthesis(valueSource, context, this._isConstOperand(valueSource))
+        if (fields === 'time') {
+            const rounded = this._pgRounded("(date '2000-01-01' + " + sql + ')', rounding)
+            return rounded === undefined ? sql : 'cast(' + rounded + ' as time)'
+        }
+        return this._pgRounded(sql, rounding) ?? sql
+    }
+    /** The instant rounded as Temporal rounds it: its wall clock in UTC (the receiver) rounded from its midnight */
+    override _roundInstant(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
+        const rounding = instantRoundingOf(value)
+        if (!rounding) {
+            return super._roundInstant(context, valueSource, value, typeClass)
+        }
+        const sql = this._appendSqlParenthesis(valueSource, context, false)
+        const rounded = this._pgRounded(sql, rounding)
+        return rounded === undefined ? this._instantOfUtc(context, sql) : this._instantOfUtc(context, rounded)
+    }
+    /**
+     * A timestamp rounded to the step in the mode, with date_bin from the midnight of its day: trunc takes its bin; ceil,
+     * halfExpand and halfTrunc the bin of the value moved forward by a step less a microsecond, by half a step, or by half
+     * a step less a microsecond; halfEven, at half a step, the even bin (the bin of twice the step). Undefined when the step divides a microsecond, the
+     * digits a timestamp keeps: nothing to round
+     */
+    _pgRounded(timestamp: string, rounding: PlainTemporalRounding): string | undefined {
+        if (1000n % rounding.step === 0n) {
+            return undefined
+        }
+        const microseconds = rounding.step / 1000n
+        const stride = pgIntervalOfMicroseconds(microseconds)
+        const origin = "date_trunc('day', " + timestamp + ')'
+        const half = microseconds / 2n
+        switch (rounding.mode) {
+            case 'trunc':
+                return pgBin(stride, timestamp, 0n, origin)
+            case 'ceil':
+                return pgBin(stride, timestamp, microseconds - 1n, origin)
+            case 'halfTrunc':
+                return pgBin(stride, timestamp, microseconds - half - 1n, origin)
+            case 'halfEven':
+                if (microseconds % 2n === 0n) {
+                    // Exactly half way, the even bin: the bin of twice the step of the value moved half a step
+                    return '(case when ' + timestamp + ' - ' + pgBin(stride, timestamp, 0n, origin) + ' = ' + pgIntervalOfMicroseconds(half) + ' then ' + pgBin(pgIntervalOfMicroseconds(microseconds * 2n), timestamp, half, origin) + ' else ' + pgBin(stride, timestamp, half, origin) + ' end)'
+                }
+                return pgBin(stride, timestamp, half, origin)
+            default:
+                return pgBin(stride, timestamp, half, origin)
+        }
+    }
     /*
      * A wall clock taken to its zone: PostgreSQL's own `timestamp at time zone`, which takes the later instant of a wall
      * clock the zone repeats and moves one it skips forward, as Temporal's 'later' (Temporal's 'compatible' takes the
@@ -1080,4 +1139,19 @@ export function postgreSqlZonedValueSql(sql: string, typeClass: DataTypeClass, l
         return '(' + day + ' + ' + sql + ')::timestamptz'
     }
     return undefined
+}
+
+/** An interval of a number of microseconds, in the largest unit that holds them whole */
+function pgIntervalOfMicroseconds(microseconds: bigint): string {
+    for (const [unit, size] of [['day', 86400000000n], ['hours', 3600000000n], ['minutes', 60000000n], ['seconds', 1000000n], ['milliseconds', 1000n]] as const) {
+        if (microseconds % size === 0n) {
+            return "interval '" + (microseconds / size) + ' ' + (unit === 'day' ? (microseconds === size ? 'day' : 'days') : unit) + "'"
+        }
+    }
+    return "interval '" + microseconds + " microseconds'"
+}
+
+/** The bin of the stride from the origin of a timestamp moved forward by a number of microseconds */
+function pgBin(stride: string, timestamp: string, moved: bigint, origin: string): string {
+    return 'date_bin(' + stride + ', ' + timestamp + (moved === 0n ? '' : ' + ' + pgIntervalOfMicroseconds(moved)) + ', ' + origin + ')'
 }

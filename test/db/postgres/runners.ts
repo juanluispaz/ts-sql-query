@@ -70,6 +70,8 @@ export interface PostgresTestContext extends TestContext<DBConnection> {
     withInsensitiveCollation(collation: string | undefined): DBConnection
     /** A `DBConnection` with `useLikeInsteadOfIlike` on and `insensitiveCollation` pinned to `collation`. */
     withLikeInsteadOfIlike(collation: string | undefined): DBConnection
+    /** A `DBConnection` with `temporalFunctions: 'installed'` (a wall clock taken to its zone as Temporal disambiguates it). */
+    withTemporalFunctions(): DBConnection
     /** A `DBConnection` with `allowEmptyString` enabled (empty strings kept, not mapped to null). */
     withAllowEmptyString(): DBConnection
     /** A `DBConnection` with `ignoreNullInMinAndMaxValue` enabled (keeps native least/greatest NULL-ignoring semantics). */
@@ -118,6 +120,12 @@ function decoratePostgresContext(
         withInsensitiveCollation(collation: string | undefined): DBConnection {
             class C extends DBConnection {
                 protected override insensitiveCollation: string | undefined = collation
+            }
+            return base.withConnection(C)
+        },
+        withTemporalFunctions(): DBConnection {
+            class C extends DBConnection {
+                protected override temporalFunctions = 'installed' as const
             }
             return base.withConnection(C)
         },

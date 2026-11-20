@@ -199,6 +199,11 @@ export interface ConnectionConfiguration {
      * its `sql_mode`), declared with `useSimultaneousAssignment`
      */
     readonly useSimultaneousAssignment?: boolean
+    /**
+     * PostgreSQL: the functions of the library that compute dates and times with zones as Temporal are in the database
+     * (`temporalFunctions`, `'installed'`)
+     */
+    readonly temporalFunctions?: string
     /** PostgreSQL: write the insensitive comparisons with `like` instead of `ilike` (`useLikeInsteadOfIlike`) */
     readonly useLikeInsteadOfIlike?: boolean
     /** SQLite: how an exact decimal is computed and compared (`decimalStrategy`) */

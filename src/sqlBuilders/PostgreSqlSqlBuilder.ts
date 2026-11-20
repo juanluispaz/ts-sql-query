@@ -4,7 +4,9 @@ import type { ToSql, SelectData, WithValuesData, OrderByEntry, FlatQueryColumns 
 import { flattenQueryColumns } from './SqlBuilder.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
-import { AbstractSqlBuilder, type SelectColumnSql, type ZonedDurationPartsSql } from './AbstractSqlBuilder.js'
+import { AbstractSqlBuilder, secondsOfNanosecondsText, type SelectColumnSql, type ZonedDurationPartsSql } from './AbstractSqlBuilder.js'
+import type { ZonedDisambiguation, ZonedInterpretation } from '../utils/zonedOptions.js'
+import type { PlainTemporalRoundingMode } from '../utils/plainTemporalRounding.js'
 import type { DBColumn } from '../utils/Column.js'
 import { __columnPathsOf } from '../utils/columnPaths.js'
 import { __getColumnOfObject } from '../utils/Column.js'
@@ -766,13 +768,117 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     override _zonedOfUtc(utc: string, _zone: string): string {
         return '(' + utc + ") at time zone 'UTC'"
     }
-    /** `timestamp at time zone` gives the later instant of a wall clock the zone repeats, and moves one it skips forward */
-    override _zonedLaterOfWallClock(wall: string, zone: string): string | undefined {
-        return this._zonedUtcOf(this._pgWallAt(wall, zone))
+    /*
+     * A wall clock taken to its zone: PostgreSQL's own `timestamp at time zone`, which takes the later instant of a wall
+     * clock the zone repeats and moves one it skips forward, as Temporal's 'later' (Temporal's 'compatible' takes the
+     * earlier one); with the functions of the library (temporalFunctions), tsq_zoned_of_wall, as Temporal disambiguates
+     * it. The SQL is the instant, a timestamptz, so the computations of zones of PostgreSQL are written here with it
+     */
+    /** Whether the functions of the library that compute as Temporal are in the database (`temporalFunctions`) */
+    _pgTemporalFunctions(): boolean {
+        return this._connectionConfiguration.temporalFunctions === 'installed'
     }
-    /** A wall clock that is not a name, nor the wall clock of a name in a zone given, is computed once */
-    override _zonedNamesWallClock(wall: string): boolean {
-        return !/^(?:[\w."]+|\([\w."]+ at time zone (?:interval )?'[^']*'\))$/.test(wall)
+    /**
+     * The instant of a wall clock in a zone (see _zonedTimeZoneSql), with Temporal's disambiguation, or PostgreSQL's
+     * without the functions of the library; with a preferred offset, the wall clock with it when the zone gives it back
+     * with it ('prefer' of Temporal's option offset)
+     */
+    _pgInstantOfWall(wall: string, zone: string, disambiguation: ZonedDisambiguation, preferredOffset: string | undefined): string {
+        if (this._pgTemporalFunctions()) {
+            return 'tsq_zoned_of_wall(' + wall + ', ' + this._pgZoneText(zone) + ", '" + disambiguation + "'" + (preferredOffset === undefined ? '' : ', ' + preferredOffset) + ')'
+        }
+        if (disambiguation === 'earlier' || disambiguation === 'reject') {
+            throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_QUERY' }, "PostgreSQL takes a wall clock its zone repeats as the later instant, and one it skips moved forward: the disambiguation '" + disambiguation + "' needs the functions of the library (temporalFunctions: 'installed')")
+        }
+        if (preferredOffset === undefined) {
+            return this._pgWallAt(wall, zone)
+        }
+        // The wall clock is used three times: computed once unless it is a name
+        const simple = /^[\w."]+$/.test(wall)
+        const w = simple ? wall : 'tsq_w.w'
+        const withOffset = '((' + w + ' - ' + preferredOffset + ") at time zone 'UTC')"
+        const sql = 'case when ' + this._pgWallAt(withOffset, zone) + ' = ' + w + ' then ' + withOffset + ' else ' + this._pgWallAt(w, zone) + ' end'
+        return simple ? sql : '(select ' + sql + ' from (select ' + wall + ' as w offset 0) tsq_w)'
+    }
+    /** The instant of the start of the day of a zoned date and time in its zone, or of the next day: its midnight, as 'compatible' takes it */
+    _pgStartOfDay(zoned: string, zone: string, nextDay: boolean): string {
+        return this._pgInstantOfWall('(' + this._zonedMidnightOf(this._pgWallAt(zoned, zone), nextDay) + ')', zone, 'compatible', undefined)
+    }
+    override _plainDateTimeToZoned(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, _typeClass: DataTypeClass): string {
+        const wall = this._appendSqlParenthesis(valueSource, context, this._isConstOperand(valueSource))
+        const zone = this._isZonedOperandWrittenInPlace(value) ? this._zonedTimeZoneSql(context, value) : 'tsq_z.z'
+        return this._zonedComputedOnce(context, this._pgInstantOfWall(wall, zone, value2 as ZonedDisambiguation, undefined), undefined, 'w', value, 'z')
+    }
+    override _zonedOfWallClockIn(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, typeClass: DataTypeClass): string {
+        const interpretation = value2 as ZonedInterpretation
+        if (interpretation.offset === 'use' || interpretation.offset === 'reject') {
+            // The wall clock with the offset, without a disambiguation
+            return super._zonedOfWallClockIn(context, valueSource, value, value2, typeClass)
+        }
+        const zoned = this._zonedOperandSql(context, value as ToSql, 'x')
+        const zone = this._pgZoneOf(context, value as ToSql)
+        const wall = this._appendSqlParenthesis(valueSource, context, false)
+        let offset: string | undefined
+        if (interpretation.offset === 'prefer') {
+            offset = interpretation.offsetNanoseconds === undefined
+                ? '(' + this._pgWallAt(zoned, zone) + ' - ' + this._zonedUtcOf(zoned) + ')'
+                : this._zonedSecondsInterval(secondsOfNanosecondsText(interpretation.offsetNanoseconds))
+        }
+        return this._zonedComputedOnce(context, this._pgInstantOfWall(wall, zone, interpretation.disambiguation, offset), value, 'x')
+    }
+    /**
+     * A zoned date and time plus a duration (multiplied by sign), as Temporal adds it: its years, months, weeks and days
+     * to its wall clock (the day kept in the month, or the query failing when the month hasn't it, with reject), taken
+     * back to its zone; then its time to that instant
+     */
+    override _appendZonedWithDuration(context: SqlBuildContext, valueSource: ToSql, value: unknown, sign: 1 | -1, reject: boolean): string {
+        const parts = this._zonedDurationParts(context, value, sign)
+        if (!parts) {
+            return this._appendSql(valueSource, context, this._typesTemporalConsts())
+        }
+        // The value is used once, unless a duration of the query may have no date (then it is computed once)
+        const named = parts.hasDate !== undefined
+        const zoned = named ? this._zonedOperandSql(context, valueSource, 'x') : this._pgZonedSql(context, valueSource)
+        const zone = this._pgZoneOf(context, valueSource)
+        let result = zoned
+        if (parts.months !== undefined || parts.days !== undefined) {
+            const added = this._zonedWallPlusDate(context, this._pgWallAt(zoned, zone), parts.months, parts.days, reject)
+            const rezoned = this._pgInstantOfWall(added, zone, 'compatible', undefined)
+            result = parts.hasDate === undefined ? rezoned : '(case when ' + parts.hasDate + ' then ' + rezoned + ' else ' + zoned + ' end)'
+        }
+        if (parts.seconds !== undefined) {
+            result = '(' + result + ' + ' + parts.seconds + ')'
+        }
+        return named ? this._zonedComputedOnce(context, result, valueSource, 'x', value, 'd') : result
+    }
+    /** The hours from the start of its day to the start of the next one, in its zone: Temporal's `hoursInDay` */
+    override _zonedHoursInDay(context: SqlBuildContext, valueSource: ToSql): string {
+        const zoned = this._zonedOperandSql(context, valueSource, 'x')
+        const zone = this._pgZoneOf(context, valueSource)
+        const hours = this._zonedHoursOf(this._pgStartOfDay(zoned, zone, true) + ' - ' + this._pgStartOfDay(zoned, zone, false))
+        return this._zonedComputedOnce(context, hours, valueSource, 'x')
+    }
+    /** Rounded to a day, as Temporal's `round('day')`: the start of its day or of the next one in its zone, the nearer one by the length of the day */
+    override _zonedRoundToDay(context: SqlBuildContext, valueSource: ToSql, value: any, _typeClass: DataTypeClass): string {
+        const zoned = this._zonedOperandSql(context, valueSource, 'x')
+        const zone = this._pgZoneOf(context, valueSource)
+        const start = this._pgStartOfDay(zoned, zone, false)
+        let rounded: string
+        switch (value as PlainTemporalRoundingMode) {
+            case 'trunc':
+                rounded = start
+                break
+            case 'ceil':
+                rounded = '(case when ' + zoned + ' = ' + start + ' then ' + start + ' else ' + this._pgStartOfDay(zoned, zone, true) + ' end)'
+                break
+            default: {
+                // halfTrunc, and halfEven, whose even multiple is the start of the day (no day from it), take the start at the half
+                const end = this._pgStartOfDay(zoned, zone, true)
+                const comparison = value === 'halfExpand' ? ' >= ' : ' > '
+                rounded = '(case when (' + zoned + ' - ' + start + ') * 2' + comparison + end + ' - ' + start + ' then ' + end + ' else ' + start + ' end)'
+            }
+        }
+        return this._zonedComputedOnce(context, rounded, valueSource, 'x')
     }
     override _zonedDayInterval(): string {
         return "interval '1 day'"

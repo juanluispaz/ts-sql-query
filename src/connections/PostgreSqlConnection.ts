@@ -127,6 +127,17 @@ export abstract class PostgreSqlConnection<NAME extends string> extends Abstract
     protected usePlatformDependentRound: boolean = false
 
     /**
+     * Whether the functions of the library that compute a date and time in a time zone as Temporal does
+     * (`tsq_zoned_of_wall`) are in the database: `'installed'` or `'not installed'` (the default).
+     *
+     * Without them, a wall clock taken to its zone (`toZonedDateTime`, and the arithmetic of a zoned date and time) is
+     * the instant PostgreSQL itself gives it: the later one of a wall clock the zone repeats, where Temporal's default
+     * `'compatible'` takes the earlier one, and a disambiguation `'earlier'` or `'reject'` is rejected when the query is
+     * built. With them, every disambiguation is Temporal's.
+     */
+    protected temporalFunctions: 'installed' | 'not installed' = 'not installed'
+
+    /**
      * Writes the insensitive operations with a pattern (`likeInsensitive`, `containsInsensitive`...) with `like` instead
      * of `ilike`. By default they use `ilike`. What they do depends on `insensitiveCollation`:
      * - A name: `x like y collate "name"`. The collation decides, so one that distinguishes case distinguishes it here too.

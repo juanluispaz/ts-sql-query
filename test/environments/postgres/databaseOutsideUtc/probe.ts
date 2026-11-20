@@ -33,6 +33,11 @@ class MadridConnection extends PostgreSqlConnection<'MadridConnection'> {
     protected override databaseTimeZone = 'Europe/Madrid'
     protected override compatibilityVersion = compatibilityVersion
 }
+
+/** The same connection with the functions of the library that take a wall clock to its zone as Temporal */
+class MadridConnectionWithFunctions extends MadridConnection {
+    protected override temporalFunctions = 'installed' as const
+}
 class MadridTodayConnection extends PostgreSqlConnection<'MadridConnection'> {
     protected override databaseTimeZone = 'Europe/Madrid'
     protected override compatibilityVersion = compatibilityVersion
@@ -128,9 +133,9 @@ async function createRunner(): Promise<{ runner: QueryRunner, raw: (sql: string)
             const db = await PGlite.create('memory://', { postgresqlconf: [`timezone = '${zone}'`] })
             // The functions of the library a difference in days of zoned dates and times uses, as the schema of the tests has them
             const schema = await readFile(new URL('../../../db/postgres/domain/schema.sql', import.meta.url), 'utf8')
-            for (const name of ['tsq_zoned_at', 'tsq_zoned_until']) {
+            for (const name of ['tsq_zoned_of_wall', 'tsq_zoned_until']) {
                 const start = schema.indexOf('CREATE OR REPLACE FUNCTION ' + name + '(')
-                await db.exec(schema.slice(start, schema.indexOf('\n$$;', start) + 4))
+                await db.exec(schema.slice(start, schema.indexOf('$$;', start) + 3))
             }
             return { runner: new PgLiteQueryRunner(db, oidTypes), raw: async (sql) => (await db.query<any>(sql)).rows, close: () => db.close() }
         }
@@ -157,6 +162,7 @@ export interface ScenarioResult {
     skipped: unknown
     instant: { stored: unknown[], read: unknown[], where: number[], aggregated: unknown[], currentDrift: number, repeated: unknown, methods: unknown }
     zoned: unknown
+    nativeNextDay: string
 }
 
 async function scenario(): Promise<ScenarioResult> {
@@ -248,13 +254,16 @@ async function scenario(): Promise<ScenarioResult> {
             }
             // The arithmetic of a zoned date and time follows the rules of its zone (New York goes back an hour on
             // 2024-11-03), whatever the zone of the session
-            const newYork = conn.const(Temporal.ZonedDateTime.from('2024-11-02T01:30:00-04:00[America/New_York]'), 'zonedDateTime')
-            const zoned = await conn.selectFromNoTable().select({
+            const exact = new MadridConnectionWithFunctions(runner)
+            const newYork = exact.const(Temporal.ZonedDateTime.from('2024-11-02T01:30:00-04:00[America/New_York]'), 'zonedDateTime')
+            const zoned = await exact.selectFromNoTable().select({
                 nextDay: newYork.add({ days: 1 }), dayAfter: newYork.add({ hours: 24 }), rounded: newYork.add({ days: 1, hours: 11 }).round('day'),
                 start: newYork.add({ days: 1, hours: 3 }).startOfDay(), hours: newYork.add({ days: 1 }).hoursInDay(), with: newYork.add({ days: 1 }).with({ minute: 45 }, { offset: 'ignore', disambiguation: 'later' }),
                 days: newYork.until(newYork.add({ days: 2 }), { largestUnit: 'day' }),
             }).executeSelectOne().then(row => ({ ...row, nextDay: String(row.nextDay), dayAfter: String(row.dayAfter), rounded: String(row.rounded), start: String(row.start), with: String(row.with), days: String(row.days) }))
-            return { session, stored, read, whereTs, whereOld, whereT, aggregated, currentTimestampDrift, constTimeToday, summerTime, timeAfterMidnight, timeWithTimeZone, repeated, skipped, instant, zoned }
+            // Without them, the 01:30 New York repeats that day is PostgreSQL's later one
+            const nativeNextDay = String(await conn.selectFromNoTable().selectOneColumn(conn.const(Temporal.ZonedDateTime.from('2024-11-02T01:30:00-04:00[America/New_York]'), 'zonedDateTime').add({ days: 1 })).executeSelectOne())
+            return { session, stored, read, whereTs, whereOld, whereT, aggregated, currentTimestampDrift, constTimeToday, summerTime, timeAfterMidnight, timeWithTimeZone, repeated, skipped, instant, zoned, nativeNextDay }
         } finally {
             await raw('drop table ' + tableName)
         }

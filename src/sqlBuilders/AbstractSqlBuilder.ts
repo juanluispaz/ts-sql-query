@@ -4232,59 +4232,24 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * offset before; 'reject' fails the query unless there is exactly one
      */
     _zonedUtcOfWallClock(context: SqlBuildContext, wall: string, zone: string, disambiguation: ZonedDisambiguation): string {
-        const named = this._zonedNamesWallClock(wall)
-        const w = named ? 'tsq_w.w' : wall
         const day = this._zonedDayInterval()
-        const before = '(' + w + ' - ' + this._zonedOffsetAt('(' + w + ' - ' + day + ')', zone) + ')'
-        const isBefore = this._zonedIsWallClockOf(before, zone, w)
-        const later = this._zonedLaterOfWallClock(w, zone)
-        let result: string
-        if (later !== undefined && disambiguation === 'compatible') {
-            // The one of the offset before when the zone gives it back (the earlier of two), else the database's own one
-            result = 'case when ' + isBefore + ' then ' + before + ' else ' + later + ' end'
-        } else if (later !== undefined && disambiguation === 'later') {
-            result = later
-        } else {
-            const after = '(' + w + ' - ' + this._zonedOffsetAt('(' + w + ' + ' + day + ')', zone) + ')'
-            const isAfter = this._zonedIsWallClockOf(after, zone, w)
-            switch (disambiguation) {
-                case 'earlier':
-                    result = 'case when ' + isBefore + ' then ' + before + ' else ' + after + ' end'
-                    break
-                case 'later':
-                    result = 'case when ' + isAfter + ' then ' + after + ' else ' + before + ' end'
-                    break
-                case 'reject': {
-                    const chosen = 'case when ' + isBefore + ' then ' + before + ' else ' + after + ' end'
-                    const fails = 'case when ' + isBefore + ' and ' + isAfter + ' and ' + before + ' <> ' + after + ' or not (' + isBefore + ') and not (' + isAfter + ') then 29 else 28 end'
-                    result = this._zonedOrError(context, '(' + chosen + ')', fails)
-                    break
-                }
-                default:
-                    result = 'case when not (' + isBefore + ') and ' + isAfter + ' then ' + after + ' else ' + before + ' end'
+        const before = '(' + wall + ' - ' + this._zonedOffsetAt('(' + wall + ' - ' + day + ')', zone) + ')'
+        const after = '(' + wall + ' - ' + this._zonedOffsetAt('(' + wall + ' + ' + day + ')', zone) + ')'
+        const isBefore = this._zonedIsWallClockOf(before, zone, wall)
+        const isAfter = this._zonedIsWallClockOf(after, zone, wall)
+        switch (disambiguation) {
+            case 'earlier':
+                return 'case when ' + isBefore + ' then ' + before + ' else ' + after + ' end'
+            case 'later':
+                return 'case when ' + isAfter + ' then ' + after + ' else ' + before + ' end'
+            case 'reject': {
+                const chosen = 'case when ' + isBefore + ' then ' + before + ' else ' + after + ' end'
+                const fails = 'case when ' + isBefore + ' and ' + isAfter + ' and ' + before + ' <> ' + after + ' or not (' + isBefore + ') and not (' + isAfter + ') then 29 else 28 end'
+                return this._zonedOrError(context, '(' + chosen + ')', fails)
             }
+            default:
+                return 'case when not (' + isBefore + ') and ' + isAfter + ' then ' + after + ' else ' + before + ' end'
         }
-        return named ? this._zonedWallComputedOnce(result, wall) : result
-    }
-    /**
-     * The instant (its wall clock in UTC) the database itself gives a wall clock in a zone, when it is Temporal's 'later':
-     * the second of two for a wall clock the zone repeats, and the one of the offset before for one it skips; undefined
-     * when the database has none like it
-     */
-    _zonedLaterOfWallClock(_wall: string, _zone: string): string | undefined {
-        return undefined
-    }
-    /** Whether a wall clock taken to its zone is computed once in a scalar subquery that names it w (see _zonedWallComputedOnce) */
-    _zonedNamesWallClock(_wall: string): boolean {
-        return false
-    }
-    /** The SQL of a computation over a wall clock named tsq_w.w, with the wall clock computed once in a scalar subquery */
-    _zonedWallComputedOnce(sql: string, wall: string): string {
-        return this._zonedPiecesComputedOnce(sql, wall + ' as w', 'tsq_w')
-    }
-    /** The SQL of a computation over the columns (`<sql> as <name>`, …) of a scalar subquery, alias, that computes them once */
-    _zonedPiecesComputedOnce(sql: string, columns: string, alias: string): string {
-        return '(select ' + sql + ' from (select ' + columns + this._fromNoTable() + this._zonedComputedOnceFence() + ') ' + alias + ')'
     }
     /** The instant of the start of the day of a wall clock in a zone: its midnight, as Temporal's 'compatible' disambiguates it */
     _zonedStartOfDayIn(context: SqlBuildContext, wall: string, zone: string, nextDay: boolean): string {
@@ -4331,34 +4296,21 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const zoned = this._zonedOperandSql(context, valueSource, 'x')
         const zone = this._zonedZoneOf(context, valueSource, zoned)
         const wall = this._zonedWallOf(zoned, zone)
-        const startSql = this._zonedStartOfDayIn(context, wall, zone, false)
-        // The starts of the day and of the next one are used more than once: computed once where the database names them
-        const named = this._zonedNamesWallClock(startSql)
-        const start = named ? 'tsq_d.s' : startSql
+        const start = this._zonedStartOfDayIn(context, wall, zone, false)
         let rounded: string
-        let endSql: string | undefined
         switch (value as PlainTemporalRoundingMode) {
             case 'trunc':
                 rounded = start
                 break
-            case 'ceil': {
-                endSql = this._zonedStartOfDayIn(context, wall, zone, true)
-                const end = named ? 'tsq_d.n' : endSql
-                rounded = 'case when ' + this._zonedUtcOf(zoned) + ' = ' + start + ' then ' + start + ' else ' + end + ' end'
+            case 'ceil':
+                rounded = 'case when ' + this._zonedUtcOf(zoned) + ' = ' + start + ' then ' + start + ' else ' + this._zonedStartOfDayIn(context, wall, zone, true) + ' end'
                 break
-            }
             default: {
                 // halfTrunc, and halfEven, whose even multiple is the start of the day (no day from it), take the start at the half
-                endSql = this._zonedStartOfDayIn(context, wall, zone, true)
-                const end = named ? 'tsq_d.n' : endSql
+                const end = this._zonedStartOfDayIn(context, wall, zone, true)
                 const comparison = value === 'halfExpand' ? ' >= ' : ' > '
                 rounded = 'case when (' + this._zonedUtcOf(zoned) + ' - ' + start + ') * 2' + comparison + end + ' - ' + start + ' then ' + end + ' else ' + start + ' end'
             }
-        }
-        if (named && endSql !== undefined) {
-            rounded = this._zonedPiecesComputedOnce(rounded, startSql + ' as s, ' + endSql + ' as n', 'tsq_d')
-        } else if (named) {
-            rounded = startSql
         }
         return this._zonedComputedOnce(context, this._zonedOfUtc(rounded, zone), valueSource, 'x')
     }
@@ -4377,9 +4329,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const interpretation = value2 as ZonedInterpretation
         const zoned = this._zonedOperandSql(context, value as ToSql, 'x')
         const zone = this._zonedZoneOf(context, value as ToSql, zoned)
-        const computedWall = this._zonedWallClockOfPlain(this._appendSql(valueSource, context, false))
-        const named = interpretation.offset !== 'use' && this._zonedNamesWallClock(computedWall)
-        const wall = named ? 'tsq_w.w' : computedWall
+        const wall = this._zonedWallClockOfPlain(this._appendSql(valueSource, context, false))
         let utc: string
         if (interpretation.offset === 'ignore') {
             utc = this._zonedUtcOfWallClock(context, wall, zone, interpretation.disambiguation)
@@ -4398,9 +4348,6 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 default:
                     utc = 'case when ' + this._zonedIsWallClockOf(withOffset, zone, wall) + ' then ' + withOffset + ' else ' + this._zonedUtcOfWallClock(context, wall, zone, interpretation.disambiguation) + ' end'
             }
-        }
-        if (named) {
-            utc = this._zonedWallComputedOnce(utc, computedWall)
         }
         return this._zonedComputedOnce(context, this._zonedOfUtc(utc, zone), value, 'x')
     }
@@ -6293,7 +6240,7 @@ export interface ZonedDurationPartsSql {
 }
 
 /** The seconds of a number of nanoseconds, as an exact decimal number */
-function secondsOfNanosecondsText(nanoseconds: bigint): string {
+export function secondsOfNanosecondsText(nanoseconds: bigint): string {
     const negative = nanoseconds < 0n
     const absolute = negative ? -nanoseconds : nanoseconds
     const fraction = String(absolute % 1_000_000_000n).padStart(9, '0').replace(/0+$/, '')

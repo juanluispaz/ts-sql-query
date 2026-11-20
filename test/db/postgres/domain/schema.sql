@@ -660,34 +660,51 @@ BEGIN
 END
 $$;
 
--- tsq_zoned_at: the wall clock in a zone (a name or an offset like '+05:30') of the instant of a wall clock in UTC, or
--- with to_utc the instant (its wall clock in UTC) of a wall clock in the zone, as Temporal's 'compatible' disambiguates
--- it; tsq_zoned_until: the duration from one zoned date and time to another (each one its instant and the name of its
+-- tsq_zoned_of_wall: the instant of a wall clock in a zone (a name or an offset like '+05:30'), as Temporal
+-- disambiguates it ('compatible', 'earlier', 'later', or 'reject', an error for a wall clock the zone repeats or skips);
+-- with a preferred offset, the wall clock with it when the zone gives it back with it (Temporal's offset 'prefer');
+-- tsq_zoned_until: the duration from one zoned date and time to another (each one its instant and the name of its
 -- zone, the same one) as Temporal's until with a largest unit of days or larger ('day', 'week', 'month', 'year'),
 -- rounded to the smallest unit, increment and mode given, the functions of the library that count the days of the
 -- calendar in the zone, each one with its length there (23 or 25 hours where the zone changes its offset); since passes
 -- its mode negated and -1 to negate the result. Two zones that aren't the same are an error, as in Temporal.
-CREATE OR REPLACE FUNCTION tsq_zoned_at(t timestamp, zone text, to_utc boolean) RETURNS timestamp LANGUAGE plpgsql IMMUTABLE AS $$
+
+CREATE OR REPLACE FUNCTION tsq_zoned_of_wall(wall timestamp, zone text, disambiguation text, preferred_offset interval DEFAULT NULL) RETURNS timestamptz LANGUAGE plpgsql IMMUTABLE AS $$
 DECLARE
+    -- An offset like '+05:30' is read by PostgreSQL as a POSIX zone, west of UTC: its sign inverted
+    v_zone text := CASE WHEN zone ~ '^[+-]' THEN translate(zone, '+-', '-+') ELSE zone END;
     v_before timestamp;
     v_after timestamp;
+    v_is_before boolean;
+    v_is_after boolean;
 BEGIN
-    IF NOT to_utc THEN
-        IF zone ~ '^[+-]' THEN
-            RETURN (t AT TIME ZONE 'UTC') AT TIME ZONE zone::interval;
-        END IF;
-        RETURN (t AT TIME ZONE 'UTC') AT TIME ZONE zone;
+    IF wall IS NULL OR zone IS NULL OR disambiguation IS NULL THEN
+        RETURN NULL;
     END IF;
-    v_before := t - (tsq_zoned_at(t - interval '1 day', zone, false) - (t - interval '1 day'));
-    v_after := t - (tsq_zoned_at(t + interval '1 day', zone, false) - (t + interval '1 day'));
-    IF tsq_zoned_at(v_before, zone, false) <> t AND tsq_zoned_at(v_after, zone, false) = t THEN
-        RETURN v_after;
+    IF preferred_offset IS NOT NULL AND (((wall - preferred_offset) AT TIME ZONE 'UTC') AT TIME ZONE v_zone) = wall THEN
+        RETURN (wall - preferred_offset) AT TIME ZONE 'UTC';
     END IF;
-    RETURN v_before;
+    -- The wall clock minus the offset of the zone a day before and a day after it: an instant of it when the zone gives
+    -- it back (two for a wall clock it repeats, none for one it skips)
+    v_before := wall - ((((wall - interval '1 day') AT TIME ZONE 'UTC') AT TIME ZONE v_zone) - (wall - interval '1 day'));
+    v_after := wall - ((((wall + interval '1 day') AT TIME ZONE 'UTC') AT TIME ZONE v_zone) - (wall + interval '1 day'));
+    v_is_before := ((v_before AT TIME ZONE 'UTC') AT TIME ZONE v_zone) = wall;
+    v_is_after := ((v_after AT TIME ZONE 'UTC') AT TIME ZONE v_zone) = wall;
+    IF disambiguation = 'reject' AND v_is_before = v_is_after AND (NOT v_is_before OR v_before <> v_after) THEN
+        RAISE EXCEPTION 'tsq_zoned_of_wall: % is not one instant in %', wall, zone;
+    END IF;
+    IF disambiguation = 'later' THEN
+        RETURN (CASE WHEN v_is_after THEN v_after ELSE v_before END) AT TIME ZONE 'UTC';
+    ELSIF disambiguation = 'compatible' THEN
+        RETURN (CASE WHEN v_is_before OR NOT v_is_after THEN v_before ELSE v_after END) AT TIME ZONE 'UTC';
+    END IF;
+    RETURN (CASE WHEN v_is_before THEN v_before ELSE v_after END) AT TIME ZONE 'UTC';
 END $$;
 
 CREATE OR REPLACE FUNCTION tsq_zoned_until(one timestamptz, one_zone text, two timestamptz, two_zone text, largest_unit text, smallest_unit text, increment bigint, rounding_mode text, negation integer) RETURNS interval LANGUAGE plpgsql IMMUTABLE AS $$
 DECLARE
+    -- An offset like '+05:30' is read by PostgreSQL as a POSIX zone, west of UTC: its sign inverted
+    v_zone text := CASE WHEN one_zone ~ '^[+-]' THEN translate(one_zone, '+-', '-+') ELSE one_zone END;
     v_u1 timestamp;
     v_u2 timestamp;
     v_w1 timestamp;
@@ -734,8 +751,8 @@ BEGIN
     IF v_u1 = v_u2 THEN
         RETURN interval '0';
     END IF;
-    v_w1 := tsq_zoned_at(v_u1, one_zone, false);
-    v_w2 := tsq_zoned_at(v_u2, one_zone, false);
+    v_w1 := (v_u1 AT TIME ZONE 'UTC') AT TIME ZONE v_zone;
+    v_w2 := (v_u2 AT TIME ZONE 'UTC') AT TIME ZONE v_zone;
     v_d1 := v_w1::date;
     v_t1 := v_w1 - v_d1::timestamp;
     v_sign := CASE WHEN v_u2 < v_u1 THEN -1 ELSE 1 END;
@@ -747,7 +764,7 @@ BEGIN
         v_correction := CASE WHEN sign(extract(epoch from (v_w2 - v_w2::date::timestamp) - v_t1)) = -v_sign THEN 1 ELSE 0 END;
         WHILE v_correction <= CASE WHEN v_sign = 1 THEN 2 ELSE 1 END AND NOT v_found LOOP
             v_inter := v_w2::date - v_correction * v_sign;
-            v_t := extract(epoch from v_u2 - tsq_zoned_at(v_inter + v_t1, one_zone, true)) * 1000000000;
+            v_t := extract(epoch from v_u2 - (tsq_zoned_of_wall(v_inter + v_t1, one_zone, 'compatible') AT TIME ZONE 'UTC')) * 1000000000;
             IF sign(v_t) <> -v_sign THEN v_found := true; END IF;
             v_correction := v_correction + 1;
         END LOOP;
@@ -791,13 +808,13 @@ BEGIN
                 v_ey := v_years; v_em := v_months; v_ew := v_weeks; v_m := v_r1;
             END IF;
             -- The start and the end: the first wall clock plus the duration truncated, and plus one increment more
-            v_start := tsq_zoned_at((v_d1 + make_interval(months => (v_ey * 12 + v_em)::integer))::date + (v_ew * 7 + v_m)::integer + v_t1, one_zone, true);
+            v_start := (tsq_zoned_of_wall((v_d1 + make_interval(months => (v_ey * 12 + v_em)::integer))::date + (v_ew * 7 + v_m)::integer + v_t1, one_zone, 'compatible') AT TIME ZONE 'UTC');
             IF smallest_unit = 'year' THEN v_ey := v_ey + increment * v_sign;
             ELSIF smallest_unit = 'month' THEN v_em := v_em + increment * v_sign;
             ELSIF smallest_unit = 'week' THEN v_ew := v_ew + increment * v_sign;
             ELSE v_m := v_m + increment * v_sign;
             END IF;
-            v_end := tsq_zoned_at((v_d1 + make_interval(months => (v_ey * 12 + v_em)::integer))::date + (v_ew * 7 + v_m)::integer + v_t1, one_zone, true);
+            v_end := (tsq_zoned_of_wall((v_d1 + make_interval(months => (v_ey * 12 + v_em)::integer))::date + (v_ew * 7 + v_m)::integer + v_t1, one_zone, 'compatible') AT TIME ZONE 'UTC');
             v_num := abs(extract(epoch from v_u2 - v_start));
             v_den := abs(extract(epoch from v_end - v_start));
             v_up := v_num <> 0 AND (v_num = v_den OR v_mode = 'infinity' OR v_mode LIKE 'half%' AND (2 * v_num > v_den OR 2 * v_num = v_den AND (v_mode = 'halfInfinity' OR v_mode = 'halfEven' AND mod(abs(v_r1) / increment, 2) <> 0)));
@@ -821,8 +838,8 @@ BEGIN
         ELSE
             -- NudgeToZonedTime: the time rounded in the day it is in, which may round to the next day (of its length there)
             v_step := CASE smallest_unit WHEN 'hour' THEN 3600000000000 WHEN 'minute' THEN 60000000000 WHEN 'second' THEN 1000000000 WHEN 'millisecond' THEN 1000000 WHEN 'microsecond' THEN 1000 ELSE 1 END * increment;
-            v_start := tsq_zoned_at((v_d1 + make_interval(months => (v_years * 12 + v_months)::integer))::date + (v_weeks * 7 + v_days)::integer + v_t1, one_zone, true);
-            v_end := tsq_zoned_at((v_d1 + make_interval(months => (v_years * 12 + v_months)::integer))::date + (v_weeks * 7 + v_days + v_sign)::integer + v_t1, one_zone, true);
+            v_start := (tsq_zoned_of_wall((v_d1 + make_interval(months => (v_years * 12 + v_months)::integer))::date + (v_weeks * 7 + v_days)::integer + v_t1, one_zone, 'compatible') AT TIME ZONE 'UTC');
+            v_end := (tsq_zoned_of_wall((v_d1 + make_interval(months => (v_years * 12 + v_months)::integer))::date + (v_weeks * 7 + v_days + v_sign)::integer + v_t1, one_zone, 'compatible') AT TIME ZONE 'UTC');
             v_pass := 0;
             v_beyond := v_t;
             -- The time rounded (Temporal's RoundNumberToIncrement), and again beyond the day when it reaches its end
@@ -867,7 +884,7 @@ BEGIN
                     ELSE
                         v_ew := v_weeks + v_sign;
                     END IF;
-                    IF sign(extract(epoch from v_nudged - tsq_zoned_at((v_d1 + make_interval(months => (v_ey * 12 + v_em)::integer))::date + (v_ew * 7)::integer + v_t1, one_zone, true))) = -v_sign THEN
+                    IF sign(extract(epoch from v_nudged - (tsq_zoned_of_wall((v_d1 + make_interval(months => (v_ey * 12 + v_em)::integer))::date + (v_ew * 7)::integer + v_t1, one_zone, 'compatible') AT TIME ZONE 'UTC'))) = -v_sign THEN
                         EXIT;
                     END IF;
                     v_years := v_ey; v_months := v_em; v_weeks := v_ew; v_days := 0; v_t := 0;

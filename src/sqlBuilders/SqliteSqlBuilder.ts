@@ -1380,6 +1380,13 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     override _durationOfDifference(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
         return this._durationTextOfDifference(context, d)
     }
+    /**
+     * The nanoseconds of the time of a difference as the function of JavaScript takes them: as their text, since a
+     * driver gives an integer beyond 2^53 (a difference of more than 104 days) to a function as a rounded number
+     */
+    override _durationTextTimeArgument(nanoseconds: string): string {
+        return 'cast(' + nanoseconds + ' as text)'
+    }
     override _differenceDateOf(context: SqlBuildContext, _d: PlainTemporalDifferenceSql, valueSource: ToSql): string {
         // The text of the date, whatever the format the value is kept in
         return this._dateOfValue(context, valueSource)

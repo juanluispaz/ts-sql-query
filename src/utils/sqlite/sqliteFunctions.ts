@@ -469,6 +469,10 @@ function bigintArgument(value: unknown): bigint | null {
     if (value === null || value === undefined) {
         return null
     }
+    if (typeof value === 'string' && /^-?\d+$/.test(value)) {
+        // An integer given as its text: a driver gives an integer beyond 2^53 to a function as a rounded number
+        return BigInt(value)
+    }
     return typeof value === 'bigint' ? value : BigInt(Math.trunc(Number(value)))
 }
 

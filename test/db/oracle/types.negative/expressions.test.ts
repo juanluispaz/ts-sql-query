@@ -651,6 +651,20 @@ function _typeNegatives() {
     void tColMatrixPlain.mDate.toInstant()
     // @ts-expect-error an instant has no hour without a zone, as in Temporal
     void tInstantValue.instantAt.hour()
+    // An instant plus or minus a duration of the time; until, since and round with the units of the time
+    void tInstantValue.instantAt.add({ hours: 2 })
+    void tInstantValue.instantAt.until(tInstantValue.wallAt, { largestUnit: 'hour' })
+    void tInstantValue.instantAt.round({ smallestUnit: 'minute', roundingIncrement: 90 })
+    // @ts-expect-error days aren't added to an instant, as in Temporal
+    void tInstantValue.instantAt.add({ days: 1 })
+    // @ts-expect-error a duration of a column may have days
+    void tInstantValue.instantAt.add(tDurationValue.span)
+    // @ts-expect-error a difference of two instants has no days
+    void tInstantValue.instantAt.until(tInstantValue.wallAt, { largestUnit: 'day' })
+    // @ts-expect-error an instant isn't rounded to a day
+    void tInstantValue.instantAt.round('day')
+    // @ts-expect-error the other value is an instant
+    void tInstantValue.instantAt.until(tColMatrixPlain.mDatetime)
 }
 
 test('expressions-negative-types', () => {

@@ -653,6 +653,16 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         return true
     }
     /**
+     * The wall clock in UTC of an instant: with a databaseTimeZone other than UTC, its timestamptz (a value without zone
+     * completed with the session) at time zone 'UTC'
+     */
+    override _instantInUtc(context: SqlBuildContext, valueSource: ToSql): string {
+        return this._appendSqlForDatePartArgument(valueSource, context)
+    }
+    override _instantOfUtc(_context: SqlBuildContext, sql: string): string {
+        return this._isDatabaseOutsideUtc() ? '(' + sql + ") at time zone 'UTC'" : sql
+    }
+    /**
      * With a databaseTimeZone other than UTC, the date functions of a localDateTime or a localTime give the parts in
      * UTC of its instant, which the database completes with its session (see postgreSqlZonedValueSql)
      */

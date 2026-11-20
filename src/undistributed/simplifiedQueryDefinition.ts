@@ -628,6 +628,14 @@ interface InstantValueSource extends ComparableValueSource<Temporal.Instant, 'in
     toPlainDateTime(): PlainDateTimeValueSource
     toPlainDate(): PlainDateValueSource
     toPlainTime(): PlainTimeValueSource
+    /** The instant plus or minus a duration of hours and smaller units only, as Temporal's add and subtract */
+    add(duration: Temporal.Duration | { hours?: number, minutes?: number, seconds?: number, milliseconds?: number, microseconds?: number, nanoseconds?: number }): InstantValueSource
+    subtract(duration: Temporal.Duration | { hours?: number, minutes?: number, seconds?: number, milliseconds?: number, microseconds?: number, nanoseconds?: number }): InstantValueSource
+    /** The instant rounded, as Temporal's round: an increment of the unit that divides a day */
+    round(options: TimeUnit | { smallestUnit: TimeUnit, roundingIncrement?: number, roundingMode?: RoundingMode }): InstantValueSource
+    /** The duration to or from the other instant, as Temporal's until and since: in seconds by default, up to hours */
+    until(other: Temporal.Instant | InstantValueSource, options?: DifferenceOptions<TimeUnit>): DurationValueSource
+    since(other: Temporal.Instant | InstantValueSource, options?: DifferenceOptions<TimeUnit>): DurationValueSource
 }
 
 /**

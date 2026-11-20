@@ -1379,6 +1379,13 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         const utc = 'sys_extract_utc(cast(' + this._appendSql(valueSource, context, false) + ' as timestamp(9) with time zone))'
         return "(trunc(" + utc + ") - date '1970-01-01') * 86400000000000 + to_number(to_char(" + utc + ", 'SSSSSFF9'))"
     }
+    override _instantInUtc(context: SqlBuildContext, valueSource: ToSql): string {
+        // A value without zone, a DATE too, is completed with the zone of the session
+        return 'sys_extract_utc(cast(' + this._appendSql(valueSource, context, false) + ' as timestamp(9) with time zone))'
+    }
+    override _instantOfUtc(_context: SqlBuildContext, sql: string): string {
+        return 'from_tz(' + sql + ", '+00:00')"
+    }
     override _instantToPlainDateTime(context: SqlBuildContext, valueSource: ToSql): string {
         // The wall clock of the session (the zone of the database), with all its digits: a value without zone, a DATE
         // too, is completed with it first (`at local` rejects a DATE, ORA-30084)

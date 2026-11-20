@@ -1085,6 +1085,9 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         const value = this._appendSql(valueSource, context, false)
         return "datediff_big(microsecond, '1970-01-01 00:00:00', " + value + ') * 1000 + datepart(nanosecond, ' + value + ') % 1000'
     }
+    override _instantInUtc(context: SqlBuildContext, valueSource: ToSql): string {
+        return this._instantToPlainDateTime(context, valueSource)
+    }
     override _instantToPlainDateTime(context: SqlBuildContext, valueSource: ToSql): string {
         // The database is in UTC: the wall clock in UTC, of a datetimeoffset too, whatever offset it was stored with
         return 'cast(' + this._appendDateTimeInUtc(context, valueSource) + ' as datetime2)'

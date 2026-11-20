@@ -504,6 +504,8 @@ export interface SqlFunction0 {
     _epochNanoseconds(context: SqlBuildContext, valueSource: ToSql): string
     _instantToPlainDateTime(context: SqlBuildContext, valueSource: ToSql): string
     _toInstant(context: SqlBuildContext, valueSource: ToSql): string
+    // The arithmetic of an instant, on its wall clock in UTC
+    _instantInUtc(context: SqlBuildContext, valueSource: ToSql): string
     // Uuid
     _asString(context: SqlBuildContext, valueSource: ToSql): string
     // Oracle recursive
@@ -555,6 +557,10 @@ export interface SqlFunction1 {
     _withFieldsRejecting(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
     // A time or a date and time rounded, with the semantics of Temporal's round
     _roundTemporal(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
+    // The arithmetic of an instant, on its wall clock in UTC (the receiver)
+    _roundInstant(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
+    _instantAddDuration(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
+    _instantSubtractDuration(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
 }
 // avg, count, max, median, min,
 // greatest, least

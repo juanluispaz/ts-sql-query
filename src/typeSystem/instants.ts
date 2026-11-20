@@ -1,8 +1,18 @@
 import type { SqlDataType } from '../TypeAdapter.js'
 import { ComparableType } from './comparable.js'
-import type { TemporalInstant } from './temporal.js'
-import type { OptionalityOf, SourceOf, ValueSource } from './base.js'
-import { __operation0 } from '../nodes/operations.js'
+import type { TemporalDifferenceOptions, TemporalDuration, TemporalInstant, TemporalRoundingOptions, TemporalTimeDurationLike, TemporalTimeUnit } from './temporal.js'
+import type { DataTypeOf, IValueWithType, OptionalityOf, SourceOf, ValueSource } from './base.js'
+import type { CombinedOptionality } from './valueSource.js'
+import { __newSqlOperation2ValueSource, __operation0, __operation1 } from '../nodes/operations.js'
+import { __newSqlOperationConstValueSource } from '../nodes/constants.js'
+import { getOptionalType2 } from '../nodes/operands.js'
+import { isValueSource } from '../nodes/NodeStrategy.js'
+import { __typeClassOf } from '../nodes/dataTypeClassOf.js'
+import { __computedClassOf } from '../nodes/adaptedTypeClass.js'
+import { TsSqlProcessingError } from '../TsSqlError.js'
+import type { operandTypeName } from '../utils/symbols.js'
+import { instantDifferenceOptionsOf } from '../utils/instantOptions.js'
+import { DurationType } from './durations.js'
 import { IntType } from './number.js'
 import { BigintType } from './bigint.js'
 import { PlainDateTimeType, PlainDateType, PlainTimeType } from './plainDates.js'
@@ -10,6 +20,35 @@ import { PlainDateTimeType, PlainDateType, PlainTimeType } from './plainDates.js
 /** The date and time of the instant in the zone of the database: a plainDateTime */
 function plainDateTimeOf(valueSource: unknown): any {
     return __operation0(valueSource as any, '_instantToPlainDateTime', PlainDateTimeType)
+}
+
+/** The wall clock of the instant in UTC, a plainDateTime: where Temporal computes the arithmetic of an instant */
+function inUtcOf(valueSource: unknown): any {
+    return __operation0(valueSource as any, '_instantInUtc', PlainDateTimeType)
+}
+
+/** The instant plus or minus a duration of the time alone, of the same data type */
+function withDuration(valueSource: unknown, operation: '_instantAddDuration' | '_instantSubtractDuration', duration: unknown): any {
+    const fields = duration as { years?: unknown, months?: unknown, weeks?: unknown, days?: unknown } | null
+    if (fields !== null && typeof fields === 'object' && !isValueSource(fields) && ((fields.years ?? 0) !== 0 || (fields.months ?? 0) !== 0 || (fields.weeks ?? 0) !== 0 || (fields.days ?? 0) !== 0)) {
+        // As Temporal: an instant has no calendar nor zone to give a day its length
+        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value: duration, typeName: 'duration' }, 'An instant only adds or subtracts hours and smaller units, as in Temporal: ' + String(duration))
+    }
+    return __operation1(inUtcOf(valueSource), operation, duration, __computedClassOf(valueSource as object, __typeClassOf(valueSource as any)))
+}
+
+/**
+ * The duration from the instant to the other one (until), or from the other one to the instant (since), with the
+ * options of Temporal: the difference of their wall clocks in UTC, with units of the time alone. A value given is a
+ * const of the data type of the instant
+ */
+function difference(valueSource: unknown, operation: '_until' | '_since', other: unknown, options: unknown): any {
+    const normalized = instantDifferenceOptionsOf(options)
+    if (!normalized) {
+        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value: options, typeName: 'instant' }, 'Invalid options of ' + operation.slice(1) + ' of an instant: ' + JSON.stringify(options))
+    }
+    const operand = isValueSource(other) ? other : __newSqlOperationConstValueSource(other, __computedClassOf(valueSource as object, __typeClassOf(valueSource as any)), 'required')
+    return __newSqlOperation2ValueSource(operation, inUtcOf(valueSource), inUtcOf(operand), normalized, DurationType, getOptionalType2(valueSource as any, operand))
 }
 
 /*
@@ -58,6 +97,49 @@ export abstract class InstantsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME e
     toPlainTime(): ValueSource<SourceOf<this>, PlainTimeType, OptionalityOf<this>>
     toPlainTime(): any {
         return __operation0(plainDateTimeOf(this), '_toPlainTime', PlainTimeType)
+    }
+
+    /**
+     * The instant plus the duration given, as Temporal's `add`: of hours and smaller units only (a day has no fixed
+     * length without a zone). The duration is a Temporal.Duration or its fields (`{ hours: 2 }`)
+     */
+    add(duration: TemporalDuration | TemporalTimeDurationLike): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    add(duration: unknown): any {
+        return withDuration(this, '_instantAddDuration', duration)
+    }
+    /** The instant minus the duration given, as Temporal's `subtract`: of hours and smaller units only */
+    subtract(duration: TemporalDuration | TemporalTimeDurationLike): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    subtract(duration: unknown): any {
+        return withDuration(this, '_instantSubtractDuration', duration)
+    }
+    /**
+     * The instant rounded, as Temporal's `round`: to the unit given (`'minute'`), or with options, to multiples of
+     * `roundingIncrement` of `smallestUnit`, which must divide a day (`{ smallestUnit: 'minute', roundingIncrement: 90 }`),
+     * in the `roundingMode` given (`'halfExpand'` by default: half up)
+     */
+    round(options: TemporalTimeUnit | TemporalRoundingOptions<TemporalTimeUnit>): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    round(options: unknown): any {
+        return __operation1(inUtcOf(this), '_roundInstant', options, __computedClassOf(this as object, __typeClassOf(this as any)))
+    }
+    /**
+     * The duration from this instant to the other one, as Temporal's `until`: in seconds and smaller units by default;
+     * `largestUnit` asks for minutes or hours, and `smallestUnit`, `roundingIncrement` and `roundingMode` round it
+     */
+    until(other: VALUE_TYPE, options?: TemporalDifferenceOptions<TemporalTimeUnit>): ValueSource<SourceOf<this>, DurationType, OptionalityOf<this>>
+    /**
+     * The duration from this instant to the other one, as Temporal's `until`: in seconds and smaller units by default;
+     * `largestUnit` asks for minutes or hours, and `smallestUnit`, `roundingIncrement` and `roundingMode` round it
+     */
+    until<VALUE extends IValueWithType<this[typeof operandTypeName]>>(other: VALUE, options?: TemporalDifferenceOptions<TemporalTimeUnit>): ValueSource<SourceOf<this> | SourceOf<VALUE>, DurationType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    until(other: unknown, options?: unknown): any {
+        return difference(this, '_until', other, options)
+    }
+    /** The duration from the other instant to this one, as Temporal's `since`: `until` with the rounding mode inverted, negated */
+    since(other: VALUE_TYPE, options?: TemporalDifferenceOptions<TemporalTimeUnit>): ValueSource<SourceOf<this>, DurationType, OptionalityOf<this>>
+    /** The duration from the other instant to this one, as Temporal's `since`: `until` with the rounding mode inverted, negated */
+    since<VALUE extends IValueWithType<this[typeof operandTypeName]>>(other: VALUE, options?: TemporalDifferenceOptions<TemporalTimeUnit>): ValueSource<SourceOf<this> | SourceOf<VALUE>, DurationType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    since(other: unknown, options?: unknown): any {
+        return difference(this, '_since', other, options)
     }
 }
 

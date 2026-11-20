@@ -1,3 +1,4 @@
+import { instantRoundingOf } from '../utils/instantOptions.js'
 import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import { TypeAdapterContextImpl } from '../internal/TypeAdapterContextImpl.js'
 import type { QueryParamContextImpl } from '../internal/QueryContextImpl.js'
@@ -4037,6 +4038,36 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _toInstant(context: SqlBuildContext, valueSource: ToSql): string {
         return this._appendSql(valueSource, context, false)
     }
+    /**
+     * The wall clock in UTC of an instant, where Temporal computes its arithmetic: a value without zone of a database in
+     * UTC is it, and so is a timestamptz in a session in UTC
+     */
+    _instantInUtc(context: SqlBuildContext, valueSource: ToSql): string {
+        return this._appendSql(valueSource, context, false)
+    }
+    /** The instant of a wall clock in UTC (see _instantInUtc) */
+    _instantOfUtc(_context: SqlBuildContext, sql: string): string {
+        return sql
+    }
+    /**
+     * The instant rounded as Temporal rounds it: as if it were positive, to a step that divides a day, so its
+     * nanoseconds since the midnight in UTC before it are rounded (the receiver is its wall clock in UTC)
+     */
+    _roundInstant(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
+        const rounding = instantRoundingOf(value)
+        if (!rounding) {
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: typeClass.type }, 'Invalid options to round an instant: ' + JSON.stringify(value))
+        }
+        const date = this._dateOfValue(context, valueSource)
+        return this._instantOfUtc(context, this._dateTimeOfNanoseconds(context, date, this._roundedNanosecondsSinceMidnight(context, valueSource, rounding)))
+    }
+    /** The instant plus a duration of the time alone, added to its wall clock in UTC (the receiver) */
+    _instantAddDuration(context: SqlBuildContext, valueSource: ToSql, value: any, _typeClass: DataTypeClass): string {
+        return this._instantOfUtc(context, this._addDuration(context, valueSource, value, __registeredDataType('plainDateTime')))
+    }
+    _instantSubtractDuration(context: SqlBuildContext, valueSource: ToSql, value: any, _typeClass: DataTypeClass): string {
+        return this._instantOfUtc(context, this._subtractDuration(context, valueSource, value, __registeredDataType('plainDateTime')))
+    }
     _toPlainDateTimeAt(context: SqlBuildContext, valueSource: ToSql, value: any, _typeClass: DataTypeClass): string {
         // A date plus a time of the day is the timestamp of that day at that time; a time given as a value is sent with
         // its type, which the operator needs
@@ -4430,8 +4461,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
         result += (this._differenceHas(d, 'months') ? this._differenceField(context, d, 'months') : '0') + ', '
         result += (this._differenceHas(d, 'weeks') ? this._differenceField(context, d, 'weeks') : '0') + ', '
         result += (this._differenceHas(d, 'days') ? this._differenceField(context, d, 'days') : '0') + ', '
-        result += (this._differenceHas(d, 'time') ? this._differenceField(context, d, 'time') : '0') + ', '
+        result += (this._differenceHas(d, 'time') ? this._durationTextTimeArgument(this._differenceField(context, d, 'time')) : '0') + ', '
         return result + this._differenceTimeUnit(d) + ')'
+    }
+    /** The nanoseconds of the time of a difference as the function of the library takes them: as they are */
+    _durationTextTimeArgument(nanoseconds: string): string {
+        return nanoseconds
     }
     /** The name of the function of the library that writes the ISO 8601 text of a duration of its fields */
     _durationTextFunctionName(): string {

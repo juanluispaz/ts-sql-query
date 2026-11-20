@@ -111,6 +111,16 @@ export interface TemporalDurationLike {
     readonly nanoseconds?: number | undefined
 }
 
+/** The fields of a duration of the time alone, the only ones Temporal adds to an instant */
+export interface TemporalTimeDurationLike {
+    readonly hours?: number | undefined
+    readonly minutes?: number | undefined
+    readonly seconds?: number | undefined
+    readonly milliseconds?: number | undefined
+    readonly microseconds?: number | undefined
+    readonly nanoseconds?: number | undefined
+}
+
 /** The Temporal object of the runtime, or of a polyfill installed in the global object; an error for a type without it */
 export function __temporal(typeName: string): TemporalObject {
     const temporal = (globalThis as { Temporal?: TemporalObject }).Temporal

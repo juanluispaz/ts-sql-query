@@ -1,6 +1,6 @@
 import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import { sqlServerOperationsThatNeedParenthesis } from '../utils/sqlServer/sqlServerOperationsThatNeedParenthesis.js'
-import type { ToSql, SelectData, InsertData, DeleteData, UpdateData, FlatQueryColumns, QueryColumns, WithValuesData, OrderByEntry } from './SqlBuilder.js'
+import type { ToSql, SelectData, InsertData, DeleteData, UpdateData, FlatQueryColumns, QueryColumns, WithValuesData, OrderByEntry, HasOperation } from './SqlBuilder.js'
 import { hasToSql, flattenQueryColumns, getQueryColumn } from './SqlBuilder.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
@@ -1300,7 +1300,8 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
      * the seconds and milliseconds don't depend on one (offsets are whole minutes): they are written as they are
      */
     _appendDateTimeInUtc(context: SqlBuildContext, valueSource: ToSql): string {
-        if (isValueSource(valueSource) && __isLocalDateTimeValueSource(__asNodeValueSource(valueSource))) {
+        // The date and time of an instant is already a datetime2 of its wall clock in UTC
+        if (isValueSource(valueSource) && __isLocalDateTimeValueSource(__asNodeValueSource(valueSource)) && (__asNodeValueSource(valueSource) as Partial<HasOperation>).__operation !== '_instantToPlainDateTime') {
             return 'switchoffset(' + this._appendSql(valueSource, context, false) + ", '+00:00')"
         }
         return this._appendSql(valueSource, context, false)

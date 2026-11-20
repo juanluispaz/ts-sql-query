@@ -86,7 +86,7 @@ describe(ctx.label, () => {
                 hour: tInstantValue.instantAt.toPlainDateTime().hour(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(switchoffset(instant_at, '+00:00') as datetime2) as moment, cast(switchoffset(cast(switchoffset(instant_at, '+00:00') as datetime2), '+00:00') as date) as day, cast(switchoffset(cast(switchoffset(instant_at, '+00:00') as datetime2), '+00:00') as time) as time, datepart(hour, switchoffset(cast(switchoffset(instant_at, '+00:00') as datetime2), '+00:00')) as hour from instant_value where cast(switchoffset(cast(switchoffset(instant_at, '+00:00') as datetime2), '+00:00') as date) = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(switchoffset(instant_at, '+00:00') as datetime2) as moment, cast(cast(switchoffset(instant_at, '+00:00') as datetime2) as date) as day, cast(cast(switchoffset(instant_at, '+00:00') as datetime2) as time) as time, datepart(hour, cast(switchoffset(instant_at, '+00:00') as datetime2)) as hour from instant_value where cast(cast(switchoffset(instant_at, '+00:00') as datetime2) as date) = @0"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
             "2024-01-14",

@@ -483,6 +483,11 @@ function bigintArgument(value: unknown): bigint | null {
  * the sign of the duration; null when a field is null
  */
 function durationText(years: unknown, months: unknown, weeks: unknown, days: unknown, nanoseconds: unknown, unit: unknown): string | null {
+    if (typeof nanoseconds === 'string' && !/^-?\d+$/.test(nanoseconds)) {
+        // The nanoseconds given as text are a real: SQLite turned an integer that overflowed its 64 bits (a difference
+        // of more than 292 years) into one, which has lost digits
+        throw new Error("tsq_duration_text: the nanoseconds of the time don't fit in the 64-bit integers of SQLite")
+    }
     const y = bigintArgument(years)
     const mo = bigintArgument(months)
     const w = bigintArgument(weeks)

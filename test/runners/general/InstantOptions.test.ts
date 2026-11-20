@@ -1,7 +1,7 @@
 // The options of until, since and round of an instant, as Temporal reads them: the same options accepted and
 // rejected, over a grid of units, increments and modes; until computed as the difference of the wall clocks in UTC with
 // the options given to a date and time gives Temporal's duration; and the function of SQLite that writes the text of a
-// duration reads an integer given as its text, as the library gives it one beyond 2^53.
+// duration reads an integer given as its text, as the library gives it one beyond 2^53, and fails for a real.
 
 import { describe, expect, test } from '../../lib/testRunner.js'
 import { instantDifferenceOptionsOf, instantRoundingOf } from '../../../src/utils/instantOptions.js'
@@ -71,5 +71,13 @@ describe('InstantOptions', () => {
         // 4880353340.123 seconds: more nanoseconds than a double holds exactly
         expect(durationText(0, 0, 0, 0, '4880353340123000000', 'second')).toBe('PT4880353340.123S')
         expect(durationText(0, 0, 0, 0, '-4880353340123000000', 'hour')).toBe('-PT1355653H42M20.123S')
+        // A real, which SQLite gives for an integer beyond its 64 bits (a difference of more than 292 years): an error
+        let error = 'no error'
+        try {
+            durationText(0, 0, 0, 0, '1.10770596301220e+19', 'hour')
+        } catch (e) {
+            error = (e as Error).message
+        }
+        expect(error).toBe("tsq_duration_text: the nanoseconds of the time don't fit in the 64-bit integers of SQLite")
     })
 })

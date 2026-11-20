@@ -1,5 +1,6 @@
-// The functions of the library for durations that the page Dates and times gives for each database (tsq_duration_part,
-// tsq_duration_text, tsq_duration_round, tsq_duration_total, tsq_duration_add) are the ones the suite creates in the
+// The functions of the library for durations and zoned dates and times that the page Dates and times gives for each
+// database (tsq_duration_part, tsq_duration_text, tsq_duration_round, tsq_duration_total, tsq_duration_add,
+// tsq_zoned_until, tsq_zoned_of_wall) are the ones the suite creates in the
 // schema of that database (test/db/<db>/domain/schema.sql), which the tests of the arithmetic, the differences of dates,
 // the totals and the sums of durations run against every engine: the text of the page is the tested one.
 
@@ -57,6 +58,13 @@ describe('DurationPartFunctionDocs', () => {
         expect(documented('Oracle', heading)).toBe(tested('oracle', 'tsq_duration_total'))
         expect(documented('PostgreSQL', heading)).toBe(tested('postgres', 'tsq_duration_total'))
         expect(documented('SQL Server', heading)).toBe(tested('sqlserver', 'tsq_duration_total'))
+    })
+
+    test('the-documented-functions-of-zoned-dates-and-times-are-the-tested-ones', () => {
+        const heading = '### The functions `tsq_zoned_until` and `tsq_zoned_of_wall`'
+        expect(documented('Oracle', heading)).toBe(tested('oracle', 'tsq_zoned_until'))
+        // tsq_zoned_until uses tsq_zoned_of_wall, created first
+        expect(documented('PostgreSQL', heading)).toBe(tested('postgres', 'tsq_zoned_of_wall'))
     })
 
     test('the-documented-function-of-durations-added-together-is-the-tested-one', () => {

@@ -360,6 +360,7 @@ interface PostgreSqlConnectionConfiguration {
     minValueFunction?: string
     maxValueFunction?: string
     useLikeInsteadOfIlike: boolean // Default: false
+    temporalFunctions: 'installed' | 'not installed' // Default: 'not installed'
 }
 
 interface SqliteConnectionConfiguration {

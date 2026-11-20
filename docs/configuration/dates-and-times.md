@@ -814,7 +814,7 @@ A `zonedDateTime` is an exact moment seen in a time zone: a `Temporal.ZonedDateT
 
 Oracle and PostgreSQL compute with the rules of the zones. Oracle also keeps a zone with each value, in a `TIMESTAMP WITH TIME ZONE`, so a column can be a `zonedDateTime`. PostgreSQL keeps an instant without its zone (a `timestamptz`), so there a zoned date and time is computed in the query: the instant of a column in the zone the query gives it, from a column or a value (keep the instant in a `timestamptz` and the zone in a `text`). On MariaDB, MySQL, SQLite and SQL Server a query with a `zonedDateTime` fails when it is built, with `UNSUPPORTED_QUERY`, and nothing is sent.
 
-An instant goes to a zone with `toZonedDateTimeISO(zone)`, and a wall clock with `toZonedDateTime(zone)`, as in Temporal. A wall clock that the zone repeats (02:30 on 2024-10-27 in Madrid) or skips (02:30 on 2024-03-31) takes the instant `disambiguation` says, as Temporal: `'compatible'`, the default, the earlier of a repeated one and the later of a skipped one (03:30), `'earlier'` and `'later'` what they say, and `'reject'` makes the query fail. Here, the deployments and the publications of the releases in Madrid:
+An instant goes to a zone with `toZonedDateTimeISO(zone)`, and a wall clock with `toZonedDateTime(zone)`, as in Temporal. A wall clock that the zone repeats (02:30 on 2024-10-27 in Madrid) or skips (02:30 on 2024-03-31) takes the instant `disambiguation` says, as Temporal: `'compatible'`, the default, the earlier of a repeated one and the later of a skipped one (03:30), `'earlier'` and `'later'` what they say, and `'reject'` makes the query fail. On PostgreSQL that takes a function of the library; without it, a wall clock the zone repeats is the later instant (see [A wall clock the zone repeats, on PostgreSQL](#a-wall-clock-the-zone-repeats-on-postgresql)). Here, the deployments and the publications of the releases in Madrid:
 
 ```ts
 const releases = await connection.selectFrom(tRelease)
@@ -853,8 +853,8 @@ The executed query is:
     select 
         version as version, 
         to_char((deployed_at::timestamptz) at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z" BC') || '[Europe/Madrid]' as "deployedInMadrid", 
-        to_char(((case when (((published_at - ((((published_at - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (published_at - interval '1 day'))) at time zone 'UTC') at time zone 'Europe/Madrid') = published_at then (published_at - ((((published_at - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (published_at - interval '1 day'))) else ((published_at at time zone 'Europe/Madrid') at time zone 'UTC') end) at time zone 'UTC') at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z" BC') || '[Europe/Madrid]' as "publishedInMadrid", 
-        ((case when (((published_at - ((((published_at - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (published_at - interval '1 day'))) at time zone 'UTC') at time zone 'Europe/Madrid') = published_at then (published_at - ((((published_at - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (published_at - interval '1 day'))) else ((published_at at time zone 'Europe/Madrid') at time zone 'UTC') end) at time zone 'UTC') as "publishedInstant" 
+        to_char(((published_at at time zone 'Europe/Madrid')) at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z" BC') || '[Europe/Madrid]' as "publishedInMadrid", 
+        ((published_at at time zone 'Europe/Madrid')) as "publishedInstant" 
     from project_release 
     order by version
     ```
@@ -937,10 +937,10 @@ The executed query is:
     ```postgresql
     select 
         version as version, 
-        to_char(((select ((select case when (((tsq_w.w - ((((tsq_w.w - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (tsq_w.w - interval '1 day'))) at time zone 'UTC') at time zone 'Europe/Madrid') = tsq_w.w then (tsq_w.w - ((((tsq_w.w - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (tsq_w.w - interval '1 day'))) else ((tsq_w.w at time zone 'Europe/Madrid') at time zone 'UTC') end from (select ((tsq_z.x at time zone 'Europe/Madrid') + make_interval(days => $1)) as w offset 0) tsq_w)) at time zone 'UTC' from (select (case when (((published_at - ((((published_at - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (published_at - interval '1 day'))) at time zone 'UTC') at time zone 'Europe/Madrid') = published_at then (published_at - ((((published_at - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (published_at - interval '1 day'))) else ((published_at at time zone 'Europe/Madrid') at time zone 'UTC') end) at time zone 'UTC' as x offset 0) tsq_z)) at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z" BC') || '[Europe/Madrid]' as "followUp", 
-        tsq_zoned_until(((case when (((published_at - ((((published_at - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (published_at - interval '1 day'))) at time zone 'UTC') at time zone 'Europe/Madrid') = published_at then (published_at - ((((published_at - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (published_at - interval '1 day'))) else ((published_at at time zone 'Europe/Madrid') at time zone 'UTC') end) at time zone 'UTC'), 'Europe/Madrid', ((select ((select case when (((tsq_w.w - ((((tsq_w.w - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (tsq_w.w - interval '1 day'))) at time zone 'UTC') at time zone 'Europe/Madrid') = tsq_w.w then (tsq_w.w - ((((tsq_w.w - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (tsq_w.w - interval '1 day'))) else ((tsq_w.w at time zone 'Europe/Madrid') at time zone 'UTC') end from (select ((tsq_z.x at time zone 'Europe/Madrid') + make_interval(days => $2)) as w offset 0) tsq_w)) at time zone 'UTC' from (select (case when (((published_at - ((((published_at - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (published_at - interval '1 day'))) at time zone 'UTC') at time zone 'Europe/Madrid') = published_at then (published_at - ((((published_at - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (published_at - interval '1 day'))) else ((published_at at time zone 'Europe/Madrid') at time zone 'UTC') end) at time zone 'UTC' as x offset 0) tsq_z)), 'Europe/Madrid', 'day', 'nanosecond', 1, 'trunc', 1) as "daysToFollowUp", 
-        make_interval(hours => cast(div(((cast((((select ((select case when (((tsq_w.w - ((((tsq_w.w - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (tsq_w.w - interval '1 day'))) at time zone 'UTC') at time zone 'Europe/Madrid') = tsq_w.w then (tsq_w.w - ((((tsq_w.w - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (tsq_w.w - interval '1 day'))) else ((tsq_w.w at time zone 'Europe/Madrid') at time zone 'UTC') end from (select ((tsq_z.x at time zone 'Europe/Madrid') + make_interval(days => $3)) as w offset 0) tsq_w)) at time zone 'UTC' from (select (case when (((published_at - ((((published_at - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (published_at - interval '1 day'))) at time zone 'UTC') at time zone 'Europe/Madrid') = published_at then (published_at - ((((published_at - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (published_at - interval '1 day'))) else ((published_at at time zone 'Europe/Madrid') at time zone 'UTC') end) at time zone 'UTC' as x offset 0) tsq_z)) at time zone 'UTC') as date) - cast((((case when (((published_at - ((((published_at - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (published_at - interval '1 day'))) at time zone 'UTC') at time zone 'Europe/Madrid') = published_at then (published_at - ((((published_at - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (published_at - interval '1 day'))) else ((published_at at time zone 'Europe/Madrid') at time zone 'UTC') end) at time zone 'UTC') at time zone 'UTC') as date)) * 86400000000000::numeric + ((round(extract(epoch from cast((((select ((select case when (((tsq_w.w - ((((tsq_w.w - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (tsq_w.w - interval '1 day'))) at time zone 'UTC') at time zone 'Europe/Madrid') = tsq_w.w then (tsq_w.w - ((((tsq_w.w - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (tsq_w.w - interval '1 day'))) else ((tsq_w.w at time zone 'Europe/Madrid') at time zone 'UTC') end from (select ((tsq_z.x at time zone 'Europe/Madrid') + make_interval(days => $4)) as w offset 0) tsq_w)) at time zone 'UTC' from (select (case when (((published_at - ((((published_at - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (published_at - interval '1 day'))) at time zone 'UTC') at time zone 'Europe/Madrid') = published_at then (published_at - ((((published_at - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (published_at - interval '1 day'))) else ((published_at at time zone 'Europe/Madrid') at time zone 'UTC') end) at time zone 'UTC' as x offset 0) tsq_z)) at time zone 'UTC') as time)) * 1000000)::bigint * 1000) - (round(extract(epoch from cast((((case when (((published_at - ((((published_at - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (published_at - interval '1 day'))) at time zone 'UTC') at time zone 'Europe/Madrid') = published_at then (published_at - ((((published_at - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (published_at - interval '1 day'))) else ((published_at at time zone 'Europe/Madrid') at time zone 'UTC') end) at time zone 'UTC') at time zone 'UTC') as time)) * 1000000)::bigint * 1000))), 3600000000000) as integer), secs => ((cast((((select ((select case when (((tsq_w.w - ((((tsq_w.w - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (tsq_w.w - interval '1 day'))) at time zone 'UTC') at time zone 'Europe/Madrid') = tsq_w.w then (tsq_w.w - ((((tsq_w.w - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (tsq_w.w - interval '1 day'))) else ((tsq_w.w at time zone 'Europe/Madrid') at time zone 'UTC') end from (select ((tsq_z.x at time zone 'Europe/Madrid') + make_interval(days => $5)) as w offset 0) tsq_w)) at time zone 'UTC' from (select (case when (((published_at - ((((published_at - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (published_at - interval '1 day'))) at time zone 'UTC') at time zone 'Europe/Madrid') = published_at then (published_at - ((((published_at - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (published_at - interval '1 day'))) else ((published_at at time zone 'Europe/Madrid') at time zone 'UTC') end) at time zone 'UTC' as x offset 0) tsq_z)) at time zone 'UTC') as date) - cast((((case when (((published_at - ((((published_at - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (published_at - interval '1 day'))) at time zone 'UTC') at time zone 'Europe/Madrid') = published_at then (published_at - ((((published_at - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (published_at - interval '1 day'))) else ((published_at at time zone 'Europe/Madrid') at time zone 'UTC') end) at time zone 'UTC') at time zone 'UTC') as date)) * 86400000000000::numeric + ((round(extract(epoch from cast((((select ((select case when (((tsq_w.w - ((((tsq_w.w - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (tsq_w.w - interval '1 day'))) at time zone 'UTC') at time zone 'Europe/Madrid') = tsq_w.w then (tsq_w.w - ((((tsq_w.w - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (tsq_w.w - interval '1 day'))) else ((tsq_w.w at time zone 'Europe/Madrid') at time zone 'UTC') end from (select ((tsq_z.x at time zone 'Europe/Madrid') + make_interval(days => $6)) as w offset 0) tsq_w)) at time zone 'UTC' from (select (case when (((published_at - ((((published_at - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (published_at - interval '1 day'))) at time zone 'UTC') at time zone 'Europe/Madrid') = published_at then (published_at - ((((published_at - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (published_at - interval '1 day'))) else ((published_at at time zone 'Europe/Madrid') at time zone 'UTC') end) at time zone 'UTC' as x offset 0) tsq_z)) at time zone 'UTC') as time)) * 1000000)::bigint * 1000) - (round(extract(epoch from cast((((case when (((published_at - ((((published_at - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (published_at - interval '1 day'))) at time zone 'UTC') at time zone 'Europe/Madrid') = published_at then (published_at - ((((published_at - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (published_at - interval '1 day'))) else ((published_at at time zone 'Europe/Madrid') at time zone 'UTC') end) at time zone 'UTC') at time zone 'UTC') as time)) * 1000000)::bigint * 1000))) % 3600000000000 / 1000000000.0) as "hoursToFollowUp", 
-        (select (extract(epoch from ((select case when (((tsq_w.w - ((((tsq_w.w - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (tsq_w.w - interval '1 day'))) at time zone 'UTC') at time zone 'Europe/Madrid') = tsq_w.w then (tsq_w.w - ((((tsq_w.w - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (tsq_w.w - interval '1 day'))) else ((tsq_w.w at time zone 'Europe/Madrid') at time zone 'UTC') end from (select date_trunc('day', (tsq_z.x at time zone 'Europe/Madrid')) + interval '1 day' as w offset 0) tsq_w) - (select case when (((tsq_w.w - ((((tsq_w.w - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (tsq_w.w - interval '1 day'))) at time zone 'UTC') at time zone 'Europe/Madrid') = tsq_w.w then (tsq_w.w - ((((tsq_w.w - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (tsq_w.w - interval '1 day'))) else ((tsq_w.w at time zone 'Europe/Madrid') at time zone 'UTC') end from (select date_trunc('day', (tsq_z.x at time zone 'Europe/Madrid')) as w offset 0) tsq_w))) / 3600)::float8 from (select (select ((select case when (((tsq_w.w - ((((tsq_w.w - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (tsq_w.w - interval '1 day'))) at time zone 'UTC') at time zone 'Europe/Madrid') = tsq_w.w then (tsq_w.w - ((((tsq_w.w - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (tsq_w.w - interval '1 day'))) else ((tsq_w.w at time zone 'Europe/Madrid') at time zone 'UTC') end from (select ((tsq_z.x at time zone 'Europe/Madrid') + make_interval(days => $7)) as w offset 0) tsq_w)) at time zone 'UTC' from (select (case when (((published_at - ((((published_at - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (published_at - interval '1 day'))) at time zone 'UTC') at time zone 'Europe/Madrid') = published_at then (published_at - ((((published_at - interval '1 day') at time zone 'UTC') at time zone 'Europe/Madrid') - (published_at - interval '1 day'))) else ((published_at at time zone 'Europe/Madrid') at time zone 'UTC') end) at time zone 'UTC' as x offset 0) tsq_z) as x offset 0) tsq_z) as "hoursInThatDay" 
+        to_char(((((((published_at at time zone 'Europe/Madrid')) at time zone 'Europe/Madrid') + make_interval(days => $1)) at time zone 'Europe/Madrid')) at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z" BC') || '[Europe/Madrid]' as "followUp", 
+        tsq_zoned_until(((published_at at time zone 'Europe/Madrid')), 'Europe/Madrid', ((((((published_at at time zone 'Europe/Madrid')) at time zone 'Europe/Madrid') + make_interval(days => $2)) at time zone 'Europe/Madrid')), 'Europe/Madrid', 'day', 'nanosecond', 1, 'trunc', 1) as "daysToFollowUp", 
+        make_interval(hours => cast(div(((cast((((((((published_at at time zone 'Europe/Madrid')) at time zone 'Europe/Madrid') + make_interval(days => $3)) at time zone 'Europe/Madrid')) at time zone 'UTC') as date) - cast((((published_at at time zone 'Europe/Madrid')) at time zone 'UTC') as date)) * 86400000000000::numeric + ((round(extract(epoch from cast((((((((published_at at time zone 'Europe/Madrid')) at time zone 'Europe/Madrid') + make_interval(days => $4)) at time zone 'Europe/Madrid')) at time zone 'UTC') as time)) * 1000000)::bigint * 1000) - (round(extract(epoch from cast((((published_at at time zone 'Europe/Madrid')) at time zone 'UTC') as time)) * 1000000)::bigint * 1000))), 3600000000000) as integer), secs => ((cast((((((((published_at at time zone 'Europe/Madrid')) at time zone 'Europe/Madrid') + make_interval(days => $5)) at time zone 'Europe/Madrid')) at time zone 'UTC') as date) - cast((((published_at at time zone 'Europe/Madrid')) at time zone 'UTC') as date)) * 86400000000000::numeric + ((round(extract(epoch from cast((((((((published_at at time zone 'Europe/Madrid')) at time zone 'Europe/Madrid') + make_interval(days => $6)) at time zone 'Europe/Madrid')) at time zone 'UTC') as time)) * 1000000)::bigint * 1000) - (round(extract(epoch from cast((((published_at at time zone 'Europe/Madrid')) at time zone 'UTC') as time)) * 1000000)::bigint * 1000))) % 3600000000000 / 1000000000.0) as "hoursToFollowUp", 
+        (select (extract(epoch from ((date_trunc('day', (tsq_z.x at time zone 'Europe/Madrid')) + interval '1 day') at time zone 'Europe/Madrid') - ((date_trunc('day', (tsq_z.x at time zone 'Europe/Madrid'))) at time zone 'Europe/Madrid')) / 3600)::float8 from (select (((((published_at at time zone 'Europe/Madrid')) at time zone 'Europe/Madrid') + make_interval(days => $7)) at time zone 'Europe/Madrid') as x offset 0) tsq_z) as "hoursInThatDay" 
     from project_release 
     order by version
     ```
@@ -976,13 +976,31 @@ The follow-up of 0.9.0 is at 11:00 in Madrid, like its publication, 29 days late
 | `round(unit)`, `round({ smallestUnit, roundingIncrement, roundingMode })` | To a day, the start of its day or of the next one, the nearer one by the length of the day in its zone; to a unit of the time, its date and time in its zone rounded, as a `plainDateTime`'s, and taken back to its zone keeping its offset when it can. `'halfExpand'` by default |
 | `until(other, options)`, `since(other, options)` | The duration to (or from) another zoned date and time. In hours by default, the difference of their instants, with the units and the rounding of an instant. With a `largestUnit` of days or larger (or a `smallestUnit` of days), the days of the calendar in their zone, each one with its length there, with every option of Temporal: both must be in the same zone, or the query fails, as Temporal rejects it. This difference is computed by the function `tsq_zoned_until` of the library |
 
+Every wall clock these methods take back to the zone that the zone repeats is, on PostgreSQL without the functions of the library, the later instant (see the next section).
+
 Temporal's `getTimeZoneTransition` has no equivalent: neither database gives a way to find the changes of offset of a zone. A zoned date and time is always in the ISO calendar.
 
 On Oracle a `duration` of the query kept in an `INTERVAL DAY TO SECOND` has 24 hours as a day (`PT28H` is kept as `P1DT4H`, and read so): added to a zoned date and time, that day is a day of the calendar, as for the value read. PostgreSQL's interval keeps its days and its time apart, as Temporal.
 
-### The function `tsq_zoned_until`
+### A wall clock the zone repeats, on PostgreSQL
 
-`until` and `since` of two zoned dates and times in days or larger units count the days of the calendar in their zone, with the length of each one there, and round as Temporal rounds, which needs variables: it is done by `tsq_zoned_until`, a function of the library (on PostgreSQL with `tsq_zoned_at`, which it uses). Create it once in the database, on Oracle after [`tsq_duration_text`](#the-functions-tsq_duration_text-and-tsq_duration_round), which it uses; without it, the query fails with the error of the database for a function that doesn't exist. Two zoned dates and times in different zones make it fail (`ORA-20001` on Oracle).
+PostgreSQL takes a wall clock to its zone (`timestamp at time zone`) moving one the zone skips forward, as Temporal, and taking the later instant of one it repeats, where Temporal's `'compatible'` takes the earlier one. That is what a query gives by default: `toZonedDateTime(zone)` and `toZonedDateTime(zone, { disambiguation: 'later' })` of 02:30 on 2024-10-27 in Madrid are `2024-10-27T02:30:00+01:00[Europe/Madrid]` (01:30 in UTC), `add({ days: 1 })` of `2024-10-26T02:30:00+02:00[Europe/Madrid]` gives that same instant, and `startOfDay()` of a day whose midnight the zone repeats (2012-11-04 in Havana) is the second midnight. `disambiguation: 'earlier'` and `'reject'` fail when the query is built, with `UNSUPPORTED_QUERY`, and nothing is sent. Every other day and hour is Temporal's.
+
+With the function of the library `tsq_zoned_of_wall` in the database (its code is in [the next section](#the-functions-tsq_zoned_until-and-tsq_zoned_of_wall)), set `temporalFunctions` to `'installed'` on the connection, and every disambiguation is Temporal's: the same three are `2024-10-27T02:30:00+02:00[Europe/Madrid]` (00:30 in UTC) and Havana's first midnight, at the cost of a call to the function in each wall clock taken to its zone. Its default is `'not installed'`.
+
+```ts
+import { PostgreSqlConnection } from 'ts-sql-query/postgresql'
+
+class DBConnection extends PostgreSqlConnection<'DBConnection'> {
+    protected override temporalFunctions = 'installed' as const
+}
+```
+
+Oracle gives every disambiguation as Temporal without functions.
+
+### The functions `tsq_zoned_until` and `tsq_zoned_of_wall`
+
+`until` and `since` of two zoned dates and times in days or larger units count the days of the calendar in their zone, with the length of each one there, and round as Temporal rounds, which needs variables: it is done by `tsq_zoned_until`, a function of the library (on PostgreSQL with `tsq_zoned_of_wall`, which it uses, and which takes a wall clock to its zone as Temporal, the one `temporalFunctions` uses). Create it once in the database, on Oracle after [`tsq_duration_text`](#the-functions-tsq_duration_text-and-tsq_duration_round), which it uses; without it, the query fails with the error of the database for a function that doesn't exist. Two zoned dates and times in different zones make it fail (`ORA-20001` on Oracle).
 
 === "Oracle"
     ```sql
@@ -1220,27 +1238,42 @@ On Oracle a `duration` of the query kept in an `INTERVAL DAY TO SECOND` has 24 h
     ```
 ===+ "PostgreSQL"
     ```sql
-    CREATE OR REPLACE FUNCTION tsq_zoned_at(t timestamp, zone text, to_utc boolean) RETURNS timestamp LANGUAGE plpgsql IMMUTABLE AS $$
+    CREATE OR REPLACE FUNCTION tsq_zoned_of_wall(wall timestamp, zone text, disambiguation text, preferred_offset interval DEFAULT NULL) RETURNS timestamptz LANGUAGE plpgsql IMMUTABLE AS $$
     DECLARE
+        -- An offset like '+05:30' is read by PostgreSQL as a POSIX zone, west of UTC: its sign inverted
+        v_zone text := CASE WHEN zone ~ '^[+-]' THEN translate(zone, '+-', '-+') ELSE zone END;
         v_before timestamp;
         v_after timestamp;
+        v_is_before boolean;
+        v_is_after boolean;
     BEGIN
-        IF NOT to_utc THEN
-            IF zone ~ '^[+-]' THEN
-                RETURN (t AT TIME ZONE 'UTC') AT TIME ZONE zone::interval;
-            END IF;
-            RETURN (t AT TIME ZONE 'UTC') AT TIME ZONE zone;
+        IF wall IS NULL OR zone IS NULL OR disambiguation IS NULL THEN
+            RETURN NULL;
         END IF;
-        v_before := t - (tsq_zoned_at(t - interval '1 day', zone, false) - (t - interval '1 day'));
-        v_after := t - (tsq_zoned_at(t + interval '1 day', zone, false) - (t + interval '1 day'));
-        IF tsq_zoned_at(v_before, zone, false) <> t AND tsq_zoned_at(v_after, zone, false) = t THEN
-            RETURN v_after;
+        IF preferred_offset IS NOT NULL AND (((wall - preferred_offset) AT TIME ZONE 'UTC') AT TIME ZONE v_zone) = wall THEN
+            RETURN (wall - preferred_offset) AT TIME ZONE 'UTC';
         END IF;
-        RETURN v_before;
+        -- The wall clock minus the offset of the zone a day before and a day after it: an instant of it when the zone gives
+        -- it back (two for a wall clock it repeats, none for one it skips)
+        v_before := wall - ((((wall - interval '1 day') AT TIME ZONE 'UTC') AT TIME ZONE v_zone) - (wall - interval '1 day'));
+        v_after := wall - ((((wall + interval '1 day') AT TIME ZONE 'UTC') AT TIME ZONE v_zone) - (wall + interval '1 day'));
+        v_is_before := ((v_before AT TIME ZONE 'UTC') AT TIME ZONE v_zone) = wall;
+        v_is_after := ((v_after AT TIME ZONE 'UTC') AT TIME ZONE v_zone) = wall;
+        IF disambiguation = 'reject' AND v_is_before = v_is_after AND (NOT v_is_before OR v_before <> v_after) THEN
+            RAISE EXCEPTION 'tsq_zoned_of_wall: % is not one instant in %', wall, zone;
+        END IF;
+        IF disambiguation = 'later' THEN
+            RETURN (CASE WHEN v_is_after THEN v_after ELSE v_before END) AT TIME ZONE 'UTC';
+        ELSIF disambiguation = 'compatible' THEN
+            RETURN (CASE WHEN v_is_before OR NOT v_is_after THEN v_before ELSE v_after END) AT TIME ZONE 'UTC';
+        END IF;
+        RETURN (CASE WHEN v_is_before THEN v_before ELSE v_after END) AT TIME ZONE 'UTC';
     END $$;
 
     CREATE OR REPLACE FUNCTION tsq_zoned_until(one timestamptz, one_zone text, two timestamptz, two_zone text, largest_unit text, smallest_unit text, increment bigint, rounding_mode text, negation integer) RETURNS interval LANGUAGE plpgsql IMMUTABLE AS $$
     DECLARE
+        -- An offset like '+05:30' is read by PostgreSQL as a POSIX zone, west of UTC: its sign inverted
+        v_zone text := CASE WHEN one_zone ~ '^[+-]' THEN translate(one_zone, '+-', '-+') ELSE one_zone END;
         v_u1 timestamp;
         v_u2 timestamp;
         v_w1 timestamp;
@@ -1287,8 +1320,8 @@ On Oracle a `duration` of the query kept in an `INTERVAL DAY TO SECOND` has 24 h
         IF v_u1 = v_u2 THEN
             RETURN interval '0';
         END IF;
-        v_w1 := tsq_zoned_at(v_u1, one_zone, false);
-        v_w2 := tsq_zoned_at(v_u2, one_zone, false);
+        v_w1 := (v_u1 AT TIME ZONE 'UTC') AT TIME ZONE v_zone;
+        v_w2 := (v_u2 AT TIME ZONE 'UTC') AT TIME ZONE v_zone;
         v_d1 := v_w1::date;
         v_t1 := v_w1 - v_d1::timestamp;
         v_sign := CASE WHEN v_u2 < v_u1 THEN -1 ELSE 1 END;
@@ -1300,7 +1333,7 @@ On Oracle a `duration` of the query kept in an `INTERVAL DAY TO SECOND` has 24 h
             v_correction := CASE WHEN sign(extract(epoch from (v_w2 - v_w2::date::timestamp) - v_t1)) = -v_sign THEN 1 ELSE 0 END;
             WHILE v_correction <= CASE WHEN v_sign = 1 THEN 2 ELSE 1 END AND NOT v_found LOOP
                 v_inter := v_w2::date - v_correction * v_sign;
-                v_t := extract(epoch from v_u2 - tsq_zoned_at(v_inter + v_t1, one_zone, true)) * 1000000000;
+                v_t := extract(epoch from v_u2 - (tsq_zoned_of_wall(v_inter + v_t1, one_zone, 'compatible') AT TIME ZONE 'UTC')) * 1000000000;
                 IF sign(v_t) <> -v_sign THEN v_found := true; END IF;
                 v_correction := v_correction + 1;
             END LOOP;
@@ -1344,13 +1377,13 @@ On Oracle a `duration` of the query kept in an `INTERVAL DAY TO SECOND` has 24 h
                     v_ey := v_years; v_em := v_months; v_ew := v_weeks; v_m := v_r1;
                 END IF;
                 -- The start and the end: the first wall clock plus the duration truncated, and plus one increment more
-                v_start := tsq_zoned_at((v_d1 + make_interval(months => (v_ey * 12 + v_em)::integer))::date + (v_ew * 7 + v_m)::integer + v_t1, one_zone, true);
+                v_start := (tsq_zoned_of_wall((v_d1 + make_interval(months => (v_ey * 12 + v_em)::integer))::date + (v_ew * 7 + v_m)::integer + v_t1, one_zone, 'compatible') AT TIME ZONE 'UTC');
                 IF smallest_unit = 'year' THEN v_ey := v_ey + increment * v_sign;
                 ELSIF smallest_unit = 'month' THEN v_em := v_em + increment * v_sign;
                 ELSIF smallest_unit = 'week' THEN v_ew := v_ew + increment * v_sign;
                 ELSE v_m := v_m + increment * v_sign;
                 END IF;
-                v_end := tsq_zoned_at((v_d1 + make_interval(months => (v_ey * 12 + v_em)::integer))::date + (v_ew * 7 + v_m)::integer + v_t1, one_zone, true);
+                v_end := (tsq_zoned_of_wall((v_d1 + make_interval(months => (v_ey * 12 + v_em)::integer))::date + (v_ew * 7 + v_m)::integer + v_t1, one_zone, 'compatible') AT TIME ZONE 'UTC');
                 v_num := abs(extract(epoch from v_u2 - v_start));
                 v_den := abs(extract(epoch from v_end - v_start));
                 v_up := v_num <> 0 AND (v_num = v_den OR v_mode = 'infinity' OR v_mode LIKE 'half%' AND (2 * v_num > v_den OR 2 * v_num = v_den AND (v_mode = 'halfInfinity' OR v_mode = 'halfEven' AND mod(abs(v_r1) / increment, 2) <> 0)));
@@ -1374,8 +1407,8 @@ On Oracle a `duration` of the query kept in an `INTERVAL DAY TO SECOND` has 24 h
             ELSE
                 -- NudgeToZonedTime: the time rounded in the day it is in, which may round to the next day (of its length there)
                 v_step := CASE smallest_unit WHEN 'hour' THEN 3600000000000 WHEN 'minute' THEN 60000000000 WHEN 'second' THEN 1000000000 WHEN 'millisecond' THEN 1000000 WHEN 'microsecond' THEN 1000 ELSE 1 END * increment;
-                v_start := tsq_zoned_at((v_d1 + make_interval(months => (v_years * 12 + v_months)::integer))::date + (v_weeks * 7 + v_days)::integer + v_t1, one_zone, true);
-                v_end := tsq_zoned_at((v_d1 + make_interval(months => (v_years * 12 + v_months)::integer))::date + (v_weeks * 7 + v_days + v_sign)::integer + v_t1, one_zone, true);
+                v_start := (tsq_zoned_of_wall((v_d1 + make_interval(months => (v_years * 12 + v_months)::integer))::date + (v_weeks * 7 + v_days)::integer + v_t1, one_zone, 'compatible') AT TIME ZONE 'UTC');
+                v_end := (tsq_zoned_of_wall((v_d1 + make_interval(months => (v_years * 12 + v_months)::integer))::date + (v_weeks * 7 + v_days + v_sign)::integer + v_t1, one_zone, 'compatible') AT TIME ZONE 'UTC');
                 v_pass := 0;
                 v_beyond := v_t;
                 -- The time rounded (Temporal's RoundNumberToIncrement), and again beyond the day when it reaches its end
@@ -1420,7 +1453,7 @@ On Oracle a `duration` of the query kept in an `INTERVAL DAY TO SECOND` has 24 h
                         ELSE
                             v_ew := v_weeks + v_sign;
                         END IF;
-                        IF sign(extract(epoch from v_nudged - tsq_zoned_at((v_d1 + make_interval(months => (v_ey * 12 + v_em)::integer))::date + (v_ew * 7)::integer + v_t1, one_zone, true))) = -v_sign THEN
+                        IF sign(extract(epoch from v_nudged - (tsq_zoned_of_wall((v_d1 + make_interval(months => (v_ey * 12 + v_em)::integer))::date + (v_ew * 7)::integer + v_t1, one_zone, 'compatible') AT TIME ZONE 'UTC'))) = -v_sign THEN
                             EXIT;
                         END IF;
                         v_years := v_ey; v_months := v_em; v_weeks := v_ew; v_days := 0; v_t := 0;

@@ -17,7 +17,7 @@ They are of two kinds:
 |---|---|---|
 | [`tsq_duration_part`](#tsq_duration_part) | a duration of a column that keeps it as text is added, has its fields, its sign or its total read, or is negated | — |
 | [`tsq_duration_text`](#tsq_duration_text) | `until` or `since` computes a duration | — |
-| [`tsq_duration_round`](#tsq_duration_round) | `until` or `since` rounds to a week, a month or a year | `tsq_duration_text` |
+| [`tsq_duration_round`](#tsq_duration_round) | `until` or `since` in months or years, or rounded to a week, a month or a year | `tsq_duration_text` |
 | [`tsq_duration_total`](#tsq_duration_total) | `total` of a duration | — |
 | [`tsq_duration_add`](#tsq_duration_add) | `add` or `subtract` of two durations | `tsq_duration_text` |
 | [`tsq_zoned_until`](#tsq_zoned_until) | `until` or `since` of two zoned dates and times, in days or larger units | `tsq_duration_text` |
@@ -114,7 +114,7 @@ END;
 
 ## `tsq_duration_round`
 
-`tsq_duration_round` gives the duration from one date and time to another as Temporal's `until` with a largest unit of weeks, months or years, rounded as Temporal rounds it, counting from the first value. A query calls it when `until` or `since` rounds to the calendar: a largest unit of a week, a month or a year with a `smallestUnit` or a `roundingIncrement` other than the defaults (see [The options of `until` and `since`](../../dates-and-times.md#the-options-of-until-and-since)). It calls `tsq_duration_text`.
+`tsq_duration_round` gives the duration from one date and time to another as Temporal's `until` with a largest unit of weeks, months or years, rounded as Temporal rounds it, counting from the first value. A query calls it when `until` or `since` has a largest unit of a month or a year, and when it rounds to the calendar: a largest unit of a week with a `smallestUnit` or a `roundingIncrement` other than the defaults (see [The options of `until` and `since`](../../dates-and-times.md#the-options-of-until-and-since)). It calls `tsq_duration_text`.
 
 ```sql
 CREATE OR REPLACE FUNCTION tsq_duration_round(y1 IN NUMBER, m1 IN NUMBER, d1 IN NUMBER, ns1 IN NUMBER, y2 IN NUMBER, m2 IN NUMBER, d2 IN NUMBER, ns2 IN NUMBER, largest_unit IN VARCHAR2, smallest_unit IN VARCHAR2, increment IN NUMBER, rounding_mode IN VARCHAR2, negation IN NUMBER) RETURN VARCHAR2 DETERMINISTIC IS

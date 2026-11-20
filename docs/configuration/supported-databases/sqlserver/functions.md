@@ -17,7 +17,7 @@ They are of two kinds:
 |---|---|---|
 | [`tsq_duration_part`](#tsq_duration_part) | it adds a duration of the database, reads its fields, its sign or its total, or negates it | — |
 | [`tsq_duration_text`](#tsq_duration_text) | `until` or `since` computes a duration | — |
-| [`tsq_duration_round`](#tsq_duration_round) | `until` or `since` rounds to a week, a month or a year | `tsq_duration_text` |
+| [`tsq_duration_round`](#tsq_duration_round) | `until` or `since` in months or years, or rounded to a week, a month or a year | `tsq_duration_text` |
 | [`tsq_duration_total`](#tsq_duration_total) | `total` of a duration | — |
 | [`tsq_duration_add`](#tsq_duration_add) | `add` or `subtract` of two durations | `tsq_duration_text` |
 | [The functions of `minValueFunction` and `maxValueFunction`](#the-functions-of-minvaluefunction-and-maxvaluefunction) | `minValue` or `maxValue` is written, with those settings | — |
@@ -117,7 +117,7 @@ GO
 
 ## `tsq_duration_round`
 
-`tsq_duration_round` gives the duration from one date and time to another as Temporal's `until` with a largest unit of weeks, months or years, rounded as Temporal rounds it, counting from the first value. A query calls it when `until` or `since` rounds to the calendar: a largest unit of a week, a month or a year with a `smallestUnit` or a `roundingIncrement` other than the defaults (see [The options of `until` and `since`](../../dates-and-times.md#the-options-of-until-and-since)). It calls `tsq_duration_text`.
+`tsq_duration_round` gives the duration from one date and time to another as Temporal's `until` with a largest unit of weeks, months or years, rounded as Temporal rounds it, counting from the first value. A query calls it when `until` or `since` has a largest unit of a month or a year, and when it rounds to the calendar: a largest unit of a week with a `smallestUnit` or a `roundingIncrement` other than the defaults (see [The options of `until` and `since`](../../dates-and-times.md#the-options-of-until-and-since)). It calls `tsq_duration_text`.
 
 ```sql
 CREATE OR ALTER FUNCTION dbo.tsq_duration_round(@y1 INT, @m1 INT, @d1 INT, @ns1 BIGINT, @y2 INT, @m2 INT, @d2 INT, @ns2 BIGINT, @largest VARCHAR(5), @smallest VARCHAR(11), @increment BIGINT, @mode VARCHAR(10), @negation INT) RETURNS VARCHAR(100) WITH SCHEMABINDING AS

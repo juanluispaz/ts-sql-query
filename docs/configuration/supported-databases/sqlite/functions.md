@@ -44,7 +44,7 @@ SQLite keeps a [duration](../../dates-and-times.md#durations) as its ISO 8601 te
 |---|---|
 | `tsq_duration_part` | it adds a duration of the database, like a column, to a date or to another duration, reads its fields, its sign or its total, or negates it ([A duration kept as text](../../dates-and-times.md#a-duration-kept-as-text-the-function-tsq_duration_part)) |
 | `tsq_duration_text` | `until` or `since` computes a duration ([The duration between two dates and times](../../dates-and-times.md#the-duration-between-two-dates-and-times)) |
-| `tsq_duration_round` | `until` or `since` rounds to a week, a month or a year ([The options of `until` and `since`](../../dates-and-times.md#the-options-of-until-and-since)) |
+| `tsq_duration_round` | `until` or `since` in months or years, or rounded to a week, a month or a year ([The options of `until` and `since`](../../dates-and-times.md#the-options-of-until-and-since)) |
 | `tsq_duration_total` | `total` of a duration ([The total of a duration in a unit](../../dates-and-times.md#the-total-of-a-duration-in-a-unit)) |
 | `tsq_duration_add` | `add` or `subtract` of two durations ([Durations added and subtracted together](../../dates-and-times.md#durations-added-and-subtracted-together)) |
 

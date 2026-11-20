@@ -187,6 +187,48 @@ describe(ctx.label, () => {
         ])
     })
 
+    test('docs:dates-and-times/the-arithmetic-of-an-instant', async () => {
+        ctx.mockNext([
+            { version: '0.9.0', afterPublishing: '00:05:00', hour: '2024-03-02 11:00:00+00', reviewBy: '2024-03-04 12:00:00+00' },
+            { version: '1.2.0', afterPublishing: '00:30:15.123456', hour: '2024-01-16 09:00:00+00', reviewBy: '2024-01-18 10:00:00+00' },
+        ])
+        const connection = ctx.conn
+
+        // doc-start
+        const deployments = await connection.selectFrom(tRelease)
+            .where(tRelease.deployedAt.isNotNull())
+            .select({
+                version: tRelease.version,
+                afterPublishing: tRelease.deployedAt.since(tRelease.publishedAt.toInstant(), { largestUnit: 'hour' }),
+                hour: tRelease.deployedAt.round({ smallestUnit: 'hour', roundingMode: 'floor' }),
+                reviewBy: tRelease.deployedAt.round({ smallestUnit: 'hour', roundingMode: 'ceil' }).add({ hours: 48 }),
+            })
+            .orderBy('version')
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as version, dbo.tsq_duration_text(0, 0, 0, 0, -(datediff(day, cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as date), cast(cast(switchoffset(published_at, '+00:00') as datetime2) as date)) * cast(86400000000000 as bigint) + ((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(published_at, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(published_at, '+00:00') as datetime2))) - (cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(deployed_at, '+00:00') as datetime2))))), 'hour') as afterPublishing, dateadd(nanosecond, ((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(deployed_at, '+00:00') as datetime2))) / cast(3600000000000 as bigint) * cast(3600000000000 as bigint)) % 1000000000, dateadd(second, ((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(deployed_at, '+00:00') as datetime2))) / cast(3600000000000 as bigint) * cast(3600000000000 as bigint)) / 1000000000, cast(cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as date) as datetime2))) as hour, dateadd(day, @0, cast(switchoffset(dateadd(nanosecond, (((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(deployed_at, '+00:00') as datetime2))) + cast(3599999999999 as bigint)) / cast(3600000000000 as bigint) * cast(3600000000000 as bigint)) % 1000000000, dateadd(second, (((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(deployed_at, '+00:00') as datetime2))) + cast(3599999999999 as bigint)) / cast(3600000000000 as bigint) * cast(3600000000000 as bigint)) / 1000000000, cast(cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as date) as datetime2))), '+00:00') as datetime2)) as reviewBy from project_release where deployed_at is not null order by version"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof deployments, Array<{ version: string; afterPublishing?: Temporal.Duration; hour?: Temporal.Instant; reviewBy?: Temporal.Instant }>>>()
+        const deployed = [Temporal.Instant.from('2024-03-02T11:05:00Z'), Temporal.Instant.from('2024-01-16T09:30:15.123456Z')]
+        const published = [Temporal.Instant.from('2024-03-02T11:00:00Z'), Temporal.Instant.from('2024-01-16T09:00:00Z')]
+        expect(deployments.map((release, i) => [
+            release.version,
+            Temporal.Duration.compare(release.afterPublishing!, deployed[i]!.since(published[i]!, { largestUnit: 'hour' })),
+            release.hour?.toString(),
+            release.reviewBy?.toString(),
+        ])).toEqual([0, 1].map(i => [
+            ['0.9.0', '1.2.0'][i],
+            0,
+            deployed[i]!.round({ smallestUnit: 'hour', roundingMode: 'floor' }).toString(),
+            deployed[i]!.round({ smallestUnit: 'hour', roundingMode: 'ceil' }).add({ hours: 48 }).toString(),
+        ]))
+    })
+
     test('docs:dates-and-times/the-current-instant', async () => {
         ctx.mockNext('2024-05-06T10:11:12.3456780')
         const connection = ctx.conn

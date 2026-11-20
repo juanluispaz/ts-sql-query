@@ -187,6 +187,48 @@ describe(ctx.label, () => {
         ])
     })
 
+    test('docs:dates-and-times/the-arithmetic-of-an-instant', async () => {
+        ctx.mockNext([
+            { version: '0.9.0', afterPublishing: '00:05:00', hour: '2024-03-02 11:00:00+00', reviewBy: '2024-03-04 12:00:00+00' },
+            { version: '1.2.0', afterPublishing: '00:30:15.123456', hour: '2024-01-16 09:00:00+00', reviewBy: '2024-01-18 10:00:00+00' },
+        ])
+        const connection = ctx.conn
+
+        // doc-start
+        const deployments = await connection.selectFrom(tRelease)
+            .where(tRelease.deployedAt.isNotNull())
+            .select({
+                version: tRelease.version,
+                afterPublishing: tRelease.deployedAt.since(tRelease.publishedAt.toInstant(), { largestUnit: 'hour' }),
+                hour: tRelease.deployedAt.round({ smallestUnit: 'hour', roundingMode: 'floor' }),
+                reviewBy: tRelease.deployedAt.round({ smallestUnit: 'hour', roundingMode: 'ceil' }).add({ hours: 48 }),
+            })
+            .orderBy('version')
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as version, make_interval(secs => -((cast(published_at as date) - cast(deployed_at as date)) * 86400000000000 + ((round(extract(epoch from cast(published_at as time)) * 1000000)::bigint * 1000) - (round(extract(epoch from cast(deployed_at as time)) * 1000000)::bigint * 1000))) / 1000000000.0) as "afterPublishing", cast(deployed_at as date) + make_interval(secs => (((round(extract(epoch from cast(deployed_at as time)) * 1000000)::bigint * 1000) / 3600000000000) * 3600000000000) / 1000000000.0) as hour, cast(deployed_at as date) + make_interval(secs => ((((round(extract(epoch from cast(deployed_at as time)) * 1000000)::bigint * 1000) + 3599999999999) / 3600000000000) * 3600000000000) / 1000000000.0) + $1 as "reviewBy" from project_release where deployed_at is not null order by version"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            Duration {},
+          ]
+        `)
+        assertType<Exact<typeof deployments, Array<{ version: string; afterPublishing?: Temporal.Duration; hour?: Temporal.Instant; reviewBy?: Temporal.Instant }>>>()
+        const deployed = [Temporal.Instant.from('2024-03-02T11:05:00Z'), Temporal.Instant.from('2024-01-16T09:30:15.123456Z')]
+        const published = [Temporal.Instant.from('2024-03-02T11:00:00Z'), Temporal.Instant.from('2024-01-16T09:00:00Z')]
+        expect(deployments.map((release, i) => [
+            release.version,
+            Temporal.Duration.compare(release.afterPublishing!, deployed[i]!.since(published[i]!, { largestUnit: 'hour' })),
+            release.hour?.toString(),
+            release.reviewBy?.toString(),
+        ])).toEqual([0, 1].map(i => [
+            ['0.9.0', '1.2.0'][i],
+            0,
+            deployed[i]!.round({ smallestUnit: 'hour', roundingMode: 'floor' }).toString(),
+            deployed[i]!.round({ smallestUnit: 'hour', roundingMode: 'ceil' }).add({ hours: 48 }).toString(),
+        ]))
+    })
+
     test('docs:dates-and-times/the-current-instant', async () => {
         ctx.mockNext('2024-05-06 10:11:12.345678+00')
         const connection = ctx.conn

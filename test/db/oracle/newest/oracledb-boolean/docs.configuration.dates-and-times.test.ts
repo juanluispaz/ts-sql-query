@@ -187,6 +187,48 @@ describe(ctx.label, () => {
         ])
     })
 
+    test('docs:dates-and-times/the-arithmetic-of-an-instant', async () => {
+        ctx.mockNext([
+            { version: '0.9.0', afterPublishing: '00:05:00', hour: '2024-03-02 11:00:00+00', reviewBy: '2024-03-04 12:00:00+00' },
+            { version: '1.2.0', afterPublishing: '00:30:15.123456', hour: '2024-01-16 09:00:00+00', reviewBy: '2024-01-18 10:00:00+00' },
+        ])
+        const connection = ctx.conn
+
+        // doc-start
+        const deployments = await connection.selectFrom(tRelease)
+            .where(tRelease.deployedAt.isNotNull())
+            .select({
+                version: tRelease.version,
+                afterPublishing: tRelease.deployedAt.since(tRelease.publishedAt.toInstant(), { largestUnit: 'hour' }),
+                hour: tRelease.deployedAt.round({ smallestUnit: 'hour', roundingMode: 'floor' }),
+                reviewBy: tRelease.deployedAt.round({ smallestUnit: 'hour', roundingMode: 'ceil' }).add({ hours: 48 }),
+            })
+            .orderBy('version')
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as "version", tsq_duration_text(0, 0, 0, 0, -((trunc(sys_extract_utc(cast(published_at as timestamp(9) with time zone))) - trunc(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)))) * 86400000000000 + ((extract(hour from (cast(sys_extract_utc(cast(published_at as timestamp(9) with time zone)) as timestamp(9)) - trunc(sys_extract_utc(cast(published_at as timestamp(9) with time zone))))) * 3600 + extract(minute from (cast(sys_extract_utc(cast(published_at as timestamp(9) with time zone)) as timestamp(9)) - trunc(sys_extract_utc(cast(published_at as timestamp(9) with time zone))))) * 60 + extract(second from (cast(sys_extract_utc(cast(published_at as timestamp(9) with time zone)) as timestamp(9)) - trunc(sys_extract_utc(cast(published_at as timestamp(9) with time zone)))))) * 1000000000 - (extract(hour from (cast(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)) as timestamp(9)) - trunc(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone))))) * 3600 + extract(minute from (cast(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)) as timestamp(9)) - trunc(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone))))) * 60 + extract(second from (cast(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)) as timestamp(9)) - trunc(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)))))) * 1000000000)), 'hour') as "afterPublishing", to_char(sys_extract_utc(cast(from_tz(cast(trunc(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone))) as timestamp(9)) + numtodsinterval((trunc((extract(hour from (cast(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)) as timestamp(9)) - trunc(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone))))) * 3600 + extract(minute from (cast(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)) as timestamp(9)) - trunc(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone))))) * 60 + extract(second from (cast(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)) as timestamp(9)) - trunc(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)))))) * 1000000000 / 3600000000000) * 3600000000000) / 1000000000, 'second'), '+00:00') as timestamp(9) with time zone)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "hour", to_char(sys_extract_utc(cast(from_tz(sys_extract_utc(cast(from_tz(cast(trunc(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone))) as timestamp(9)) + numtodsinterval((trunc(((extract(hour from (cast(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)) as timestamp(9)) - trunc(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone))))) * 3600 + extract(minute from (cast(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)) as timestamp(9)) - trunc(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone))))) * 60 + extract(second from (cast(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)) as timestamp(9)) - trunc(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)))))) * 1000000000 + 3599999999999) / 3600000000000) * 3600000000000) / 1000000000, 'second'), '+00:00') as timestamp(9) with time zone)) + numtodsinterval(:0, 'second'), '+00:00') as timestamp(9) with time zone)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "reviewBy" from project_release where deployed_at is not null order by "version""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            172800n,
+          ]
+        `)
+        assertType<Exact<typeof deployments, Array<{ version: string; afterPublishing?: Temporal.Duration; hour?: Temporal.Instant; reviewBy?: Temporal.Instant }>>>()
+        const deployed = [Temporal.Instant.from('2024-03-02T11:05:00Z'), Temporal.Instant.from('2024-01-16T09:30:15.123456Z')]
+        const published = [Temporal.Instant.from('2024-03-02T11:00:00Z'), Temporal.Instant.from('2024-01-16T09:00:00Z')]
+        expect(deployments.map((release, i) => [
+            release.version,
+            Temporal.Duration.compare(release.afterPublishing!, deployed[i]!.since(published[i]!, { largestUnit: 'hour' })),
+            release.hour?.toString(),
+            release.reviewBy?.toString(),
+        ])).toEqual([0, 1].map(i => [
+            ['0.9.0', '1.2.0'][i],
+            0,
+            deployed[i]!.round({ smallestUnit: 'hour', roundingMode: 'floor' }).toString(),
+            deployed[i]!.round({ smallestUnit: 'hour', roundingMode: 'ceil' }).add({ hours: 48 }).toString(),
+        ]))
+    })
+
     test('docs:dates-and-times/the-current-instant', async () => {
         ctx.mockNext('2024-05-06T10:11:12.345678000Z AD')
         const connection = ctx.conn

@@ -187,6 +187,47 @@ describe(ctx.label, () => {
         ])
     })
 
+    // NOT-SUPPORTED: Bun SQL's sqlite adapter exposes neither a user-defined-function API nor its bun:sqlite `Database`, so the tsq_duration_text UDF can't be registered
+    /*
+    test('docs:dates-and-times/the-arithmetic-of-an-instant', async () => {
+        ctx.mockNext([
+            { version: '0.9.0', afterPublishing: 'PT5M', hour: '2024-03-02 11:00:00.000', reviewBy: '2024-03-04 12:00:00.000' },
+            { version: '1.2.0', afterPublishing: 'PT30M15.123S', hour: '2024-01-16 09:00:00.000', reviewBy: '2024-01-18 10:00:00.000' },
+        ])
+        const connection = ctx.conn
+
+        // doc-start
+        const deployments = await connection.selectFrom(tRelease)
+            .where(tRelease.deployedAt.isNotNull())
+            .select({
+                version: tRelease.version,
+                afterPublishing: tRelease.deployedAt.since(tRelease.publishedAt.toInstant(), { largestUnit: 'hour' }),
+                hour: tRelease.deployedAt.round({ smallestUnit: 'hour', roundingMode: 'floor' }),
+                reviewBy: tRelease.deployedAt.round({ smallestUnit: 'hour', roundingMode: 'ceil' }).add({ hours: 48 }),
+            })
+            .orderBy('version')
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams).toMatchInlineSnapshot()
+        assertType<Exact<typeof deployments, Array<{ version: string; afterPublishing?: Temporal.Duration; hour?: Temporal.Instant; reviewBy?: Temporal.Instant }>>>()
+        const deployed = [Temporal.Instant.from('2024-03-02T11:05:00Z'), Temporal.Instant.from('2024-01-16T09:30:15.123Z')]
+        const published = [Temporal.Instant.from('2024-03-02T11:00:00Z'), Temporal.Instant.from('2024-01-16T09:00:00Z')]
+        expect(deployments.map((release, i) => [
+            release.version,
+            Temporal.Duration.compare(release.afterPublishing!, deployed[i]!.since(published[i]!, { largestUnit: 'hour' })),
+            release.hour?.toString(),
+            release.reviewBy?.toString(),
+        ])).toEqual([0, 1].map(i => [
+            ['0.9.0', '1.2.0'][i],
+            0,
+            deployed[i]!.round({ smallestUnit: 'hour', roundingMode: 'floor' }).toString(),
+            deployed[i]!.round({ smallestUnit: 'hour', roundingMode: 'ceil' }).add({ hours: 48 }).toString(),
+        ]))
+    })
+    */
+
     test('docs:dates-and-times/the-current-instant', async () => {
         ctx.mockNext('2024-05-06 10:11:12.345')
         const connection = ctx.conn

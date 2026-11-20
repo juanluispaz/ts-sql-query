@@ -584,6 +584,105 @@ The parameters are: `[]`
 
 `epochNanoseconds()` holds every instant on PostgreSQL, MariaDB, MySQL and Oracle, which compute it as a decimal. On SQL Server and SQLite it is a 64-bit integer, so an instant before 1678 or after 2262 makes the query fail. SQLite keeps an instant to the millisecond, and its drivers give an integer beyond 2^53, like the nanoseconds of today, as a rounded number unless their big-integer mode is on: the library then rejects reading it with `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE`, and the value can still be compared in the query.
 
+### The arithmetic of an instant
+
+An instant has Temporal's arithmetic, with the units of the time alone, since without a zone a day has no fixed length:
+
+- `add` and `subtract` take a `Temporal.Duration` or its fields, of hours and smaller units: `add({ hours: 48 })`. A duration with days, weeks, months or years is rejected before the query is sent, as Temporal rejects it.
+- `until` and `since` give the duration to or from another instant, in seconds and smaller units by default: `largestUnit` asks for minutes or hours, and `smallestUnit`, `roundingIncrement` and `roundingMode` round it, as for a [date and time](#the-options-of-until-and-since).
+- `round` rounds it to a unit, or to multiples of an increment of the unit that divides a day, like 90 minutes, in the mode given (`halfExpand` by default): `round({ smallestUnit: 'hour', roundingMode: 'floor' })`. Before 1970 it rounds as after it: `trunc` and `floor` give the same instant.
+
+```ts
+const deployments = await connection.selectFrom(tRelease)
+    .where(tRelease.deployedAt.isNotNull())
+    .select({
+        version: tRelease.version,
+        afterPublishing: tRelease.deployedAt.since(tRelease.publishedAt.toInstant(), { largestUnit: 'hour' }),
+        hour: tRelease.deployedAt.round({ smallestUnit: 'hour', roundingMode: 'floor' }),
+        reviewBy: tRelease.deployedAt.round({ smallestUnit: 'hour', roundingMode: 'ceil' }).add({ hours: 48 }),
+    })
+    .orderBy('version')
+    .executeSelectMany()
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        version as version, 
+        tsq_duration_text(0, 0, 0, 0, -(datediff(date(published_at), date(deployed_at)) * 86400000000000 + ((floor(time_to_sec(published_at)) * 1000000 + microsecond(published_at)) * 1000 - (floor(time_to_sec(deployed_at)) * 1000000 + microsecond(deployed_at)) * 1000)), 'hour') as afterPublishing, 
+        date_add(date(deployed_at), interval ((floor(time_to_sec(deployed_at)) * 1000000 + microsecond(deployed_at)) * 1000 div 3600000000000 * 3600000000000) div 1000 microsecond) as hour, 
+        date_add(date_add(date(deployed_at), interval (((floor(time_to_sec(deployed_at)) * 1000000 + microsecond(deployed_at)) * 1000 + 3599999999999) div 3600000000000 * 3600000000000) div 1000 microsecond), interval ? microsecond) as reviewBy 
+    from project_release 
+    where deployed_at is not null 
+    order by version
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        version as version, 
+        tsq_duration_text(0, 0, 0, 0, -(datediff(date(published_at), date(deployed_at)) * 86400000000000 + ((floor(time_to_sec(published_at)) * 1000000 + microsecond(published_at)) * 1000 - (floor(time_to_sec(deployed_at)) * 1000000 + microsecond(deployed_at)) * 1000)), 'hour') as afterPublishing, 
+        date_add(date(deployed_at), interval ((floor(time_to_sec(deployed_at)) * 1000000 + microsecond(deployed_at)) * 1000 div 3600000000000 * 3600000000000) div 1000 microsecond) as hour, 
+        date_add(date_add(date(deployed_at), interval (((floor(time_to_sec(deployed_at)) * 1000000 + microsecond(deployed_at)) * 1000 + 3599999999999) div 3600000000000 * 3600000000000) div 1000 microsecond), interval ? microsecond) as reviewBy 
+    from project_release 
+    where deployed_at is not null 
+    order by version
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        version as "version", 
+        tsq_duration_text(0, 0, 0, 0, -((trunc(sys_extract_utc(cast(published_at as timestamp(9) with time zone))) - trunc(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)))) * 86400000000000 + ((extract(hour from (cast(sys_extract_utc(cast(published_at as timestamp(9) with time zone)) as timestamp(9)) - trunc(sys_extract_utc(cast(published_at as timestamp(9) with time zone))))) * 3600 + extract(minute from (cast(sys_extract_utc(cast(published_at as timestamp(9) with time zone)) as timestamp(9)) - trunc(sys_extract_utc(cast(published_at as timestamp(9) with time zone))))) * 60 + extract(second from (cast(sys_extract_utc(cast(published_at as timestamp(9) with time zone)) as timestamp(9)) - trunc(sys_extract_utc(cast(published_at as timestamp(9) with time zone)))))) * 1000000000 - (extract(hour from (cast(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)) as timestamp(9)) - trunc(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone))))) * 3600 + extract(minute from (cast(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)) as timestamp(9)) - trunc(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone))))) * 60 + extract(second from (cast(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)) as timestamp(9)) - trunc(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)))))) * 1000000000)), 'hour') as "afterPublishing", 
+        to_char(sys_extract_utc(cast(from_tz(cast(trunc(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone))) as timestamp(9)) + numtodsinterval((trunc((extract(hour from (cast(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)) as timestamp(9)) - trunc(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone))))) * 3600 + extract(minute from (cast(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)) as timestamp(9)) - trunc(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone))))) * 60 + extract(second from (cast(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)) as timestamp(9)) - trunc(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)))))) * 1000000000 / 3600000000000) * 3600000000000) / 1000000000, 'second'), '+00:00') as timestamp(9) with time zone)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "hour", 
+        to_char(sys_extract_utc(cast(from_tz(sys_extract_utc(cast(from_tz(cast(trunc(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone))) as timestamp(9)) + numtodsinterval((trunc(((extract(hour from (cast(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)) as timestamp(9)) - trunc(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone))))) * 3600 + extract(minute from (cast(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)) as timestamp(9)) - trunc(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone))))) * 60 + extract(second from (cast(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)) as timestamp(9)) - trunc(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)))))) * 1000000000 + 3599999999999) / 3600000000000) * 3600000000000) / 1000000000, 'second'), '+00:00') as timestamp(9) with time zone)) + numtodsinterval(:0, 'second'), '+00:00') as timestamp(9) with time zone)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "reviewBy" 
+    from project_release 
+    where deployed_at is not null 
+    order by "version"
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        version as version, 
+        make_interval(secs => -((cast(published_at as date) - cast(deployed_at as date)) * 86400000000000 + ((round(extract(epoch from cast(published_at as time)) * 1000000)::bigint * 1000) - (round(extract(epoch from cast(deployed_at as time)) * 1000000)::bigint * 1000))) / 1000000000.0) as "afterPublishing", 
+        cast(deployed_at as date) + make_interval(secs => (((round(extract(epoch from cast(deployed_at as time)) * 1000000)::bigint * 1000) / 3600000000000) * 3600000000000) / 1000000000.0) as hour, 
+        cast(deployed_at as date) + make_interval(secs => ((((round(extract(epoch from cast(deployed_at as time)) * 1000000)::bigint * 1000) + 3599999999999) / 3600000000000) * 3600000000000) / 1000000000.0) + $1::interval as "reviewBy" 
+    from project_release 
+    where deployed_at is not null 
+    order by version
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        version as version, 
+        tsq_duration_text(0, 0, 0, 0, cast(-(cast(julianday(date(published_at)) - julianday(date(deployed_at)) as integer) * 86400000000000 + (cast(round((julianday(published_at) - julianday(date(published_at))) * 86400000) as integer) * 1000000 - cast(round((julianday(deployed_at) - julianday(date(deployed_at))) * 86400000) as integer) * 1000000)) as text), 'hour') as afterPublishing, 
+        strftime('%Y-%m-%dT%H:%M:%fZ', date(deployed_at), ((cast(cast(round((julianday(deployed_at) - julianday(date(deployed_at))) * 86400000) as integer) * 1000000 / 3600000000000 as integer) * 3600000000000) / 1000000000.0) || ' seconds') as hour, 
+        strftime('%Y-%m-%dT%H:%M:%fZ', strftime('%Y-%m-%dT%H:%M:%fZ', date(deployed_at), ((cast((cast(round((julianday(deployed_at) - julianday(date(deployed_at))) * 86400000) as integer) * 1000000 + 3599999999999) / 3600000000000 as integer) * 3600000000000) / 1000000000.0) || ' seconds'), ?1) as reviewBy 
+    from project_release 
+    where deployed_at is not null 
+    order by version
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        version as version, 
+        dbo.tsq_duration_text(0, 0, 0, 0, -(datediff(day, cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as date), cast(cast(switchoffset(published_at, '+00:00') as datetime2) as date)) * cast(86400000000000 as bigint) + ((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(published_at, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(published_at, '+00:00') as datetime2))) - (cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(deployed_at, '+00:00') as datetime2))))), 'hour') as afterPublishing, 
+        dateadd(nanosecond, ((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(deployed_at, '+00:00') as datetime2))) / cast(3600000000000 as bigint) * cast(3600000000000 as bigint)) % 1000000000, dateadd(second, ((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(deployed_at, '+00:00') as datetime2))) / cast(3600000000000 as bigint) * cast(3600000000000 as bigint)) / 1000000000, cast(cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as date) as datetime2))) as hour, 
+        dateadd(day, @0, cast(switchoffset(dateadd(nanosecond, (((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(deployed_at, '+00:00') as datetime2))) + cast(3599999999999 as bigint)) / cast(3600000000000 as bigint) * cast(3600000000000 as bigint)) % 1000000000, dateadd(second, (((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(deployed_at, '+00:00') as datetime2))) + cast(3599999999999 as bigint)) / cast(3600000000000 as bigint) * cast(3600000000000 as bigint)) / 1000000000, cast(cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as date) as datetime2))), '+00:00') as datetime2)) as reviewBy 
+    from project_release 
+    where deployed_at is not null 
+    order by version
+    ```
+
+The parameters are: `[ Duration PT172800S ]` (on MariaDB and MySQL: `[ 172800000000n ]`; on Oracle: `[ 172800n ]`; on SQLite: `[ '172800 seconds' ]`; on SQL Server: `[ 2 ]`)
+
+| version | afterPublishing | hour | reviewBy |
+|---|---|---|---|
+| `'0.9.0'` | `PT5M` | `2024-03-02T11:00:00Z` | `2024-03-04T12:00:00Z` |
+| `'1.2.0'` | `PT30M15.123456S` (on SQLite: `PT30M15.123S`) | `2024-01-16T09:00:00Z` | `2024-01-18T10:00:00Z` |
+
+The arithmetic is computed on the wall clock of the instant in UTC, where there is no summer time, also with a [database outside UTC](time-zones.md#a-database-outside-utc).
+
 `currentInstant()` of the connection gives the instant of now in the database, with the digits of the fraction of a second it gives:
 
 <!-- doc-code-snippet-result: "2024-05-06 10:11:12.345678+00" -->
@@ -1313,7 +1412,7 @@ The executed query is:
     select 
         version as version, 
         tsq_duration_text(0, 0, 0, cast(julianday(date(date(published_at))) - julianday(date(released_on)) as integer), 0, 'hour') as toPublication, 
-        tsq_duration_text(0, 0, 0, 0, -(cast(julianday(date(strftime('%Y-%m-%dT%H:%M:%fZ', released_on))) - julianday(date(published_at)) as integer) * 86400000000000 + (cast(round((julianday(strftime('%Y-%m-%dT%H:%M:%fZ', released_on)) - julianday(date(strftime('%Y-%m-%dT%H:%M:%fZ', released_on)))) * 86400000) as integer) * 1000000 - cast(round((julianday(published_at) - julianday(date(published_at))) * 86400000) as integer) * 1000000)), 'hour') as publishedAfter, 
+        tsq_duration_text(0, 0, 0, 0, cast(-(cast(julianday(date(strftime('%Y-%m-%dT%H:%M:%fZ', released_on))) - julianday(date(published_at)) as integer) * 86400000000000 + (cast(round((julianday(strftime('%Y-%m-%dT%H:%M:%fZ', released_on)) - julianday(date(strftime('%Y-%m-%dT%H:%M:%fZ', released_on)))) * 86400000) as integer) * 1000000 - cast(round((julianday(published_at) - julianday(date(published_at))) * 86400000) as integer) * 1000000)) as text), 'hour') as publishedAfter, 
         tsq_duration_text(0, cast(((cast(strftime('%Y', ?1) as integer) * 12 + cast(strftime('%m', ?1) as integer)) * 32 + cast(strftime('%d', ?1) as integer) - (cast(strftime('%Y', released_on) as integer) * 12 + cast(strftime('%m', released_on) as integer)) * 32 - cast(strftime('%d', released_on) as integer)) / 32 as integer), 0, cast(julianday(date(?1)) - julianday(date(date(date(released_on), 'start of month', (cast(((cast(strftime('%Y', ?1) as integer) * 12 + cast(strftime('%m', ?1) as integer)) * 32 + cast(strftime('%d', ?1) as integer) - (cast(strftime('%Y', released_on) as integer) * 12 + cast(strftime('%m', released_on) as integer)) * 32 - cast(strftime('%d', released_on) as integer)) / 32 as integer)) || ' months'), (min(cast(strftime('%d', date(released_on)) as integer), cast(strftime('%d', date(date(released_on), 'start of month', (cast(((cast(strftime('%Y', ?1) as integer) * 12 + cast(strftime('%m', ?1) as integer)) * 32 + cast(strftime('%d', ?1) as integer) - (cast(strftime('%Y', released_on) as integer) * 12 + cast(strftime('%m', released_on) as integer)) * 32 - cast(strftime('%d', released_on) as integer)) / 32 as integer)) || ' months'), '+1 months', '-1 days') as integer)) - 1) || ' days')) as integer), 0, 'hour') as untilEndOfJune 
     from project_release 
     order by version
@@ -2908,5 +3007,6 @@ An Oracle `TIMESTAMP(9)`, or `TIMESTAMP(9) WITH TIME ZONE`, keeps the nanosecond
 - **A year before 1.** In Temporal the year before 1 is 0 (1 BC), and the one before it -1. PostgreSQL and Oracle keep these dates, but `year()` gives the year as they number it, with no year 0: -1 for 1 BC and -44 for 44 BC, where the value read is `-000043-03-15`. SQL Server rejects a date before the year 1, and an instant before the year 1.
 - **Bun SQL on MySQL 8** sends a text parameter that MySQL converts to a time wrongly (`'10:07:30'` is `00:00:00`): a `plainTime` given as a value and rounded is another time there. A column is read right, and so is every value with the other drivers and with MariaDB.
 - **Oracle has no type for a time of the day**: a `plainTime` is kept in a `DATE` or a `TIMESTAMP` on 1970-01-01, as a `localTime` is.
+- **A difference of more than 292 years in hours or smaller units**, like `until` of two instants or of two dates and times with `largestUnit: 'hour'`, has more nanoseconds than a 64-bit integer: PostgreSQL, MariaDB, MySQL, SQL Server and SQLite reject the query (`bigint out of range`, `BIGINT value is out of range`, `Arithmetic overflow`, and on SQLite the error of `tsq_duration_text`). Oracle computes it.
 - **An interval of PostgreSQL with fields of different signs**, like `-1 days +02:03:00` or `1 mon -1 days`, can't be a `Temporal.Duration`, whose fields have one sign: reading it is rejected with `INVALID_VALUE_RECEIVED_FROM_DATABASE`. The library never sends one.
 - **A column with a zone**, like `timestamptz` on PostgreSQL: a `plainDateTime` reads the date and time it has in the zone of the database. On SQL Server, a `datetimeoffset` is read, and its parts given, in UTC.

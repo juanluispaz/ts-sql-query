@@ -188,6 +188,48 @@ describe(ctx.label, () => {
         ])
     })
 
+    test('docs:dates-and-times/the-arithmetic-of-an-instant', async () => {
+        ctx.mockNext([
+            { version: '0.9.0', afterPublishing: 'PT5M', hour: '2024-03-02 11:00:00.000', reviewBy: '2024-03-04 12:00:00.000' },
+            { version: '1.2.0', afterPublishing: 'PT30M15.123S', hour: '2024-01-16 09:00:00.000', reviewBy: '2024-01-18 10:00:00.000' },
+        ])
+        const connection = ctx.conn
+
+        // doc-start
+        const deployments = sync(connection.selectFrom(tRelease)
+            .where(tRelease.deployedAt.isNotNull())
+            .select({
+                version: tRelease.version,
+                afterPublishing: tRelease.deployedAt.since(tRelease.publishedAt.toInstant(), { largestUnit: 'hour' }),
+                hour: tRelease.deployedAt.round({ smallestUnit: 'hour', roundingMode: 'floor' }),
+                reviewBy: tRelease.deployedAt.round({ smallestUnit: 'hour', roundingMode: 'ceil' }).add({ hours: 48 }),
+            })
+            .orderBy('version')
+            .executeSelectMany())
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as version, tsq_duration_text(0, 0, 0, 0, cast(-(cast(julianday(date(published_at)) - julianday(date(deployed_at)) as integer) * 86400000000000 + (cast(round((julianday(published_at) - julianday(date(published_at))) * 86400000) as integer) * 1000000 - cast(round((julianday(deployed_at) - julianday(date(deployed_at))) * 86400000) as integer) * 1000000)) as text), 'hour') as afterPublishing, strftime('%Y-%m-%d %H:%M:%f', date(deployed_at), ((cast(cast(round((julianday(deployed_at) - julianday(date(deployed_at))) * 86400000) as integer) * 1000000 / 3600000000000 as integer) * 3600000000000) / 1000000000.0) || ' seconds') as hour, strftime('%Y-%m-%d %H:%M:%f', strftime('%Y-%m-%d %H:%M:%f', date(deployed_at), ((cast((cast(round((julianday(deployed_at) - julianday(date(deployed_at))) * 86400000) as integer) * 1000000 + 3599999999999) / 3600000000000 as integer) * 3600000000000) / 1000000000.0) || ' seconds'), ?1) as reviewBy from project_release where deployed_at is not null order by version"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "172800 seconds",
+          ]
+        `)
+        assertType<Exact<typeof deployments, Array<{ version: string; afterPublishing?: Temporal.Duration; hour?: Temporal.Instant; reviewBy?: Temporal.Instant }>>>()
+        const deployed = [Temporal.Instant.from('2024-03-02T11:05:00Z'), Temporal.Instant.from('2024-01-16T09:30:15.123Z')]
+        const published = [Temporal.Instant.from('2024-03-02T11:00:00Z'), Temporal.Instant.from('2024-01-16T09:00:00Z')]
+        expect(deployments.map((release, i) => [
+            release.version,
+            Temporal.Duration.compare(release.afterPublishing!, deployed[i]!.since(published[i]!, { largestUnit: 'hour' })),
+            release.hour?.toString(),
+            release.reviewBy?.toString(),
+        ])).toEqual([0, 1].map(i => [
+            ['0.9.0', '1.2.0'][i],
+            0,
+            deployed[i]!.round({ smallestUnit: 'hour', roundingMode: 'floor' }).toString(),
+            deployed[i]!.round({ smallestUnit: 'hour', roundingMode: 'ceil' }).add({ hours: 48 }).toString(),
+        ]))
+    })
+
     test('docs:dates-and-times/the-current-instant', async () => {
         ctx.mockNext('2024-05-06 10:11:12.345')
         const connection = ctx.conn

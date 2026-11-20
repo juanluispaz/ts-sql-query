@@ -220,7 +220,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: this database keeps no time zone with each value: a zonedDateTime is only kept and computed on Oracle
+    // NOT-SUPPORTED: this database computes no time zone with the rules of IANA: a zonedDateTime is kept on Oracle, and computed on Oracle and PostgreSQL
     /*
     test('docs:dates-and-times/zoned-dates-and-times', async () => {
         ctx.mockNext([
@@ -253,7 +253,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: this database keeps no time zone with each value: a zonedDateTime is only kept and computed on Oracle
+    // NOT-SUPPORTED: this database computes no time zone with the rules of IANA: a zonedDateTime is kept on Oracle, and computed on Oracle and PostgreSQL
     /*
     test('docs:dates-and-times/the-arithmetic-of-a-zoned-date-and-time', async () => {
         ctx.mockNext([

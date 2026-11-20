@@ -39,6 +39,7 @@ import type { BooleanType } from '../typeSystem/logical.js'
 import type { EqualableType } from '../typeSystem/equalable.js'
 import { UuidTextType } from '../typeSystem/uuidText.js'
 import { __classOf, __adaptedTypeClassOf, __unadaptedClassOf, __sqlDataTypeOf } from '../nodes/adaptedTypeClass.js'
+import { __isIntClass } from '../typeSystem/dataTypeQuestions.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
 import { __arithmeticOperandClassOf, __valueOperandClassOf } from '../typeSystem/dataTypeClasses.js'
 import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
@@ -4045,6 +4046,47 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _instantInUtc(context: SqlBuildContext, valueSource: ToSql): string {
         return this._appendSql(valueSource, context, false)
     }
+    /** The instant of an integer of milliseconds since 1970-01-01T00:00Z, as Temporal's `Instant.fromEpochMilliseconds` */
+    _instantFromEpochMilliseconds(context: SqlBuildContext, valueSource: ToSql): string {
+        return this._appendInstantOfEpoch(context, valueSource, 86_400_000n, 1_000_000n)
+    }
+    /** The instant of an integer of nanoseconds since 1970-01-01T00:00Z, as Temporal's `Instant.fromEpochNanoseconds` */
+    _instantFromEpochNanoseconds(context: SqlBuildContext, valueSource: ToSql): string {
+        return this._appendInstantOfEpoch(context, valueSource, 86_400_000_000_000n, 1n)
+    }
+    /**
+     * The instant of a number of units since 1970-01-01T00:00Z (perDay in a day, of nanoseconds each): its wall clock in
+     * UTC is the day 1970-01-01 plus the whole days, rounded down, plus the nanoseconds of the rest, which the remainder
+     * gives from 0 (the remainder of a division has the sign of the dividend). Integers only: exact in every date the
+     * database has
+     */
+    _appendInstantOfEpoch(context: SqlBuildContext, valueSource: ToSql, perDay: bigint, nanoseconds: bigint): string {
+        const operand = this._temporalOperand(valueSource)
+        const day = this._bigintLiteral(perDay)
+        const days = this._truncatedDivision('(' + this._epochOperand(context, operand) + ' - ' + this._epochRemainder(context, operand, day) + ')', day)
+        const date = this._addDaysToDate(context, this._epochDate(), this._integerOfBigint(days))
+        const rest = this._epochRemainder(context, operand, day)
+        return this._instantOfUtc(context, this._dateTimeOfNanoseconds(context, date, nanoseconds === 1n ? rest : rest + ' * ' + this._bigintLiteral(nanoseconds)))
+    }
+    /** The rest of a number of units since the epoch after its whole days, from 0 */
+    _epochRemainder(context: SqlBuildContext, valueSource: ToSql, day: string): string {
+        return '(' + this._integerRemainder('(' + this._integerRemainder(this._epochOperand(context, valueSource), day) + ' + ' + day + ')', day) + ')'
+    }
+    /** An integer of units since the epoch, as an integer of 64 bits, which its products need: an int is cast */
+    _epochOperand(context: SqlBuildContext, valueSource: ToSql): string {
+        if (isValueSource(valueSource) && __isIntClass(__classOf(valueSource as object))) {
+            return this._bigintOfInteger(this._appendSql(valueSource, context, false))
+        }
+        return this._appendSqlParenthesis(valueSource, context, false)
+    }
+    /** An integer (or a number without fraction) as an integer of 64 bits */
+    _bigintOfInteger(sql: string): string {
+        return 'cast(' + sql + ' as bigint)'
+    }
+    /** The date 1970-01-01 */
+    _epochDate(): string {
+        return "date '1970-01-01'"
+    }
     /** The instant of a wall clock in UTC (see _instantInUtc) */
     _instantOfUtc(_context: SqlBuildContext, sql: string): string {
         return sql
@@ -4063,10 +4105,39 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     /** The instant plus a duration of the time alone, added to its wall clock in UTC (the receiver) */
     _instantAddDuration(context: SqlBuildContext, valueSource: ToSql, value: any, _typeClass: DataTypeClass): string {
-        return this._instantOfUtc(context, this._addDuration(context, valueSource, value, __registeredDataType('plainDateTime')))
+        return this._appendInstantWithDuration(context, valueSource, value, 1)
     }
     _instantSubtractDuration(context: SqlBuildContext, valueSource: ToSql, value: any, _typeClass: DataTypeClass): string {
-        return this._instantOfUtc(context, this._subtractDuration(context, valueSource, value, __registeredDataType('plainDateTime')))
+        return this._appendInstantWithDuration(context, valueSource, value, -1)
+    }
+    /**
+     * The instant plus a duration (multiplied by sign), added to its wall clock in UTC (the receiver) as to a date and
+     * time. A duration given as a value has only the time (checked when the query is built); a value source may have
+     * days or more, which Temporal rejects: the query fails then (see _valueOrErrorWhenDurationHasDays)
+     */
+    _appendInstantWithDuration(context: SqlBuildContext, valueSource: ToSql, value: any, sign: 1 | -1): string {
+        const sum = this._appendWithDuration(context, valueSource, value, __registeredDataType('plainDateTime'), sign)
+        if (!isValueSource(value)) {
+            return this._instantOfUtc(context, sum)
+        }
+        return this._instantOfUtc(context, this._valueOrErrorWhenDurationHasDays(context, sum, __asNodeValueSource(value as AnyValueSource) as unknown as ToSql))
+    }
+    /**
+     * A date and time, or an error of the query when the duration has days, weeks, months or years: the date and time
+     * plus no day, the day 28 of February 2001 checked (or the 29, which it hasn't, when the duration has them) minus
+     * 28. A null duration is no error
+     */
+    _valueOrErrorWhenDurationHasDays(context: SqlBuildContext, value: string, duration: ToSql): string {
+        const day = 'case when ' + this._durationHasDaysSql(context, duration) + ' then 29 else 28 end'
+        return this._shiftDays(context, value, '(' + this._validDayOrError(context, '2001', '2', day) + ' - 28)', 'timestamp')
+    }
+    /** The condition that a duration has days, weeks, months or years: of its ISO 8601 text, its months or days aren't 0 */
+    _durationHasDaysSql(context: SqlBuildContext, duration: ToSql): string {
+        if (this._isDurationKeptAsText(duration)) {
+            return this._durationTextPart(context, duration, 'M') + ' <> 0 or ' + this._durationTextPart(context, duration, 'D') + ' <> 0'
+        }
+        const interval = this._appendSqlParenthesis(duration, context, false)
+        return 'extract(year from ' + interval + ') <> 0 or extract(month from ' + interval + ') <> 0 or extract(day from ' + interval + ') <> 0'
     }
     _toPlainDateTimeAt(context: SqlBuildContext, valueSource: ToSql, value: any, _typeClass: DataTypeClass): string {
         // A date plus a time of the day is the timestamp of that day at that time; a time given as a value is sent with
@@ -4444,7 +4515,15 @@ export class AbstractSqlBuilder implements SqlBuilder {
             result += (result ? ', ' : '') + 'days => ' + this._differenceField(context, d, 'days')
         }
         if (this._differenceHas(d, 'time')) {
-            result += (result ? ', ' : '') + 'secs => ' + this._differenceField(context, d, 'time') + ' / 1000000000.0'
+            if (d.fields === 'timestamp' && unitIndex[d.difference.largestUnit]! > 3) {
+                // The whole difference in hours or smaller units, more seconds than a double holds with the microseconds:
+                // its hours and the seconds of the last one
+                const hour = this._bigintLiteral(nanosecondsOfUnit['hour']!)
+                result += (result ? ', ' : '') + 'hours => ' + this._integerOfBigint(this._wideTruncatedDivision(this._differenceField(context, d, 'time'), hour))
+                result += ', secs => ' + this._integerRemainder(this._differenceField(context, d, 'time'), hour) + ' / 1000000000.0'
+            } else {
+                result += (result ? ', ' : '') + 'secs => ' + this._differenceField(context, d, 'time') + ' / 1000000000.0'
+            }
         }
         return 'make_interval(' + result + ')'
     }
@@ -4560,7 +4639,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 if (d.fields === 'date') {
                     return this._differenceDays(context, d)
                 }
-                return field === 'days' ? this._integerOfBigint(this._truncatedDivision(this._differenceTotal(context, d), d.day)) : '(' + this._integerRemainder(this._differenceTotal(context, d), d.day) + ')'
+                return field === 'days' ? this._integerOfBigint(this._differenceDivision(d, this._differenceTotal(context, d), d.day)) : '(' + this._integerRemainder(this._differenceTotal(context, d), d.day) + ')'
             default:
                 return this._differenceTotal(context, d)
         }
@@ -4573,7 +4652,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (field === 'time') {
             return d.difference.largestUnit === 'day' ? '(' + this._integerRemainder(this._differenceRounded(context, d), d.day) + ')' : this._differenceRounded(context, d)
         }
-        return d.fields === 'date' ? this._differenceRounded(context, d) : this._integerOfBigint(this._truncatedDivision(this._differenceRounded(context, d), d.day))
+        return d.fields === 'date' ? this._differenceRounded(context, d) : this._integerOfBigint(this._differenceDivision(d, this._differenceRounded(context, d), d.day))
     }
     /** The days and the time to round, rounded to multiples of the increment of the smallest unit, in the mode */
     _differenceRounded(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
@@ -4601,8 +4680,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
             case 'halfFloor':
                 return result + ' + case when 2 * ' + this._differenceRemainder(context, d, step) + ' > ' + step + ' then ' + step + ' when 2 * ' + this._differenceRemainder(context, d, step) + ' <= ' + minusStep + ' then ' + minusStep + ' else 0 end)'
             case 'halfEven':
-                result += ' + case when 2 * ' + this._differenceRemainder(context, d, step) + ' > ' + step + ' or 2 * ' + this._differenceRemainder(context, d, step) + ' = ' + step + ' and ' + this._integerRemainder(this._truncatedDivision(this._differenceTotal(context, d), step), '2') + ' <> 0 then ' + step
-                return result + ' when 2 * ' + this._differenceRemainder(context, d, step) + ' < ' + minusStep + ' or 2 * ' + this._differenceRemainder(context, d, step) + ' = ' + minusStep + ' and ' + this._integerRemainder(this._truncatedDivision(this._differenceTotal(context, d), step), '2') + ' <> 0 then ' + minusStep + ' else 0 end)'
+                result += ' + case when 2 * ' + this._differenceRemainder(context, d, step) + ' > ' + step + ' or 2 * ' + this._differenceRemainder(context, d, step) + ' = ' + step + ' and ' + this._integerRemainder(this._differenceDivision(d, this._differenceTotal(context, d), step), '2') + ' <> 0 then ' + step
+                return result + ' when 2 * ' + this._differenceRemainder(context, d, step) + ' < ' + minusStep + ' or 2 * ' + this._differenceRemainder(context, d, step) + ' = ' + minusStep + ' and ' + this._integerRemainder(this._differenceDivision(d, this._differenceTotal(context, d), step), '2') + ' <> 0 then ' + minusStep + ' else 0 end)'
         }
     }
     /** The remainder of the days and the time to round divided by the step, with their sign */
@@ -4629,8 +4708,26 @@ export class AbstractSqlBuilder implements SqlBuilder {
             case 'time':
                 return this._differenceTime(context, d)
             default:
-                return '(' + this._differenceDays(context, d) + ' * ' + d.day + ' + ' + this._differenceTime(context, d) + ')'
+                return '(' + this._differenceDays(context, d) + ' * ' + this._wideDayNanoseconds() + ' + ' + this._differenceTime(context, d) + ')'
         }
+    }
+    /**
+     * The nanoseconds of a day, a number whose product with the days of a difference holds more than a bigint (292
+     * years): PostgreSQL's numeric
+     */
+    _wideDayNanoseconds(): string {
+        return '86400000000000::numeric'
+    }
+    /**
+     * An integer division that truncates toward zero of a number of the whole difference of two dates and times, which
+     * may be wider than a bigint (see _wideDayNanoseconds); of other differences, of integers
+     */
+    _differenceDivision(d: PlainTemporalDifferenceSql, dividend: string, divisor: string): string {
+        return d.fields === 'timestamp' ? this._wideTruncatedDivision(dividend, divisor) : this._truncatedDivision(dividend, divisor)
+    }
+    /** An integer division that truncates toward zero of a number wider than a bigint (see _wideDayNanoseconds) */
+    _wideTruncatedDivision(dividend: string, divisor: string): string {
+        return 'div(' + dividend + ', ' + divisor + ')'
     }
     /**
      * The day the second date and time is moved to when its time has the sign the days haven't, as Temporal does: a
@@ -4844,7 +4941,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 }
                 result = (result || '0') + ', ' + (this._differenceHas(d, 'weeks') ? this._differenceField(context, d, 'weeks') : '0')
                 result += ', ' + (this._differenceHas(d, 'days') ? this._differenceField(context, d, 'days') : '0')
-                return result + ', 0, ' + (this._differenceHas(d, 'time') ? this._differenceField(context, d, 'time') : '0')
+                if (!this._differenceHas(d, 'time')) {
+                    return result + ', 0, 0'
+                }
+                if (d.fields !== 'timestamp') {
+                    return result + ', 0, ' + this._differenceField(context, d, 'time')
+                }
+                return result + ', ' + this._differenceTimeForTotal(context, d)
             }
         }
         if (this._isDurationKeptAsText(valueSource)) {
@@ -4855,6 +4958,14 @@ export class AbstractSqlBuilder implements SqlBuilder {
         let result = 'cast(extract(year from ' + interval + ') * 12 + extract(month from ' + interval + ') as bigint), 0, cast(extract(day from ' + interval + ') as bigint), '
         result += 'cast(extract(hour from ' + interval + ') * 3600 + extract(minute from ' + interval + ') * 60 + trunc(extract(second from ' + interval + ')) as bigint), '
         return result + 'cast(extract(microseconds from ' + interval + ') as bigint) % 1000000 * 1000'
+    }
+    /**
+     * The time of a difference of two dates and times as the whole seconds and the nanoseconds tsq_duration_total takes:
+     * the time may be wider than a bigint (see _wideDayNanoseconds), its seconds and its nanoseconds aren't
+     */
+    _differenceTimeForTotal(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
+        const seconds = this._bigintOfInteger(this._wideTruncatedDivision(this._differenceField(context, d, 'time'), '1000000000'))
+        return seconds + ', ' + this._bigintOfInteger(this._integerRemainder(this._differenceField(context, d, 'time'), '1000000000'))
     }
     /**
      * A duration plus or minus another one (sign), as Temporal's add and subtract, with the function of the library

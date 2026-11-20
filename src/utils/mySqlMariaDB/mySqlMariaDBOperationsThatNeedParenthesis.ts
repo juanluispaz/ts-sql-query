@@ -24,4 +24,10 @@ export const mySqlMariaDBOperationsThatNeedParenthesis: OperationsThatNeedParent
     _subtractDuration: false,
     _addDurationRejecting: false,
     _subtractDurationRejecting: false,
+    // An instant computed on its wall clock in UTC: `date_add(...)`, which delimits itself
+    _roundInstant: false,
+    _instantAddDuration: false,
+    _instantSubtractDuration: false,
+    _instantFromEpochMilliseconds: false,
+    _instantFromEpochNanoseconds: false,
 }

@@ -1,6 +1,6 @@
 import type { SqlDataType } from '../TypeAdapter.js'
 import { ComparableType } from './comparable.js'
-import type { TemporalDifferenceOptions, TemporalDuration, TemporalInstant, TemporalRoundingOptions, TemporalTimeDurationLike, TemporalTimeUnit } from './temporal.js'
+import { __temporal, type TemporalDifferenceOptions, type TemporalDuration, type TemporalInstant, type TemporalRoundingOptions, type TemporalTimeDurationLike, type TemporalTimeUnit } from './temporal.js'
 import type { DataTypeOf, IValueWithType, OptionalityOf, SourceOf, ValueSource } from './base.js'
 import type { CombinedOptionality } from './valueSource.js'
 import { __newSqlOperation2ValueSource, __operation0, __operation1 } from '../nodes/operations.js'
@@ -27,7 +27,10 @@ function inUtcOf(valueSource: unknown): any {
     return __operation0(valueSource as any, '_instantInUtc', PlainDateTimeType)
 }
 
-/** The instant plus or minus a duration of the time alone, of the same data type */
+/**
+ * The instant plus or minus a duration of the time alone, of the same data type. A value with days or more is rejected
+ * here, as Temporal rejects it; a value source with them makes the query fail
+ */
 function withDuration(valueSource: unknown, operation: '_instantAddDuration' | '_instantSubtractDuration', duration: unknown): any {
     const fields = duration as { years?: unknown, months?: unknown, weeks?: unknown, days?: unknown } | null
     if (fields !== null && typeof fields === 'object' && !isValueSource(fields) && ((fields.years ?? 0) !== 0 || (fields.months ?? 0) !== 0 || (fields.weeks ?? 0) !== 0 || (fields.days ?? 0) !== 0)) {
@@ -49,6 +52,29 @@ function difference(valueSource: unknown, operation: '_until' | '_since', other:
     }
     const operand = isValueSource(other) ? other : __newSqlOperationConstValueSource(other, __computedClassOf(valueSource as object, __typeClassOf(valueSource as any)), 'required')
     return __newSqlOperation2ValueSource(operation, inUtcOf(valueSource), inUtcOf(operand), normalized, DurationType, getOptionalType2(valueSource as any, operand))
+}
+
+/**
+ * The instant of an integer of milliseconds (or nanoseconds) since 1970-01-01T00:00Z, as Temporal's
+ * `Instant.fromEpochMilliseconds` (or `fromEpochNanoseconds`): of a value source, computed by the database; of a number
+ * (or a bigint), the Temporal.Instant, sent as a value. Temporal rejects a number that isn't an integer or is out of its
+ * range
+ */
+export function __instantFromEpoch(value: unknown, operation: '_instantFromEpochMilliseconds' | '_instantFromEpochNanoseconds'): any {
+    if (isValueSource(value)) {
+        return __operation0(value as any, operation, InstantType)
+    }
+    let instant: TemporalInstant
+    try {
+        const temporal = __temporal('instant')
+        instant = operation === '_instantFromEpochMilliseconds' ? temporal.Instant.fromEpochMilliseconds(value as number) : temporal.Instant.fromEpochNanoseconds(value as bigint)
+    } catch (error) {
+        if (error instanceof TsSqlProcessingError) {
+            throw error
+        }
+        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: 'instant' }, 'Invalid ' + (operation === '_instantFromEpochMilliseconds' ? 'milliseconds' : 'nanoseconds') + ' since the epoch of an instant: ' + String(value), error)
+    }
+    return __newSqlOperationConstValueSource(instant, InstantType, 'required')
 }
 
 /*
@@ -104,11 +130,21 @@ export abstract class InstantsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME e
      * length without a zone). The duration is a Temporal.Duration or its fields (`{ hours: 2 }`)
      */
     add(duration: TemporalDuration | TemporalTimeDurationLike): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    /**
+     * The instant plus the duration given, as Temporal's `add`: of hours and smaller units only (a day has no fixed
+     * length without a zone). The duration is a value source: the query fails when it has days, weeks, months or years
+     */
+    add<VALUE extends IValueWithType<'type:duration:'>>(duration: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     add(duration: unknown): any {
         return withDuration(this, '_instantAddDuration', duration)
     }
     /** The instant minus the duration given, as Temporal's `subtract`: of hours and smaller units only */
     subtract(duration: TemporalDuration | TemporalTimeDurationLike): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    /**
+     * The instant minus the duration given, as Temporal's `subtract`: of hours and smaller units only. The duration is
+     * a value source: the query fails when it has days, weeks, months or years
+     */
+    subtract<VALUE extends IValueWithType<'type:duration:'>>(duration: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     subtract(duration: unknown): any {
         return withDuration(this, '_instantSubtractDuration', duration)
     }

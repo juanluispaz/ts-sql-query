@@ -33,4 +33,10 @@ export const sqlServerOperationsThatNeedParenthesis: OperationsThatNeedParenthes
     // `_concatIgnoringNull` is a `concat(...)` call here, never the `+` operator `_concat` uses, so it is
     // self-delimiting and needs no wrapping as an operand.
     _concatIgnoringNull: false,
+    // An instant computed on its wall clock in UTC: `dateadd(...)`, which delimits itself
+    _roundInstant: false,
+    _instantAddDuration: false,
+    _instantSubtractDuration: false,
+    _instantFromEpochMilliseconds: false,
+    _instantFromEpochNanoseconds: false,
 }

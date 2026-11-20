@@ -233,7 +233,10 @@ async function scenario(): Promise<ScenarioResult> {
                 instant: tInstantMoment.tsPlain.toInstant(),
                 // A date and time without zone gives the parts of its digits, the wall clock of Madrid
                 plainHour: tInstantMoment.tsPlain.hour(), plainDay: tInstantMoment.tsPlain.toPlainDate(),
-            }).executeSelectOne().then(row => ({ ...row, nanoseconds: String(row.nanoseconds), wall: String(row.wall), zonedWall: String(row.zonedWall), instant: String(row.instant), plainDay: String(row.plainDay) })),
+                // Its arithmetic, on its wall clock in UTC, and the instant of its epoch: instants again
+                plusAnHour: tInstantMoment.ts.add({ hours: 1 }), hourOf: tInstantMoment.tstz.round('hour'),
+                ofItsEpoch: conn.instantFromEpochMilliseconds(tInstantMoment.ts.epochMilliseconds()),
+            }).executeSelectOne().then(row => ({ ...row, nanoseconds: String(row.nanoseconds), wall: String(row.wall), zonedWall: String(row.zonedWall), instant: String(row.instant), plainDay: String(row.plainDay), plusAnHour: String(row.plusAnHour), hourOf: String(row.hourOf), ofItsEpoch: String(row.ofItsEpoch) })),
             }
             return { session, stored, read, whereTs, whereOld, whereT, aggregated, currentTimestampDrift, constTimeToday, summerTime, timeAfterMidnight, timeWithTimeZone, repeated, skipped, instant }
         } finally {

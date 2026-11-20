@@ -428,7 +428,7 @@ DELIMITER ;
 -- ('second'); every field with the sign of the duration. The text is the one of Temporal's toString.
 DROP FUNCTION IF EXISTS tsq_duration_text;
 DELIMITER //
-CREATE FUNCTION tsq_duration_text(y BIGINT, mo BIGINT, w BIGINT, d BIGINT, ns BIGINT, unit VARCHAR(6)) RETURNS VARCHAR(100) CHARACTER SET ascii DETERMINISTIC NO SQL
+CREATE FUNCTION tsq_duration_text(y BIGINT, mo BIGINT, w BIGINT, d BIGINT, ns DECIMAL(65, 0), unit VARCHAR(6)) RETURNS VARCHAR(100) CHARACTER SET ascii DETERMINISTIC NO SQL
 BEGIN
     DECLARE r VARCHAR(100) DEFAULT '';
     DECLARE t VARCHAR(100) DEFAULT '';

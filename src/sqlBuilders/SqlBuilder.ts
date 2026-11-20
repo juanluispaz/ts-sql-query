@@ -506,6 +506,9 @@ export interface SqlFunction0 {
     _toInstant(context: SqlBuildContext, valueSource: ToSql): string
     // The arithmetic of an instant, on its wall clock in UTC
     _instantInUtc(context: SqlBuildContext, valueSource: ToSql): string
+    // The instant of an integer of milliseconds or nanoseconds since the epoch
+    _instantFromEpochMilliseconds(context: SqlBuildContext, valueSource: ToSql): string
+    _instantFromEpochNanoseconds(context: SqlBuildContext, valueSource: ToSql): string
     // Uuid
     _asString(context: SqlBuildContext, valueSource: ToSql): string
     // Oracle recursive

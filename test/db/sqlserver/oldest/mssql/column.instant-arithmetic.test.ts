@@ -5,8 +5,9 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tInstantValue } from '../../domain/connection.js'
+import { tInstantValue, tDurationValue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+import { TsSqlError } from '../../../../../src/exports/v2/index.js'
 
 const deployed = Temporal.Instant.from('2024-01-14T09:15:30.123456Z')
 const landed = Temporal.Instant.from('1969-07-20T20:17:40Z')
@@ -19,6 +20,16 @@ function rejectionOf(build: () => unknown): string {
         return 'no error'
     } catch (error) {
         return (error as { errorReason?: { reason?: string } }).errorReason?.reason ?? String(error)
+    }
+}
+
+/** Whether the query fails with an error of the database */
+async function failureOf(query: Promise<unknown>): Promise<boolean> {
+    try {
+        await query
+        return false
+    } catch (error) {
+        return error instanceof TsSqlError
     }
 }
 
@@ -61,6 +72,54 @@ describe(ctx.label, () => {
         expect(rejectionOf(() => tInstantValue.instantAt.add(Temporal.Duration.from('PT48H')))).toBe('no error')
     })
 
+    test('an-instant-plus-and-minus-a-duration-of-a-column', async () => {
+        // duration_value row 3 is PT90M, in span and in span_text
+        const span = Temporal.Duration.from('PT90M')
+        ctx.mockNext([
+            { id: 1, plus: '2024-01-14 10:45:30.123456+00', minus: '2024-01-14 07:45:30.123456+00' },
+            { id: 2, plus: '1969-07-20 21:47:40+00', minus: '1969-07-20 18:47:40+00' },
+        ])
+        const rows = await ctx.conn.selectFrom(tInstantValue)
+            .join(tDurationValue).on(tDurationValue.id.equals(3))
+            .select({
+                id: tInstantValue.id,
+                plus: tInstantValue.instantAt.add(tDurationValue.span),
+                minus: tInstantValue.instantAt.subtract(tDurationValue.spanText),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select instant_value.id as id, dateadd(day, (day(datefromparts(2001, 2, case when dbo.tsq_duration_part(duration_value.span, 'M') <> 0 or dbo.tsq_duration_part(duration_value.span, 'D') <> 0 then 29 else 28 end)) - 28), dateadd(nanosecond, dbo.tsq_duration_part(duration_value.span, 'N'), cast(dateadd(second, dbo.tsq_duration_part(duration_value.span, 'S') % 86400, dateadd(day, (dbo.tsq_duration_part(duration_value.span, 'D') + dbo.tsq_duration_part(duration_value.span, 'S') / 86400), dateadd(month, dbo.tsq_duration_part(duration_value.span, 'M'), cast(switchoffset(instant_value.instant_at, '+00:00') as datetime2)))) as datetime2))) as plus, dateadd(day, (day(datefromparts(2001, 2, case when dbo.tsq_duration_part(duration_value.span_text, 'M') <> 0 or dbo.tsq_duration_part(duration_value.span_text, 'D') <> 0 then 29 else 28 end)) - 28), dateadd(nanosecond, -dbo.tsq_duration_part(duration_value.span_text, 'N'), cast(dateadd(second, -dbo.tsq_duration_part(duration_value.span_text, 'S') % 86400, dateadd(day, (-dbo.tsq_duration_part(duration_value.span_text, 'D') + -dbo.tsq_duration_part(duration_value.span_text, 'S') / 86400), dateadd(month, -dbo.tsq_duration_part(duration_value.span_text, 'M'), cast(switchoffset(instant_value.instant_at, '+00:00') as datetime2)))) as datetime2))) as minus from instant_value join duration_value on duration_value.id = @0 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; plus: Temporal.Instant; minus?: Temporal.Instant }>>>()
+        expect(rows.map(row => [row.id, row.plus.toString(), row.minus?.toString()])).toEqual([deployed, landed].map((instant, i) => [
+            i + 1, instant.add(span).toString(), instant.subtract(span).toString(),
+        ]))
+    })
+
+    test('a-duration-of-a-column-with-days-makes-the-query-fail', async () => {
+        // As Temporal: duration_value row 1 has 3 days, row 2 is -PT26H, kept in span as -1 day -2 hours where it is an
+        // interval, and as it is in span_text
+        ctx.mockNext([{ at: '2024-01-17 13:20:36.912456+00' }])
+        const withDays = await failureOf(ctx.conn.selectFrom(tInstantValue)
+            .join(tDurationValue).on(tDurationValue.id.equals(1))
+            .where(tInstantValue.id.equals(1))
+            .select({ at: tInstantValue.instantAt.add(tDurationValue.spanText) })
+            .executeSelectMany())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select dateadd(day, (day(datefromparts(2001, 2, case when dbo.tsq_duration_part(duration_value.span_text, 'M') <> 0 or dbo.tsq_duration_part(duration_value.span_text, 'D') <> 0 then 29 else 28 end)) - 28), dateadd(nanosecond, dbo.tsq_duration_part(duration_value.span_text, 'N'), cast(dateadd(second, dbo.tsq_duration_part(duration_value.span_text, 'S') % 86400, dateadd(day, (dbo.tsq_duration_part(duration_value.span_text, 'D') + dbo.tsq_duration_part(duration_value.span_text, 'S') / 86400), dateadd(month, dbo.tsq_duration_part(duration_value.span_text, 'M'), cast(switchoffset(instant_value.instant_at, '+00:00') as datetime2)))) as datetime2))) as at from instant_value join duration_value on duration_value.id = @0 where instant_value.id = @1"`)
+        expect(withDays).toBe(ctx.realDbEnabled)
+        ctx.mockNext([{ at: '2024-01-15 11:15:30.123456+00' }])
+        const hours = await ctx.conn.selectFrom(tInstantValue)
+            .join(tDurationValue).on(tDurationValue.id.equals(2))
+            .where(tInstantValue.id.equals(1))
+            .select({ at: tInstantValue.instantAt.subtract(tDurationValue.spanText) })
+            .executeSelectMany()
+        expect(hours.map(row => row.at?.toString())).toEqual([deployed.subtract(Temporal.Duration.from('-PT26H')).toString()])
+    })
+
     test('the-duration-between-two-instants', async () => {
         ctx.mockNext([deployed, landed].map((instant, i) => ({
             id: i + 1,
@@ -77,7 +136,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, dbo.tsq_duration_text(0, 0, 0, 0, (datediff(day, cast(cast(switchoffset(instant_at, '+00:00') as datetime2) as date), cast(cast(switchoffset(@0, '+00:00') as datetime2) as date)) * cast(86400000000000 as bigint) + ((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(@1, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(@2, '+00:00') as datetime2))) - (cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(instant_at, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(instant_at, '+00:00') as datetime2))))), 'second') as seconds, dbo.tsq_duration_text(0, 0, 0, 0, (datediff(day, cast(cast(switchoffset(instant_at, '+00:00') as datetime2) as date), cast(cast(switchoffset(@3, '+00:00') as datetime2) as date)) * cast(86400000000000 as bigint) + ((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(@4, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(@5, '+00:00') as datetime2))) - (cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(instant_at, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(instant_at, '+00:00') as datetime2))))), 'hour') as hours, dbo.tsq_duration_text(0, 0, 0, 0, -((datediff(day, cast(cast(switchoffset(instant_at, '+00:00') as datetime2) as date), cast(cast(switchoffset(@6, '+00:00') as datetime2) as date)) * cast(86400000000000 as bigint) + ((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(@7, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(@8, '+00:00') as datetime2))) - (cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(instant_at, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(instant_at, '+00:00') as datetime2))))) - ((datediff(day, cast(cast(switchoffset(instant_at, '+00:00') as datetime2) as date), cast(cast(switchoffset(@9, '+00:00') as datetime2) as date)) * cast(86400000000000 as bigint) + ((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(@10, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(@11, '+00:00') as datetime2))) - (cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(instant_at, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(instant_at, '+00:00') as datetime2))))) % cast(60000000000 as bigint)) + case when ((datediff(day, cast(cast(switchoffset(instant_at, '+00:00') as datetime2) as date), cast(cast(switchoffset(@12, '+00:00') as datetime2) as date)) * cast(86400000000000 as bigint) + ((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(@13, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(@14, '+00:00') as datetime2))) - (cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(instant_at, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(instant_at, '+00:00') as datetime2))))) % cast(60000000000 as bigint)) > 0 then cast(60000000000 as bigint) else 0 end), 'minute') as minutes from instant_value order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, dbo.tsq_duration_text(0, 0, 0, 0, (datediff(day, cast(cast(switchoffset(instant_at, '+00:00') as datetime2) as date), cast(cast(switchoffset(@0, '+00:00') as datetime2) as date)) * cast(86400000000000 as decimal(38)) + ((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(@1, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(@2, '+00:00') as datetime2))) - (cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(instant_at, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(instant_at, '+00:00') as datetime2))))), 'second') as seconds, dbo.tsq_duration_text(0, 0, 0, 0, (datediff(day, cast(cast(switchoffset(instant_at, '+00:00') as datetime2) as date), cast(cast(switchoffset(@3, '+00:00') as datetime2) as date)) * cast(86400000000000 as decimal(38)) + ((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(@4, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(@5, '+00:00') as datetime2))) - (cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(instant_at, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(instant_at, '+00:00') as datetime2))))), 'hour') as hours, dbo.tsq_duration_text(0, 0, 0, 0, -((datediff(day, cast(cast(switchoffset(instant_at, '+00:00') as datetime2) as date), cast(cast(switchoffset(@6, '+00:00') as datetime2) as date)) * cast(86400000000000 as decimal(38)) + ((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(@7, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(@8, '+00:00') as datetime2))) - (cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(instant_at, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(instant_at, '+00:00') as datetime2))))) - ((datediff(day, cast(cast(switchoffset(instant_at, '+00:00') as datetime2) as date), cast(cast(switchoffset(@9, '+00:00') as datetime2) as date)) * cast(86400000000000 as decimal(38)) + ((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(@10, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(@11, '+00:00') as datetime2))) - (cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(instant_at, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(instant_at, '+00:00') as datetime2))))) % cast(60000000000 as bigint)) + case when ((datediff(day, cast(cast(switchoffset(instant_at, '+00:00') as datetime2) as date), cast(cast(switchoffset(@12, '+00:00') as datetime2) as date)) * cast(86400000000000 as decimal(38)) + ((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(@13, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(@14, '+00:00') as datetime2))) - (cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(instant_at, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(instant_at, '+00:00') as datetime2))))) % cast(60000000000 as bigint)) > 0 then cast(60000000000 as bigint) else 0 end), 'minute') as minutes from instant_value order by id"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
             "2124-03-15T10:00:00.123Z",
@@ -112,6 +171,107 @@ describe(ctx.label, () => {
         expect(differences).toEqual([])
     })
 
+    test('the-duration-between-two-instants-more-than-292-years-apart', async () => {
+        // More nanoseconds than a 64-bit integer holds; and two dates and times as far apart, in days
+        const from = Temporal.Instant.from('1700-01-01T00:00:00.000001Z')
+        const to = Temporal.Instant.from('2100-06-15T12:30:45.123456Z')
+        const fromDateTime = from.toZonedDateTimeISO('UTC').toPlainDateTime()
+        const toDateTime = to.toZonedDateTimeISO('UTC').toPlainDateTime()
+        ctx.mockNext({ seconds: '3510300:30:45.123455', hours: '3510300:30:45.123455', minutes: '-3510300:31:00', total: 3510300.512534293, days: '146262 days 12:30:45.123455' })
+        const row = await ctx.conn.selectFromNoTable()
+            .select({
+                seconds: ctx.conn.const(from, 'instant').until(to),
+                hours: ctx.conn.const(from, 'instant').until(to, { largestUnit: 'hour' }),
+                minutes: ctx.conn.const(from, 'instant').since(to, { largestUnit: 'minute', smallestUnit: 'minute', roundingMode: 'halfEven' }),
+                total: ctx.conn.const(from, 'instant').until(to, { largestUnit: 'hour' }).total('hours'),
+                days: ctx.conn.const(fromDateTime, 'plainDateTime').until(toDateTime),
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.tsq_duration_text(0, 0, 0, 0, (datediff(day, cast(cast(switchoffset(@1, '+00:00') as datetime2) as date), cast(cast(switchoffset(@0, '+00:00') as datetime2) as date)) * cast(86400000000000 as decimal(38)) + ((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(@2, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(@3, '+00:00') as datetime2))) - (cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(@4, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(@5, '+00:00') as datetime2))))), 'second') as seconds, dbo.tsq_duration_text(0, 0, 0, 0, (datediff(day, cast(cast(switchoffset(@7, '+00:00') as datetime2) as date), cast(cast(switchoffset(@6, '+00:00') as datetime2) as date)) * cast(86400000000000 as decimal(38)) + ((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(@8, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(@9, '+00:00') as datetime2))) - (cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(@10, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(@11, '+00:00') as datetime2))))), 'hour') as hours, dbo.tsq_duration_text(0, 0, 0, 0, -((datediff(day, cast(cast(switchoffset(@13, '+00:00') as datetime2) as date), cast(cast(switchoffset(@12, '+00:00') as datetime2) as date)) * cast(86400000000000 as decimal(38)) + ((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(@14, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(@15, '+00:00') as datetime2))) - (cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(@16, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(@17, '+00:00') as datetime2))))) - ((datediff(day, cast(cast(switchoffset(@19, '+00:00') as datetime2) as date), cast(cast(switchoffset(@18, '+00:00') as datetime2) as date)) * cast(86400000000000 as decimal(38)) + ((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(@20, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(@21, '+00:00') as datetime2))) - (cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(@22, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(@23, '+00:00') as datetime2))))) % cast(60000000000 as bigint)) + case when 2 * ((datediff(day, cast(cast(switchoffset(@25, '+00:00') as datetime2) as date), cast(cast(switchoffset(@24, '+00:00') as datetime2) as date)) * cast(86400000000000 as decimal(38)) + ((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(@26, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(@27, '+00:00') as datetime2))) - (cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(@28, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(@29, '+00:00') as datetime2))))) % cast(60000000000 as bigint)) > cast(60000000000 as bigint) or 2 * ((datediff(day, cast(cast(switchoffset(@31, '+00:00') as datetime2) as date), cast(cast(switchoffset(@30, '+00:00') as datetime2) as date)) * cast(86400000000000 as decimal(38)) + ((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(@32, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(@33, '+00:00') as datetime2))) - (cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(@34, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(@35, '+00:00') as datetime2))))) % cast(60000000000 as bigint)) = cast(60000000000 as bigint) and round((datediff(day, cast(cast(switchoffset(@37, '+00:00') as datetime2) as date), cast(cast(switchoffset(@36, '+00:00') as datetime2) as date)) * cast(86400000000000 as decimal(38)) + ((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(@38, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(@39, '+00:00') as datetime2))) - (cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(@40, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(@41, '+00:00') as datetime2))))) / cast(60000000000 as bigint), 0, 1) % 2 <> 0 then cast(60000000000 as bigint) when 2 * ((datediff(day, cast(cast(switchoffset(@43, '+00:00') as datetime2) as date), cast(cast(switchoffset(@42, '+00:00') as datetime2) as date)) * cast(86400000000000 as decimal(38)) + ((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(@44, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(@45, '+00:00') as datetime2))) - (cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(@46, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(@47, '+00:00') as datetime2))))) % cast(60000000000 as bigint)) < -cast(60000000000 as bigint) or 2 * ((datediff(day, cast(cast(switchoffset(@49, '+00:00') as datetime2) as date), cast(cast(switchoffset(@48, '+00:00') as datetime2) as date)) * cast(86400000000000 as decimal(38)) + ((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(@50, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(@51, '+00:00') as datetime2))) - (cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(@52, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(@53, '+00:00') as datetime2))))) % cast(60000000000 as bigint)) = -cast(60000000000 as bigint) and round((datediff(day, cast(cast(switchoffset(@55, '+00:00') as datetime2) as date), cast(cast(switchoffset(@54, '+00:00') as datetime2) as date)) * cast(86400000000000 as decimal(38)) + ((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(@56, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(@57, '+00:00') as datetime2))) - (cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(@58, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(@59, '+00:00') as datetime2))))) / cast(60000000000 as bigint), 0, 1) % 2 <> 0 then -cast(60000000000 as bigint) else 0 end), 'minute') as minutes, dbo.tsq_duration_total(0, 0, 0, cast(round((datediff(day, cast(cast(switchoffset(@61, '+00:00') as datetime2) as date), cast(cast(switchoffset(@60, '+00:00') as datetime2) as date)) * cast(86400000000000 as decimal(38)) + ((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(@62, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(@63, '+00:00') as datetime2))) - (cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(@64, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(@65, '+00:00') as datetime2))))) / 1000000000, 0, 1) as bigint), cast((datediff(day, cast(cast(switchoffset(@67, '+00:00') as datetime2) as date), cast(cast(switchoffset(@66, '+00:00') as datetime2) as date)) * cast(86400000000000 as decimal(38)) + ((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(@68, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(@69, '+00:00') as datetime2))) - (cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(@70, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(@71, '+00:00') as datetime2))))) % 1000000000 as bigint), 0, 0, 0, 'hour') as total, dbo.tsq_duration_text(0, 0, 0, round((datediff(day, cast(@73 as date), cast(@72 as date)) * cast(86400000000000 as decimal(38)) + ((cast(datediff(second, cast('00:00' as time), cast(@72 as time)) as bigint) * 1000000000 + datepart(nanosecond, @72)) - (cast(datediff(second, cast('00:00' as time), cast(@73 as time)) as bigint) * 1000000000 + datepart(nanosecond, @73)))) / cast(86400000000000 as bigint), 0, 1), ((datediff(day, cast(@73 as date), cast(@72 as date)) * cast(86400000000000 as decimal(38)) + ((cast(datediff(second, cast('00:00' as time), cast(@72 as time)) as bigint) * 1000000000 + datepart(nanosecond, @72)) - (cast(datediff(second, cast('00:00' as time), cast(@73 as time)) as bigint) * 1000000000 + datepart(nanosecond, @73)))) % cast(86400000000000 as bigint)), 'hour') as days"`)
+        expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
+          [
+            "2100-06-15T12:30:45.123456Z",
+            "1700-01-01T00:00:00.000001Z",
+            "2100-06-15T12:30:45.123456Z",
+            "2100-06-15T12:30:45.123456Z",
+            "1700-01-01T00:00:00.000001Z",
+            "1700-01-01T00:00:00.000001Z",
+            "2100-06-15T12:30:45.123456Z",
+            "1700-01-01T00:00:00.000001Z",
+            "2100-06-15T12:30:45.123456Z",
+            "2100-06-15T12:30:45.123456Z",
+            "1700-01-01T00:00:00.000001Z",
+            "1700-01-01T00:00:00.000001Z",
+            "2100-06-15T12:30:45.123456Z",
+            "1700-01-01T00:00:00.000001Z",
+            "2100-06-15T12:30:45.123456Z",
+            "2100-06-15T12:30:45.123456Z",
+            "1700-01-01T00:00:00.000001Z",
+            "1700-01-01T00:00:00.000001Z",
+            "2100-06-15T12:30:45.123456Z",
+            "1700-01-01T00:00:00.000001Z",
+            "2100-06-15T12:30:45.123456Z",
+            "2100-06-15T12:30:45.123456Z",
+            "1700-01-01T00:00:00.000001Z",
+            "1700-01-01T00:00:00.000001Z",
+            "2100-06-15T12:30:45.123456Z",
+            "1700-01-01T00:00:00.000001Z",
+            "2100-06-15T12:30:45.123456Z",
+            "2100-06-15T12:30:45.123456Z",
+            "1700-01-01T00:00:00.000001Z",
+            "1700-01-01T00:00:00.000001Z",
+            "2100-06-15T12:30:45.123456Z",
+            "1700-01-01T00:00:00.000001Z",
+            "2100-06-15T12:30:45.123456Z",
+            "2100-06-15T12:30:45.123456Z",
+            "1700-01-01T00:00:00.000001Z",
+            "1700-01-01T00:00:00.000001Z",
+            "2100-06-15T12:30:45.123456Z",
+            "1700-01-01T00:00:00.000001Z",
+            "2100-06-15T12:30:45.123456Z",
+            "2100-06-15T12:30:45.123456Z",
+            "1700-01-01T00:00:00.000001Z",
+            "1700-01-01T00:00:00.000001Z",
+            "2100-06-15T12:30:45.123456Z",
+            "1700-01-01T00:00:00.000001Z",
+            "2100-06-15T12:30:45.123456Z",
+            "2100-06-15T12:30:45.123456Z",
+            "1700-01-01T00:00:00.000001Z",
+            "1700-01-01T00:00:00.000001Z",
+            "2100-06-15T12:30:45.123456Z",
+            "1700-01-01T00:00:00.000001Z",
+            "2100-06-15T12:30:45.123456Z",
+            "2100-06-15T12:30:45.123456Z",
+            "1700-01-01T00:00:00.000001Z",
+            "1700-01-01T00:00:00.000001Z",
+            "2100-06-15T12:30:45.123456Z",
+            "1700-01-01T00:00:00.000001Z",
+            "2100-06-15T12:30:45.123456Z",
+            "2100-06-15T12:30:45.123456Z",
+            "1700-01-01T00:00:00.000001Z",
+            "1700-01-01T00:00:00.000001Z",
+            "2100-06-15T12:30:45.123456Z",
+            "1700-01-01T00:00:00.000001Z",
+            "2100-06-15T12:30:45.123456Z",
+            "2100-06-15T12:30:45.123456Z",
+            "1700-01-01T00:00:00.000001Z",
+            "1700-01-01T00:00:00.000001Z",
+            "2100-06-15T12:30:45.123456Z",
+            "1700-01-01T00:00:00.000001Z",
+            "2100-06-15T12:30:45.123456Z",
+            "2100-06-15T12:30:45.123456Z",
+            "1700-01-01T00:00:00.000001Z",
+            "1700-01-01T00:00:00.000001Z",
+            "2100-06-15T12:30:45.123456",
+            "1700-01-01T00:00:00.000001",
+          ]
+        `)
+        const expected = [from.until(to), from.until(to, { largestUnit: 'hour' }), from.since(to, { largestUnit: 'minute', smallestUnit: 'minute', roundingMode: 'halfEven' }), fromDateTime.until(toDateTime)]
+        const got = [row.seconds, row.hours, row.minutes, row.days]
+        expect(expected.flatMap((duration, i) => Temporal.Duration.compare(duration, got[i]!, { relativeTo: fromDateTime }) === 0 ? [] : [i + ': ' + duration.toString() + ' got ' + got[i]!.toString()])).toEqual([])
+        expect(row.total).toBe(from.until(to, { largestUnit: 'hour' }).total('hours'))
+    })
+
     test('an-instant-rounded', async () => {
         ctx.mockNext([{ id: 1, hour: '2024-01-14 09:00:00+00', ninety: '2024-01-14 09:00:00+00', floor: '2024-01-14 09:15:30+00' }, { id: 2, hour: '1969-07-20 20:00:00+00', ninety: '1969-07-20 21:00:00+00', floor: '1969-07-20 20:17:40+00' }])
         const rows = await ctx.conn.selectFrom(tInstantValue)
@@ -129,6 +289,32 @@ describe(ctx.label, () => {
         expect(rows.map(row => [row.id, row.hour.toString(), row.ninety.toString(), row.floor.toString()])).toEqual([deployed, landed].map((instant, i) => [
             i + 1, instant.round('hour').toString(), instant.round({ smallestUnit: 'minute', roundingIncrement: 90 }).toString(), instant.round({ smallestUnit: 'second', roundingMode: 'floor' }).toString(),
         ]))
+    })
+
+    test('an-instant-computed-as-a-date-and-time-of-the-database', async () => {
+        // An instant rounded, plus a duration, or of its epoch, taken to its date and time in the zone of the database (UTC)
+        ctx.mockNext([{ hour: '2024-01-14 09:00:00', later: '2024-01-14 10:15:30.123456', day: '2024-01-14' }])
+        const rows = await ctx.conn.selectFrom(tInstantValue)
+            .where(tInstantValue.id.equals(1))
+            .select({
+                hour: tInstantValue.instantAt.round('hour').toPlainDateTime(),
+                later: tInstantValue.instantAt.add({ hours: 1 }).toPlainDateTime(),
+                day: ctx.conn.instantFromEpochMilliseconds(tInstantValue.instantAt.epochMilliseconds()).toPlainDate(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(switchoffset(dateadd(nanosecond, ((2 * (cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(instant_at, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(instant_at, '+00:00') as datetime2))) + cast(3600000000000 as bigint)) / cast(7200000000000 as bigint) * cast(3600000000000 as bigint)) % 1000000000, dateadd(second, ((2 * (cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(instant_at, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(instant_at, '+00:00') as datetime2))) + cast(3600000000000 as bigint)) / cast(7200000000000 as bigint) * cast(3600000000000 as bigint)) / 1000000000, cast(cast(cast(switchoffset(instant_at, '+00:00') as datetime2) as date) as datetime2))), '+00:00') as datetime2) as hour, cast(switchoffset(dateadd(second, @0, cast(switchoffset(instant_at, '+00:00') as datetime2)), '+00:00') as datetime2) as later, cast(cast(switchoffset(dateadd(nanosecond, (((cast(datediff_big(millisecond, '1970-01-01 00:00:00', instant_at) as bigint) % 86400000 + 86400000) % 86400000) * 1000000) % 1000000000, dateadd(second, (((cast(datediff_big(millisecond, '1970-01-01 00:00:00', instant_at) as bigint) % 86400000 + 86400000) % 86400000) * 1000000) / 1000000000, cast(dateadd(day, (cast(datediff_big(millisecond, '1970-01-01 00:00:00', instant_at) as bigint) - ((cast(datediff_big(millisecond, '1970-01-01 00:00:00', instant_at) as bigint) % 86400000 + 86400000) % 86400000)) / 86400000, cast('1970-01-01' as date)) as datetime2))), '+00:00') as datetime2) as date) as day from instant_value where id = @1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3600,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ hour: Temporal.PlainDateTime; later: Temporal.PlainDateTime; day: Temporal.PlainDate }>>>()
+        expect(rows.map(row => [row.hour.toString(), row.later.toString(), row.day.toString()])).toEqual([[
+            deployed.round('hour').toZonedDateTimeISO('UTC').toPlainDateTime().toString(),
+            deployed.add({ hours: 1 }).toZonedDateTimeISO('UTC').toPlainDateTime().toString(),
+            deployed.toZonedDateTimeISO('UTC').toPlainDate().toString(),
+        ]])
     })
 
     test('an-instant-before-1970-rounded-as-temporal', async () => {

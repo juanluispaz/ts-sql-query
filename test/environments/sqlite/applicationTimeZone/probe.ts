@@ -55,7 +55,7 @@ async function createDriver(): Promise<Driver> {
 }
 
 const driver = await createDriver()
-driver.exec('create table moment(id integer primary key, on_date, at_time, at)')
+driver.exec('create table moment(id integer primary key, on_date, at_time, at, at_instant)')
 
 class DBConnection extends SqliteConnection<'DBConnection'> {
     protected override sqliteRunsInApplicationTimeZone = useOption
@@ -71,6 +71,7 @@ class TMoment extends Table<DBConnection, 'TMoment'> {
     onDate = this.column('on_date', 'localDate')
     atTime = this.column('at_time', 'localTime')
     at = this.column('at', 'localDateTime')
+    atInstant = this.column('at_instant', 'instant')
     constructor() {
         super('moment')
     }
@@ -97,7 +98,8 @@ for (const format of formats) {
     const milliseconds = format.includes(' seconds ') ? 0 : 250
     for (const at of instants) {
         driver.exec('delete from moment')
-        await connection.insertInto(tMoment).set({ id: 1, onDate, atTime, at }).executeInsert()
+        const atInstant = Temporal.Instant.fromEpochMilliseconds(at.getTime())
+        await connection.insertInto(tMoment).set({ id: 1, onDate, atTime, at, atInstant }).executeInsert()
         const row = await connection.selectFrom(tMoment)
             .select({
                 onDate: tMoment.onDate,
@@ -143,10 +145,30 @@ for (const format of formats) {
         check(label + 'getSeconds', row.seconds, row.at.getSeconds())
         check(label + 'getMilliseconds', row.ms, row.at.getMilliseconds())
         check(label + 'getTime', row.time, row.at.getTime())
+
+        // The arithmetic of an instant is the one of its wall clock in UTC, as Temporal's: the value kept is the instant
+        // of the local wall clock where SQLite runs in the zone of the application
+        const instantRow = await connection.selectFrom(tMoment)
+            .select({
+                atInstant: tMoment.atInstant,
+                epoch: tMoment.atInstant.epochMilliseconds(),
+                plusAnHour: tMoment.atInstant.add({ hours: 1 }),
+                hour: tMoment.atInstant.round('hour'),
+                ofItsEpoch: connection.instantFromEpochMilliseconds(tMoment.atInstant.epochMilliseconds()),
+                untilPlusAnHour: tMoment.atInstant.add({ hours: 1 }).epochMilliseconds().subtract(tMoment.atInstant.epochMilliseconds()),
+            })
+            .executeSelectOne()
+        const kept = Temporal.Instant.fromEpochMilliseconds(at.getTime() - 250 + milliseconds)
+        check(label + 'instant read', instantRow.atInstant.toString(), kept.toString())
+        check(label + 'instant epochMilliseconds', instantRow.epoch, kept.epochMilliseconds)
+        check(label + 'instant add', instantRow.plusAnHour.toString(), kept.add({ hours: 1 }).toString())
+        check(label + 'instant round', instantRow.hour.toString(), kept.round('hour').toString())
+        check(label + 'instant of its epoch', instantRow.ofItsEpoch.toString(), kept.toString())
+        check(label + 'instant plus an hour is an hour later', instantRow.untilPlusAnHour, 3_600_000)
     }
 
     driver.exec('delete from moment')
-    await connection.insertInto(tMoment).set({ id: 1, onDate: new Date(), atTime, at: new Date() }).executeInsert()
+    await connection.insertInto(tMoment).set({ id: 1, onDate: new Date(), atTime, at: new Date(), atInstant: Temporal.Now.instant() }).executeInsert()
     const today = await connection.selectFrom(tMoment)
         .where(tMoment.onDate.equals(connection.currentDate()))
         .selectOneColumn(tMoment.id)

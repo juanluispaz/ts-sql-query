@@ -762,6 +762,11 @@ function exactQuotient(a: bigint, b: bigint): number {
  * duration with months or weeks, or a unit of them, is an error. A double, rounded once; null when an argument is null
  */
 function durationTotal(months: unknown, weeks: unknown, days: unknown, seconds: unknown, nanoseconds: unknown, year: unknown, month: unknown, dayOfMonth: unknown, unit: unknown): number | null {
+    if (typeof nanoseconds === 'string' && !/^-?\d+$/.test(nanoseconds)) {
+        // The nanoseconds of a difference given as text are a real: SQLite turned an integer that overflowed its 64 bits
+        // (a difference of more than 292 years) into one, which has lost digits
+        throw new Error("tsq_duration_total: the nanoseconds of the time don't fit in the 64-bit integers of SQLite")
+    }
     const mo = bigintArgument(months)
     const w = bigintArgument(weeks)
     const d = bigintArgument(days)

@@ -31,4 +31,10 @@ export const oracleOperationsThatNeedParenthesis: OperationsThatNeedParenthesis 
     // noise).
     _replaceAll: true,
     _replaceAllInsensitive: true,
+    // An instant computed on its wall clock in UTC: `from_tz(...)`, which delimits itself
+    _roundInstant: false,
+    _instantAddDuration: false,
+    _instantSubtractDuration: false,
+    _instantFromEpochMilliseconds: false,
+    _instantFromEpochNanoseconds: false,
 }

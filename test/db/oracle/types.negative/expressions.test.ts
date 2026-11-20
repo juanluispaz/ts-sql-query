@@ -657,7 +657,7 @@ function _typeNegatives() {
     void tInstantValue.instantAt.round({ smallestUnit: 'minute', roundingIncrement: 90 })
     // @ts-expect-error days aren't added to an instant, as in Temporal
     void tInstantValue.instantAt.add({ days: 1 })
-    // @ts-expect-error a duration of a column may have days
+    // A duration of a column: the query fails when it has days
     void tInstantValue.instantAt.add(tDurationValue.span)
     // @ts-expect-error a difference of two instants has no days
     void tInstantValue.instantAt.until(tInstantValue.wallAt, { largestUnit: 'day' })
@@ -665,6 +665,14 @@ function _typeNegatives() {
     void tInstantValue.instantAt.round('day')
     // @ts-expect-error the other value is an instant
     void tInstantValue.instantAt.until(tColMatrixPlain.mDatetime)
+    // An instant of its milliseconds or nanoseconds since the epoch: of an integer
+    void connection.instantFromEpochMilliseconds(t.mBigint)
+    void connection.instantFromEpochNanoseconds(t.mInt)
+    void connection.instantFromEpochMilliseconds(1705223730123)
+    // @ts-expect-error the milliseconds are an integer
+    void connection.instantFromEpochMilliseconds(t.mDouble)
+    // @ts-expect-error the nanoseconds of a value are a bigint, as in Temporal
+    void connection.instantFromEpochNanoseconds(1705223730123)
 }
 
 test('expressions-negative-types', () => {

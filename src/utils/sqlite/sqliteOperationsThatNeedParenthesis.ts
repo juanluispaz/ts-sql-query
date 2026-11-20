@@ -14,4 +14,10 @@ export const sqliteOperationsThatNeedParenthesis: OperationsThatNeedParenthesis 
     _subtractDuration: false,
     _addDurationRejecting: false,
     _subtractDurationRejecting: false,
+    // An instant computed on its wall clock in UTC: a call of a date function of SQLite, or `case … end`, which delimits itself
+    _roundInstant: false,
+    _instantAddDuration: false,
+    _instantSubtractDuration: false,
+    _instantFromEpochMilliseconds: false,
+    _instantFromEpochNanoseconds: false,
 }

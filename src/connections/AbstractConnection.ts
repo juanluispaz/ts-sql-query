@@ -39,14 +39,14 @@ import type { IAnyAdditiveValueSource } from '../typeSystem/numeric.js'
 import type { IAnyComparableValueSource } from '../typeSystem/comparable.js'
 import type { AggregatedArrayProjectableAsNullableType, AggregatedArrayType } from '../typeSystem/aggregatedArrays.js'
 import { Argument } from '../typeSystem/arguments.js'
-import type { AnyTypeClass, IValueSource, RemapValueSourceTypeWithOptionalType, TypeClass, ValueSource, ValueTypeOf } from '../typeSystem/base.js'
+import type { AnyTypeClass, IValueSource, IValueWithType, OptionalityOf, RemapValueSourceTypeWithOptionalType, SourceOf, TypeClass, ValueSource, ValueTypeOf } from '../typeSystem/base.js'
 import type { NullableType } from '../typeSystem/nullable.js'
 import { type AlwaysIfValueSource, type IfValueSource, BooleanConditionType, BooleanType } from '../typeSystem/logical.js'
 import type { FragmentExpression } from '../typeSystem/fragments.js'
 import { LocalDateTimeType, LocalTimeType, LocalDateType } from '../typeSystem/localDates.js'
 import { __temporal, type TemporalPlainDateTime } from '../typeSystem/temporal.js'
 import { PlainDateTimeType, PlainDateType, PlainTimeType } from '../typeSystem/plainDates.js'
-import { InstantType } from '../typeSystem/instants.js'
+import { InstantType, __instantFromEpoch } from '../typeSystem/instants.js'
 import { parseInstantText, parsePlainDateTimeText, plainDateTimeOfUtcDate } from '../utils/plainDateTimeText.js'
 import { durationIsoText, durationOfReceivedValue, isDurationValue } from '../utils/durationValues.js'
 import type { NumberType } from '../typeSystem/number.js'
@@ -666,6 +666,32 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     currentInstant(): ValueSource<NNoTableOrViewRequired<DB>, InstantType, 'required'>
     currentInstant(): any {
         return __createStatic0('_currentInstant', InstantType, 'required')
+    }
+    /**
+     * The instant of the milliseconds since 1970-01-01T00:00Z given, as Temporal's `Temporal.Instant.fromEpochMilliseconds`:
+     * a number is the Temporal.Instant sent as a value
+     */
+    instantFromEpochMilliseconds(epochMilliseconds: number): ValueSource<NNoTableOrViewRequired<DB>, InstantType, 'required'>
+    /**
+     * The instant of the milliseconds since 1970-01-01T00:00Z of an int or a bigint, as Temporal's
+     * `Temporal.Instant.fromEpochMilliseconds`, computed by the database
+     */
+    instantFromEpochMilliseconds<VALUE extends IValueWithType<'type:int:number:'> | IValueWithType<'type:bigint:'>>(epochMilliseconds: VALUE): ValueSource<SourceOf<VALUE>, InstantType, OptionalityOf<VALUE>>
+    instantFromEpochMilliseconds(epochMilliseconds: unknown): any {
+        return __instantFromEpoch(epochMilliseconds, '_instantFromEpochMilliseconds')
+    }
+    /**
+     * The instant of the nanoseconds since 1970-01-01T00:00Z given, as Temporal's `Temporal.Instant.fromEpochNanoseconds`:
+     * a bigint is the Temporal.Instant sent as a value
+     */
+    instantFromEpochNanoseconds(epochNanoseconds: bigint): ValueSource<NNoTableOrViewRequired<DB>, InstantType, 'required'>
+    /**
+     * The instant of the nanoseconds since 1970-01-01T00:00Z of a bigint or an int, as Temporal's
+     * `Temporal.Instant.fromEpochNanoseconds`, computed by the database with the digits it keeps
+     */
+    instantFromEpochNanoseconds<VALUE extends IValueWithType<'type:bigint:'> | IValueWithType<'type:int:number:'>>(epochNanoseconds: VALUE): ValueSource<SourceOf<VALUE>, InstantType, OptionalityOf<VALUE>>
+    instantFromEpochNanoseconds(epochNanoseconds: unknown): any {
+        return __instantFromEpoch(epochNanoseconds, '_instantFromEpochNanoseconds')
     }
 
     const<TYPE extends DataTypeName>(value: DataTypeValueOfName<TYPE>, type: TYPE, adapter?: TypeAdapter): DataTypeValueSources<NNoTableOrViewRequired<DB>, 'required'>[TYPE]

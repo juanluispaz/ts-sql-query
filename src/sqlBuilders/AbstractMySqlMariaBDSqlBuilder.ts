@@ -1130,6 +1130,21 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
      * The value plus the duration, or an error of the query when the day of the value isn't in the month the months of
      * the duration reach (a subquery of two rows): each part written again where it appears, in the order of the text
      */
+    override _valueOrErrorWhenDurationHasDays(context: SqlBuildContext, value: string, duration: ToSql): string {
+        // No date fails: a subquery of two rows is the error; the condition after the value, as the parameters appear
+        return 'date_add(' + value + ', interval case when ' + this._durationHasDaysSql(context, duration) + ' then (select 1 union all select 1) else 0 end day)'
+    }
+    override _bigintOfInteger(sql: string): string {
+        // The arithmetic of integers is of 64 bits
+        return sql
+    }
+    override _wideDayNanoseconds(): string {
+        return 'cast(86400000000000 as decimal(65))'
+    }
+    override _wideTruncatedDivision(dividend: string, divisor: string): string {
+        // `div` fails beyond a bigint; a division of decimals keeps every digit of the integer part
+        return 'truncate(' + dividend + ' / ' + divisor + ', 0)'
+    }
     override _appendWithDurationRejecting(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass, sign: 1 | -1): string {
         const fields = this._temporalFieldsOfDurationOperation(typeClass)
         if (fields === 'time' || !this._hasDurationMonths(value, typeClass, fields, sign)) {

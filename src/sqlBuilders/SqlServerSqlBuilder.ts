@@ -1267,6 +1267,16 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _shiftDays(_context: SqlBuildContext, value: string, days: string): string {
         return 'dateadd(day, ' + days + ', ' + value + ')'
     }
+    override _epochDate(): string {
+        return "cast('1970-01-01' as date)"
+    }
+    override _wideDayNanoseconds(): string {
+        return 'cast(86400000000000 as decimal(38))'
+    }
+    override _wideTruncatedDivision(dividend: string, divisor: string): string {
+        // A division of decimals keeps a fraction: truncated
+        return 'round(' + dividend + ' / ' + divisor + ', 0, 1)'
+    }
     /** The type of the database of an operand, by the SQL data type of its column (withSqlDataType), if it says it */
     _nativeSqlDataTypeOfOperand(operand: ToSql): string | undefined {
         const sqlDataType = isValueSource(operand) ? __sqlDataTypeOf(__classOf(operand)) : undefined

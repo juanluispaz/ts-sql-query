@@ -1480,7 +1480,7 @@ On MariaDB, MySQL, Oracle, SQLite and SQL Server the query writes the text of th
     ```sql
     DROP FUNCTION IF EXISTS tsq_duration_text;
     DELIMITER //
-    CREATE FUNCTION tsq_duration_text(y BIGINT, mo BIGINT, w BIGINT, d BIGINT, ns BIGINT, unit VARCHAR(6)) RETURNS VARCHAR(100) CHARACTER SET ascii DETERMINISTIC NO SQL
+    CREATE FUNCTION tsq_duration_text(y BIGINT, mo BIGINT, w BIGINT, d BIGINT, ns DECIMAL(65, 0), unit VARCHAR(6)) RETURNS VARCHAR(100) CHARACTER SET ascii DETERMINISTIC NO SQL
     BEGIN
         DECLARE r VARCHAR(100) DEFAULT '';
         DECLARE t VARCHAR(100) DEFAULT '';
@@ -1626,7 +1626,7 @@ On MariaDB, MySQL, Oracle, SQLite and SQL Server the query writes the text of th
     ```sql
     DROP FUNCTION IF EXISTS tsq_duration_text;
     DELIMITER //
-    CREATE FUNCTION tsq_duration_text(y BIGINT, mo BIGINT, w BIGINT, d BIGINT, ns BIGINT, unit VARCHAR(6)) RETURNS VARCHAR(100) CHARACTER SET ascii DETERMINISTIC NO SQL
+    CREATE FUNCTION tsq_duration_text(y BIGINT, mo BIGINT, w BIGINT, d BIGINT, ns DECIMAL(65, 0), unit VARCHAR(6)) RETURNS VARCHAR(100) CHARACTER SET ascii DETERMINISTIC NO SQL
     BEGIN
         DECLARE r VARCHAR(100) DEFAULT '';
         DECLARE t VARCHAR(100) DEFAULT '';
@@ -2046,7 +2046,7 @@ On MariaDB, MySQL, Oracle, SQLite and SQL Server the query writes the text of th
     DROP FUNCTION IF EXISTS dbo.tsq_duration_add;
     GO
 
-    CREATE OR ALTER FUNCTION dbo.tsq_duration_text(@y BIGINT, @mo BIGINT, @w BIGINT, @d BIGINT, @ns BIGINT, @unit VARCHAR(6)) RETURNS VARCHAR(100) WITH SCHEMABINDING AS
+    CREATE OR ALTER FUNCTION dbo.tsq_duration_text(@y BIGINT, @mo BIGINT, @w BIGINT, @d BIGINT, @ns DECIMAL(38, 0), @unit VARCHAR(6)) RETURNS VARCHAR(100) WITH SCHEMABINDING AS
     BEGIN
         IF @y IS NULL OR @mo IS NULL OR @w IS NULL OR @d IS NULL OR @ns IS NULL RETURN NULL;
         DECLARE @neg BIT = CASE WHEN @y < 0 OR @mo < 0 OR @w < 0 OR @d < 0 OR @ns < 0 THEN 1 ELSE 0 END, @r VARCHAR(100) = '', @t VARCHAR(100) = '';
@@ -2056,12 +2056,12 @@ On MariaDB, MySQL, Oracle, SQLite and SQL Server the query writes the text of th
         IF @w <> 0 SET @r = @r + CAST(ABS(@w) AS VARCHAR(20)) + 'W';
         IF @d <> 0 SET @r = @r + CAST(ABS(@d) AS VARCHAR(20)) + 'D';
         SET @ns = ABS(@ns);
-        IF @unit = 'hour' AND @ns >= @hour BEGIN SET @t = @t + CAST(@ns / @hour AS VARCHAR(20)) + 'H'; SET @ns = @ns % @hour; END
-        IF @unit <> 'second' AND @ns >= @minute BEGIN SET @t = @t + CAST(@ns / @minute AS VARCHAR(20)) + 'M'; SET @ns = @ns % @minute; END
+        IF @unit = 'hour' AND @ns >= @hour BEGIN SET @t = @t + CAST(FLOOR(@ns / @hour) AS VARCHAR(20)) + 'H'; SET @ns = @ns % @hour; END
+        IF @unit <> 'second' AND @ns >= @minute BEGIN SET @t = @t + CAST(FLOOR(@ns / @minute) AS VARCHAR(20)) + 'M'; SET @ns = @ns % @minute; END
         IF @ns > 0
         BEGIN
             SET @f = @ns % @second;
-            SET @t = @t + CAST(@ns / @second AS VARCHAR(20));
+            SET @t = @t + CAST(FLOOR(@ns / @second) AS VARCHAR(20));
             IF @f > 0
             BEGIN
                 SET @frac = RIGHT('000000000' + CAST(@f AS VARCHAR(9)), 9);

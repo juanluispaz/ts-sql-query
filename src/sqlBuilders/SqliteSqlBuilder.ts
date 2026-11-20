@@ -709,13 +709,17 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
      * integers and SQLite's integer division truncates **toward zero** rather than
      * flooring. That is the same thing for an instant at or after 1970 and one second off
      * before it (`-1500 / 1000` is `-1`, putting `1969-12-31 23:59:58.500` on the wrong
-     * second), so the fallback divides by a REAL literal and floors.
+     * second), so the fallback divides by a REAL literal and floors; its milliseconds follow as a modifier of seconds
+     * where they count (keepFraction), not for a part of the date or of the time.
      */
-    _unixMillisecondsAsDateTimeArgument(sql: string): string {
+    _unixMillisecondsAsDateTimeArgument(sql: string, keepFraction: boolean): string {
         if (this._connectionConfiguration.compatibilityVersion >= 3_042_000) {
             return sql + " / 1000.0, 'unixepoch', 'subsec'"
         }
-        return 'cast(floor(' + sql + " / 1000.0) as integer), 'unixepoch'"
+        if (!keepFraction) {
+            return 'cast(floor(' + sql + " / 1000.0) as integer), 'unixepoch'"
+        }
+        return 'cast(floor(' + sql + " / 1000.0) as integer), 'unixepoch', (" + this._unixMillisecondsAsMilliseconds(sql) + " / 1000.0) || ' seconds'"
     }
     /**
      * The millisecond component of an instant stored as unix-time MILLISECONDS.
@@ -754,8 +758,11 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
      * A time needs a date to be moved to another zone, and on its own SQLite gives it another one than JavaScript,
      * which uses 1970-01-01. In a Julian day, a time is the part of the day since midnight, while a Julian day starts
      * at noon, so it needs that date anyway.
+     *
+     * A Unix time in milliseconds of an older SQLite gives its milliseconds only where they count (keepFraction): not
+     * to take a part of the date or of the time.
      */
-    _dateFunctionArgument(context: SqlBuildContext, valueSource: ToSql): string {
+    _dateFunctionArgument(context: SqlBuildContext, valueSource: ToSql, keepFraction: boolean = true): string {
         const format = this._getValueSourceDateTimeFormat(valueSource)
         const isTime = isValueSource(valueSource) && __isLocalTimeValueSource(__asNodeValueSource(valueSource))
         const isDate = isValueSource(valueSource) && __isLocalDateValueSource(__asNodeValueSource(valueSource))
@@ -769,7 +776,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
             case 'Unix time seconds as integer':
                 return this._appendSql(valueSource, context, false) + ", 'unixepoch'" + modifier
             case 'Unix time milliseconds as integer':
-                return this._unixMillisecondsAsDateTimeArgument(this._appendSql(valueSource, context, false)) + modifier
+                return this._unixMillisecondsAsDateTimeArgument(this._appendSql(valueSource, context, false), keepFraction) + modifier
             case 'Julian day as real number':
                 if (isTime) {
                     return this._appendSqlParenthesis(valueSource, context, false) + ' + 2440587.5' + modifier
@@ -1199,7 +1206,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return 'max(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, __arithmeticOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value)) + ')'
     }
     override _day(context: SqlBuildContext, valueSource: ToSql): string {
-        return "cast(strftime('%d', " + this._dateFunctionArgument(context, valueSource) + ") as integer)"
+        return "cast(strftime('%d', " + this._dateFunctionArgument(context, valueSource, false) + ") as integer)"
     }
     override _epochMilliseconds(context: SqlBuildContext, valueSource: ToSql): string {
         if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {
@@ -1226,27 +1233,45 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         const integer = format === 'Unix time seconds as integer' || format === 'Unix time milliseconds as integer' ? milliseconds : 'cast(' + milliseconds + ' as integer)'
         return '(' + integer + ' * 1000000)'
     }
+    /**
+     * The wall clock in UTC of an instant: kept in a local text when SQLite runs in the zone of the application
+     * (sqliteRunsInApplicationTimeZone), it is the wall clock of that zone, which the modifier 'utc' takes to UTC;
+     * otherwise the zone of the database is UTC, and it is the value
+     */
+    override _instantInUtc(context: SqlBuildContext, valueSource: ToSql): string {
+        if (this._connectionConfiguration.sqliteRunsInApplicationTimeZone && isLocalTextFormat(this._getValueSourceDateTimeFormat(valueSource))) {
+            return this._sqliteTemporalIn('dateTime', this._appendSql(valueSource, context, false) + ", 'utc'")
+        }
+        return this._appendSql(valueSource, context, false)
+    }
+    /** The instant of a wall clock in UTC: in a local text when SQLite runs in the zone of the application, of that zone */
+    override _instantOfUtc(_context: SqlBuildContext, sql: string): string {
+        if (this._connectionConfiguration.sqliteRunsInApplicationTimeZone && isLocalTextFormat(this._getDateTimeFormat('dateTime'))) {
+            return this._sqliteTemporalIn('dateTime', sql + ", 'localtime'")
+        }
+        return sql
+    }
     override _instantToPlainDateTime(context: SqlBuildContext, valueSource: ToSql): string {
         // An instant is kept in the format of a localDateTime, as a plainDateTime is: the same text or number
         return this._appendSql(valueSource, context, false)
     }
     override _year(context: SqlBuildContext, valueSource: ToSql): string {
-        return "cast(strftime('%Y', " + this._dateFunctionArgument(context, valueSource) + ") as integer)"
+        return "cast(strftime('%Y', " + this._dateFunctionArgument(context, valueSource, false) + ") as integer)"
     }
     override _monthFromZero(context: SqlBuildContext, valueSource: ToSql): string {
-        return "cast(strftime('%m', " + this._dateFunctionArgument(context, valueSource) + ") as integer) - 1"
+        return "cast(strftime('%m', " + this._dateFunctionArgument(context, valueSource, false) + ") as integer) - 1"
     }
     override _dayOfWeekFromSunday(context: SqlBuildContext, valueSource: ToSql): string {
-        return "cast(strftime('%w'," + this._dateFunctionArgument(context, valueSource) + ") as integer)"
+        return "cast(strftime('%w'," + this._dateFunctionArgument(context, valueSource, false) + ") as integer)"
     }
     override _hour(context: SqlBuildContext, valueSource: ToSql): string {
-        return "cast(strftime('%H', " + this._dateFunctionArgument(context, valueSource) + ") as integer)"
+        return "cast(strftime('%H', " + this._dateFunctionArgument(context, valueSource, false) + ") as integer)"
     }
     override _minute(context: SqlBuildContext, valueSource: ToSql): string {
-        return "cast(strftime('%M', " + this._dateFunctionArgument(context, valueSource) + ") as integer)"
+        return "cast(strftime('%M', " + this._dateFunctionArgument(context, valueSource, false) + ") as integer)"
     }
     override _second(context: SqlBuildContext, valueSource: ToSql): string {
-        return "cast(strftime('%S', " + this._dateFunctionArgument(context, valueSource) + ") as integer)"
+        return "cast(strftime('%S', " + this._dateFunctionArgument(context, valueSource, false) + ") as integer)"
     }
     override _millisecond(context: SqlBuildContext, valueSource: ToSql): string {
         if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {
@@ -1263,14 +1288,14 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return "cast(round(strftime('%f', " + this._appendSql(valueSource, context, false) + ") * 1000) as integer) % 1000"
     }
     override _month(context: SqlBuildContext, valueSource: ToSql): string {
-        return "cast(strftime('%m', " + this._dateFunctionArgument(context, valueSource) + ") as integer)"
+        return "cast(strftime('%m', " + this._dateFunctionArgument(context, valueSource, false) + ") as integer)"
     }
     override _dayOfWeek(context: SqlBuildContext, valueSource: ToSql): string {
         // `%w` is 0 Sunday to 6 Saturday; Temporal's dayOfWeek, 1 Monday to 7 Sunday (`%u`, only since SQLite 3.46)
-        return "(cast(strftime('%w', " + this._dateFunctionArgument(context, valueSource) + ") as integer) + 6) % 7 + 1"
+        return "(cast(strftime('%w', " + this._dateFunctionArgument(context, valueSource, false) + ") as integer) + 6) % 7 + 1"
     }
     override _dayOfYear(context: SqlBuildContext, valueSource: ToSql): string {
-        return "cast(strftime('%j', " + this._dateFunctionArgument(context, valueSource) + ") as integer)"
+        return "cast(strftime('%j', " + this._dateFunctionArgument(context, valueSource, false) + ") as integer)"
     }
     override _microsecond(context: SqlBuildContext, valueSource: ToSql): string {
         // The date functions of SQLite stop at the millisecond: the microseconds of the millisecond are the 4th to the
@@ -1387,6 +1412,10 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     override _durationTextTimeArgument(nanoseconds: string): string {
         return 'cast(' + nanoseconds + ' as text)'
     }
+    override _differenceTimeForTotal(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
+        // Its nanoseconds as text, as tsq_duration_text takes them: a real when they overflowed the 64-bit integers
+        return '0, ' + this._durationTextTimeArgument(this._differenceField(context, d, 'time'))
+    }
     override _differenceDateOf(context: SqlBuildContext, _d: PlainTemporalDifferenceSql, valueSource: ToSql): string {
         // The text of the date, whatever the format the value is kept in
         return this._dateOfValue(context, valueSource)
@@ -1423,6 +1452,24 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     override _validDayOrError(context: SqlBuildContext, year: string, month: string, day: string): string {
         // SQLite has no date that fails: an integer overflow is the error
         return 'case when ' + day + ' > ' + this._daysInMonth(context, year, month) + ' then abs(-9223372036854775807 - 1) else ' + day + ' end'
+    }
+    override _valueOrErrorWhenDurationHasDays(context: SqlBuildContext, value: string, duration: ToSql): string {
+        // SQLite has no date that fails: an integer overflow is the error
+        return 'case when ' + this._durationHasDaysSql(context, duration) + ' then abs(-9223372036854775807 - 1) else ' + value + ' end'
+    }
+    override _bigintOfInteger(sql: string): string {
+        // An integer is of 64 bits
+        return sql
+    }
+    override _epochDate(): string {
+        return "'1970-01-01'"
+    }
+    override _wideDayNanoseconds(): string {
+        // An integer is of 64 bits: a difference beyond them fails (see tsq_duration_text)
+        return '86400000000000'
+    }
+    override _wideTruncatedDivision(dividend: string, divisor: string): string {
+        return this._truncatedDivision(dividend, divisor)
     }
     /** The result, or an error of the query when the day of the value isn't in the month the duration reaches */
     override _appendWithDurationRejecting(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass, sign: 1 | -1): string {

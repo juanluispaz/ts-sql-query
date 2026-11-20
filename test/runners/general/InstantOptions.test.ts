@@ -9,6 +9,7 @@ import { plainTemporalDifferenceOf } from '../../../src/utils/plainTemporalDiffe
 import { sqliteScalarFunctions } from '../../../src/utils/sqlite/sqliteFunctions.js'
 
 const durationText = sqliteScalarFunctions.find(f => f.name === 'tsq_duration_text')!.fn
+const durationTotal = sqliteScalarFunctions.find(f => f.name === 'tsq_duration_total')!.fn
 
 const from = Temporal.Instant.from('1969-12-31T23:59:30.5Z')
 const to = Temporal.Instant.from('2024-03-15T10:00:00.123456789Z')
@@ -79,5 +80,18 @@ describe('InstantOptions', () => {
             error = (e as Error).message
         }
         expect(error).toBe("tsq_duration_text: the nanoseconds of the time don't fit in the 64-bit integers of SQLite")
+    })
+
+    test('the-total-of-a-duration-of-sqlite-reads-the-nanoseconds-given-as-text', () => {
+        // The total of a difference gives its nanoseconds as text: 4880353340.5 seconds are 1355653.70625 hours
+        expect(durationTotal(0, 0, 0, 0, '4880353340500000000', 0, 0, 0, 'hour')).toBe(Temporal.Duration.from({ seconds: 4880353340, milliseconds: 500 }).total('hours'))
+        // A real, which SQLite gives for an integer beyond its 64 bits (a difference of more than 292 years): an error
+        let error = 'no error'
+        try {
+            durationTotal(0, 0, 0, 0, '1.26370818451235e+19', 0, 0, 0, 'hour')
+        } catch (e) {
+            error = (e as Error).message
+        }
+        expect(error).toBe("tsq_duration_total: the nanoseconds of the time don't fit in the 64-bit integers of SQLite")
     })
 })

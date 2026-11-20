@@ -1571,6 +1571,27 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     override _isDurationKeptAsText(valueSource: ToSql): boolean {
         return isDifference(valueSource) || super._isDurationKeptAsText(valueSource)
     }
+    override _durationHasDaysSql(context: SqlBuildContext, duration: ToSql): string {
+        if (this._isDurationKeptAsText(duration)) {
+            return super._durationHasDaysSql(context, duration)
+        }
+        // An interval of days to seconds has days and no months; one of years to months has years and months
+        const interval = this._appendSqlParenthesis(duration, context, false)
+        if (this._isYearToMonthDuration(duration)) {
+            return 'extract(year from ' + interval + ') <> 0 or extract(month from ' + interval + ') <> 0'
+        }
+        return 'extract(day from ' + interval + ') <> 0'
+    }
+    override _bigintOfInteger(sql: string): string {
+        // A number has every digit
+        return sql
+    }
+    override _wideDayNanoseconds(): string {
+        return '86400000000000'
+    }
+    override _wideTruncatedDivision(dividend: string, divisor: string): string {
+        return this._truncatedDivision(dividend, divisor)
+    }
     /**
      * A field of an interval of Oracle: one of days to seconds keeps days and a time with nanoseconds, one of years to
      * months years and months; the others are zero (null for a null interval)

@@ -631,6 +631,9 @@ interface InstantValueSource extends ComparableValueSource<Temporal.Instant, 'in
     /** The instant plus or minus a duration of hours and smaller units only, as Temporal's add and subtract */
     add(duration: Temporal.Duration | { hours?: number, minutes?: number, seconds?: number, milliseconds?: number, microseconds?: number, nanoseconds?: number }): InstantValueSource
     subtract(duration: Temporal.Duration | { hours?: number, minutes?: number, seconds?: number, milliseconds?: number, microseconds?: number, nanoseconds?: number }): InstantValueSource
+    /** The instant plus or minus a duration of the query: the query fails when it has days, weeks, months or years */
+    add(duration: DurationValueSource): InstantValueSource
+    subtract(duration: DurationValueSource): InstantValueSource
     /** The instant rounded, as Temporal's round: an increment of the unit that divides a day */
     round(options: TimeUnit | { smallestUnit: TimeUnit, roundingIncrement?: number, roundingMode?: RoundingMode }): InstantValueSource
     /** The duration to or from the other instant, as Temporal's until and since: in seconds by default, up to hours */
@@ -788,6 +791,10 @@ interface Connection {
     currentPlainDateTime(): PlainDateTimeValueSource
     /** The instant of now in the database, as Temporal's Now.instant(), with the digits of the fraction of a second it gives */
     currentInstant(): InstantValueSource
+    /** The instant of the milliseconds since 1970-01-01T00:00Z, as Temporal's Instant.fromEpochMilliseconds: a number is sent as the instant */
+    instantFromEpochMilliseconds(epochMilliseconds: number | NumberValueSource | BigintValueSource): InstantValueSource
+    /** The instant of the nanoseconds since 1970-01-01T00:00Z, as Temporal's Instant.fromEpochNanoseconds: a bigint is sent as the instant */
+    instantFromEpochNanoseconds(epochNanoseconds: bigint | BigintValueSource | NumberValueSource): InstantValueSource
     true(): BooleanValueSource
     false(): BooleanValueSource
 

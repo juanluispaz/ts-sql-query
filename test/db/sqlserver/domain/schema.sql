@@ -553,7 +553,7 @@ GO
 -- writes a duration a query computes (until, since) where it is kept as text: its years, months, weeks and days, and the
 -- nanoseconds of its time, written in hours, minutes and seconds ('hour'), minutes and seconds ('minute') or seconds
 -- ('second'); every field with the sign of the duration. The text is the one of Temporal's toString.
-CREATE OR ALTER FUNCTION dbo.tsq_duration_text(@y BIGINT, @mo BIGINT, @w BIGINT, @d BIGINT, @ns BIGINT, @unit VARCHAR(6)) RETURNS VARCHAR(100) WITH SCHEMABINDING AS
+CREATE OR ALTER FUNCTION dbo.tsq_duration_text(@y BIGINT, @mo BIGINT, @w BIGINT, @d BIGINT, @ns DECIMAL(38, 0), @unit VARCHAR(6)) RETURNS VARCHAR(100) WITH SCHEMABINDING AS
 BEGIN
     IF @y IS NULL OR @mo IS NULL OR @w IS NULL OR @d IS NULL OR @ns IS NULL RETURN NULL;
     DECLARE @neg BIT = CASE WHEN @y < 0 OR @mo < 0 OR @w < 0 OR @d < 0 OR @ns < 0 THEN 1 ELSE 0 END, @r VARCHAR(100) = '', @t VARCHAR(100) = '';
@@ -563,12 +563,12 @@ BEGIN
     IF @w <> 0 SET @r = @r + CAST(ABS(@w) AS VARCHAR(20)) + 'W';
     IF @d <> 0 SET @r = @r + CAST(ABS(@d) AS VARCHAR(20)) + 'D';
     SET @ns = ABS(@ns);
-    IF @unit = 'hour' AND @ns >= @hour BEGIN SET @t = @t + CAST(@ns / @hour AS VARCHAR(20)) + 'H'; SET @ns = @ns % @hour; END
-    IF @unit <> 'second' AND @ns >= @minute BEGIN SET @t = @t + CAST(@ns / @minute AS VARCHAR(20)) + 'M'; SET @ns = @ns % @minute; END
+    IF @unit = 'hour' AND @ns >= @hour BEGIN SET @t = @t + CAST(FLOOR(@ns / @hour) AS VARCHAR(20)) + 'H'; SET @ns = @ns % @hour; END
+    IF @unit <> 'second' AND @ns >= @minute BEGIN SET @t = @t + CAST(FLOOR(@ns / @minute) AS VARCHAR(20)) + 'M'; SET @ns = @ns % @minute; END
     IF @ns > 0
     BEGIN
         SET @f = @ns % @second;
-        SET @t = @t + CAST(@ns / @second AS VARCHAR(20));
+        SET @t = @t + CAST(FLOOR(@ns / @second) AS VARCHAR(20));
         IF @f > 0
         BEGIN
             SET @frac = RIGHT('000000000' + CAST(@f AS VARCHAR(9)), 9);

@@ -2,7 +2,7 @@
 // database stores in a column without zone (the database being in UTC) and converts into a column with zone, and the
 // text of PostgreSQL, with its offset.
 
-import { __temporalIfAvailable, type TemporalPlainDateTime } from '../typeSystem/temporal.js'
+import { __temporalIfAvailable, type TemporalPlainDateTime, type TemporalZonedDateTime } from '../typeSystem/temporal.js'
 import { plainTemporalText } from './plainTemporalValues.js'
 
 /** Whether the value is a Temporal.Instant */
@@ -38,4 +38,10 @@ export function postgreSqlInstantText(value: unknown): string | undefined {
     }
     const text = plainTemporalText(dateTime, true)!
     return text.endsWith(' BC') ? text.slice(0, -3) + '+00 BC' : text + '+00'
+}
+
+/** Whether the value is a Temporal.ZonedDateTime (false when the runtime has no Temporal) */
+export function isZonedDateTimeValue(value: unknown): value is TemporalZonedDateTime {
+    const temporal = __temporalIfAvailable()
+    return temporal !== undefined && value instanceof temporal.ZonedDateTime
 }

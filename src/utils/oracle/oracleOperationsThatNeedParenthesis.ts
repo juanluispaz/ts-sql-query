@@ -37,4 +37,7 @@ export const oracleOperationsThatNeedParenthesis: OperationsThatNeedParenthesis 
     _instantSubtractDuration: false,
     _instantFromEpochMilliseconds: false,
     _instantFromEpochNanoseconds: false,
+    // `from_tz(...) at time zone z`, which binds looser than an operator after it
+    _instantToZoned: true,
+    _plainDateTimeToZoned: true,
 }

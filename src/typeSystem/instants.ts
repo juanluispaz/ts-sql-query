@@ -16,6 +16,7 @@ import { DurationType } from './durations.js'
 import { IntType } from './number.js'
 import { BigintType } from './bigint.js'
 import { PlainDateTimeType, PlainDateType, PlainTimeType } from './plainDates.js'
+import { ZonedDateTimeType, __zonedOfInstant } from './zonedDateTimes.js'
 
 /** The date and time of the instant in the zone of the database: a plainDateTime */
 function plainDateTimeOf(valueSource: unknown): any {
@@ -125,6 +126,16 @@ export abstract class InstantsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME e
         return __operation0(plainDateTimeOf(this), '_toPlainTime', PlainTimeType)
     }
 
+    /**
+     * The instant in the zone given (an IANA name or an offset), a zonedDateTime, with its date and time there:
+     * Temporal's `toZonedDateTimeISO`
+     */
+    toZonedDateTimeISO(timeZone: string): ValueSource<SourceOf<this>, ZonedDateTimeType, OptionalityOf<this>>
+    /** The instant in the zone of the string given, a zonedDateTime: Temporal's `toZonedDateTimeISO` */
+    toZonedDateTimeISO<VALUE extends IValueWithType<'type:string:'>>(timeZone: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, ZonedDateTimeType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    toZonedDateTimeISO(timeZone: unknown): any {
+        return __zonedOfInstant(this, timeZone, ZonedDateTimeType)
+    }
     /**
      * The instant plus the duration given, as Temporal's `add`: of hours and smaller units only (a day has no fixed
      * length without a zone). The duration is a Temporal.Duration or its fields (`{ hours: 2 }`)

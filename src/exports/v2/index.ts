@@ -155,6 +155,11 @@ export {
 } from '../../typeSystem/instants.js'
 
 export {
+    ZonedDateTimeType,
+    ZonedDateTimesType,
+} from '../../typeSystem/zonedDateTimes.js'
+
+export {
     EnumType,
 } from '../../typeSystem/enum.js'
 

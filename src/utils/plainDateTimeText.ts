@@ -2,7 +2,7 @@
 // it: the same grammar as the text of a localDate, a localTime or a localDateTime (utcDateTimeText.ts), keeping all the
 // digits of the fraction of a second, up to the nanosecond.
 
-import { __temporal, type TemporalInstant, type TemporalPlainDate, type TemporalPlainDateTime, type TemporalPlainTime } from '../typeSystem/temporal.js'
+import { __temporal, type TemporalInstant, type TemporalPlainDate, type TemporalPlainDateTime, type TemporalPlainTime, type TemporalZonedDateTime } from '../typeSystem/temporal.js'
 
 // A date, a time or both, with an optional offset and an optional PostgreSQL era (see utcDateTimeText.ts)
 const dateTimeTextPattern = /^(?:([+-]?\d{4,6})-(\d\d)-(\d\d))?(?:(?:^|[T ])(\d\d):(\d\d)(?::(\d\d)(?:[.,](\d+))?)?)?(?:\s*(Z|[+-]\d\d(?::?\d\d(?::?\d\d)?)?))?( BC| AD)?$/i
@@ -143,4 +143,25 @@ export function plainDateText(value: TemporalPlainDate | TemporalPlainDateTime, 
 export function plainTimeText(value: TemporalPlainTime | TemporalPlainDateTime): string {
     const fraction = fractionDigits(value)
     return pad(value.hour, 2) + ':' + pad(value.minute, 2) + ':' + pad(value.second, 2) + (fraction === '' ? '' : '.' + fraction)
+}
+
+/**
+ * The zoned date and time of a text: its instant followed by its zone in brackets, as Temporal writes it
+ * (`2024-01-14T10:15:30.123+01:00[Europe/Madrid]`) or as a database gives it (the instant in UTC, `...Z[EUROPE/MADRID]`;
+ * Temporal reads the name of the zone whatever its case). Undefined when it isn't one, or the zone is unknown
+ */
+export function parseZonedDateTimeText(text: string, typeName: string): TemporalZonedDateTime | undefined {
+    const open = text.lastIndexOf('[')
+    if (open < 0 || !text.endsWith(']')) {
+        return undefined
+    }
+    const instant = parseInstantText(text.slice(0, open), 'UTC', typeName)
+    if (!instant) {
+        return undefined
+    }
+    try {
+        return instant.toZonedDateTimeISO(text.slice(open + 1, -1))
+    } catch {
+        return undefined
+    }
 }

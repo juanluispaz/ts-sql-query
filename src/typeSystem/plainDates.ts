@@ -1,7 +1,7 @@
 import type { SqlDataType } from '../TypeAdapter.js'
 import { ComparableType } from './comparable.js'
 import { localDateSqlDataType, localDateTimeSqlDataType, localTimeSqlDataType } from './localDates.js'
-import type { TemporalDateUnit, TemporalDifferenceOptions, TemporalDuration, TemporalDurationLike, TemporalPlainDate, TemporalPlainDateFields, TemporalPlainDateTime, TemporalPlainTime, TemporalPlainTimeFields, TemporalOverflowOptions, TemporalRoundingOptions, TemporalTimeUnit } from './temporal.js'
+import type { TemporalDateUnit, TemporalDifferenceOptions, TemporalDisambiguationOptions, TemporalDuration, TemporalDurationLike, TemporalPlainDate, TemporalPlainDateFields, TemporalPlainDateTime, TemporalPlainTime, TemporalPlainTimeFields, TemporalOverflowOptions, TemporalRoundingOptions, TemporalTimeUnit } from './temporal.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import type { DataTypeOf, IValueWithType, OptionalityOf, SourceOf, ValueSource } from './base.js'
 import type { CombinedOptionality } from './valueSource.js'
@@ -12,6 +12,7 @@ import { getOptionalType2 } from '../nodes/operands.js'
 import { isValueSource } from '../nodes/NodeStrategy.js'
 import { DurationType } from './durations.js'
 import { InstantType } from './instants.js'
+import { ZonedDateTimeType, __zonedOfWallClock } from './zonedDateTimes.js'
 import type { operandTypeName } from '../utils/symbols.js'
 import { IntType } from './number.js'
 import { __typeClassOf } from '../nodes/dataTypeClassOf.js'
@@ -353,6 +354,18 @@ export abstract class PlainDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
     toInstant(): ValueSource<SourceOf<this>, InstantType, OptionalityOf<this>>
     toInstant(): any {
         return __operation0(this as any, '_toInstant', InstantType)
+    }
+    /**
+     * This date and time as a wall clock of the zone given (an IANA name or an offset), a zonedDateTime: Temporal's
+     * `toZonedDateTime(zone, { disambiguation })`. A wall clock that the zone repeats or skips takes the instant the
+     * disambiguation says: `'compatible'` (the default) the earlier of a repeated one and the later of a skipped one;
+     * `'reject'` makes the query fail
+     */
+    toZonedDateTime(timeZone: string, options?: TemporalDisambiguationOptions): ValueSource<SourceOf<this>, ZonedDateTimeType, OptionalityOf<this>>
+    /** This date and time as a wall clock of the zone of the string given, a zonedDateTime: Temporal's `toZonedDateTime` */
+    toZonedDateTime<VALUE extends IValueWithType<'type:string:'>>(timeZone: VALUE, options?: TemporalDisambiguationOptions): ValueSource<SourceOf<this> | SourceOf<VALUE>, ZonedDateTimeType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    toZonedDateTime(timeZone: unknown, options?: unknown): any {
+        return __zonedOfWallClock(this, timeZone, options)
     }
 
     /**

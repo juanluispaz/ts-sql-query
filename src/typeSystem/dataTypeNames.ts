@@ -10,6 +10,7 @@ import type { LocalDateTimeType, LocalDateType, LocalTimeType } from './localDat
 import type { PlainDateTimeType, PlainDateType, PlainTimeType } from './plainDates.js'
 import type { DurationType } from './durations.js'
 import type { InstantType } from './instants.js'
+import type { ZonedDateTimeType } from './zonedDateTimes.js'
 import type { AnyType, IValueSource, ValueSource, ValueTypeOf } from './base.js'
 import type { FragmentExpression } from './fragments.js'
 
@@ -45,6 +46,7 @@ export interface DataTypes {
     plainDateTime: PlainDateTimeType
     duration: DurationType
     instant: InstantType
+    zonedDateTime: ZonedDateTimeType
 }
 
 /** The name of a data type known by name: a built-in one, or one of yours declared in DataTypes */

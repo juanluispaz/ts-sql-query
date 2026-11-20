@@ -12,7 +12,7 @@ import { __sqlDataTypeDescribes, __temporalFieldsOf, __typeSqlDataTypeOf } from 
 import { isOracleZonedParam, oraclePlainTemporalFormOfParam, oracleTemporalBind } from '../utils/oracle/oracleParamTypes.js'
 import { durationIsoTextWithoutWeeks, isDurationValue } from '../utils/durationValues.js'
 import { isPlainTemporalClass } from '../utils/plainTemporalValues.js'
-import { __isInstantClass } from '../typeSystem/dataTypeQuestions.js'
+import { __isInstantClass, __isZonedDateTimeClass } from '../typeSystem/dataTypeQuestions.js'
 import { oracleDateParam } from '../utils/metadataSymbols.js'
 import type { QueryParamContext } from '../QueryContext.js'
 import { existingParamContextOf, existingQueryContextOf } from '../internal/QueryContextImpl.js'
@@ -218,7 +218,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
                 // as the text of its interval: both without a type, as a string
                 const sqlDataType = param?.requestedSqlDataType?.family === 'character string' && __sqlDataTypeDescribes(param.requestedSqlDataType, requestedType) ? param.requestedSqlDataType : undefined
                 const lob = sqlDataType?.largeObject ? (sqlDataType.national ? oracleDb.DB_TYPE_NCLOB : oracleDb.DB_TYPE_CLOB) : undefined
-                const dbType = declared ?? lob ?? (isPlainTemporalClass(requestedType) || (requestedType !== undefined && __isInstantClass(requestedType)) ? undefined : __temporalFieldsOf(requestedType) !== undefined ? oracleDb.DB_TYPE_TIMESTAMP_TZ : this.oracleDbType(requestedType, nativeBoolean))
+                const dbType = declared ?? lob ?? (isPlainTemporalClass(requestedType) || (requestedType !== undefined && (__isInstantClass(requestedType) || __isZonedDateTimeClass(requestedType))) ? undefined : __temporalFieldsOf(requestedType) !== undefined ? oracleDb.DB_TYPE_TIMESTAMP_TZ : this.oracleDbType(requestedType, nativeBoolean))
                 // A text, or a value received as one, is returned in a buffer of maxSize bytes; a character of a text
                 // is up to 4 bytes (AL32UTF8)
                 const lengthBytes = sqlDataType?.length !== undefined && !sqlDataType.largeObject ? (sqlDataType.lengthUnit === 'octets' ? sqlDataType.length : sqlDataType.length * 4) : undefined

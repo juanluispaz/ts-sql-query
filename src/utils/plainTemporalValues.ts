@@ -3,7 +3,7 @@
 
 import type { DataTypeClass } from '../TypeAdapter.js'
 import { existingQueryContextOf } from '../internal/QueryContextImpl.js'
-import { __isDurationClass, __isInstantClass, __isPlainDateClass, __isPlainDateTimeClass, __isPlainTimeClass } from '../typeSystem/dataTypeQuestions.js'
+import { __isDurationClass, __isInstantClass, __isPlainDateClass, __isPlainDateTimeClass, __isPlainTimeClass, __isZonedDateTimeClass } from '../typeSystem/dataTypeQuestions.js'
 import { __temporalIfAvailable, type TemporalPlainDateTime } from '../typeSystem/temporal.js'
 import { plainDateText, plainTimeText } from './plainDateTimeText.js'
 
@@ -55,7 +55,7 @@ export function isPlainTemporalClass(typeClass: DataTypeClass | undefined): bool
  * or an instant
  */
 function isReadAsTextClass(typeClass: DataTypeClass | undefined): boolean {
-    return typeClass !== undefined && (isPlainTemporalClass(typeClass) || __isDurationClass(typeClass) || __isInstantClass(typeClass))
+    return typeClass !== undefined && (isPlainTemporalClass(typeClass) || __isDurationClass(typeClass) || __isInstantClass(typeClass) || __isZonedDateTimeClass(typeClass))
 }
 
 /**

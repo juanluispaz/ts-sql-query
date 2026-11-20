@@ -1236,6 +1236,16 @@ export const tInstantValue = new class TInstantValue extends Table<DBConnection,
     constructor() { super('instant_value') }
 }()
 
+// zoned_value: exact moments in a time zone (Temporal.ZonedDateTime), kept with the region of their zone (zoned_at), a
+// wall clock to take to a zone (wall_at) and the name of a zone (zone_name). Only Oracle keeps a zone with each value.
+export const tZonedValue = new class TZonedValue extends Table<DBConnection, 'TZonedValue'> {
+    id       = this.primaryKey('id', 'int')
+    zonedAt  = this.column('zoned_at', 'zonedDateTime')
+    wallAt   = this.optionalColumn('wall_at', 'plainDateTime')
+    zoneName = this.optionalColumn('zone_name', 'string')
+    constructor() { super('zoned_value') }
+}()
+
 // Time-tracking worklog: surfaces the date-only / time-only / nullable
 // bigint / nullable plain-boolean / optional-with-default / plain-enum
 // column kinds the original four tables don't expose.

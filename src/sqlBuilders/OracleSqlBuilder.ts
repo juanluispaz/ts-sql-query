@@ -9,7 +9,7 @@ import { AbstractSqlBuilder, __durationComputedFrom, type DurationField, type Pl
 import type { DBColumn } from '../utils/Column.js'
 import { __columnPathsOf } from '../utils/columnPaths.js'
 import { __getColumnOfObject } from '../utils/Column.js'
-import { __isOperation1, __isOperation1IfValueOrIgnore, type __Operation1ValueSource, __isColumn, __asDBColumnValueSource, __asNodeValueSource, isValueSource } from '../typeSystem/valueSourceFactory.js'
+import { __isOperation1, __isOperation1IfValueOrIgnore, type __Operation1ValueSource, __isColumn, __isConst, __asDBColumnValueSource, __asNodeValueSource, isValueSource } from '../typeSystem/valueSourceFactory.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import { __durationSqlDataTypeOf, __sqlFamilyOf, __temporalFieldsOf } from '../typeSystem/dataTypes.js'
 import { isOracleReservedWord } from '../utils/oracle/oracleReservedWords.js'
@@ -1385,6 +1385,89 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     }
     override _instantOfUtc(_context: SqlBuildContext, sql: string): string {
         return 'from_tz(' + sql + ", '+00:00')"
+    }
+    override _supportZonedDateTimes(): boolean {
+        return true
+    }
+    /** A zoned date and time is a TIMESTAMP WITH TIME ZONE with its region: its instant as it is */
+    override _zonedToInstant(context: SqlBuildContext, valueSource: ToSql): string {
+        return this._appendSqlParenthesis(valueSource, context, false)
+    }
+    /** Its wall clock, in its zone: a TIMESTAMP WITH TIME ZONE cast to a TIMESTAMP keeps its date and time */
+    override _zonedToPlainDateTime(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'cast(' + this._appendSqlParenthesis(valueSource, context, false) + ' as timestamp(9))'
+    }
+    /**
+     * The name of its zone: Oracle writes a region in capitals (`EUROPE/MADRID`), its name as Temporal writes it is in
+     * V$TIMEZONE_NAMES (readable by every user); an offset (`+05:30`) is as Oracle writes it
+     */
+    override _zonedTimeZoneId(context: SqlBuildContext, valueSource: ToSql): string {
+        const region = "to_char(" + this._appendSqlParenthesis(valueSource, context, false) + ", 'TZR')"
+        return 'coalesce((select min(tzname) from v$timezone_names where upper(tzname) = ' + region + '), ' + region + ')'
+    }
+    override _zonedOffset(context: SqlBuildContext, valueSource: ToSql): string {
+        return "to_char(" + this._appendSqlParenthesis(valueSource, context, false) + ", 'TZH:TZM')"
+    }
+    override _zonedOffsetNanoseconds(context: SqlBuildContext, valueSource: ToSql): string {
+        const value = this._appendSqlParenthesis(valueSource, context, false)
+        return '(extract(timezone_hour from ' + value + ') * 3600 + extract(timezone_minute from ' + value + ') * 60) * 1000000000'
+    }
+    /** The instant (its wall clock in UTC) in the zone given: the zone keeps its rules, its offset is the one of the instant */
+    override _instantToZoned(context: SqlBuildContext, valueSource: ToSql, value: any, _typeClass: DataTypeClass): string {
+        return 'from_tz(' + this._instantInUtc(context, valueSource) + ", '+00:00') at time zone " + this._oracleTimeZoneSql(context, value)
+    }
+    /**
+     * A wall clock in a zone, with Temporal's disambiguation, as Temporal finds its instants: the wall clock minus the
+     * offset of the zone a day before and a day after it, each one an instant of that wall clock when the zone gives it
+     * back (two for a wall clock the zone repeats, none for one it skips). 'compatible' takes the earlier one of two and,
+     * of none, the one of the offset before (the wall clock moved forward by the gap); 'earlier' the first one or the one
+     * of the offset after; 'later' the second one or the one of the offset before; 'reject' fails the query unless there
+     * is exactly one. The wall clock and the zone are written once and their binds repeated: Oracle names them
+     */
+    override _plainDateTimeToZoned(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, _typeClass: DataTypeClass): string {
+        const wall = 'cast(' + this._appendSql(this._temporalOperand(valueSource), context, false) + ' as timestamp(9))'
+        const zone = this._oracleTimeZoneSql(context, value)
+        const before = '(' + wall + ' - ' + this._oracleOffsetAt('(' + wall + " - interval '1' day)", zone) + ')'
+        const after = '(' + wall + ' - ' + this._oracleOffsetAt('(' + wall + " + interval '1' day)", zone) + ')'
+        const isBefore = this._oracleIsWallClockOf(before, zone, wall)
+        const isAfter = this._oracleIsWallClockOf(after, zone, wall)
+        let instant: string
+        switch (value2 as string) {
+            case 'earlier':
+                instant = 'case when ' + isBefore + ' then ' + before + ' else ' + after + ' end'
+                break
+            case 'later':
+                instant = 'case when ' + isAfter + ' then ' + after + ' else ' + before + ' end'
+                break
+            case 'reject': {
+                const chosen = 'case when ' + isBefore + ' then ' + before + ' else ' + after + ' end'
+                const fails = 'case when ' + isBefore + ' and ' + isAfter + ' and ' + before + ' <> ' + after + ' or not (' + isBefore + ') and not (' + isAfter + ') then 29 else 28 end'
+                instant = this._shiftDays(context, '(' + chosen + ')', '(' + this._validDayOrError(context, '2001', '2', fails) + ' - 28)')
+                break
+            }
+            default:
+                instant = 'case when not (' + isBefore + ') and ' + isAfter + ' then ' + after + ' else ' + before + ' end'
+        }
+        return 'from_tz(' + instant + ", '+00:00') at time zone " + zone
+    }
+    /**
+     * A time zone where Oracle takes it, after `at time zone`, which accepts no bind: a value (or a const) is written as
+     * its text, the name Temporal checked; a value source as it is
+     */
+    _oracleTimeZoneSql(context: SqlBuildContext, value: unknown): string {
+        const zone = __isConst(value) ? (value as unknown as { __value: unknown }).__value : value
+        if (typeof zone === 'string') {
+            return "'" + zone.replace(/'/g, "''") + "'"
+        }
+        return this._appendValue(value, context, __registeredDataType('string'), false)
+    }
+    /** The offset of the zone at an instant (its wall clock in UTC), an interval of days to seconds */
+    _oracleOffsetAt(instant: string, zone: string): string {
+        return '(cast((from_tz(' + instant + ", '+00:00') at time zone " + zone + ') as timestamp(9)) - ' + instant + ')'
+    }
+    /** Whether the zone gives the wall clock at the instant (its wall clock in UTC) */
+    _oracleIsWallClockOf(instant: string, zone: string, wall: string): string {
+        return 'cast((from_tz(' + instant + ", '+00:00') at time zone " + zone + ') as timestamp(9)) = ' + wall
     }
     override _instantToPlainDateTime(context: SqlBuildContext, valueSource: ToSql): string {
         // The wall clock of the session (the zone of the database), with all its digits: a value without zone, a DATE

@@ -4087,6 +4087,38 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _epochDate(): string {
         return "date '1970-01-01'"
     }
+    /**
+     * A zoned date and time, which only a database that keeps a zone with each value has (Oracle): an error of the
+     * construction of the query on the others
+     */
+    /** Whether the database keeps a time zone with each value and computes with its rules: a zonedDateTime */
+    _supportZonedDateTimes(): boolean {
+        return false
+    }
+    _zonedDateTimeUnsupported(): never {
+        throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_QUERY' }, 'A zoned date and time (zonedDateTime) needs a database that keeps a time zone with each value and computes with its rules, like Oracle: this database has none')
+    }
+    _zonedToInstant(_context: SqlBuildContext, _valueSource: ToSql): string {
+        return this._zonedDateTimeUnsupported()
+    }
+    _zonedToPlainDateTime(_context: SqlBuildContext, _valueSource: ToSql): string {
+        return this._zonedDateTimeUnsupported()
+    }
+    _zonedTimeZoneId(_context: SqlBuildContext, _valueSource: ToSql): string {
+        return this._zonedDateTimeUnsupported()
+    }
+    _zonedOffset(_context: SqlBuildContext, _valueSource: ToSql): string {
+        return this._zonedDateTimeUnsupported()
+    }
+    _zonedOffsetNanoseconds(_context: SqlBuildContext, _valueSource: ToSql): string {
+        return this._zonedDateTimeUnsupported()
+    }
+    _instantToZoned(_context: SqlBuildContext, _valueSource: ToSql, _value: any, _typeClass: DataTypeClass): string {
+        return this._zonedDateTimeUnsupported()
+    }
+    _plainDateTimeToZoned(_context: SqlBuildContext, _valueSource: ToSql, _value: any, _value2: any, _typeClass: DataTypeClass): string {
+        return this._zonedDateTimeUnsupported()
+    }
     /** The instant of a wall clock in UTC (see _instantInUtc) */
     _instantOfUtc(_context: SqlBuildContext, sql: string): string {
         return sql

@@ -29,7 +29,7 @@ import type { NAggregate, NDB, NNoTableOrViewRequired, NNotNestedAggregate, NSou
 import type { DataToProject, GetDataToProjectSource } from '../complexProjections/dataToProject.js'
 import type { ResultObjectValuesForAggregatedArray } from '../complexProjections/resultWithOptionalsAsUndefined.js'
 import type { ResultObjectValuesProjectedAsNullableForAggregatedArray } from '../complexProjections/resultWithOptionalsAsNull.js'
-import { __isAggregatedArrayClass, __isBigintClass, __isBooleanClass, __isDoubleClass, __isExactDecimalClass, __isIntClass, __isLocalDateClass, __isLocalDateTimeClass, __isLocalTimeClass, __isPlainDateClass, __isPlainDateTimeClass, __isPlainTimeClass, __isStringClass, __isDurationClass, __isInstantClass, __isUuidClass } from '../typeSystem/dataTypeQuestions.js'
+import { __isAggregatedArrayClass, __isBigintClass, __isBooleanClass, __isDoubleClass, __isExactDecimalClass, __isIntClass, __isLocalDateClass, __isLocalDateTimeClass, __isLocalTimeClass, __isPlainDateClass, __isPlainDateTimeClass, __isPlainTimeClass, __isStringClass, __isDurationClass, __isInstantClass, __isUuidClass, __isZonedDateTimeClass } from '../typeSystem/dataTypeQuestions.js'
 import { __durationSqlDataTypeOf } from '../typeSystem/dataTypes.js'
 import { parseUtcDateTimeText } from '../utils/utcDateTimeText.js'
 import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, ValueSourceOf, TypedValueSource } from '../typeSystem/valueSource.js'
@@ -47,7 +47,7 @@ import { LocalDateTimeType, LocalTimeType, LocalDateType } from '../typeSystem/l
 import { __temporal, type TemporalPlainDateTime } from '../typeSystem/temporal.js'
 import { PlainDateTimeType, PlainDateType, PlainTimeType } from '../typeSystem/plainDates.js'
 import { InstantType, __instantFromEpoch } from '../typeSystem/instants.js'
-import { parseInstantText, parsePlainDateTimeText, plainDateTimeOfUtcDate } from '../utils/plainDateTimeText.js'
+import { parseInstantText, parsePlainDateTimeText, parseZonedDateTimeText, plainDateTimeOfUtcDate } from '../utils/plainDateTimeText.js'
 import { durationIsoText, durationOfReceivedValue, isDurationValue } from '../utils/durationValues.js'
 import type { NumberType } from '../typeSystem/number.js'
 import type { BigintType } from '../typeSystem/bigint.js'
@@ -1300,6 +1300,17 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             }
             return received
         }
+        if (__isZonedDateTimeClass(context.requestedType)) {
+            // Its instant followed by its zone in brackets, the text the database writes of it (see parseZonedDateTimeText)
+            if (value instanceof __temporal(type).ZonedDateTime) {
+                return value
+            }
+            const received = typeof value === 'string' ? parseZonedDateTimeText(value, type) : undefined
+            if (!received) {
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid zonedDateTime value received from the db: ' + String(value))
+            }
+            return received
+        }
         if (__isDurationClass(context.requestedType)) {
             // Its ISO text, the text of a PostgreSQL interval, an interval of oracledb or the number of its
             // microseconds, whatever the storage: a duration whose fields mix signs (PostgreSQL's `-1 days +02:03:00`)
@@ -1455,6 +1466,15 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 return value
             }
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid instant value to send to the db: ' + String(value))
+        }
+        if (__isZonedDateTimeClass(context.requestedType)) {
+            if (!(value instanceof __temporal(type).ZonedDateTime)) {
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid zonedDateTime value to send to the db: ' + String(value))
+            }
+            if (!this.__sqlBuilder._supportZonedDateTimes()) {
+                return this.__sqlBuilder._zonedDateTimeUnsupported()
+            }
+            return value
         }
         if (__isDurationClass(context.requestedType)) {
             if (!isDurationValue(value)) {

@@ -102,6 +102,13 @@ INSERT INTO duration_value (id, span, span_calendar, span_text) VALUES (3, INTER
 -- 2 is 1969-07-20T20:17:40Z, without session_at (a MySQL and MariaDB TIMESTAMP starts in 1970).
 INSERT INTO instant_value (id, instant_at, wall_at, session_at) VALUES (1, TIMESTAMP '2024-01-14 18:15:30.123456 +09:00', TIMESTAMP '2024-01-14 09:15:30.123456', TIMESTAMP '2024-01-14 18:15:30.123456 +09:00');
 INSERT INTO instant_value (id, instant_at, wall_at, session_at) VALUES (2, TIMESTAMP '1969-07-20 20:17:40 +00:00', TIMESTAMP '1969-07-20 20:17:40', NULL);
+-- zoned_value: 1 is 2024-10-27T02:30:00.123456789+02:00[Europe/Madrid], the first of the two 02:30 of that day, with the
+-- wall clock 2024-10-27 02:30, which Madrid repeats; 2 is 2024-01-14T14:45:30.123456789+05:30[Asia/Kolkata], with
+-- 2024-03-31 02:30, which Madrid skips, and the zone America/New_York; 3 is 1969-07-20T15:17:40-05:00[-05:00], with
+-- 2024-01-14 10:00, without a zone.
+INSERT INTO zoned_value (id, zoned_at, wall_at, zone_name) VALUES (1, FROM_TZ(TIMESTAMP '2024-10-27 00:30:00.123456789', 'UTC') AT TIME ZONE 'Europe/Madrid', TIMESTAMP '2024-10-27 02:30:00', 'Europe/Madrid');
+INSERT INTO zoned_value (id, zoned_at, wall_at, zone_name) VALUES (2, FROM_TZ(TIMESTAMP '2024-01-14 09:15:30.123456789', 'UTC') AT TIME ZONE 'Asia/Kolkata', TIMESTAMP '2024-03-31 02:30:00', 'America/New_York');
+INSERT INTO zoned_value (id, zoned_at, wall_at, zone_name) VALUES (3, FROM_TZ(TIMESTAMP '1969-07-20 15:17:40', '-05:00'), TIMESTAMP '2024-01-14 10:00:00', NULL);
 INSERT INTO service_plan (id, name, description) VALUES (1, 'Enterprise', NULL);
 INSERT INTO standup_meeting (id, starts_at, ends_at, daily_at) VALUES (1, TO_DATE('2024-03-15 09:05:07', 'YYYY-MM-DD HH24:MI:SS'), TO_DATE('2024-03-15 09:20:45', 'YYYY-MM-DD HH24:MI:SS'), TO_DATE('1970-01-01 08:30:15', 'YYYY-MM-DD HH24:MI:SS'));
 INSERT INTO standup_meeting (id, starts_at, ends_at, daily_at) VALUES (2, TO_DATE('2024-03-18 14:40:00', 'YYYY-MM-DD HH24:MI:SS'), NULL, TO_DATE('1970-01-01 16:45:30', 'YYYY-MM-DD HH24:MI:SS'));

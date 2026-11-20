@@ -4,7 +4,7 @@ import { __durationSqlDataTypeOf, __temporalFieldsOf, __typeSqlDataTypeOf } from
 import { oracleDateParam, oracleZonedParam } from '../metadataSymbols.js'
 import { existingParamContextOf } from '../../internal/QueryContextImpl.js'
 import { isDurationValue } from '../durationValues.js'
-import { instantUtcDateTime, isInstantValue } from '../instantValues.js'
+import { instantUtcDateTime, isInstantValue, isZonedDateTimeValue } from '../instantValues.js'
 import { __temporalIfAvailable, type TemporalPlainDateTime, type TemporalPlainTime } from '../../typeSystem/temporal.js'
 
 /**
@@ -88,6 +88,11 @@ export function oraclePlaceholder(placeholder: string, params: any[], index: num
         const ofDate = existingParamContextOf(params, index)?.getMetadata(oracleDateParam) === true && (value as { epochNanoseconds: bigint }).epochNanoseconds % 1_000_000_000n === 0n
         return 'cast(from_tz(' + plain.conversion + '(' + placeholder + ", '" + plain.format + "', 'NLS_DATE_LANGUAGE=AMERICAN'), '+00:00') at local as " + (ofDate ? 'date)' : 'timestamp)')
     }
+    if (plain !== undefined && isZonedDateTimeValue(value)) {
+        // A zoned date and time: the wall clock of its instant in UTC, in its zone, written by its name (Temporal checked
+        // it): the instant it is, without the ambiguity of a wall clock the zone repeats
+        return '(from_tz(' + plain.conversion + '(' + placeholder + ", '" + plain.format + "', 'NLS_DATE_LANGUAGE=AMERICAN'), '+00:00') at time zone '" + value.timeZoneId.replace(/'/g, "''") + "')"
+    }
     if (plain !== undefined) {
         // A Temporal value without zone is sent as its text, converted with a format of its own, whatever the formats
         // and the language of the session (NLS_DATE_FORMAT, NLS_TIMESTAMP_FORMAT, NLS_DATE_LANGUAGE)
@@ -128,7 +133,10 @@ export function oraclePlainTemporalForm(value: unknown, ofDate: boolean): { text
     if (!temporal || value === null || typeof value !== 'object') {
         return undefined
     }
-    if (value instanceof temporal.Instant) {
+    if (value instanceof temporal.ZonedDateTime) {
+        // A zoned date and time, as the wall clock of its instant in UTC (its placeholder gives it its zone)
+        value = instantUtcDateTime(value.toInstant())
+    } else if (value instanceof temporal.Instant) {
         // An instant, as the wall clock of its instant in UTC
         value = instantUtcDateTime(value)
     }

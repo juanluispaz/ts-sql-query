@@ -1,4 +1,4 @@
-import type { TemporalDuration, TemporalInstant, TemporalPlainDate, TemporalPlainDateTime, TemporalPlainTime } from '../typeSystem/temporal.js'
+import type { TemporalDuration, TemporalInstant, TemporalPlainDate, TemporalPlainDateTime, TemporalPlainTime, TemporalZonedDateTime } from '../typeSystem/temporal.js'
 import type { TerminalValueObject, NonValueObject } from '../utils/objectUtils.js'
 import type { DynamicCondition, DynamicConditionExtension } from '../expressions/dynamicConditionUsingFilters.js'
 import type { ComparableType } from '../typeSystem/comparable.js'
@@ -39,13 +39,14 @@ type DynamicDefinitionLeafForModel<T> =
     [T] extends [TemporalPlainDateTime] ? 'plainDateTime' :
     [T] extends [TemporalDuration] ? 'duration' :
     [T] extends [TemporalInstant] ? 'instant' :
+    [T] extends [TemporalZonedDateTime] ? 'zonedDateTime' :
     never
 
 // Whether a value of the model is a nested object, whose properties are filtered one level deeper. Date, the Temporal
 // values without zone and the scalars are leaves; any other terminal value object (RegExp, binary, …) or non-value object (arrays, Map/Set, …) is
 // not filterable
 type IsNestedModel<T> =
-    [T] extends [boolean | bigint | number | string | Date | TemporalPlainDate | TemporalPlainTime | TemporalPlainDateTime | TemporalDuration | TemporalInstant] ? false :
+    [T] extends [boolean | bigint | number | string | Date | TemporalPlainDate | TemporalPlainTime | TemporalPlainDateTime | TemporalDuration | TemporalInstant | TemporalZonedDateTime] ? false :
     [T] extends [TerminalValueObject | NonValueObject] ? false :
     [T] extends [object] ? true :
     false

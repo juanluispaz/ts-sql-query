@@ -10,6 +10,7 @@ import { LocalDatesType, LocalDateTimesType, LocalTimesType } from './localDates
 import { PlainDatesType, PlainDateTimesType, PlainTimesType } from './plainDates.js'
 import { DurationsType } from './durations.js'
 import { InstantsType } from './instants.js'
+import { ZonedDateTimesType } from './zonedDateTimes.js'
 import { AggregatedArraysType } from './aggregatedArrays.js'
 
 /*
@@ -83,6 +84,10 @@ export function __isDurationClass(typeClass: DataTypeClass): boolean {
 /** An exact moment whose value is like a Temporal.Instant: an instant, or a type of the user of its family */
 export function __isInstantClass(typeClass: DataTypeClass): boolean {
     return isOf(typeClass, InstantsType)
+}
+/** An exact moment in a time zone whose value is like a Temporal.ZonedDateTime: a zonedDateTime, or a type of the user of its family */
+export function __isZonedDateTimeClass(typeClass: DataTypeClass): boolean {
+    return isOf(typeClass, ZonedDateTimesType)
 }
 export function __isAggregatedArrayClass(typeClass: DataTypeClass): boolean {
     return isOf(typeClass, AggregatedArraysType)

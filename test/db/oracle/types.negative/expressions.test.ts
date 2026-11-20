@@ -673,6 +673,15 @@ function _typeNegatives() {
     void connection.instantFromEpochMilliseconds(t.mDouble)
     // @ts-expect-error the nanoseconds of a value are a bigint, as in Temporal
     void connection.instantFromEpochNanoseconds(1705223730123)
+    // A zoned date and time: an instant or a wall clock in a zone given by its name, and its parts there
+    void tInstantValue.instantAt.toZonedDateTimeISO('Europe/Madrid').hour()
+    void tColMatrixPlain.mDatetime.toZonedDateTime('Europe/Madrid', { disambiguation: 'later' }).toInstant()
+    // @ts-expect-error a zone is a name
+    void tInstantValue.instantAt.toZonedDateTimeISO(1)
+    // @ts-expect-error the disambiguation is one of Temporal's
+    void tColMatrixPlain.mDatetime.toZonedDateTime('Europe/Madrid', { disambiguation: 'first' })
+    // @ts-expect-error a date has no instant in a zone without a time of the day
+    void tColMatrixPlain.mDate.toZonedDateTime('Europe/Madrid')
 }
 
 test('expressions-negative-types', () => {

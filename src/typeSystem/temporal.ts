@@ -30,6 +30,16 @@ export type TemporalPlainDateTime = InstanceOf<'PlainDateTime'>
 export type TemporalInstant = InstanceOf<'Instant'>
 /** `Temporal.Duration`: an amount of time, in years, months, weeks, days, hours ... nanoseconds */
 export type TemporalDuration = InstanceOf<'Duration'>
+/** `Temporal.ZonedDateTime`: an exact moment in a time zone (an IANA name or an offset), with its date and time there */
+export type TemporalZonedDateTime = InstanceOf<'ZonedDateTime'>
+/**
+ * The option of Temporal's `toZonedDateTime` of a date and time: the instant of a wall clock that the zone repeats (the
+ * earlier or the later one) or skips (moved forward or back by the gap); `'compatible'`, the default, is the earlier
+ * of a repeated one and the later of a skipped one, `'reject'` rejects both
+ */
+export interface TemporalDisambiguationOptions {
+    readonly disambiguation?: 'compatible' | 'earlier' | 'later' | 'reject' | undefined
+}
 /**
  * The option of Temporal's `add`, `subtract` and `with` of a date: a day that its month hasn't is taken to the last day
  * of the month (`'constrain'`, the default) or rejected (`'reject'`)

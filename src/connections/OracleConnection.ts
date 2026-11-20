@@ -10,7 +10,7 @@ import type { SameDB } from '../utils/ITableOrView.js'
 import type { Default } from '../expressions/Default.js'
 import { DefaultImpl } from '../expressions/Default.js'
 import type { SqlDataType, SqlDataTypeNative, TypeAdapterProjectionContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
-import { __isBooleanClass, __isDurationClass, __isInstantClass, __isLocalDateTimeClass, __isLocalTimeClass, __isPlainDateClass, __isPlainDateTimeClass, __isPlainTimeClass } from '../typeSystem/dataTypeQuestions.js'
+import { __isBooleanClass, __isDurationClass, __isInstantClass, __isLocalDateTimeClass, __isLocalTimeClass, __isPlainDateClass, __isPlainDateTimeClass, __isPlainTimeClass, __isZonedDateTimeClass } from '../typeSystem/dataTypeQuestions.js'
 import { __durationSqlDataTypeOf } from '../typeSystem/dataTypes.js'
 import { isDurationValue } from '../utils/durationValues.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
@@ -231,6 +231,14 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
      * inside the JSON of an aggregated array, where Oracle writes it as a text with its zone
      */
     protected override transformProjection(sql: string, context: TypeAdapterProjectionContext): string {
+        if (context.output === 'resultColumn' && __isZonedDateTimeClass(context.requestedType)) {
+            // A zoned date and time leaves the database as its instant in UTC, with all its digits and the era always
+            // written, followed by the region of its zone in brackets (Temporal reads its name whatever its case)
+            // (`at time zone` binds looser than `is not null`: a value computed in its zone is in parenthesis)
+            context.comparison = 'equality'
+            const value = /^[\w."]+$/.test(sql) ? sql : '(' + sql + ')'
+            return "case when " + value + " is not null then to_char(sys_extract_utc(" + value + "), 'YYYY-MM-DD\"T\"HH24:MI:SS.FF9\"Z\" BC', 'NLS_DATE_LANGUAGE=AMERICAN') || '[' || to_char(" + value + ", 'TZR') || ']' end"
+        }
         if (context.output === 'resultColumn' && __isInstantClass(context.requestedType)) {
             // oracledb delivers a date and a time as a Date, which drops the digits below the millisecond: an instant
             // leaves the database as the text of its wall clock in UTC, with all its digits and the era always written.

@@ -316,6 +316,10 @@ export interface SqlBuilder extends SqlOperation {
     _queryRunner: QueryRunner
     _connectionConfiguration: ConnectionConfiguration
     _checkConnectionConfiguration(): void
+    /** Whether the database keeps a time zone with each value and computes with its rules: a zonedDateTime */
+    _supportZonedDateTimes(): boolean
+    /** The error of a zonedDateTime on a database without zones */
+    _zonedDateTimeUnsupported(): never
     _isValue(value: any): boolean
     _lowerCaseUuidTextReceived(): boolean
     _resultColumnKey(name: string): string
@@ -509,6 +513,12 @@ export interface SqlFunction0 {
     // The instant of an integer of milliseconds or nanoseconds since the epoch
     _instantFromEpochMilliseconds(context: SqlBuildContext, valueSource: ToSql): string
     _instantFromEpochNanoseconds(context: SqlBuildContext, valueSource: ToSql): string
+    // A zoned date and time: its instant, its wall clock, the name and the offset of its zone
+    _zonedToInstant(context: SqlBuildContext, valueSource: ToSql): string
+    _zonedToPlainDateTime(context: SqlBuildContext, valueSource: ToSql): string
+    _zonedTimeZoneId(context: SqlBuildContext, valueSource: ToSql): string
+    _zonedOffset(context: SqlBuildContext, valueSource: ToSql): string
+    _zonedOffsetNanoseconds(context: SqlBuildContext, valueSource: ToSql): string
     // Uuid
     _asString(context: SqlBuildContext, valueSource: ToSql): string
     // Oracle recursive
@@ -562,6 +572,7 @@ export interface SqlFunction1 {
     _roundTemporal(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
     // The arithmetic of an instant, on its wall clock in UTC (the receiver)
     _roundInstant(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
+    _instantToZoned(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
     _instantAddDuration(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
     _instantSubtractDuration(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
 }
@@ -574,6 +585,7 @@ export interface SqlFunction2 {
     _substring(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, typeClass: DataTypeClass): string
     // The duration between two dates, times or dates and times, with the semantics of Temporal's until and since
     _until(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, typeClass: DataTypeClass): string
+    _plainDateTimeToZoned(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, typeClass: DataTypeClass): string
     _since(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, typeClass: DataTypeClass): string
     _durationTotal(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, typeClass: DataTypeClass): string
     _replaceAll(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, typeClass: DataTypeClass): string

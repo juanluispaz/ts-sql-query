@@ -571,6 +571,8 @@ interface PlainDateTimeValueSource extends ComparableValueSource<Temporal.PlainD
     round(options: TimeUnit | 'day' | 'days' | { smallestUnit: TimeUnit | 'day' | 'days', roundingIncrement?: number, roundingMode?: RoundingMode }): PlainDateTimeValueSource
     /** The instant of this date and time as a wall clock of the zone of the database, as Temporal's toZonedDateTime(zone).toInstant() */
     toInstant(): InstantValueSource
+    /** The wall clock in the zone given, as Temporal's toZonedDateTime with its disambiguation; only Oracle has zones */
+    toZonedDateTime(timeZone: string | StringValueSource, options?: { disambiguation?: 'compatible' | 'earlier' | 'later' | 'reject' }): ZonedDateTimeValueSource
     /** The duration from this date and time to the other one, as Temporal's until: in days by default (hours for a time) */
     until(other: Temporal.PlainDateTime | PlainDateTimeValueSource, options?: DifferenceOptions<DateUnit | TimeUnit>): DurationValueSource
     /** The duration from the other date and time to this one, as Temporal's since: until with the rounding mode negated, negated */
@@ -639,6 +641,39 @@ interface InstantValueSource extends ComparableValueSource<Temporal.Instant, 'in
     /** The duration to or from the other instant, as Temporal's until and since: in seconds by default, up to hours */
     until(other: Temporal.Instant | InstantValueSource, options?: DifferenceOptions<TimeUnit>): DurationValueSource
     since(other: Temporal.Instant | InstantValueSource, options?: DifferenceOptions<TimeUnit>): DurationValueSource
+    /** The instant in the zone given (an IANA name or an offset), as Temporal's toZonedDateTimeISO; only Oracle has zones */
+    toZonedDateTimeISO(timeZone: string | StringValueSource): ZonedDateTimeValueSource
+}
+
+/**
+ * Represents an exact moment in a time zone (using a Temporal.ZonedDateTime). Only Oracle keeps a zone with each value
+ * (TIMESTAMP WITH TIME ZONE); on the other databases a query with one fails when it is built. Ordered by its instant
+ */
+interface ZonedDateTimeValueSource extends ComparableValueSource<Temporal.ZonedDateTime, 'zonedDateTime'> {
+    toInstant(): InstantValueSource
+    /** Its date and time, date or time of the day in its zone */
+    toPlainDateTime(): PlainDateTimeValueSource
+    toPlainDate(): PlainDateValueSource
+    toPlainTime(): PlainTimeValueSource
+    /** The name of its zone, and its offset at its instant, as Temporal's timeZoneId, offset and offsetNanoseconds */
+    timeZoneId(): StringValueSource
+    offset(): StringValueSource
+    offsetNanoseconds(): NumberValueSource
+    epochMilliseconds(): NumberValueSource
+    epochNanoseconds(): BigintValueSource
+    /** Its parts in its zone, as Temporal's */
+    year(): NumberValueSource
+    month(): NumberValueSource
+    day(): NumberValueSource
+    dayOfWeek(): NumberValueSource
+    dayOfYear(): NumberValueSource
+    hour(): NumberValueSource
+    minute(): NumberValueSource
+    second(): NumberValueSource
+    millisecond(): NumberValueSource
+    microsecond(): NumberValueSource
+    /** The same instant in another zone, as Temporal's withTimeZone */
+    withTimeZone(timeZone: string | StringValueSource): ZonedDateTimeValueSource
 }
 
 /**
@@ -2357,7 +2392,7 @@ interface DataTypes {
     stringDecimal: StringDecimalValueSource, string: StringValueSource, uuid: UuidValueSource,
     localDate: LocalDateValueSource, localTime: LocalTimeValueSource, localDateTime: LocalDateTimeValueSource,
     plainDate: PlainDateValueSource, plainTime: PlainTimeValueSource, plainDateTime: PlainDateTimeValueSource,
-    duration: DurationValueSource, instant: InstantValueSource
+    duration: DurationValueSource, instant: InstantValueSource, zonedDateTime: ZonedDateTimeValueSource
 }
 type DataTypeName = keyof DataTypes
 /** Registers a data type of the user by the type name of its class (its static type) */

@@ -203,8 +203,8 @@ The default `CASE` repeats the operand (once in the null check, once in `least` 
 
 ```ts
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {
-    protected override minValueFunction = 'greatest_strict'  // minValue -> the LARGER of the two
-    protected override maxValueFunction = 'least_strict'     // maxValue -> the SMALLER of the two
+    protected override minValueFunction = 'tsq_greatest_strict'  // minValue -> the LARGER of the two
+    protected override maxValueFunction = 'tsq_least_strict'     // maxValue -> the SMALLER of the two
 }
 ```
 
@@ -215,7 +215,7 @@ Create the functions in the database: their code is in [PostgreSQL functions](fu
 With the options set, the emitted SQL calls them once per operand:
 
 ```sql
-select greatest_strict(estimated_hours, $1) as floored, least_strict(estimated_hours, $2) as capped from issue
+select tsq_greatest_strict(estimated_hours, $1) as floored, tsq_least_strict(estimated_hours, $2) as capped from issue
 ```
 
 !!! tip "Leave all three unset unless you need them"

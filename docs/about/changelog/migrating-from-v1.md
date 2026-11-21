@@ -423,6 +423,17 @@ class DBConnection extends OracleConnection<'DBConnection'> {
 }
 ```
 
+### Oracle: the functions of the uuids
+
+v1 kept a uuid in a `RAW(16)` with the functions `uuid_to_raw` and `raw_to_uuid` of your database (its default strategy, `'custom-functions'`). In v2 the default strategy, `'built-in'`, calls `UUID_TO_RAW` and `RAW_TO_UUID`, the functions Oracle has from 23.9, which take version 4 uuids only; `'custom-functions'` calls `tsq_uuid_to_raw` and `tsq_raw_to_uuid`. If your uuids aren't version 4, or your functions reorder their bytes (the example of v1, made for UUID v1, did), choose `'custom-functions'` and create `tsq_uuid_to_raw` and `tsq_raw_to_uuid` with the body of your `uuid_to_raw` and `raw_to_uuid`, so the uuids you have are read as they were:
+
+<!-- doc-code-snippet-template: oracle -->
+```ts
+class DBConnection extends OracleConnection<'DBConnection'> {
+    protected override uuidStrategy = 'custom-functions' as const
+}
+```
+
 ### SQLite: the precision of the dates and times as text
 
 Each strategy of `getDateTimeFormat` as text now says its precision, and the old names don't compile: `'localdate as text'` becomes `'localdate seconds as text'` or `'localdate milliseconds as text'`, `'UTC as text using T separator'` becomes `'UTC seconds as text using T separator'` or `'UTC milliseconds as text using T separator'`, and so on. If you didn't override `getDateTimeFormat`, the default is now `'localdate milliseconds as text'`.

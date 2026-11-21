@@ -323,8 +323,8 @@ The default `CASE` repeats the operand (once in the null check, once in `least` 
 
 ```ts
 class DBConnection extends SqlServerConnection<'DBConnection'> {
-    protected override minValueFunction = 'dbo.greatest_strict'  // minValue -> the LARGER of the two
-    protected override maxValueFunction = 'dbo.least_strict'     // maxValue -> the SMALLER of the two
+    protected override minValueFunction = 'dbo.tsq_greatest_strict'  // minValue -> the LARGER of the two
+    protected override maxValueFunction = 'dbo.tsq_least_strict'     // maxValue -> the SMALLER of the two
 }
 ```
 
@@ -335,7 +335,7 @@ Create the functions in the database: their code is in [SQL Server functions](fu
 With the options set, the emitted SQL calls them once per operand:
 
 ```sql
-select dbo.greatest_strict(estimated_hours, @0) as floored, dbo.least_strict(estimated_hours, @1) as capped from issue
+select dbo.tsq_greatest_strict(estimated_hours, @0) as floored, dbo.tsq_least_strict(estimated_hours, @1) as capped from issue
 ```
 
 !!! tip "Leave all three unset unless you need them"

@@ -376,7 +376,7 @@ The default `CASE` repeats each optional operand (once in the null check, once i
 import { OracleConnection } from "ts-sql-query/oracle";
 
 class DBConnection extends OracleConnection<'DBConnection'> {
-    protected override concatFunction = 'string_util.concat_strict'
+    protected override concatFunction = 'tsq_string_util.concat_strict'
 }
 ```
 
@@ -385,8 +385,8 @@ The name is yours; the one above is only what this page's example calls it. Crea
 With the option set, the emitted SQL calls it on both halves, each operand appearing once:
 
 ```sql
-select string_util.concat_strict("body", :0) as "tagged" from issue where id = :1
-select id from issue where title like string_util.concat_strict(:0, '%') escape '\'
+select tsq_string_util.concat_strict("body", :0) as "tagged" from issue where id = :1
+select id from issue where title like tsq_string_util.concat_strict(:0, '%') escape '\'
 ```
 
 !!! tip "Which of the three to pick"
@@ -435,7 +435,7 @@ Set `replaceInsensitiveCollation` (or `insensitiveCollation`) to `''` to opt out
 `ts-sql-query` provides different strategies to handle UUID values in Oracle. These strategies control how UUID values are represented in JavaScript and stored in the database. In every case, UUIDs are exchanged as `string` at the JavaScript layer.
 
 - `'built-in'` *(default strategy)*: UUIDs are stored as `RAW(16)` and converted using Oracle's built-in `UUID_TO_RAW` / `RAW_TO_UUID` functions, available since **Oracle Database 23ai (23.9)**. The bytes are stored in canonical order. Note that these built-ins validate the value through Oracle's `IS_UUID` check, which **accepts only version-4 UUIDs**: a non-v4 value (v1, v7, …) is rejected at runtime with `ORA-62432: … is not a valid UUID value`. Use this strategy when your application uses **UUID v4**; for any other version (including v7) use `'custom-functions'`.
-- `'custom-functions'`: same `RAW(16)` storage, but `ts-sql-query` calls user-provided functions named `uuid_to_raw` and `raw_to_uuid` instead. Use this option on Oracle versions older than 23.9 (where the built-ins don't exist), when you need a UUID version the built-ins reject (such as **v7** or v1), or when you want to inject your own conversion logic — for example, the v1-style byte reordering shown in [Oracle functions](functions.md#uuid_to_raw-and-raw_to_uuid). Because these functions do the conversion themselves, they accept any UUID version. Oracle resolves identifiers case-insensitively, so the names match the built-ins on 23.9+ and your functions take precedence over them if both exist.
+- `'custom-functions'`: the same `RAW(16)`, but `ts-sql-query` calls the functions of the library `tsq_uuid_to_raw` and `tsq_raw_to_uuid`, which keep the 16 bytes as they are for any version of uuid and on any version of Oracle (see [Oracle functions](functions.md#tsq_uuid_to_raw-and-tsq_raw_to_uuid)). Use it before Oracle 23.9, which has no built-in functions, or for a uuid that isn't version 4, like version 7.
 - `'string'`: UUIDs are stored as text in character-based columns such as `CHAR(36)` or `VARCHAR2(36)`. No conversion functions are involved. The library sends and reads the text of a uuid in lower case, the case the other strategies and databases give it: a uuid sent in upper case is stored and read in lower case, and an equality with it finds the uuid stored by the library.
 - `'string as sent'`: as `'string'`, but the text of a uuid is sent and read as it is, in the case it has. A uuid stored in upper case is read in upper case, and an equality compares the text as the column's collation does. Choose it for a column that other applications fill in upper case and compare as it is.
 
@@ -451,4 +451,4 @@ class DBConnection extends OracleConnection<'DBConnection'> {
 
 !!! tip "Generating UUIDs"
 
-    For **chronologically sortable** primary keys, generate **UUID v7** and use the `'custom-functions'` strategy with the canonical implementation shown in [Oracle functions](functions.md#uuid_to_raw-and-raw_to_uuid): it stores the 16 bytes as-is, so v7's leading timestamp keeps inserts clustered at the end of the primary-key index. The default `'built-in'` strategy **cannot** store v7 (or v1) values — Oracle's `UUID_TO_RAW` only accepts v4 and rejects other versions with `ORA-62432`. If you use **UUID v4** (random, no clustering benefit), the `'built-in'` strategy works out of the box; Oracle 23ai (23.9)+ also provides a server-side `UUID()` function that returns v4 — useful if you want the database to generate the value as a column `DEFAULT`. There is no server-side v7 generator, so v7 must be generated in the application. See the [column types](../../data-types.md) page for more context.
+    For **chronologically sortable** primary keys, generate **UUID v7** in the application and use the `'custom-functions'` strategy: it keeps the 16 bytes as they are, so v7's leading timestamp keeps the inserts at the end of the index of the primary key. The default `'built-in'` strategy can't store a v7 (or v1) uuid: Oracle's `UUID_TO_RAW` accepts version 4 only and rejects the others with `ORA-62432`. With **UUID v4** (random, no clustering benefit) `'built-in'` works as it is; Oracle 23.9 also has a `UUID()` function that gives a v4, useful as the `DEFAULT` of a column. There is no server-side v7 generator. See the [column types](../../data-types.md) page for more context.

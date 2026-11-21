@@ -20,7 +20,7 @@ The math functions (`sqrt`, `power`, `ln`, `sin`…) need neither: see [Math fun
 | [`decimalStrategy`](index.md#exact-decimals-the-decimal-strategies) `'decimal-extension and tsq-functions'` and its canonical text variant (the default) | `decimal_add`, `decimal_sub`, `decimal_mul`, `decimal_cmp`, `decimal_sum`, and the library's `tsq_decimal_ceil`, `tsq_decimal_floor`, `tsq_decimal_round`, `tsq_decimal_mod` | the first five, SQLite's decimal extension (`ext/misc/decimal.c`); the `tsq_` ones, only the library |
 | `decimalStrategy` `'decimal-functions'` and its canonical text variant | the same, and `tsq_decimal_key`, `tsq_decimal_abs`, `tsq_decimal_min`, `tsq_decimal_max` | the same |
 | `decimalStrategy` `'text'` and `'canonical text'` | none | — |
-| [`replaceAllInsensitiveFunction = 'ci_replace'`](../../collations.md#sqlite-register-a-udf-or-accept-the-case-sensitive-fallback) | `ci_replace(text, from, to)` | only the library |
+| [`replaceAllInsensitiveFunction = 'tsq_ci_replace'`](../../collations.md#sqlite-register-a-udf-or-accept-the-case-sensitive-fallback) | `tsq_ci_replace(text, from, to)` | only the library |
 | None: a [duration](../../dates-and-times.md#durations) is kept as its text on SQLite, and a query that adds one of a column, reads its fields, computes one with `until` or `since`, its `total`, or adds two | [`tsq_duration_part`, `tsq_duration_text`, `tsq_duration_round`, `tsq_duration_total`, `tsq_duration_add`](#the-functions-of-durations) | only the library |
 
 The functions of the library start with `tsq_`, so no function of SQLite or of one of its extensions has their name.

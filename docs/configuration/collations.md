@@ -320,11 +320,11 @@ SQLite has no case-insensitive `REPLACE` and no built-in `regexp_replace`. Set *
 import { SqliteConnection } from "ts-sql-query/sqlite";
 
 class DBConnection extends SqliteConnection<'DBConnection'> {
-    override replaceAllInsensitiveFunction = 'ci_replace'
+    override replaceAllInsensitiveFunction = 'tsq_ci_replace'
 }
 ```
 
-Register `ci_replace` on the driver: `registerSqliteFunctions` of the query runner registers it, a case-insensitive replace of every occurrence, together with the other SQL functions the library may write. See the page of [better-sqlite3](query-runners/recommended/better-sqlite3.md#the-sql-functions-of-the-library), [bun:sqlite](query-runners/recommended/bun_sqlite.md#the-sql-functions-of-the-library), [node:sqlite](query-runners/recommended/node_sqlite.md#the-sql-functions-of-the-library) or [sqlite-wasm OO1](query-runners/recommended/sqlite-wasm-OO1.md#the-sql-functions-of-the-library), and [SQLite functions and extensions](supported-databases/sqlite/functions.md) for every function the library may write on SQLite.
+Register `tsq_ci_replace` on the driver: `registerSqliteFunctions` of the query runner registers it, a case-insensitive replace of every occurrence, together with the other SQL functions the library may write. See the page of [better-sqlite3](query-runners/recommended/better-sqlite3.md#the-sql-functions-of-the-library), [bun:sqlite](query-runners/recommended/bun_sqlite.md#the-sql-functions-of-the-library), [node:sqlite](query-runners/recommended/node_sqlite.md#the-sql-functions-of-the-library) or [sqlite-wasm OO1](query-runners/recommended/sqlite-wasm-OO1.md#the-sql-functions-of-the-library), and [SQLite functions and extensions](supported-databases/sqlite/functions.md) for every function the library may write on SQLite.
 
 The **`bun:sql`** connector has **no user-defined-function API** (it does not expose the `bun:sqlite` database it opens either), so `replaceAllInsensitiveFunction` cannot be used — leave it unset and `replaceAllInsensitive` behaves as `replace` (case-sensitive).
 

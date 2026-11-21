@@ -9,7 +9,7 @@ Some queries call a function that PostgreSQL doesn't have built in. This page sa
 They are of these kinds, and all of them are in [one file](#creating-them):
 
 - **The ones a query always needs**, the ones of durations and of differences of zoned dates and times in days: a query that uses one calls it (see [Dates and times](../../configuration/dates-and-times.md)).
-- **The optional ones**, `tsq_zoned_of_wall`, `tsq_zone`, `tsq_zoned_offset`, `tsq_zoned_hours_in_day`, `tsq_zoned_round_day`, `tsq_round_to`, `tsq_duration_sum`, `tsq_duration_total_of`, `tsq_duration_round_of`, `tsq_greatest_strict` and `tsq_least_strict`: a query calls them only with `libraryFunctions = 'installed'` on the connection; without it, the SQL of PostgreSQL does the same with less (see each one).
+- **The optional ones**, `tsq_zoned_of_wall`, `tsq_zone`, `tsq_zoned_offset`, `tsq_zoned_hours_in_day`, `tsq_zoned_round_day`, `tsq_round_to`, `tsq_duration_sum`, `tsq_duration_total_of`, `tsq_duration_round_of`, `tsq_duration_negated`, `tsq_date_plus_duration`, `tsq_instant_plus_duration`, `tsq_day_in_month_or_error`, `tsq_greatest_strict` and `tsq_least_strict`: a query calls them only with `libraryFunctions = 'installed'` on the connection; without it, the SQL of PostgreSQL does the same with less (see each one).
 
 ## Which function each query needs
 
@@ -29,6 +29,9 @@ They are of these kinds, and all of them are in [one file](#creating-them):
 | [`tsq_duration_sum`](#tsq_duration_sum) | `add` or `subtract` of two durations, with `libraryFunctions = 'installed'` | `tsq_duration_part`, `tsq_duration_add` |
 | [`tsq_duration_total_of`](#tsq_duration_total_of) | `total` of a duration, with `libraryFunctions = 'installed'` | `tsq_duration_part`, `tsq_duration_total` |
 | [`tsq_duration_round_of`](#tsq_duration_round_of) | `until` or `since` of two dates or two dates and times in months or years, or rounded to a week, a month or a year, with `libraryFunctions = 'installed'` | `tsq_duration_round` |
+| [`tsq_duration_negated`](#tsq_duration_negated) | `negated()` of a duration of a column that keeps it as text, with `libraryFunctions = 'installed'` | `tsq_duration_part` |
+| [`tsq_date_plus_duration` and `tsq_instant_plus_duration`](#tsq_date_plus_duration-and-tsq_instant_plus_duration) | an interval of the query (a column, a computation) is added to or subtracted from a date or an instant, with `libraryFunctions = 'installed'` | — |
+| [`tsq_day_in_month_or_error`](#tsq_day_in_month_or_error) | `add`, `subtract` or `with` of a date or a date and time with `{ overflow: 'reject' }`, with `libraryFunctions = 'installed'` | — |
 | [`tsq_greatest_strict` and `tsq_least_strict`](#tsq_greatest_strict-and-tsq_least_strict) | `minValue` or `maxValue` is written, with `libraryFunctions = 'installed'` | — |
 
 ## Creating them
@@ -116,6 +119,24 @@ Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 ## `tsq_duration_round_of`
 
 `tsq_duration_round_of` gives the duration from one date or date and time to another, given whole, as Temporal's `until` in months or years, or rounded to the calendar: it calls `tsq_duration_round` with the year, the month, the day and the nanoseconds of the day of each one. With `libraryFunctions = 'installed'` a query calls it where it would call `tsq_duration_round` (see [The duration between two dates and times](../../configuration/dates-and-times.md#the-duration-between-two-dates-and-times)), except for two months of a year, and writes each value once; without it, the query writes each value four times. Create it after `tsq_duration_round`.
+
+Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
+
+## `tsq_duration_negated`
+
+`tsq_duration_negated` negates the ISO 8601 text of a duration: without its minus, or with one; a duration of zero as it is, as Temporal writes it. With `libraryFunctions = 'installed'` a query calls it for `negated()` and writes the text once; without it, the query writes it five times.
+
+Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
+
+## `tsq_date_plus_duration` and `tsq_instant_plus_duration`
+
+`tsq_date_plus_duration` and `tsq_instant_plus_duration` add an interval of the query, given whole, to a date or an instant, or subtract it, as Temporal's `add` and `subtract` (see [Adding and subtracting a duration](../../configuration/dates-and-times.md#adding-and-subtracting-a-duration)): its years and months first, keeping the day in the month, then its weeks and days, then its time. A date takes the whole days of its time. An instant takes only a duration of hours and smaller units: one with days, weeks, months or years makes the query fail. With `libraryFunctions = 'installed'` a query calls them and writes the duration once; without it, the query writes the same computation inline, with the duration several times.
+
+Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
+
+## `tsq_day_in_month_or_error`
+
+`tsq_day_in_month_or_error` gives 0, or fails, when the day of a date or a date and time isn't in the month that some months reach from it, as Temporal's `overflow: 'reject'` (see [Rejecting a day the month hasn't](../../configuration/dates-and-times.md#rejecting-a-day-the-month-hasnt)). With `libraryFunctions = 'installed'` a query checks the day with it and writes the value once more; without it, the query writes the value four times more.
 
 Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 

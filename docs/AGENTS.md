@@ -77,7 +77,7 @@ Start with the file of the area of your task. These files are written for you: o
 
 | To | Read | Tokens |
 |---|---|---|
-| Write SQL of your own in a query, customize a query, or create the functions the library calls in each database (and the extensions of SQLite) | [`llms-own-sql-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-own-sql-postgresql.txt) | 15k |
+| Write SQL of your own in a query, customize a query, or create the functions the library calls in each database (and the extensions of SQLite) | [`llms-own-sql-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-own-sql-postgresql.txt) | 16k |
 
 **Extend the library**
 

@@ -1446,6 +1446,8 @@ As in Temporal, `add`, `subtract` and `with` take the option `overflow` as their
 
 MariaDB, MySQL and SQLite have no date that fails: there the error is the one of a subquery that returns two rows (MariaDB and MySQL) or of an integer overflow (SQLite), written to fail only for a day the month hasn't.
 
+With `libraryFunctions = 'installed'` on the connection, the day is checked by `tsq_day_in_month_or_error`, which writes the value once more, and a duration of the query added to a value is read once by a function of the library (see the functions of [your database](../databases/postgresql/functions.md#tsq_day_in_month_or_error)); the result is the same.
+
 ### A duration kept as text: the function `tsq_duration_part`
 
 On MariaDB, MySQL, SQLite and SQL Server, and in a column of PostgreSQL or Oracle that keeps a duration as text, a duration is its ISO 8601 text. To add one that the database holds, like `tRelease.rolloutTime`, to a date or to another duration, or to read its fields, its sign or its total, or to negate it, the query reads its parts with `tsq_duration_part`, a function of the library: create it once in the database. A duration given as a value doesn't need it to be added, and neither does reading, writing or comparing a duration. Without the function, the query fails with the error of the database for a function that doesn't exist.

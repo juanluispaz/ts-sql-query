@@ -9,7 +9,7 @@ Some queries call a function that Oracle doesn't have built in. This page says w
 They are of these kinds:
 
 - **The ones a query always needs**, the ones of durations and of differences of zoned dates and times in days: a query that uses one calls it (see [Dates and times](../../configuration/dates-and-times.md)).
-- **The optional ones**, `tsq_zoned_of_wall`, `tsq_zoned_of_text`, `tsq_zoned_hours_in_day`, `tsq_zoned_round_day`, `tsq_round_to`, `tsq_nanoseconds_between`, `tsq_duration_sum`, `tsq_duration_total_of`, `tsq_duration_round_of`, `tsq_ds_interval_text`, `tsq_ym_interval_text` and `tsq_string_util.concat_strict`: a query calls them only with `libraryFunctions = 'installed'` on the connection; without it, the SQL of Oracle does the same with less (see each one).
+- **The optional ones**, `tsq_zoned_of_wall`, `tsq_zoned_of_text`, `tsq_zoned_hours_in_day`, `tsq_zoned_round_day`, `tsq_round_to`, `tsq_nanoseconds_between`, `tsq_duration_sum`, `tsq_duration_total_of`, `tsq_duration_round_of`, `tsq_ds_interval_text`, `tsq_ym_interval_text`, `tsq_duration_negated`, `tsq_time_plus_duration`, `tsq_instant_plus_duration`, `tsq_day_in_month_or_error` and `tsq_string_util.concat_strict`: a query calls them only with `libraryFunctions = 'installed'` on the connection; without it, the SQL of Oracle does the same with less (see each one).
 - **The ones of the uuid strategy** `'custom-functions'`, `tsq_uuid_to_raw` and `tsq_raw_to_uuid`, in two forms to choose, in files of their own.
 
 ## Which function each query needs
@@ -32,6 +32,9 @@ They are of these kinds:
 | [`tsq_duration_total_of`](#tsq_duration_total_of) | `total` of a duration, with `libraryFunctions = 'installed'` | `tsq_duration_part`, `tsq_duration_total` |
 | [`tsq_duration_round_of`](#tsq_duration_round_of) | `until` or `since` of two dates or two dates and times in months or years, or rounded to a week, a month or a year, with `libraryFunctions = 'installed'` | `tsq_duration_round` |
 | [`tsq_ds_interval_text` and `tsq_ym_interval_text`](#tsq_ds_interval_text-and-tsq_ym_interval_text) | a duration kept in an interval is added, subtracted or has its total computed, with `libraryFunctions = 'installed'` | — |
+| [`tsq_duration_negated`](#tsq_duration_negated) | `negated()` of a duration of a column that keeps it as text, with `libraryFunctions = 'installed'` | `tsq_duration_part` |
+| [`tsq_time_plus_duration` and `tsq_instant_plus_duration`](#tsq_time_plus_duration-and-tsq_instant_plus_duration) | an interval of days to seconds of the query (a column, a computation) is added to or subtracted from a time or an instant, with `libraryFunctions = 'installed'` | — |
+| [`tsq_day_in_month_or_error`](#tsq_day_in_month_or_error) | `add`, `subtract` or `with` of a date or a date and time with `{ overflow: 'reject' }`, with `libraryFunctions = 'installed'` | — |
 | [`tsq_string_util.concat_strict`](#tsq_string_utilconcat_strict) | `concat` or an affix pattern is written, with `libraryFunctions = 'installed'` | — |
 | [`tsq_uuid_to_raw` and `tsq_raw_to_uuid`](#tsq_uuid_to_raw-and-tsq_raw_to_uuid) | a uuid is read or written with the `'custom-functions'` uuid strategy | — |
 
@@ -132,6 +135,24 @@ Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 ## `tsq_ds_interval_text` and `tsq_ym_interval_text`
 
 `tsq_ds_interval_text` gives the ISO 8601 text of an `INTERVAL DAY TO SECOND`, with all the digits of its fraction (`P1DT12H0M0.000000000S`), and `tsq_ym_interval_text` the one of an `INTERVAL YEAR TO MONTH` (`-P1Y2M`). With `libraryFunctions = 'installed'` a query gives a duration kept in an interval to `tsq_duration_sum` and `tsq_duration_total_of` as that text, written once.
+
+Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
+
+## `tsq_duration_negated`
+
+`tsq_duration_negated` negates the ISO 8601 text of a duration: without its minus, or with one; a duration of zero as it is, as Temporal writes it. With `libraryFunctions = 'installed'` a query calls it for `negated()` and writes the text once; without it, the query writes it five times.
+
+Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
+
+## `tsq_time_plus_duration` and `tsq_instant_plus_duration`
+
+`tsq_time_plus_duration` and `tsq_instant_plus_duration` add an interval of days to seconds of the query, given whole, to a time of the day (kept on the date of the stored times, the last argument) or an instant, or subtract it, as Temporal's `add` and `subtract` (see [Adding and subtracting a duration](../../configuration/dates-and-times.md#adding-and-subtracting-a-duration)): its years and months first, keeping the day in the month, then its weeks and days, then its time. A time goes round at midnight. An instant takes only a duration of hours and smaller units: one with days, weeks, months or years makes the query fail. With `libraryFunctions = 'installed'` a query calls them and writes the duration once; without it, the query writes the same computation inline, with the duration several times.
+
+Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
+
+## `tsq_day_in_month_or_error`
+
+`tsq_day_in_month_or_error` gives 0, or fails, when the day of a date or a date and time isn't in the month that some months reach from it, as Temporal's `overflow: 'reject'` (see [Rejecting a day the month hasn't](../../configuration/dates-and-times.md#rejecting-a-day-the-month-hasnt)). With `libraryFunctions = 'installed'` a query checks the day with it and writes the value once more; without it, the query writes the value four times more.
 
 Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 

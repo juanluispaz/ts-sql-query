@@ -137,6 +137,8 @@ export abstract class PostgreSqlConnection<NAME extends string> extends Abstract
      *   and time, writing each value once.
      * - `tsq_duration_sum`, `tsq_duration_total_of` and `tsq_duration_round_of`, which take a duration (an interval or
      *   its text) or a date whole, writing it once.
+     * - `tsq_duration_negated`, `tsq_date_plus_duration`, `tsq_instant_plus_duration` and `tsq_day_in_month_or_error`,
+     *   for a negated duration, a value plus an interval of the query and `overflow: 'reject'`, writing each value once.
      * - `tsq_greatest_strict` and `tsq_least_strict`, for `minValue` and `maxValue`, which give null for a null operand
      *   writing each operand once; without them, a `CASE` repeats them.
      */

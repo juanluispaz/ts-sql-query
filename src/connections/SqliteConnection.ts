@@ -114,7 +114,8 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
      * strategy, of its uuid strategy) and the ones of durations are called anyway. With them registered the library also
      * calls `tsq_ci_replace` for `replaceAllInsensitive`, which ignores the case of the text; without it, SQLite's
      * `replace` distinguishes the case (SQLite has no `replace` that ignores it), `tsq_round_to` for a rounding, the functions of
-     * durations that take them whole (`tsq_duration_sum`, `tsq_duration_total_of`, `tsq_duration_round_of`), and
+     * durations that take them whole (`tsq_duration_sum`, `tsq_duration_total_of`, `tsq_duration_round_of`,
+     * `tsq_duration_negated`, the ones that add a duration of the query to a value, `tsq_day_in_month_or_error`), and
      * `tsq_zoned_wall` for the date and time and the parts of a zoned date and time kept as its text, which write the
      * value once. The connectors without functions
      * written in JavaScript (`bun:sql`) can't register it.

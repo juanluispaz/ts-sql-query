@@ -1244,7 +1244,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         return 'dateadd(day, ' + days + ', ' + date + ')'
     }
     override _nanosecondsSinceMidnight(context: SqlBuildContext, valueSource: ToSql): string {
-        return "(cast(datediff(second, cast('00:00' as time), cast(" + this._appendSql(valueSource, context, false) + ' as time)) as bigint) * 1000000000 + datepart(nanosecond, ' + this._appendSql(valueSource, context, false) + '))'
+        return "datediff_big(nanosecond, cast('00:00' as time), cast(" + this._appendSql(valueSource, context, false) + ' as time))'
     }
     override _dateOfValue(context: SqlBuildContext, valueSource: ToSql): string {
         return 'cast(' + this._appendSql(valueSource, context, false) + ' as date)'
@@ -1260,7 +1260,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         return 100n
     }
     override _ticksSinceMidnight(context: SqlBuildContext, valueSource: ToSql): string {
-        return "(cast(datediff(second, cast('00:00' as time), cast(" + this._appendSql(valueSource, context, false) + ' as time)) as bigint) * 10000000 + datepart(nanosecond, ' + this._appendSql(valueSource, context, false) + ') / 100)'
+        return "(datediff_big(nanosecond, cast('00:00' as time), cast(" + this._appendSql(valueSource, context, false) + ' as time)) / 100)'
     }
     override _timeOfDatabaseTicks(_context: SqlBuildContext, ticks: string): string {
         return 'dateadd(nanosecond, (' + ticks + ') % 10000000 * 100, dateadd(second, (' + ticks + ") / 10000000 % 86400, cast('00:00' as time(7))))"

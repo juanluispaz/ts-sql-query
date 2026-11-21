@@ -5011,39 +5011,60 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return d.fields === 'date' ? this._differenceRounded(context, d) : this._integerOfBigint(this._differenceDivision(d, this._differenceRounded(context, d), d.day))
     }
-    /** The days and the time to round, rounded to multiples of the increment of the smallest unit, in the mode */
+    /**
+     * The days and the time to round, rounded to multiples of the increment of the smallest unit, in the mode: a division
+     * that truncates toward zero of the value moved by the mode, so each mode writes the value once or twice (halfEven,
+     * on the magnitude, three times)
+     */
     _differenceRounded(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
         const unit = d.difference.smallestUnit
         const stepValue = (d.fields === 'date' ? 1n : nanosecondsOfUnit[unit]!) * BigInt(d.difference.increment)
         const step = this._bigintLiteral(stepValue)
-        const minusStep = '-' + step
-        // The value minus its remainder, plus a step either way by the mode; the remainder has the sign of the value
-        let result = '(' + this._differenceTotal(context, d) + ' - ' + this._differenceRemainder(context, d, step)
+        const twoSteps = this._bigintLiteral(stepValue * 2n)
+        const lessOne = this._bigintLiteral(stepValue - 1n)
+        const twoLessOne = this._bigintLiteral(stepValue * 2n - 1n)
+        let quotient: string
         switch (d.difference.mode) {
             case 'trunc':
-                return result + ')'
-            case 'floor':
-                return result + ' - case when ' + this._differenceRemainder(context, d, step) + ' < 0 then ' + step + ' else 0 end)'
+                quotient = this._differenceDivision(d, this._differenceTotal(context, d), step)
+                break
             case 'ceil':
-                return result + ' + case when ' + this._differenceRemainder(context, d, step) + ' > 0 then ' + step + ' else 0 end)'
+                quotient = this._differenceDivision(d, '(' + this._differenceTotal(context, d) + ' + case when ' + this._differenceTotal(context, d) + ' > 0 then ' + lessOne + ' else 0 end)', step)
+                break
+            case 'floor':
+                quotient = this._differenceDivision(d, '(' + this._differenceTotal(context, d) + ' - case when ' + this._differenceTotal(context, d) + ' < 0 then ' + lessOne + ' else 0 end)', step)
+                break
             case 'expand':
-                return result + ' + case when ' + this._differenceRemainder(context, d, step) + ' > 0 then ' + step + ' when ' + this._differenceRemainder(context, d, step) + ' < 0 then ' + minusStep + ' else 0 end)'
+                quotient = this._differenceDivision(d, '(' + this._differenceTotal(context, d) + ' + case when ' + this._differenceTotal(context, d) + ' < 0 then -' + lessOne + ' else ' + lessOne + ' end)', step)
+                break
             case 'halfExpand':
-                return result + ' + case when 2 * ' + this._differenceRemainder(context, d, step) + ' >= ' + step + ' then ' + step + ' when 2 * ' + this._differenceRemainder(context, d, step) + ' <= ' + minusStep + ' then ' + minusStep + ' else 0 end)'
+                quotient = this._differenceDivision(d, '(2 * ' + this._differenceTotal(context, d) + ' + case when ' + this._differenceTotal(context, d) + ' < 0 then -' + step + ' else ' + step + ' end)', twoSteps)
+                break
             case 'halfTrunc':
-                return result + ' + case when 2 * ' + this._differenceRemainder(context, d, step) + ' > ' + step + ' then ' + step + ' when 2 * ' + this._differenceRemainder(context, d, step) + ' < ' + minusStep + ' then ' + minusStep + ' else 0 end)'
+                quotient = this._differenceDivision(d, '(2 * ' + this._differenceTotal(context, d) + ' + case when ' + this._differenceTotal(context, d) + ' < 0 then -' + lessOne + ' else ' + lessOne + ' end)', twoSteps)
+                break
             case 'halfCeil':
-                return result + ' + case when 2 * ' + this._differenceRemainder(context, d, step) + ' >= ' + step + ' then ' + step + ' when 2 * ' + this._differenceRemainder(context, d, step) + ' < ' + minusStep + ' then ' + minusStep + ' else 0 end)'
+                // Half way up: the floor of (2 * value + step) / (2 * step)
+                quotient = this._differenceDivision(d, '(2 * ' + this._differenceTotal(context, d) + ' + ' + step + ' - case when 2 * ' + this._differenceTotal(context, d) + ' + ' + step + ' < 0 then ' + twoLessOne + ' else 0 end)', twoSteps)
+                break
             case 'halfFloor':
-                return result + ' + case when 2 * ' + this._differenceRemainder(context, d, step) + ' > ' + step + ' then ' + step + ' when 2 * ' + this._differenceRemainder(context, d, step) + ' <= ' + minusStep + ' then ' + minusStep + ' else 0 end)'
-            case 'halfEven':
-                result += ' + case when 2 * ' + this._differenceRemainder(context, d, step) + ' > ' + step + ' or 2 * ' + this._differenceRemainder(context, d, step) + ' = ' + step + ' and ' + this._integerRemainder(this._differenceDivision(d, this._differenceTotal(context, d), step), '2') + ' <> 0 then ' + step
-                return result + ' when 2 * ' + this._differenceRemainder(context, d, step) + ' < ' + minusStep + ' or 2 * ' + this._differenceRemainder(context, d, step) + ' = ' + minusStep + ' and ' + this._integerRemainder(this._differenceDivision(d, this._differenceTotal(context, d), step), '2') + ' <> 0 then ' + minusStep + ' else 0 end)'
+                // Half way down: the ceiling of (2 * value - step) / (2 * step)
+                quotient = this._differenceDivision(d, '(2 * ' + this._differenceTotal(context, d) + ' - ' + step + ' + case when 2 * ' + this._differenceTotal(context, d) + ' - ' + step + ' > 0 then ' + twoLessOne + ' else 0 end)', twoSteps)
+                break
+            case 'halfEven': {
+                // On the magnitude: halfExpand of 2 * magnitude + step, less one where that is four steps times something
+                // plus two (half way to an odd multiple); with the sign of the value
+                const sign = this._signOf(this._differenceTotal(context, d))
+                const moved = '(2 * abs(' + this._differenceTotal(context, d) + ') + ' + step + ')'
+                const movedAgain = '(2 * abs(' + this._differenceTotal(context, d) + ') + ' + step + ')'
+                return '(' + sign + ' * (' + this._differenceDivision(d, moved, twoSteps) + ' - case when ' + this._integerRemainder(movedAgain, this._bigintLiteral(stepValue * 4n)) + ' = ' + twoSteps + ' then 1 else 0 end) * ' + step + ')'
+            }
         }
+        return '(' + quotient + ' * ' + step + ')'
     }
-    /** The remainder of the days and the time to round divided by the step, with their sign */
-    _differenceRemainder(context: SqlBuildContext, d: PlainTemporalDifferenceSql, step: string): string {
-        return '(' + this._integerRemainder(this._differenceTotal(context, d), step) + ')'
+    /** The sign of a number: -1, 0 or 1 */
+    _signOf(value: string): string {
+        return 'sign(' + value + ')'
     }
     /** The date of a value of a difference: the value of a date, the date of a date and time */
     _differenceDateOf(context: SqlBuildContext, d: PlainTemporalDifferenceSql, valueSource: ToSql): string {

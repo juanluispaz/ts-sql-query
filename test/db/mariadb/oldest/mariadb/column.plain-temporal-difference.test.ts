@@ -188,7 +188,7 @@ describe(ctx.label, () => {
                 hour: ctx.conn.const(Temporal.PlainDateTime.from('2024-03-01T08:00'), 'plainDateTime').until(Temporal.PlainDateTime.from('2024-03-03T10:40'), { smallestUnit: 'hour', roundingMode: 'halfExpand' }),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_duration_text(0, 0, 0, 0, (((floor(time_to_sec(?)) * 1000000 + microsecond(?)) * 1000 - (floor(time_to_sec(?)) * 1000000 + microsecond(?)) * 1000) - (((floor(time_to_sec(?)) * 1000000 + microsecond(?)) * 1000 - (floor(time_to_sec(?)) * 1000000 + microsecond(?)) * 1000) % 1000000000) - case when (((floor(time_to_sec(?)) * 1000000 + microsecond(?)) * 1000 - (floor(time_to_sec(?)) * 1000000 + microsecond(?)) * 1000) % 1000000000) < 0 then 1000000000 else 0 end), 'hour') as floor, tsq_duration_text(0, 0, 0, 0, (((floor(time_to_sec(?)) * 1000000 + microsecond(?)) * 1000 - (floor(time_to_sec(?)) * 1000000 + microsecond(?)) * 1000) - (((floor(time_to_sec(?)) * 1000000 + microsecond(?)) * 1000 - (floor(time_to_sec(?)) * 1000000 + microsecond(?)) * 1000) % 1000000000)), 'hour') as trunc, tsq_duration_text(0, 0, 0, 0, (((floor(time_to_sec(?)) * 1000000 + microsecond(?)) * 1000 - (floor(time_to_sec(?)) * 1000000 + microsecond(?)) * 1000) - (((floor(time_to_sec(?)) * 1000000 + microsecond(?)) * 1000 - (floor(time_to_sec(?)) * 1000000 + microsecond(?)) * 1000) % 900000000000) + case when 2 * (((floor(time_to_sec(?)) * 1000000 + microsecond(?)) * 1000 - (floor(time_to_sec(?)) * 1000000 + microsecond(?)) * 1000) % 900000000000) >= 900000000000 then 900000000000 when 2 * (((floor(time_to_sec(?)) * 1000000 + microsecond(?)) * 1000 - (floor(time_to_sec(?)) * 1000000 + microsecond(?)) * 1000) % 900000000000) <= -900000000000 then -900000000000 else 0 end), 'hour') as quarter, tsq_duration_text(0, 0, 0, truncate(((cast(timestampdiff(microsecond, ?, ?) as decimal(65)) * 1000) - ((cast(timestampdiff(microsecond, ?, ?) as decimal(65)) * 1000) % 3600000000000) + case when 2 * ((cast(timestampdiff(microsecond, ?, ?) as decimal(65)) * 1000) % 3600000000000) >= 3600000000000 then 3600000000000 when 2 * ((cast(timestampdiff(microsecond, ?, ?) as decimal(65)) * 1000) % 3600000000000) <= -3600000000000 then -3600000000000 else 0 end) / 86400000000000, 0), (((cast(timestampdiff(microsecond, ?, ?) as decimal(65)) * 1000) - ((cast(timestampdiff(microsecond, ?, ?) as decimal(65)) * 1000) % 3600000000000) + case when 2 * ((cast(timestampdiff(microsecond, ?, ?) as decimal(65)) * 1000) % 3600000000000) >= 3600000000000 then 3600000000000 when 2 * ((cast(timestampdiff(microsecond, ?, ?) as decimal(65)) * 1000) % 3600000000000) <= -3600000000000 then -3600000000000 else 0 end) % 86400000000000), 'hour') as hour"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_duration_text(0, 0, 0, 0, ((((floor(time_to_sec(?)) * 1000000 + microsecond(?)) * 1000 - (floor(time_to_sec(?)) * 1000000 + microsecond(?)) * 1000) - case when ((floor(time_to_sec(?)) * 1000000 + microsecond(?)) * 1000 - (floor(time_to_sec(?)) * 1000000 + microsecond(?)) * 1000) < 0 then 999999999 else 0 end) div 1000000000 * 1000000000), 'hour') as floor, tsq_duration_text(0, 0, 0, 0, (((floor(time_to_sec(?)) * 1000000 + microsecond(?)) * 1000 - (floor(time_to_sec(?)) * 1000000 + microsecond(?)) * 1000) div 1000000000 * 1000000000), 'hour') as trunc, tsq_duration_text(0, 0, 0, 0, ((2 * ((floor(time_to_sec(?)) * 1000000 + microsecond(?)) * 1000 - (floor(time_to_sec(?)) * 1000000 + microsecond(?)) * 1000) + case when ((floor(time_to_sec(?)) * 1000000 + microsecond(?)) * 1000 - (floor(time_to_sec(?)) * 1000000 + microsecond(?)) * 1000) < 0 then -900000000000 else 900000000000 end) div 1800000000000 * 900000000000), 'hour') as quarter, tsq_duration_text(0, 0, 0, truncate((truncate((2 * (cast(timestampdiff(microsecond, ?, ?) as decimal(65)) * 1000) + case when (cast(timestampdiff(microsecond, ?, ?) as decimal(65)) * 1000) < 0 then -3600000000000 else 3600000000000 end) / 7200000000000, 0) * 3600000000000) / 86400000000000, 0), ((truncate((2 * (cast(timestampdiff(microsecond, ?, ?) as decimal(65)) * 1000) + case when (cast(timestampdiff(microsecond, ?, ?) as decimal(65)) * 1000) < 0 then -3600000000000 else 3600000000000 end) / 7200000000000, 0) * 3600000000000) % 86400000000000), 'hour') as hour"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
             "08:30:00.5",
@@ -203,14 +203,6 @@ describe(ctx.label, () => {
             "08:30:00.5",
             "10:00:00",
             "10:00:00",
-            "08:30:00.5",
-            "08:30:00.5",
-            "10:00:00",
-            "10:00:00",
-            "08:30:00.5",
-            "08:30:00.5",
-            "10:00:00",
-            "10:00:00",
             "10:08:00",
             "10:08:00",
             "08:00:00",
@@ -219,22 +211,6 @@ describe(ctx.label, () => {
             "10:08:00",
             "08:00:00",
             "08:00:00",
-            "10:08:00",
-            "10:08:00",
-            "08:00:00",
-            "08:00:00",
-            "10:08:00",
-            "10:08:00",
-            "08:00:00",
-            "08:00:00",
-            "2024-03-01T08:00:00",
-            "2024-03-03T10:40:00",
-            "2024-03-01T08:00:00",
-            "2024-03-03T10:40:00",
-            "2024-03-01T08:00:00",
-            "2024-03-03T10:40:00",
-            "2024-03-01T08:00:00",
-            "2024-03-03T10:40:00",
             "2024-03-01T08:00:00",
             "2024-03-03T10:40:00",
             "2024-03-01T08:00:00",

@@ -140,10 +140,9 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, tsq_duration_text(0, 0, 0, 0, (cast(timestampdiff(microsecond, instant_at, ?) as decimal(65)) * 1000), 'second') as seconds, tsq_duration_text(0, 0, 0, 0, (cast(timestampdiff(microsecond, instant_at, ?) as decimal(65)) * 1000), 'hour') as hours, tsq_duration_text(0, 0, 0, 0, -((cast(timestampdiff(microsecond, instant_at, ?) as decimal(65)) * 1000) - ((cast(timestampdiff(microsecond, instant_at, ?) as decimal(65)) * 1000) % 60000000000) + case when ((cast(timestampdiff(microsecond, instant_at, ?) as decimal(65)) * 1000) % 60000000000) > 0 then 60000000000 else 0 end), 'minute') as minutes from instant_value order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, tsq_duration_text(0, 0, 0, 0, (cast(timestampdiff(microsecond, instant_at, ?) as decimal(65)) * 1000), 'second') as seconds, tsq_duration_text(0, 0, 0, 0, (cast(timestampdiff(microsecond, instant_at, ?) as decimal(65)) * 1000), 'hour') as hours, tsq_duration_text(0, 0, 0, 0, -(truncate(((cast(timestampdiff(microsecond, instant_at, ?) as decimal(65)) * 1000) + case when (cast(timestampdiff(microsecond, instant_at, ?) as decimal(65)) * 1000) > 0 then 59999999999 else 0 end) / 60000000000, 0) * 60000000000), 'minute') as minutes from instant_value order by id"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
-            "2124-03-15T10:00:00.123Z",
             "2124-03-15T10:00:00.123Z",
             "2124-03-15T10:00:00.123Z",
             "2124-03-15T10:00:00.123Z",

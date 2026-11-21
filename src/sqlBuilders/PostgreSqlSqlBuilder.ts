@@ -780,12 +780,18 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         }
         return super._durationOfDifference(context, d)
     }
+    /** sign() of an integer is a double precision: an integer, as the other operand */
+    override _signOf(value: string): string {
+        return 'sign(' + value + ')::integer'
+    }
     /** The whole difference of two times or dates and times in nanoseconds: the seconds of their difference, an interval, exact */
     override _differenceTotal(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
         if (d.fields === 'date') {
             return super._differenceTotal(context, d)
         }
-        return '(extract(epoch from ' + this._appendSqlParenthesis(d.two, context, false) + ' - ' + this._appendSqlParenthesis(d.one, context, false) + ') * 1000000000)'
+        const total = 'extract(epoch from ' + this._appendSqlParenthesis(d.two, context, false) + ' - ' + this._appendSqlParenthesis(d.one, context, false) + ') * 1000000000'
+        // A difference of times is a bigint, which / divides as integers; one of dates and times may be wider (numeric, div)
+        return d.fields === 'time' ? '(' + total + ')::bigint' : '(' + total + ')'
     }
     /**
      * A time or a date and time rounded, as Temporal's `round`: PostgreSQL's own date_bin, the bins of the step from the

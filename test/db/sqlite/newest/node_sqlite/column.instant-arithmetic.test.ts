@@ -133,15 +133,9 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, tsq_duration_text(0, 0, 0, 0, cast((cast(julianday(date(?1)) - julianday(date(instant_at)) as integer) * 86400000000000 + (cast(round((julianday(?2) - julianday(date(?2))) * 86400000) as integer) * 1000000 - cast(round((julianday(instant_at) - julianday(date(instant_at))) * 86400000) as integer) * 1000000)) as text), 'second') as seconds, tsq_duration_text(0, 0, 0, 0, cast((cast(julianday(date(?3)) - julianday(date(instant_at)) as integer) * 86400000000000 + (cast(round((julianday(?4) - julianday(date(?4))) * 86400000) as integer) * 1000000 - cast(round((julianday(instant_at) - julianday(date(instant_at))) * 86400000) as integer) * 1000000)) as text), 'hour') as hours, tsq_duration_text(0, 0, 0, 0, cast(-((cast(julianday(date(?5)) - julianday(date(instant_at)) as integer) * 86400000000000 + (cast(round((julianday(?6) - julianday(date(?6))) * 86400000) as integer) * 1000000 - cast(round((julianday(instant_at) - julianday(date(instant_at))) * 86400000) as integer) * 1000000)) - ((cast(julianday(date(?7)) - julianday(date(instant_at)) as integer) * 86400000000000 + (cast(round((julianday(?8) - julianday(date(?8))) * 86400000) as integer) * 1000000 - cast(round((julianday(instant_at) - julianday(date(instant_at))) * 86400000) as integer) * 1000000)) % 60000000000) + case when ((cast(julianday(date(?9)) - julianday(date(instant_at)) as integer) * 86400000000000 + (cast(round((julianday(?10) - julianday(date(?10))) * 86400000) as integer) * 1000000 - cast(round((julianday(instant_at) - julianday(date(instant_at))) * 86400000) as integer) * 1000000)) % 60000000000) > 0 then 60000000000 else 0 end) as text), 'minute') as minutes from instant_value order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, tsq_duration_text(0, 0, 0, 0, cast((cast(round((julianday(?1) - julianday(instant_at)) * 86400000) as integer) * 1000000) as text), 'second') as seconds, tsq_duration_text(0, 0, 0, 0, cast((cast(round((julianday(?2) - julianday(instant_at)) * 86400000) as integer) * 1000000) as text), 'hour') as hours, tsq_duration_text(0, 0, 0, 0, cast(-(cast(((cast(round((julianday(?3) - julianday(instant_at)) * 86400000) as integer) * 1000000) + case when (cast(round((julianday(?4) - julianday(instant_at)) * 86400000) as integer) * 1000000) > 0 then 59999999999 else 0 end) / 60000000000 as integer) * 60000000000) as text), 'minute') as minutes from instant_value order by id"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
-            "2124-03-15 10:00:00.123",
-            "2124-03-15 10:00:00.123",
-            "2124-03-15 10:00:00.123",
-            "2124-03-15 10:00:00.123",
-            "2124-03-15 10:00:00.123",
-            "2124-03-15 10:00:00.123",
             "2124-03-15 10:00:00.123",
             "2124-03-15 10:00:00.123",
             "2124-03-15 10:00:00.123",

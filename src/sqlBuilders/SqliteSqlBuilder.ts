@@ -1440,6 +1440,17 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     override _dateTimeOfNanoseconds(_context: SqlBuildContext, date: string, nanoseconds: string): string {
         return this._sqliteTemporalIn('dateTime', date + ', ((' + nanoseconds + ") / 1000000000.0) || ' seconds'")
     }
+    /** The sign of a number from its comparisons, which are 0 or 1 (sign() is not in every version) */
+    override _signOf(value: string): string {
+        return '((' + value + ' > 0) - (' + value + ' < 0))'
+    }
+    /** The whole difference of two times or dates and times in nanoseconds: the milliseconds of their Julian days apart */
+    override _differenceTotal(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
+        if (d.fields === 'date') {
+            return super._differenceTotal(context, d)
+        }
+        return '(cast(round((julianday(' + this._dateFunctionArgument(context, d.two) + ') - julianday(' + this._dateFunctionArgument(context, d.one) + ')) * 86400000) as integer) * 1000000)'
+    }
     /** The date and time functions keep milliseconds */
     override _temporalTick(): bigint {
         return 1000000n

@@ -698,8 +698,8 @@ The executed query is:
     select 
         version as version, 
         tsq_duration_text(0, 0, 0, 0, -(cast(timestampdiff(microsecond, deployed_at, published_at) as decimal(65)) * 1000), 'hour') as afterPublishing, 
-        date_add(date(deployed_at), interval ((floor(time_to_sec(deployed_at)) * 1000000 + microsecond(deployed_at)) * 1000 div 3600000000000 * 3600000000000) div 1000 microsecond) as hour, 
-        date_add(date_add(date(deployed_at), interval (((floor(time_to_sec(deployed_at)) * 1000000 + microsecond(deployed_at)) * 1000 + 3599999999999) div 3600000000000 * 3600000000000) div 1000 microsecond), interval ? microsecond) as reviewBy 
+        date_add(date(deployed_at), interval (floor(time_to_sec(deployed_at)) * 1000000 + microsecond(deployed_at)) div 3600000000 * 3600000000 microsecond) as hour, 
+        date_add(date_add(date(deployed_at), interval ((floor(time_to_sec(deployed_at)) * 1000000 + microsecond(deployed_at)) + 3599999999) div 3600000000 * 3600000000 microsecond), interval ? microsecond) as reviewBy 
     from project_release 
     where deployed_at is not null 
     order by version
@@ -709,8 +709,8 @@ The executed query is:
     select 
         version as version, 
         tsq_duration_text(0, 0, 0, 0, -(cast(timestampdiff(microsecond, deployed_at, published_at) as decimal(65)) * 1000), 'hour') as afterPublishing, 
-        date_add(date(deployed_at), interval ((floor(time_to_sec(deployed_at)) * 1000000 + microsecond(deployed_at)) * 1000 div 3600000000000 * 3600000000000) div 1000 microsecond) as hour, 
-        date_add(date_add(date(deployed_at), interval (((floor(time_to_sec(deployed_at)) * 1000000 + microsecond(deployed_at)) * 1000 + 3599999999999) div 3600000000000 * 3600000000000) div 1000 microsecond), interval ? microsecond) as reviewBy 
+        date_add(date(deployed_at), interval (floor(time_to_sec(deployed_at)) * 1000000 + microsecond(deployed_at)) div 3600000000 * 3600000000 microsecond) as hour, 
+        date_add(date_add(date(deployed_at), interval ((floor(time_to_sec(deployed_at)) * 1000000 + microsecond(deployed_at)) + 3599999999) div 3600000000 * 3600000000 microsecond), interval ? microsecond) as reviewBy 
     from project_release 
     where deployed_at is not null 
     order by version
@@ -742,8 +742,8 @@ The executed query is:
     select 
         version as version, 
         tsq_duration_text(0, 0, 0, 0, cast(-(cast(julianday(date(published_at)) - julianday(date(deployed_at)) as integer) * 86400000000000 + (cast(round((julianday(published_at) - julianday(date(published_at))) * 86400000) as integer) * 1000000 - cast(round((julianday(deployed_at) - julianday(date(deployed_at))) * 86400000) as integer) * 1000000)) as text), 'hour') as afterPublishing, 
-        strftime('%Y-%m-%dT%H:%M:%fZ', date(deployed_at), ((cast(cast(round((julianday(deployed_at) - julianday(date(deployed_at))) * 86400000) as integer) * 1000000 / 3600000000000 as integer) * 3600000000000) / 1000000000.0) || ' seconds') as hour, 
-        strftime('%Y-%m-%dT%H:%M:%fZ', strftime('%Y-%m-%dT%H:%M:%fZ', date(deployed_at), ((cast((cast(round((julianday(deployed_at) - julianday(date(deployed_at))) * 86400000) as integer) * 1000000 + 3599999999999) / 3600000000000 as integer) * 3600000000000) / 1000000000.0) || ' seconds'), ?1) as reviewBy 
+        strftime('%Y-%m-%dT%H:%M:%fZ', date(deployed_at), ((cast(cast(round((julianday(deployed_at) - julianday(date(deployed_at))) * 86400000) as integer) / 3600000 as integer) * 3600000) / 1000.0) || ' seconds') as hour, 
+        strftime('%Y-%m-%dT%H:%M:%fZ', strftime('%Y-%m-%dT%H:%M:%fZ', date(deployed_at), ((cast((cast(round((julianday(deployed_at) - julianday(date(deployed_at))) * 86400000) as integer) + 3599999) / 3600000 as integer) * 3600000) / 1000.0) || ' seconds'), ?1) as reviewBy 
     from project_release 
     where deployed_at is not null 
     order by version
@@ -753,8 +753,8 @@ The executed query is:
     select 
         version as version, 
         dbo.tsq_duration_text(0, 0, 0, 0, -(datediff(day, cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as date), cast(cast(switchoffset(published_at, '+00:00') as datetime2) as date)) * cast(86400000000000 as decimal(38)) + ((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(published_at, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(published_at, '+00:00') as datetime2))) - (cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(deployed_at, '+00:00') as datetime2))))), 'hour') as afterPublishing, 
-        dateadd(nanosecond, ((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(deployed_at, '+00:00') as datetime2))) / cast(3600000000000 as bigint) * cast(3600000000000 as bigint)) % 1000000000, dateadd(second, ((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(deployed_at, '+00:00') as datetime2))) / cast(3600000000000 as bigint) * cast(3600000000000 as bigint)) / 1000000000, cast(cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as date) as datetime2))) as hour, 
-        dateadd(day, @0, cast(switchoffset(dateadd(nanosecond, (((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(deployed_at, '+00:00') as datetime2))) + cast(3599999999999 as bigint)) / cast(3600000000000 as bigint) * cast(3600000000000 as bigint)) % 1000000000, dateadd(second, (((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as time)) as bigint) * 1000000000 + datepart(nanosecond, cast(switchoffset(deployed_at, '+00:00') as datetime2))) + cast(3599999999999 as bigint)) / cast(3600000000000 as bigint) * cast(3600000000000 as bigint)) / 1000000000, cast(cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as date) as datetime2))), '+00:00') as datetime2)) as reviewBy 
+        dateadd(nanosecond, ((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as time)) as bigint) * 10000000 + datepart(nanosecond, cast(switchoffset(deployed_at, '+00:00') as datetime2)) / 100) / cast(36000000000 as bigint) * cast(36000000000 as bigint)) % 10000000 * 100, dateadd(second, ((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as time)) as bigint) * 10000000 + datepart(nanosecond, cast(switchoffset(deployed_at, '+00:00') as datetime2)) / 100) / cast(36000000000 as bigint) * cast(36000000000 as bigint)) / 10000000, cast(cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as date) as datetime2))) as hour, 
+        dateadd(day, @0, cast(switchoffset(dateadd(nanosecond, (((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as time)) as bigint) * 10000000 + datepart(nanosecond, cast(switchoffset(deployed_at, '+00:00') as datetime2)) / 100) + cast(35999999999 as bigint)) / cast(36000000000 as bigint) * cast(36000000000 as bigint)) % 10000000 * 100, dateadd(second, (((cast(datediff(second, cast('00:00' as time), cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as time)) as bigint) * 10000000 + datepart(nanosecond, cast(switchoffset(deployed_at, '+00:00') as datetime2)) / 100) + cast(35999999999 as bigint)) / cast(36000000000 as bigint) * cast(36000000000 as bigint)) / 10000000, cast(cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as date) as datetime2))), '+00:00') as datetime2)) as reviewBy 
     from project_release 
     where deployed_at is not null 
     order by version
@@ -1766,7 +1766,7 @@ The executed query is:
     select 
         version as version, 
         date_add(date_add(makedate(year(released_on), 1), interval month(released_on) - 1 month), interval 1 - 1 day) as monthOfRelease, 
-        sec_to_time(mod((2 * (floor(time_to_sec(cutoff_time)) * 1000000 + microsecond(cutoff_time)) * 1000 + 21600000000000) div 43200000000000 * 21600000000000, 86400000000000) div 1000 * 0.000001) as cutoffSlot 
+        sec_to_time(mod((2 * (floor(time_to_sec(cutoff_time)) * 1000000 + microsecond(cutoff_time)) + 21600000000) div 43200000000 * 21600000000, 86400000000) * 0.000001) as cutoffSlot 
     from project_release 
     order by version
     ```
@@ -1775,7 +1775,7 @@ The executed query is:
     select 
         version as version, 
         date_add(date_add(makedate(year(released_on), 1), interval month(released_on) - 1 month), interval 1 - 1 day) as monthOfRelease, 
-        sec_to_time(mod((2 * (floor(time_to_sec(cutoff_time)) * 1000000 + microsecond(cutoff_time)) * 1000 + 21600000000000) div 43200000000000 * 21600000000000, 86400000000000) div 1000 * 0.000001) as cutoffSlot 
+        sec_to_time(mod((2 * (floor(time_to_sec(cutoff_time)) * 1000000 + microsecond(cutoff_time)) + 21600000000) div 43200000000 * 21600000000, 86400000000) * 0.000001) as cutoffSlot 
     from project_release 
     order by version
     ```
@@ -1802,7 +1802,7 @@ The executed query is:
     select 
         version as version, 
         date(printf('%04d-%02d-%02d', cast(strftime('%Y', released_on) as integer), cast(strftime('%m', released_on) as integer), 1)) as monthOfRelease, 
-        strftime('%H:%M:%fZ', '00:00:00', ((cast((2 * cast(round((julianday(cutoff_time) - julianday(date(cutoff_time))) * 86400000) as integer) * 1000000 + 21600000000000) / 43200000000000 as integer) * 21600000000000) / 1000000000.0) || ' seconds') as cutoffSlot 
+        strftime('%H:%M:%fZ', '00:00:00', ((cast((2 * cast(round((julianday(cutoff_time) - julianday(date(cutoff_time))) * 86400000) as integer) + 21600000) / 43200000 as integer) * 21600000) / 1000.0) || ' seconds') as cutoffSlot 
     from project_release 
     order by version
     ```
@@ -1811,7 +1811,7 @@ The executed query is:
     select 
         version as version, 
         datefromparts(datepart(year, released_on), datepart(month, released_on), 1) as monthOfRelease, 
-        dateadd(nanosecond, ((2 * (cast(datediff(second, cast('00:00' as time), cast(cutoff_time as time)) as bigint) * 1000000000 + datepart(nanosecond, cutoff_time)) + cast(21600000000000 as bigint)) / cast(43200000000000 as bigint) * cast(21600000000000 as bigint)) % 1000000000, dateadd(second, ((2 * (cast(datediff(second, cast('00:00' as time), cast(cutoff_time as time)) as bigint) * 1000000000 + datepart(nanosecond, cutoff_time)) + cast(21600000000000 as bigint)) / cast(43200000000000 as bigint) * cast(21600000000000 as bigint)) / 1000000000 % 86400, cast('00:00' as time(7)))) as cutoffSlot 
+        dateadd(nanosecond, ((2 * (cast(datediff(second, cast('00:00' as time), cast(cutoff_time as time)) as bigint) * 10000000 + datepart(nanosecond, cutoff_time) / 100) + cast(216000000000 as bigint)) / cast(432000000000 as bigint) * cast(216000000000 as bigint)) % 10000000 * 100, dateadd(second, ((2 * (cast(datediff(second, cast('00:00' as time), cast(cutoff_time as time)) as bigint) * 10000000 + datepart(nanosecond, cutoff_time) / 100) + cast(216000000000 as bigint)) / cast(432000000000 as bigint) * cast(216000000000 as bigint)) / 10000000 % 86400, cast('00:00' as time(7)))) as cutoffSlot 
     from project_release 
     order by version
     ```

@@ -853,7 +853,7 @@ The executed query is:
     select 
         version as version, 
         to_char((deployed_at::timestamptz) at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z" BC') || '[Europe/Madrid]' as "deployedInMadrid", 
-        to_char(((published_at at time zone 'Europe/Madrid')) at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z" BC') || '[Europe/Madrid]' as "publishedInMadrid", 
+        to_char((published_at at time zone 'Europe/Madrid') at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z" BC') || '[Europe/Madrid]' as "publishedInMadrid", 
         ((published_at at time zone 'Europe/Madrid')) as "publishedInstant" 
     from project_release 
     order by version

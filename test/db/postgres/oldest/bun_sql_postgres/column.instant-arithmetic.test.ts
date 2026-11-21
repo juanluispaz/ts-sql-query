@@ -140,13 +140,9 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, make_interval(hours => cast(div((extract(epoch from $1::timestamptz - instant_at) * 1000000000), 3600000000000) as integer), secs => (extract(epoch from $2::timestamptz - instant_at) * 1000000000) % 3600000000000 / 1000000000.0) as seconds, make_interval(hours => cast(div((extract(epoch from $3::timestamptz - instant_at) * 1000000000), 3600000000000) as integer), secs => (extract(epoch from $4::timestamptz - instant_at) * 1000000000) % 3600000000000 / 1000000000.0) as hours, make_interval(hours => cast(div(-(div(((extract(epoch from $5::timestamptz - instant_at) * 1000000000) + case when (extract(epoch from $6::timestamptz - instant_at) * 1000000000) > 0 then 59999999999 else 0 end), 60000000000) * 60000000000), 3600000000000) as integer), secs => -(div(((extract(epoch from $7::timestamptz - instant_at) * 1000000000) + case when (extract(epoch from $8::timestamptz - instant_at) * 1000000000) > 0 then 59999999999 else 0 end), 60000000000) * 60000000000) % 3600000000000 / 1000000000.0) as minutes from instant_value order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (extract(epoch from $1::timestamptz - instant_at) || ' seconds')::interval as seconds, (extract(epoch from $2::timestamptz - instant_at) || ' seconds')::interval as hours, (-((((extract(epoch from $3::timestamptz - instant_at) * 1000000)::bigint + case when (extract(epoch from $4::timestamptz - instant_at) * 1000000)::bigint > 0 then 59999999 else 0 end) / 60000000) * 60000000) || ' microseconds')::interval as minutes from instant_value order by id"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
-            "2124-03-15T10:00:00.123Z",
-            "2124-03-15T10:00:00.123Z",
-            "2124-03-15T10:00:00.123Z",
-            "2124-03-15T10:00:00.123Z",
             "2124-03-15T10:00:00.123Z",
             "2124-03-15T10:00:00.123Z",
             "2124-03-15T10:00:00.123Z",

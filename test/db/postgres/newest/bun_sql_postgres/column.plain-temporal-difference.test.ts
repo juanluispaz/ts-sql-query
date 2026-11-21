@@ -25,7 +25,7 @@ describe(ctx.label, () => {
                 timeSince: ctx.conn.const(Temporal.PlainTime.from('10:00'), 'plainTime').since(Temporal.PlainTime.from('08:30')),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select make_interval(days => ($1::date - $2::date)) as days, make_interval(days => -($3::date - $4::date)) as "daysBefore", ($5::timestamp - $6::timestamp) as "dateTime", make_interval(secs => (extract(epoch from $7::time - $8::time) * 1000000000)::bigint / 1000000000.0) as time, make_interval(secs => -(extract(epoch from $9::time - $10::time) * 1000000000)::bigint / 1000000000.0) as "timeSince""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select make_interval(days => ($1::date - $2::date)) as days, make_interval(days => -($3::date - $4::date)) as "daysBefore", ($5::timestamp - $6::timestamp) as "dateTime", ($7::time - $8::time) as time, ($9::time - $10::time) as "timeSince""`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
             "2024-03-30",
@@ -36,8 +36,8 @@ describe(ctx.label, () => {
             "2024-01-31T10:00:00",
             "08:30:00",
             "10:00:00",
-            "08:30:00",
             "10:00:00",
+            "08:30:00",
           ]
         `)
         assertType<Exact<typeof row, { days: Temporal.Duration; daysBefore: Temporal.Duration; dateTime: Temporal.Duration; time: Temporal.Duration; timeSince: Temporal.Duration }>>()
@@ -89,7 +89,7 @@ describe(ctx.label, () => {
                 weeks: ctx.conn.const(Temporal.PlainDate.from('2024-01-01'), 'plainDate').until(Temporal.PlainDate.from('2024-03-15'), { largestUnit: 'week' }),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_duration_round(cast(extract(year from $1::date) as integer), cast(extract(month from $1::date) as integer), cast(extract(day from $1::date) as integer), 0, cast(extract(year from $2::date) as integer), cast(extract(month from $2::date) as integer), cast(extract(day from $2::date) as integer), 0, 'month', 'day', 1, 'trunc', -1) as since, tsq_duration_round(cast(extract(year from $3::date) as integer), cast(extract(month from $3::date) as integer), cast(extract(day from $3::date) as integer), 0, cast(extract(year from $4::date) as integer), cast(extract(month from $4::date) as integer), cast(extract(day from $4::date) as integer), 0, 'month', 'day', 1, 'trunc', 1) as "untilBack", make_interval(weeks => (($5::date - $6::date) / 7), days => (($5::date - $6::date) % 7)) as weeks"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_duration_round(cast(extract(year from $1::date) as integer), cast(extract(month from $1::date) as integer), cast(extract(day from $1::date) as integer), 0, cast(extract(year from $2::date) as integer), cast(extract(month from $2::date) as integer), cast(extract(day from $2::date) as integer), 0, 'month', 'day', 1, 'trunc', -1) as since, tsq_duration_round(cast(extract(year from $3::date) as integer), cast(extract(month from $3::date) as integer), cast(extract(day from $3::date) as integer), 0, cast(extract(year from $4::date) as integer), cast(extract(month from $4::date) as integer), cast(extract(day from $4::date) as integer), 0, 'month', 'day', 1, 'trunc', 1) as "untilBack", make_interval(days => ($5::date - $6::date)) as weeks"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
             "2024-01-31",
@@ -113,7 +113,7 @@ describe(ctx.label, () => {
                 months: ctx.conn.const(Temporal.PlainDateTime.from('2024-01-31T10:00'), 'plainDateTime').until(Temporal.PlainDateTime.from('2024-02-29T09:00'), { largestUnit: 'month' }),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ($1::timestamp - $2::timestamp) as overnight, make_interval(hours => cast(div((extract(epoch from $3::timestamp - $4::timestamp) * 1000000000), 3600000000000) as integer), secs => (extract(epoch from $3::timestamp - $4::timestamp) * 1000000000) % 3600000000000 / 1000000000.0) as "inMinutes", tsq_duration_round(cast(extract(year from $5::timestamp) as integer), cast(extract(month from $5::timestamp) as integer), cast(extract(day from $5::timestamp) as integer), (round(extract(epoch from cast($5::timestamp as time)) * 1000000)::bigint * 1000), cast(extract(year from $6::timestamp) as integer), cast(extract(month from $6::timestamp) as integer), cast(extract(day from $6::timestamp) as integer), (round(extract(epoch from cast($6::timestamp as time)) * 1000000)::bigint * 1000), 'month', 'nanosecond', 1, 'trunc', 1) as months"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ($1::timestamp - $2::timestamp) as overnight, (extract(epoch from $3::timestamp - $4::timestamp) || ' seconds')::interval as "inMinutes", tsq_duration_round(cast(extract(year from $5::timestamp) as integer), cast(extract(month from $5::timestamp) as integer), cast(extract(day from $5::timestamp) as integer), (round(extract(epoch from cast($5::timestamp as time)) * 1000000)::bigint * 1000), cast(extract(year from $6::timestamp) as integer), cast(extract(month from $6::timestamp) as integer), cast(extract(day from $6::timestamp) as integer), (round(extract(epoch from cast($6::timestamp as time)) * 1000000)::bigint * 1000), 'month', 'nanosecond', 1, 'trunc', 1) as months"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
             "2024-01-02T01:00:00",
@@ -138,7 +138,7 @@ describe(ctx.label, () => {
                 hour: ctx.conn.const(Temporal.PlainDateTime.from('2024-03-01T08:00'), 'plainDateTime').until(Temporal.PlainDateTime.from('2024-03-03T10:40'), { smallestUnit: 'hour', roundingMode: 'halfExpand' }),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select make_interval(secs => ((((extract(epoch from $1::time - $2::time) * 1000000000)::bigint - case when (extract(epoch from $1::time - $2::time) * 1000000000)::bigint < 0 then 999999999 else 0 end) / 1000000000) * 1000000000) / 1000000000.0) as floor, make_interval(secs => (((extract(epoch from $3::time - $4::time) * 1000000000)::bigint / 1000000000) * 1000000000) / 1000000000.0) as trunc, make_interval(secs => (((2 * (extract(epoch from $5::time - $6::time) * 1000000000)::bigint + case when (extract(epoch from $5::time - $6::time) * 1000000000)::bigint < 0 then -900000000000 else 900000000000 end) / 1800000000000) * 900000000000) / 1000000000.0) as quarter, make_interval(days => cast(div((div((2 * (extract(epoch from $7::timestamp - $8::timestamp) * 1000000000) + case when (extract(epoch from $7::timestamp - $8::timestamp) * 1000000000) < 0 then -3600000000000 else 3600000000000 end), 7200000000000) * 3600000000000), 86400000000000) as integer), secs => ((div((2 * (extract(epoch from $7::timestamp - $8::timestamp) * 1000000000) + case when (extract(epoch from $7::timestamp - $8::timestamp) * 1000000000) < 0 then -3600000000000 else 3600000000000 end), 7200000000000) * 3600000000000) % 86400000000000) / 1000000000.0) as hour"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (((((extract(epoch from $1::time - $2::time) * 1000000)::bigint - case when (extract(epoch from $1::time - $2::time) * 1000000)::bigint < 0 then 999999 else 0 end) / 1000000) * 1000000) || ' microseconds')::interval as floor, ((((extract(epoch from $3::time - $4::time) * 1000000)::bigint / 1000000) * 1000000) || ' microseconds')::interval as trunc, ((((2 * (extract(epoch from $5::time - $6::time) * 1000000)::bigint + case when (extract(epoch from $5::time - $6::time) * 1000000)::bigint < 0 then -900000000 else 900000000 end) / 1800000000) * 900000000) || ' microseconds')::interval as quarter, justify_hours(((((2 * (extract(epoch from $7::timestamp - $8::timestamp) * 1000000)::bigint + case when (extract(epoch from $7::timestamp - $8::timestamp) * 1000000)::bigint < 0 then -3600000000 else 3600000000 end) / 7200000000) * 3600000000) || ' microseconds')::interval) as hour"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
             "08:30:00.5",
@@ -220,7 +220,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, make_interval(days => (cast(published_at as date) - released_on)) as "toPublication", make_interval(hours => cast(div(-(extract(epoch from cast(released_on as timestamp) - published_at) * 1000000000), 3600000000000) as integer), secs => -(extract(epoch from cast(released_on as timestamp) - published_at) * 1000000000) % 3600000000000 / 1000000000.0) as "sinceRelease", make_interval(secs => (extract(epoch from cast(published_at as time) - cutoff_time) * 1000000000)::bigint / 1000000000.0) as "cutoffToPublication" from project_release order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, make_interval(days => (cast(published_at as date) - released_on)) as "toPublication", (extract(epoch from published_at - cast(released_on as timestamp)) || ' seconds')::interval as "sinceRelease", (cast(published_at as time) - cutoff_time) as "cutoffToPublication" from project_release order by id"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number; toPublication: Temporal.Duration; sinceRelease: Temporal.Duration; cutoffToPublication: Temporal.Duration }>>>()
         expect(rows.map(row => [row.id, row.toPublication.toString(), row.sinceRelease.toString(), row.cutoffToPublication.toString()])).toEqual([

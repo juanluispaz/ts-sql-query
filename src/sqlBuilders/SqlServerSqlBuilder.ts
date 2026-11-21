@@ -1211,9 +1211,17 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         // A literal beyond an int is a numeric, whose division keeps a fraction
         return value > 2147483647n ? 'cast(' + value + ' as bigint)' : String(value)
     }
-    /** SQL Server has no type for a duration: a difference is its ISO 8601 text */
-    override _durationOfDifference(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
-        return this._durationTextOfDifference(context, d)
+    /** In decimals: the nanoseconds of more than 292 years overflow a bigint, an error */
+    override _nanosecondsOfDatabaseTicks(ticks: string, tick: bigint): string {
+        return '(cast(' + ticks + ' as decimal(38)) * ' + tick + ')'
+    }
+    override _differenceDivision(d: PlainTemporalDifferenceSql, dividend: string, divisor: string): string {
+        // In nanoseconds, a division of decimals, which keeps a fraction: truncated
+        return d.tick === 1n ? 'round(' + dividend + ' / ' + divisor + ', 0, 1)' : this._truncatedDivision(dividend, divisor)
+    }
+    /** Of dates and times, in decimals: the nanoseconds of more than 292 years overflow a bigint, an error */
+    override _nanosecondsOfDifference(ticks: string, d: PlainTemporalDifferenceSql): string {
+        return d.fields === 'timestamp' ? 'cast(' + ticks + ' as decimal(38)) * ' + d.tick : super._nanosecondsOfDifference(ticks, d)
     }
     override _durationTextFunctionName(): string {
         // A function of the user is called with its schema
@@ -1259,6 +1267,10 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _temporalTick(): bigint {
         return 100n
     }
+    override _differenceTime(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
+        // The nanoseconds from one time of the day to the other, less than a day: a bigint
+        return '(datediff_big(nanosecond, cast(' + this._appendSql(d.one, context, false) + ' as time), cast(' + this._appendSql(d.two, context, false) + ' as time)) / 100)'
+    }
     override _ticksSinceMidnight(context: SqlBuildContext, valueSource: ToSql): string {
         return "(datediff_big(nanosecond, cast('00:00' as time), cast(" + this._appendSql(valueSource, context, false) + ' as time)) / 100)'
     }
@@ -1276,13 +1288,6 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     }
     override _epochDate(): string {
         return "cast('1970-01-01' as date)"
-    }
-    override _wideDayNanoseconds(): string {
-        return 'cast(86400000000000 as decimal(38))'
-    }
-    override _wideTruncatedDivision(dividend: string, divisor: string): string {
-        // A division of decimals keeps a fraction: truncated
-        return 'round(' + dividend + ' / ' + divisor + ', 0, 1)'
     }
     /** The type of the database of an operand, by the SQL data type of its column (withSqlDataType), if it says it */
     _nativeSqlDataTypeOfOperand(operand: ToSql): string | undefined {

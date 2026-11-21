@@ -5,7 +5,7 @@ import { flattenQueryColumns, hasToSql, getQueryColumn, operationOf } from './Sq
 import type { DataTypeClass } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter, OracleDateAsTimestampTypeAdapter } from '../TypeAdapter.js'
 import { DefaultImpl } from '../expressions/Default.js'
-import { AbstractSqlBuilder, __durationComputedFrom, type DurationField, type PlainTemporalDifferenceSql, type SelectColumnSql, type ZonedDurationPartsSql } from './AbstractSqlBuilder.js'
+import { AbstractSqlBuilder, __durationComputedFrom, type DurationField, type SelectColumnSql, type ZonedDurationPartsSql } from './AbstractSqlBuilder.js'
 import type { ZonedDisambiguation, ZonedInterpretation } from '../utils/zonedOptions.js'
 import type { PlainTemporalRoundingMode } from '../utils/plainTemporalRounding.js'
 import type { DBColumn } from '../utils/Column.js'
@@ -1839,9 +1839,6 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
      * Oracle's intervals keep days to seconds or years to months, not both: a difference is its ISO 8601 text, as where
      * there is no interval
      */
-    override _durationOfDifference(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
-        return this._durationTextOfDifference(context, d)
-    }
     override _isDurationKeptAsText(valueSource: ToSql): boolean {
         return isDifference(valueSource) || super._isDurationKeptAsText(valueSource)
     }
@@ -1859,12 +1856,6 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     override _bigintOfInteger(sql: string): string {
         // A number has every digit
         return sql
-    }
-    override _wideDayNanoseconds(): string {
-        return '86400000000000'
-    }
-    override _wideTruncatedDivision(dividend: string, divisor: string): string {
-        return this._truncatedDivision(dividend, divisor)
     }
     /**
      * A field of an interval of Oracle: one of days to seconds keeps days and a time with nanoseconds, one of years to

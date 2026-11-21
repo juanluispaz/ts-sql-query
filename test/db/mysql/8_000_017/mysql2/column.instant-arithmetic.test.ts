@@ -133,7 +133,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, tsq_duration_text(0, 0, 0, 0, (cast(timestampdiff(microsecond, instant_at, ?) as decimal(65)) * 1000), 'second') as seconds, tsq_duration_text(0, 0, 0, 0, (cast(timestampdiff(microsecond, instant_at, ?) as decimal(65)) * 1000), 'hour') as hours, tsq_duration_text(0, 0, 0, 0, -(truncate(((cast(timestampdiff(microsecond, instant_at, ?) as decimal(65)) * 1000) + case when (cast(timestampdiff(microsecond, instant_at, ?) as decimal(65)) * 1000) > 0 then 59999999999 else 0 end) / 60000000000, 0) * 60000000000), 'minute') as minutes from instant_value order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, tsq_duration_text(0, 0, 0, 0, cast(timestampdiff(microsecond, instant_at, ?) as decimal(65)) * 1000, 'second') as seconds, tsq_duration_text(0, 0, 0, 0, cast(timestampdiff(microsecond, instant_at, ?) as decimal(65)) * 1000, 'hour') as hours, tsq_duration_text(0, 0, 0, 0, cast(-((timestampdiff(microsecond, instant_at, ?) + case when timestampdiff(microsecond, instant_at, ?) > 0 then 59999999 else 0 end) div 60000000 * 60000000) as decimal(65)) * 1000, 'minute') as minutes from instant_value order by id"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
             "2124-03-15T10:00:00.123Z",
@@ -173,7 +173,7 @@ describe(ctx.label, () => {
                 days: ctx.conn.const(fromDateTime, 'plainDateTime').until(toDateTime),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_duration_text(0, 0, 0, 0, (cast(timestampdiff(microsecond, ?, ?) as decimal(65)) * 1000), 'second') as seconds, tsq_duration_text(0, 0, 0, 0, (cast(timestampdiff(microsecond, ?, ?) as decimal(65)) * 1000), 'hour') as hours, tsq_duration_text(0, 0, 0, 0, -(sign((cast(timestampdiff(microsecond, ?, ?) as decimal(65)) * 1000)) * (truncate((2 * abs((cast(timestampdiff(microsecond, ?, ?) as decimal(65)) * 1000)) + 60000000000) / 120000000000, 0) - case when (2 * abs((cast(timestampdiff(microsecond, ?, ?) as decimal(65)) * 1000)) + 60000000000) % 240000000000 = 120000000000 then 1 else 0 end) * 60000000000), 'minute') as minutes, tsq_duration_total(0, 0, 0, truncate((cast(timestampdiff(microsecond, ?, ?) as decimal(65)) * 1000) / 1000000000, 0), (cast(timestampdiff(microsecond, ?, ?) as decimal(65)) * 1000) % 1000000000, 0, 0, 0, 'hour') as total, tsq_duration_text(0, 0, 0, truncate((cast(timestampdiff(microsecond, ?, ?) as decimal(65)) * 1000) / 86400000000000, 0), ((cast(timestampdiff(microsecond, ?, ?) as decimal(65)) * 1000) % 86400000000000), 'hour') as days"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_duration_text(0, 0, 0, 0, cast(timestampdiff(microsecond, ?, ?) as decimal(65)) * 1000, 'second') as seconds, tsq_duration_text(0, 0, 0, 0, cast(timestampdiff(microsecond, ?, ?) as decimal(65)) * 1000, 'hour') as hours, tsq_duration_text(0, 0, 0, 0, cast(-(sign(timestampdiff(microsecond, ?, ?)) * ((2 * abs(timestampdiff(microsecond, ?, ?)) + 60000000) div 120000000 - case when (2 * abs(timestampdiff(microsecond, ?, ?)) + 60000000) % 240000000 = 120000000 then 1 else 0 end) * 60000000) as decimal(65)) * 1000, 'minute') as minutes, tsq_duration_total(0, 0, 0, timestampdiff(microsecond, ?, ?) div 1000000, (timestampdiff(microsecond, ?, ?) % 1000000) * 1000, 0, 0, 0, 'hour') as total, tsq_duration_text(0, 0, 0, 0, cast(timestampdiff(microsecond, ?, ?) as decimal(65)) * 1000, 'day') as days"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
             "1700-01-01T00:00:00.000001Z",
@@ -190,8 +190,6 @@ describe(ctx.label, () => {
             "2100-06-15T12:30:45.123456Z",
             "1700-01-01T00:00:00.000001Z",
             "2100-06-15T12:30:45.123456Z",
-            "1700-01-01T00:00:00.000001",
-            "2100-06-15T12:30:45.123456",
             "1700-01-01T00:00:00.000001",
             "2100-06-15T12:30:45.123456",
           ]

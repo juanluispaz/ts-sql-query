@@ -770,28 +770,47 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         return '(' + utc + ") at time zone 'UTC'"
     }
     /**
-     * The duration of a difference: in days of two dates and times without rounding, PostgreSQL's own difference of
-     * them, an interval of days and time with the sign of the difference, as Temporal balances it
+     * The duration of a difference, an interval: rounded to the calendar, tsq_duration_round's; of dates, its days.
+     * Without rounding, PostgreSQL's own difference of the values: of times, their time apart; of dates and times, their
+     * days and time apart (the weeks of an interval are days), as Temporal balances them up to a day or a week, and up to
+     * the hours, their seconds apart in an interval of time. Rounded, the microseconds of the whole difference in an
+     * interval of time, balanced into days up to a day or a week. An interval of a number that isn't a literal is made of
+     * its text: the arithmetic of an interval is of doubles, which keep its microseconds only up to 2^53
      */
     override _durationOfDifference(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
-        if (d.fields === 'timestamp' && d.difference.largestUnit === 'day' && !this._differenceIsRounded(d)) {
-            const [from, to] = d.difference.negated ? [d.two, d.one] : [d.one, d.two]
-            return '(' + this._appendSqlParenthesis(to, context, false) + ' - ' + this._appendSqlParenthesis(from, context, false) + ')'
+        if (this._differenceIsRoundedToTheCalendar(d)) {
+            return this._durationRoundedToTheCalendar(context, d)
         }
-        return super._durationOfDifference(context, d)
+        if (d.fields === 'date') {
+            return 'make_interval(days => ' + this._differenceWhole(context, d) + ')'
+        }
+        const toDays = d.fields === 'timestamp' && (d.difference.largestUnit === 'day' || d.difference.largestUnit === 'week')
+        if (!this._differenceIsRounded(d)) {
+            const [from, to] = d.difference.negated ? [d.two, d.one] : [d.one, d.two]
+            const difference = this._appendSqlParenthesis(to, context, false) + ' - ' + this._appendSqlParenthesis(from, context, false)
+            return d.fields === 'time' || toDays ? '(' + difference + ')' : '(extract(epoch from ' + difference + ") || ' seconds')::interval"
+        }
+        // A step of Temporal's always divides a microsecond or is a multiple of it: the whole is in microseconds
+        const interval = '(' + this._differenceWhole(context, d) + " || ' microseconds')::interval"
+        return toDays ? 'justify_hours(' + interval + ')' : interval
     }
     /** sign() of an integer is a double precision: an integer, as the other operand */
     override _signOf(value: string): string {
         return 'sign(' + value + ')::integer'
     }
-    /** The whole difference of two times or dates and times in nanoseconds: the seconds of their difference, an interval, exact */
+    /**
+     * The whole difference of two times or dates and times: the microseconds of their difference, an interval, a bigint
+     * (PostgreSQL's interval keeps no more), which / divides as integers
+     */
     override _differenceTotal(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
         if (d.fields === 'date') {
             return super._differenceTotal(context, d)
         }
-        const total = 'extract(epoch from ' + this._appendSqlParenthesis(d.two, context, false) + ' - ' + this._appendSqlParenthesis(d.one, context, false) + ') * 1000000000'
-        // A difference of times is a bigint, which / divides as integers; one of dates and times may be wider (numeric, div)
-        return d.fields === 'time' ? '(' + total + ')::bigint' : '(' + total + ')'
+        return '(extract(epoch from ' + this._appendSqlParenthesis(d.two, context, false) + ' - ' + this._appendSqlParenthesis(d.one, context, false) + ') * 1000000)::bigint'
+    }
+    /** A time and a timestamp keep microseconds */
+    override _temporalTick(): bigint {
+        return 1000n
     }
     /**
      * A time or a date and time rounded, as Temporal's `round`: PostgreSQL's own date_bin, the bins of the step from the

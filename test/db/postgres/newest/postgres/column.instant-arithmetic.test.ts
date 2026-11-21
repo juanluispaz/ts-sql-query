@@ -133,13 +133,9 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, make_interval(hours => cast(div((extract(epoch from $1 - instant_at) * 1000000000), 3600000000000) as integer), secs => (extract(epoch from $2 - instant_at) * 1000000000) % 3600000000000 / 1000000000.0) as seconds, make_interval(hours => cast(div((extract(epoch from $3 - instant_at) * 1000000000), 3600000000000) as integer), secs => (extract(epoch from $4 - instant_at) * 1000000000) % 3600000000000 / 1000000000.0) as hours, make_interval(hours => cast(div(-(div(((extract(epoch from $5 - instant_at) * 1000000000) + case when (extract(epoch from $6 - instant_at) * 1000000000) > 0 then 59999999999 else 0 end), 60000000000) * 60000000000), 3600000000000) as integer), secs => -(div(((extract(epoch from $7 - instant_at) * 1000000000) + case when (extract(epoch from $8 - instant_at) * 1000000000) > 0 then 59999999999 else 0 end), 60000000000) * 60000000000) % 3600000000000 / 1000000000.0) as minutes from instant_value order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (extract(epoch from $1 - instant_at) || ' seconds')::interval as seconds, (extract(epoch from $2 - instant_at) || ' seconds')::interval as hours, (-((((extract(epoch from $3 - instant_at) * 1000000)::bigint + case when (extract(epoch from $4 - instant_at) * 1000000)::bigint > 0 then 59999999 else 0 end) / 60000000) * 60000000) || ' microseconds')::interval as minutes from instant_value order by id"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
-            "2124-03-15T10:00:00.123Z",
-            "2124-03-15T10:00:00.123Z",
-            "2124-03-15T10:00:00.123Z",
-            "2124-03-15T10:00:00.123Z",
             "2124-03-15T10:00:00.123Z",
             "2124-03-15T10:00:00.123Z",
             "2124-03-15T10:00:00.123Z",
@@ -177,19 +173,9 @@ describe(ctx.label, () => {
                 days: ctx.conn.const(fromDateTime, 'plainDateTime').until(toDateTime),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select make_interval(hours => cast(div((extract(epoch from $1 - $2) * 1000000000), 3600000000000) as integer), secs => (extract(epoch from $3 - $4) * 1000000000) % 3600000000000 / 1000000000.0) as seconds, make_interval(hours => cast(div((extract(epoch from $5 - $6) * 1000000000), 3600000000000) as integer), secs => (extract(epoch from $7 - $8) * 1000000000) % 3600000000000 / 1000000000.0) as hours, make_interval(hours => cast(div(-(sign((extract(epoch from $9 - $10) * 1000000000))::integer * (div((2 * abs((extract(epoch from $11 - $12) * 1000000000)) + 60000000000), 120000000000) - case when (2 * abs((extract(epoch from $13 - $14) * 1000000000)) + 60000000000) % 240000000000 = 120000000000 then 1 else 0 end) * 60000000000), 3600000000000) as integer), secs => -(sign((extract(epoch from $15 - $16) * 1000000000))::integer * (div((2 * abs((extract(epoch from $17 - $18) * 1000000000)) + 60000000000), 120000000000) - case when (2 * abs((extract(epoch from $19 - $20) * 1000000000)) + 60000000000) % 240000000000 = 120000000000 then 1 else 0 end) * 60000000000) % 3600000000000 / 1000000000.0) as minutes, tsq_duration_total(0, 0, 0, cast(div((extract(epoch from $21 - $22) * 1000000000), 1000000000) as bigint), cast((extract(epoch from $23 - $24) * 1000000000) % 1000000000 as bigint), 0, 0, 0, 'hour') as total, ($25 - $26) as days"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (extract(epoch from $1 - $2) || ' seconds')::interval as seconds, (extract(epoch from $3 - $4) || ' seconds')::interval as hours, (-(sign((extract(epoch from $5 - $6) * 1000000)::bigint)::integer * (((2 * abs((extract(epoch from $7 - $8) * 1000000)::bigint) + 60000000) / 120000000) - case when (2 * abs((extract(epoch from $9 - $10) * 1000000)::bigint) + 60000000) % 240000000 = 120000000 then 1 else 0 end) * 60000000) || ' microseconds')::interval as minutes, tsq_duration_total(0, 0, 0, ((extract(epoch from $11 - $12) * 1000000)::bigint / 1000000), ((extract(epoch from $13 - $14) * 1000000)::bigint % 1000000) * 1000, 0, 0, 0, 'hour') as total, ($15 - $16) as days"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
-            "2100-06-15T12:30:45.123456Z",
-            "1700-01-01T00:00:00.000001Z",
-            "2100-06-15T12:30:45.123456Z",
-            "1700-01-01T00:00:00.000001Z",
-            "2100-06-15T12:30:45.123456Z",
-            "1700-01-01T00:00:00.000001Z",
-            "2100-06-15T12:30:45.123456Z",
-            "1700-01-01T00:00:00.000001Z",
-            "2100-06-15T12:30:45.123456Z",
-            "1700-01-01T00:00:00.000001Z",
             "2100-06-15T12:30:45.123456Z",
             "1700-01-01T00:00:00.000001Z",
             "2100-06-15T12:30:45.123456Z",

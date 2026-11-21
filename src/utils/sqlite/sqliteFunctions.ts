@@ -479,8 +479,9 @@ function bigintArgument(value: unknown): bigint | null {
 /**
  * tsq_duration_text: the ISO 8601 text of a duration of its fields, as Temporal's toString writes it, as the same
  * function of the library on the other databases: the years, months, weeks and days, and the nanoseconds of its time,
- * written in hours, minutes and seconds ('hour'), minutes and seconds ('minute') or seconds ('second'); every field with
- * the sign of the duration; null when a field is null
+ * balanced up to the largest unit given: the days of the time go to the days ('day'), and the weeks of the days to the
+ * weeks too ('week'); the time is written in hours, minutes and seconds ('week', 'day', 'hour'), minutes and seconds
+ * ('minute') or seconds ('second'); every field with the sign of the duration; null when a field is null
  */
 function durationText(years: unknown, months: unknown, weeks: unknown, days: unknown, nanoseconds: unknown, unit: unknown): string | null {
     if (typeof nanoseconds === 'string' && !/^-?\d+$/.test(nanoseconds)) {
@@ -490,11 +491,19 @@ function durationText(years: unknown, months: unknown, weeks: unknown, days: unk
     }
     const y = bigintArgument(years)
     const mo = bigintArgument(months)
-    const w = bigintArgument(weeks)
-    const d = bigintArgument(days)
+    let w = bigintArgument(weeks)
+    let d = bigintArgument(days)
     let ns = bigintArgument(nanoseconds)
     if (y === null || mo === null || w === null || d === null || ns === null) {
         return null
+    }
+    if (unit === 'week' || unit === 'day') {
+        d += ns / 86_400_000_000_000n
+        ns %= 86_400_000_000_000n
+        if (unit === 'week') {
+            w += d / 7n
+            d %= 7n
+        }
     }
     const negative = y < 0n || mo < 0n || w < 0n || d < 0n || ns < 0n
     let date = ''
@@ -504,7 +513,7 @@ function durationText(years: unknown, months: unknown, weeks: unknown, days: unk
     if (d !== 0n) date += absoluteBigint(d) + 'D'
     ns = absoluteBigint(ns)
     let time = ''
-    if (unit === 'hour' && ns >= 3_600_000_000_000n) {
+    if ((unit === 'week' || unit === 'day' || unit === 'hour') && ns >= 3_600_000_000_000n) {
         time += ns / 3_600_000_000_000n + 'H'
         ns %= 3_600_000_000_000n
     }

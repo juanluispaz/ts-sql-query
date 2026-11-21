@@ -1081,16 +1081,16 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         }
         return 'timestamp(' + date + ', ' + this._mySqlTimeWith(context, valueSource, given) + ')'
     }
-    /** MariaDB and MySQL have no type for a duration: a difference is its ISO 8601 text */
-    override _durationOfDifference(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
-        return this._durationTextOfDifference(context, d)
-    }
-    /** The whole difference of two dates and times in nanoseconds: their microseconds apart, as timestampdiff counts them */
+    /** The whole difference of two dates and times: their microseconds apart, as timestampdiff counts them */
     override _differenceTotal(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
         if (d.fields !== 'timestamp') {
             return super._differenceTotal(context, d)
         }
-        return '(cast(timestampdiff(microsecond, ' + this._appendSql(d.one, context, false) + ', ' + this._appendSql(d.two, context, false) + ') as decimal(65)) * 1000)'
+        return 'timestampdiff(microsecond, ' + this._appendSql(d.one, context, false) + ', ' + this._appendSql(d.two, context, false) + ')'
+    }
+    /** Of dates and times, in decimals: the nanoseconds of more than 292 years overflow a bigint, an error */
+    override _nanosecondsOfDifference(ticks: string, d: PlainTemporalDifferenceSql): string {
+        return d.fields === 'timestamp' ? 'cast(' + ticks + ' as decimal(65)) * ' + d.tick : super._nanosecondsOfDifference(ticks, d)
     }
     override _temporalOperand(operand: ToSql): ToSql {
         // The parameters are positional: a const is a parameter each time it is written
@@ -1151,13 +1151,6 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     override _bigintOfInteger(sql: string): string {
         // The arithmetic of integers is of 64 bits
         return sql
-    }
-    override _wideDayNanoseconds(): string {
-        return 'cast(86400000000000 as decimal(65))'
-    }
-    override _wideTruncatedDivision(dividend: string, divisor: string): string {
-        // `div` fails beyond a bigint; a division of decimals keeps every digit of the integer part
-        return 'truncate(' + dividend + ' / ' + divisor + ', 0)'
     }
     override _appendWithDurationRejecting(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass, sign: 1 | -1): string {
         const fields = this._temporalFieldsOfDurationOperation(typeClass)

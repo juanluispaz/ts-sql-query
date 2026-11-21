@@ -4722,7 +4722,11 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (!difference) {
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value: options, typeName: 'duration' }, 'Invalid options of ' + (since ? 'since' : 'until') + ': ' + JSON.stringify(options))
         }
-        return { one: this._temporalOperand(valueSource), two: this._temporalOperand(other), fields, difference, day: fields === 'date' ? '' : this._bigintLiteral(nanosecondsOfUnit['day']!) }
+        const unit = nanosecondsOfUnit[difference.smallestUnit]
+        const step = unit === undefined ? 0n : unit * BigInt(difference.increment)
+        const databaseTick = fields === 'date' ? nanosecondsOfUnit['day']! : this._temporalTick()
+        const tick = step === 0n || databaseTick % step === 0n || step % databaseTick === 0n ? databaseTick : 1n
+        return { one: this._temporalOperand(valueSource), two: this._temporalOperand(other), fields, difference, step, tick }
     }
     /**
      * An operand of a computation of dates and times, which writes it several times: a const is written once, and its
@@ -4739,55 +4743,27 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return false
     }
     /**
-     * The duration of the fields of a difference: PostgreSQL's interval of them, written only the fields that may not be
-     * zero (the interval keeps its months, its days and its time: the years and the months of Temporal are its months,
-     * its weeks days, and its time is written in hours, minutes and seconds)
+     * The duration of a difference: its ISO 8601 text (see _durationTextOfDifference), where the database has no type for
+     * a duration that keeps its fields; PostgreSQL writes an interval
      */
     _durationOfDifference(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
-        if (this._differenceIsRoundedToTheCalendar(d)) {
-            return this._durationRoundedToTheCalendar(context, d)
-        }
-        let result = ''
-        if (this._differenceHas(d, 'years')) {
-            result += 'years => ' + this._differenceField(context, d, 'years')
-        }
-        if (this._differenceHas(d, 'months')) {
-            result += (result ? ', ' : '') + 'months => ' + this._differenceField(context, d, 'months')
-        }
-        if (this._differenceHas(d, 'weeks')) {
-            result += (result ? ', ' : '') + 'weeks => ' + this._differenceField(context, d, 'weeks')
-        }
-        if (this._differenceHas(d, 'days')) {
-            result += (result ? ', ' : '') + 'days => ' + this._differenceField(context, d, 'days')
-        }
-        if (this._differenceHas(d, 'time')) {
-            if (d.fields === 'timestamp' && unitIndex[d.difference.largestUnit]! > 3) {
-                // The whole difference in hours or smaller units, more seconds than a double holds with the microseconds:
-                // its hours and the seconds of the last one
-                const hour = this._bigintLiteral(nanosecondsOfUnit['hour']!)
-                result += (result ? ', ' : '') + 'hours => ' + this._integerOfBigint(this._wideTruncatedDivision(this._differenceField(context, d, 'time'), hour))
-                result += ', secs => ' + this._integerRemainder(this._differenceField(context, d, 'time'), hour) + ' / 1000000000.0'
-            } else {
-                result += (result ? ', ' : '') + 'secs => ' + this._differenceField(context, d, 'time') + ' / 1000000000.0'
-            }
-        }
-        return 'make_interval(' + result + ')'
+        return this._durationTextOfDifference(context, d)
     }
     /**
-     * The duration of the fields of a difference as its ISO 8601 text, with the function of the library
-     * tsq_duration_text, where a duration is kept as text: every field, 0 where it is always zero
+     * The duration of a difference as its ISO 8601 text, with the function of the library tsq_duration_text: rounded to
+     * the calendar, tsq_duration_round's; otherwise the whole difference written once (see _differenceWhole), the days
+     * of a date or the nanoseconds of a time, that the function balances up to the largest unit
      */
     _durationTextOfDifference(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
         if (this._differenceIsRoundedToTheCalendar(d)) {
             return this._durationRoundedToTheCalendar(context, d)
         }
-        let result = this._durationTextFunctionName() + '('
-        result += (this._differenceHas(d, 'years') ? this._differenceField(context, d, 'years') : '0') + ', '
-        result += (this._differenceHas(d, 'months') ? this._differenceField(context, d, 'months') : '0') + ', '
-        result += (this._differenceHas(d, 'weeks') ? this._differenceField(context, d, 'weeks') : '0') + ', '
-        result += (this._differenceHas(d, 'days') ? this._differenceField(context, d, 'days') : '0') + ', '
-        result += (this._differenceHas(d, 'time') ? this._durationTextTimeArgument(this._differenceField(context, d, 'time')) : '0') + ', '
-        return result + this._differenceTimeUnit(d) + ')'
+        const whole = this._differenceWhole(context, d)
+        const unit = "'" + this._differenceBalanceUnit(d) + "'"
+        if (d.fields === 'date') {
+            return this._durationTextFunctionName() + '(0, 0, 0, ' + whole + ', 0, ' + unit + ')'
+        }
+        return this._durationTextFunctionName() + '(0, 0, 0, 0, ' + this._durationTextTimeArgument(this._nanosecondsOfDifference(whole, d)) + ', ' + unit + ')'
     }
     /** The nanoseconds of the time of a difference as the function of the library takes them: as they are */
     _durationTextTimeArgument(nanoseconds: string): string {
@@ -4797,37 +4773,24 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _durationTextFunctionName(): string {
         return 'tsq_duration_text'
     }
-    /** The largest unit of the time of a difference, how the function of the library writes it: 'hour', 'minute' or 'second' */
-    _differenceTimeUnit(d: PlainTemporalDifferenceSql): string {
+    /**
+     * The largest unit a difference is balanced up to, as tsq_duration_text takes it: 'week', 'day', 'hour', 'minute' or
+     * 'second' (the milliseconds and smaller units are written in the seconds)
+     */
+    _differenceBalanceUnit(d: PlainTemporalDifferenceSql): string {
         const largest = d.difference.largestUnit
-        return largest === 'minute' ? "'minute'" : largest === 'second' || largest === 'millisecond' || largest === 'microsecond' || largest === 'nanosecond' ? "'second'" : "'hour'"
+        return largest === 'millisecond' || largest === 'microsecond' || largest === 'nanosecond' ? 'second' : largest
     }
-    /** Whether a field of the duration of a difference may not be zero: the unit is between the largest and the smallest */
-    _differenceHas(d: PlainTemporalDifferenceSql, field: PlainTemporalDifferenceField): boolean {
-        const largest = unitIndex[d.difference.largestUnit]!
-        const smallest = unitIndex[d.difference.smallestUnit]!
-        switch (field) {
-            case 'years':
-                return largest === 0
-            case 'months':
-                return largest <= 1 && smallest >= 1
-            case 'weeks':
-                return smallest === 2 || (largest === 2 && smallest > 2)
-            case 'days':
-                return largest <= 3 && smallest >= 3
-            case 'time':
-                return smallest >= 4
-        }
+    /** A number of units of the difference (see PlainTemporalDifferenceSql.tick) as nanoseconds */
+    _nanosecondsOfDifference(ticks: string, d: PlainTemporalDifferenceSql): string {
+        return d.tick === 1n ? ticks : ticks + ' * ' + this._bigintLiteral(d.tick)
     }
-    /** A field of the duration of a difference, negated for since */
-    _differenceField(context: SqlBuildContext, d: PlainTemporalDifferenceSql, field: PlainTemporalDifferenceField): string {
-        const result = this._differenceIsRounded(d) ? this._differenceRoundedToDayOrTime(context, d, field) : this._differenceUnrounded(context, d, field)
-        return d.difference.negated ? '-' + result : result
-    }
-    /** Whether a difference is rounded: a smallest unit or an increment other than the ones of the difference itself */
+    /**
+     * Whether a difference is rounded: a step of the calendar, or one that doesn't divide the unit the difference is
+     * counted in (see PlainTemporalDifferenceSql.tick), of which the difference is a multiple
+     */
     _differenceIsRounded(d: PlainTemporalDifferenceSql): boolean {
-        const difference = d.difference
-        return !((difference.smallestUnit === 'nanosecond' || (d.fields === 'date' && difference.smallestUnit === 'day')) && difference.increment === 1)
+        return d.step === 0n || d.tick % d.step !== 0n
     }
     /**
      * Whether a difference is computed by the function of the library tsq_duration_round: in months or years, Temporal
@@ -4862,46 +4825,19 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return 'tsq_duration_round'
     }
     /**
-     * A field of a difference without rounding, in weeks, days or a unit of the time (see
-     * _differenceIsRoundedToTheCalendar): the whole difference (in days for a date, in nanoseconds otherwise) balanced up
-     * to the largest unit, each field with the sign of the difference
+     * The whole difference of a difference that isn't rounded to the calendar (see _differenceIsRoundedToTheCalendar),
+     * in units of d.tick (days for a date): the total, or rounded to multiples of the step in the mode; negated for since
      */
-    _differenceUnrounded(context: SqlBuildContext, d: PlainTemporalDifferenceSql, field: PlainTemporalDifferenceField): string {
-        switch (d.difference.largestUnit) {
-            case 'week': {
-                if (field === 'time') {
-                    return '(' + this._integerRemainder(this._differenceTotal(context, d), d.day) + ')'
-                }
-                const days = d.fields === 'date' ? this._differenceDays(context, d) : this._integerOfBigint(this._differenceDivision(d, this._differenceTotal(context, d), d.day))
-                return field === 'weeks' ? this._truncatedDivision(days, '7') : '(' + this._integerRemainder(days, '7') + ')'
-            }
-            case 'day':
-                if (d.fields === 'date') {
-                    return this._differenceDays(context, d)
-                }
-                return field === 'days' ? this._integerOfBigint(this._differenceDivision(d, this._differenceTotal(context, d), d.day)) : '(' + this._integerRemainder(this._differenceTotal(context, d), d.day) + ')'
-            default:
-                return this._differenceTotal(context, d)
-        }
+    _differenceWhole(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
+        const whole = this._differenceIsRounded(d) ? this._differenceRounded(context, d) : this._differenceTotalInTicks(context, d)
+        return d.difference.negated ? negatedSql(whole) : whole
     }
     /**
-     * A field of a difference whose largest unit is a day or smaller rounded, as Temporal: the whole difference (in days
-     * for a date, in nanoseconds otherwise) rounded to multiples of the increment of the unit
-     */
-    _differenceRoundedToDayOrTime(context: SqlBuildContext, d: PlainTemporalDifferenceSql, field: PlainTemporalDifferenceField): string {
-        if (field === 'time') {
-            return d.difference.largestUnit === 'day' ? '(' + this._integerRemainder(this._differenceRounded(context, d), d.day) + ')' : this._differenceRounded(context, d)
-        }
-        return d.fields === 'date' ? this._differenceRounded(context, d) : this._integerOfBigint(this._differenceDivision(d, this._differenceRounded(context, d), d.day))
-    }
-    /**
-     * The days and the time to round, rounded to multiples of the increment of the smallest unit, in the mode: a division
-     * that truncates toward zero of the value moved by the mode, so each mode writes the value once or twice (halfEven,
-     * on the magnitude, three times)
+     * The whole difference rounded to multiples of the step in the mode: a division that truncates toward zero of the
+     * value moved by the mode, so each mode writes the value once or twice (halfEven, on the magnitude, three times)
      */
     _differenceRounded(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
-        const unit = d.difference.smallestUnit
-        const stepValue = (d.fields === 'date' ? 1n : nanosecondsOfUnit[unit]!) * BigInt(d.difference.increment)
+        const stepValue = d.step / d.tick
         const step = this._bigintLiteral(stepValue)
         const twoSteps = this._bigintLiteral(stepValue * 2n)
         const lessOne = this._bigintLiteral(stepValue - 1n)
@@ -4909,37 +4845,37 @@ export class AbstractSqlBuilder implements SqlBuilder {
         let quotient: string
         switch (d.difference.mode) {
             case 'trunc':
-                quotient = this._differenceDivision(d, this._differenceTotal(context, d), step)
+                quotient = this._differenceDivision(d, this._differenceTotalInTicks(context, d), step)
                 break
             case 'ceil':
-                quotient = this._differenceDivision(d, '(' + this._differenceTotal(context, d) + ' + case when ' + this._differenceTotal(context, d) + ' > 0 then ' + lessOne + ' else 0 end)', step)
+                quotient = this._differenceDivision(d, '(' + this._differenceTotalInTicks(context, d) + ' + case when ' + this._differenceTotalInTicks(context, d) + ' > 0 then ' + lessOne + ' else 0 end)', step)
                 break
             case 'floor':
-                quotient = this._differenceDivision(d, '(' + this._differenceTotal(context, d) + ' - case when ' + this._differenceTotal(context, d) + ' < 0 then ' + lessOne + ' else 0 end)', step)
+                quotient = this._differenceDivision(d, '(' + this._differenceTotalInTicks(context, d) + ' - case when ' + this._differenceTotalInTicks(context, d) + ' < 0 then ' + lessOne + ' else 0 end)', step)
                 break
             case 'expand':
-                quotient = this._differenceDivision(d, '(' + this._differenceTotal(context, d) + ' + case when ' + this._differenceTotal(context, d) + ' < 0 then -' + lessOne + ' else ' + lessOne + ' end)', step)
+                quotient = this._differenceDivision(d, '(' + this._differenceTotalInTicks(context, d) + ' + case when ' + this._differenceTotalInTicks(context, d) + ' < 0 then -' + lessOne + ' else ' + lessOne + ' end)', step)
                 break
             case 'halfExpand':
-                quotient = this._differenceDivision(d, '(2 * ' + this._differenceTotal(context, d) + ' + case when ' + this._differenceTotal(context, d) + ' < 0 then -' + step + ' else ' + step + ' end)', twoSteps)
+                quotient = this._differenceDivision(d, '(2 * ' + this._differenceTotalInTicks(context, d) + ' + case when ' + this._differenceTotalInTicks(context, d) + ' < 0 then -' + step + ' else ' + step + ' end)', twoSteps)
                 break
             case 'halfTrunc':
-                quotient = this._differenceDivision(d, '(2 * ' + this._differenceTotal(context, d) + ' + case when ' + this._differenceTotal(context, d) + ' < 0 then -' + lessOne + ' else ' + lessOne + ' end)', twoSteps)
+                quotient = this._differenceDivision(d, '(2 * ' + this._differenceTotalInTicks(context, d) + ' + case when ' + this._differenceTotalInTicks(context, d) + ' < 0 then -' + lessOne + ' else ' + lessOne + ' end)', twoSteps)
                 break
             case 'halfCeil':
                 // Half way up: the floor of (2 * value + step) / (2 * step)
-                quotient = this._differenceDivision(d, '(2 * ' + this._differenceTotal(context, d) + ' + ' + step + ' - case when 2 * ' + this._differenceTotal(context, d) + ' + ' + step + ' < 0 then ' + twoLessOne + ' else 0 end)', twoSteps)
+                quotient = this._differenceDivision(d, '(2 * ' + this._differenceTotalInTicks(context, d) + ' + ' + step + ' - case when 2 * ' + this._differenceTotalInTicks(context, d) + ' + ' + step + ' < 0 then ' + twoLessOne + ' else 0 end)', twoSteps)
                 break
             case 'halfFloor':
                 // Half way down: the ceiling of (2 * value - step) / (2 * step)
-                quotient = this._differenceDivision(d, '(2 * ' + this._differenceTotal(context, d) + ' - ' + step + ' + case when 2 * ' + this._differenceTotal(context, d) + ' - ' + step + ' > 0 then ' + twoLessOne + ' else 0 end)', twoSteps)
+                quotient = this._differenceDivision(d, '(2 * ' + this._differenceTotalInTicks(context, d) + ' - ' + step + ' + case when 2 * ' + this._differenceTotalInTicks(context, d) + ' - ' + step + ' > 0 then ' + twoLessOne + ' else 0 end)', twoSteps)
                 break
             case 'halfEven': {
                 // On the magnitude: halfExpand of 2 * magnitude + step, less one where that is four steps times something
                 // plus two (half way to an odd multiple); with the sign of the value
-                const sign = this._signOf(this._differenceTotal(context, d))
-                const moved = '(2 * abs(' + this._differenceTotal(context, d) + ') + ' + step + ')'
-                const movedAgain = '(2 * abs(' + this._differenceTotal(context, d) + ') + ' + step + ')'
+                const sign = this._signOf(this._differenceTotalInTicks(context, d))
+                const moved = '(2 * abs(' + this._differenceTotalInTicks(context, d) + ') + ' + step + ')'
+                const movedAgain = '(2 * abs(' + this._differenceTotalInTicks(context, d) + ') + ' + step + ')'
                 return '(' + sign + ' * (' + this._differenceDivision(d, moved, twoSteps) + ' - case when ' + this._integerRemainder(movedAgain, this._bigintLiteral(stepValue * 4n)) + ' = ' + twoSteps + ' then 1 else 0 end) * ' + step + ')'
             }
         }
@@ -4957,11 +4893,33 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _differenceDays(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
         return this._daysBetween(context, this._differenceDateOf(context, d, d.two), this._differenceDateOf(context, d, d.one))
     }
-    /** The nanoseconds from the time of the day of the first value to the one of the second */
-    _differenceTime(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
-        return '(' + this._nanosecondsSinceMidnight(context, d.two) + ' - ' + this._nanosecondsSinceMidnight(context, d.one) + ')'
+    /**
+     * The whole difference in units of d.tick: the total of the database (see _differenceTotal), in nanoseconds for a
+     * step that isn't a multiple of the unit of the database
+     */
+    _differenceTotalInTicks(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
+        const total = this._differenceTotal(context, d)
+        if (d.fields === 'date' || d.tick !== 1n) {
+            return total
+        }
+        const databaseTick = this._temporalTick()
+        return databaseTick === 1n ? total : this._nanosecondsOfDatabaseTicks(total, databaseTick)
     }
-    /** The whole difference: in days for a date, in nanoseconds otherwise */
+    /**
+     * A whole difference in the smallest unit the database keeps as nanoseconds, to round it to a step that isn't a
+     * multiple of that unit (a step of Temporal divides the next unit: only SQL Server, of 100 nanoseconds, has one)
+     */
+    _nanosecondsOfDatabaseTicks(ticks: string, tick: bigint): string {
+        return '(' + ticks + ' * ' + this._bigintLiteral(tick) + ')'
+    }
+    /** An integer division that truncates toward zero of the whole difference (see _nanosecondsOfDatabaseTicks) */
+    _differenceDivision(_d: PlainTemporalDifferenceSql, dividend: string, divisor: string): string {
+        return this._truncatedDivision(dividend, divisor)
+    }
+    /**
+     * The whole difference: in days for a date, otherwise in the smallest unit of time the database keeps (see
+     * _temporalTick): the days of the dates and the time of the day of each value
+     */
     _differenceTotal(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
         switch (d.fields) {
             case 'date':
@@ -4969,26 +4927,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
             case 'time':
                 return this._differenceTime(context, d)
             default:
-                return '(' + this._differenceDays(context, d) + ' * ' + this._wideDayNanoseconds() + ' + ' + this._differenceTime(context, d) + ')'
+                return '(' + this._differenceDays(context, d) + ' * ' + this._bigintLiteral(nanosecondsOfUnit['day']! / this._temporalTick()) + ' + ' + this._differenceTime(context, d) + ')'
         }
     }
-    /**
-     * The nanoseconds of a day, a number whose product with the days of a difference holds more than a bigint (292
-     * years): PostgreSQL's numeric
-     */
-    _wideDayNanoseconds(): string {
-        return '86400000000000::numeric'
-    }
-    /**
-     * An integer division that truncates toward zero of a number of the whole difference of two dates and times, which
-     * may be wider than a bigint (see _wideDayNanoseconds); of other differences, of integers
-     */
-    _differenceDivision(d: PlainTemporalDifferenceSql, dividend: string, divisor: string): string {
-        return d.fields === 'timestamp' ? this._wideTruncatedDivision(dividend, divisor) : this._truncatedDivision(dividend, divisor)
-    }
-    /** An integer division that truncates toward zero of a number wider than a bigint (see _wideDayNanoseconds) */
-    _wideTruncatedDivision(dividend: string, divisor: string): string {
-        return 'div(' + dividend + ', ' + divisor + ')'
+    /** The time from the time of the day of the first value to the one of the second, in the unit of the database */
+    _differenceTime(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
+        return '(' + this._ticksSinceMidnight(context, d.two) + ' - ' + this._ticksSinceMidnight(context, d.one) + ')'
     }
     /** The days from one date to another; the dates appear in the SQL in this order (to, from) where the order matters */
     _daysBetween(_context: SqlBuildContext, to: string, from: string): string {
@@ -5147,20 +5091,14 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (operation && (operation.__operation === '_until' || operation.__operation === '_since')) {
             const d = this._differenceSqlOf(operation.__valueSource as unknown as ToSql, operation.__value, operation.__value2, operation.__operation === '_since')
             if (!this._differenceIsRoundedToTheCalendar(d)) {
-                // A difference gives its fields, not the duration made of them: the time as nanoseconds
-                let result = this._differenceHas(d, 'years') ? '(' + this._differenceField(context, d, 'years') + ') * 12' : ''
-                if (this._differenceHas(d, 'months')) {
-                    result += (result ? ' + ' : '') + this._differenceField(context, d, 'months')
+                // A difference gives its fields, not the duration made of them: its weeks when they are its largest
+                // unit (a duration with weeks needs a date of reference), and the rest as days (of a date) or as its time
+                if (d.difference.largestUnit !== 'week') {
+                    return d.fields === 'date' ? '0, 0, ' + this._differenceWhole(context, d) + ', 0, 0' : '0, 0, 0, ' + this._differenceTimeForTotal(context, d, false)
                 }
-                result = (result || '0') + ', ' + (this._differenceHas(d, 'weeks') ? this._differenceField(context, d, 'weeks') : '0')
-                result += ', ' + (this._differenceHas(d, 'days') ? this._differenceField(context, d, 'days') : '0')
-                if (!this._differenceHas(d, 'time')) {
-                    return result + ', 0, 0'
-                }
-                if (d.fields !== 'timestamp') {
-                    return result + ', 0, ' + this._differenceField(context, d, 'time')
-                }
-                return result + ', ' + this._differenceTimeForTotal(context, d)
+                const week = this._bigintLiteral(7n * nanosecondsOfUnit['day']! / d.tick)
+                const weeks = this._differenceDivision(d, this._differenceWhole(context, d), week)
+                return '0, ' + weeks + ', ' + (d.fields === 'date' ? '(' + this._integerRemainder(this._differenceWhole(context, d), week) + '), 0, 0' : '0, ' + this._differenceTimeForTotal(context, d, true))
             }
         }
         if (this._isDurationKeptAsText(valueSource)) {
@@ -5173,12 +5111,26 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return result + 'cast(extract(microseconds from ' + interval + ') as bigint) % 1000000 * 1000'
     }
     /**
-     * The time of a difference of two dates and times as the whole seconds and the nanoseconds tsq_duration_total takes:
-     * the time may be wider than a bigint (see _wideDayNanoseconds), its seconds and its nanoseconds aren't
+     * The time of a difference as the whole seconds and the nanoseconds tsq_duration_total takes: of a time, its
+     * nanoseconds; of a date and time, its seconds and the nanoseconds of the last one. Without its weeks when they are
+     * given apart (afterWeeks)
      */
-    _differenceTimeForTotal(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
-        const seconds = this._bigintOfInteger(this._wideTruncatedDivision(this._differenceField(context, d, 'time'), '1000000000'))
-        return seconds + ', ' + this._bigintOfInteger(this._integerRemainder(this._differenceField(context, d, 'time'), '1000000000'))
+    _differenceTimeForTotal(context: SqlBuildContext, d: PlainTemporalDifferenceSql, afterWeeks: boolean): string {
+        if (d.fields === 'time') {
+            return '0, ' + this._nanosecondsOfDifference(this._differenceTimeOfTotal(context, d, afterWeeks), d)
+        }
+        const second = this._bigintLiteral(nanosecondsOfUnit['second']! / d.tick)
+        const seconds = this._differenceDivision(d, this._differenceTimeOfTotal(context, d, afterWeeks), second)
+        // The nanoseconds of less than a second: a bigint
+        const nanoseconds = '(' + this._integerRemainder(this._differenceTimeOfTotal(context, d, afterWeeks), second) + ')'
+        return seconds + ', ' + (d.tick === 1n ? nanoseconds : nanoseconds + ' * ' + this._bigintLiteral(d.tick))
+    }
+    /** The whole difference in units of d.tick, without its weeks when they are given apart (afterWeeks) */
+    _differenceTimeOfTotal(context: SqlBuildContext, d: PlainTemporalDifferenceSql, afterWeeks: boolean): string {
+        if (!afterWeeks) {
+            return this._differenceWhole(context, d)
+        }
+        return '(' + this._integerRemainder(this._differenceWhole(context, d), this._bigintLiteral(7n * nanosecondsOfUnit['day']! / d.tick)) + ')'
     }
     /**
      * A duration plus or minus another one (sign), as Temporal's add and subtract, with the function of the library
@@ -6070,9 +6022,6 @@ function secondsWithFraction(seconds: string, nanoseconds: string): string {
 /** A field of a duration, as Temporal names it */
 export type DurationField = 'years' | 'months' | 'weeks' | 'days' | 'hours' | 'minutes' | 'seconds' | 'milliseconds' | 'microseconds' | 'nanoseconds'
 
-/** A field of the duration of a difference: the time is the hours to the nanoseconds, in nanoseconds */
-export type PlainTemporalDifferenceField = 'years' | 'months' | 'weeks' | 'days' | 'time'
-
 /** Whether a value source is a duration plus or minus another one */
 export function __isDurationSum(valueSource: ToSql): boolean {
     if (!isValueSource(valueSource)) {
@@ -6115,8 +6064,16 @@ export interface PlainTemporalDifferenceSql {
     readonly two: ToSql
     readonly fields: 'date' | 'time' | 'timestamp'
     readonly difference: PlainTemporalDifference
-    /** The nanoseconds of a day, as a literal the database takes as a bigint (empty for a date, counted in days) */
-    readonly day: string
+    /**
+     * The nanoseconds of the step of the rounding (the smallest unit times the increment); 0 for weeks, months and years,
+     * the units of the calendar
+     */
+    readonly step: bigint
+    /**
+     * The nanoseconds of the unit the whole difference is counted in: a day for a date; for a time or a date and time,
+     * the smallest unit the database keeps (see _temporalTick), or a nanosecond for a step that isn't a multiple of it
+     */
+    readonly tick: bigint
 }
 
 /** The position of each unit, from the year */

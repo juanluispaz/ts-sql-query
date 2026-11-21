@@ -551,11 +551,20 @@ GO
 
 -- tsq_duration_text: the ISO 8601 text of a duration (Temporal.Duration) of its fields, the function of the library that
 -- writes a duration a query computes (until, since) where it is kept as text: its years, months, weeks and days, and the
--- nanoseconds of its time, written in hours, minutes and seconds ('hour'), minutes and seconds ('minute') or seconds
--- ('second'); every field with the sign of the duration. The text is the one of Temporal's toString.
+-- nanoseconds of its time, balanced up to the largest unit given: the days of the time go to the days ('day'), and the
+-- weeks of the days to the weeks too ('week'); the time is written in hours, minutes and seconds ('week', 'day',
+-- 'hour'), minutes and seconds ('minute') or seconds ('second'); every field with the sign of the duration. The text is
+-- the one of Temporal's toString.
 CREATE OR ALTER FUNCTION dbo.tsq_duration_text(@y BIGINT, @mo BIGINT, @w BIGINT, @d BIGINT, @ns DECIMAL(38, 0), @unit VARCHAR(6)) RETURNS VARCHAR(100) WITH SCHEMABINDING AS
 BEGIN
     IF @y IS NULL OR @mo IS NULL OR @w IS NULL OR @d IS NULL OR @ns IS NULL RETURN NULL;
+    IF @unit = 'week' OR @unit = 'day'
+    BEGIN
+        SET @d = @d + CAST(ROUND(@ns / 86400000000000, 0, 1) AS BIGINT);
+        SET @ns = @ns % 86400000000000;
+        IF @unit = 'week' BEGIN SET @w = @w + @d / 7; SET @d = @d % 7; END
+        SET @unit = 'hour';
+    END
     DECLARE @neg BIT = CASE WHEN @y < 0 OR @mo < 0 OR @w < 0 OR @d < 0 OR @ns < 0 THEN 1 ELSE 0 END, @r VARCHAR(100) = '', @t VARCHAR(100) = '';
     DECLARE @hour BIGINT = 3600000000000, @minute BIGINT = 60000000000, @second BIGINT = 1000000000, @f BIGINT, @frac VARCHAR(9);
     IF @y <> 0 SET @r = @r + CAST(ABS(@y) AS VARCHAR(20)) + 'Y';

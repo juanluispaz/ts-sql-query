@@ -1401,10 +1401,6 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     override _makeTimestamp(_context: SqlBuildContext, year: string, month: string, day: string, hour: string, minute: string, second: string, nanoseconds: string): string {
         return this._sqliteTemporalIn('dateTime', "printf('%04d-%02d-%02d %02d:%02d:%02d.%03d', " + year + ', ' + month + ', ' + day + ', ' + hour + ', ' + minute + ', ' + second + ', ' + this._truncatedDivision(nanoseconds, '1000000') + ')')
     }
-    /** SQLite has no type for a duration: a difference is its ISO 8601 text */
-    override _durationOfDifference(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
-        return this._durationTextOfDifference(context, d)
-    }
     /**
      * The nanoseconds of the time of a difference as the function of JavaScript takes them: as their text, since a
      * driver gives an integer beyond 2^53 (a difference of more than 104 days) to a function as a rounded number
@@ -1412,9 +1408,9 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     override _durationTextTimeArgument(nanoseconds: string): string {
         return 'cast(' + nanoseconds + ' as text)'
     }
-    override _differenceTimeForTotal(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
+    override _differenceTimeForTotal(context: SqlBuildContext, d: PlainTemporalDifferenceSql, afterWeeks: boolean): string {
         // Its nanoseconds as text, as tsq_duration_text takes them: a real when they overflowed the 64-bit integers
-        return '0, ' + this._durationTextTimeArgument(this._differenceField(context, d, 'time'))
+        return '0, ' + this._durationTextTimeArgument(this._nanosecondsOfDifference(this._differenceTimeOfTotal(context, d, afterWeeks), d))
     }
     override _differenceDateOf(context: SqlBuildContext, _d: PlainTemporalDifferenceSql, valueSource: ToSql): string {
         // The text of the date, whatever the format the value is kept in
@@ -1444,12 +1440,12 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     override _signOf(value: string): string {
         return '((' + value + ' > 0) - (' + value + ' < 0))'
     }
-    /** The whole difference of two times or dates and times in nanoseconds: the milliseconds of their Julian days apart */
+    /** The whole difference of two times or dates and times: the milliseconds of their Julian days apart */
     override _differenceTotal(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
         if (d.fields === 'date') {
             return super._differenceTotal(context, d)
         }
-        return '(cast(round((julianday(' + this._dateFunctionArgument(context, d.two) + ') - julianday(' + this._dateFunctionArgument(context, d.one) + ')) * 86400000) as integer) * 1000000)'
+        return 'cast(round((julianday(' + this._dateFunctionArgument(context, d.two) + ') - julianday(' + this._dateFunctionArgument(context, d.one) + ')) * 86400000) as integer)'
     }
     /** The date and time functions keep milliseconds */
     override _temporalTick(): bigint {
@@ -1479,13 +1475,6 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     }
     override _epochDate(): string {
         return "'1970-01-01'"
-    }
-    override _wideDayNanoseconds(): string {
-        // An integer is of 64 bits: a difference beyond them fails (see tsq_duration_text)
-        return '86400000000000'
-    }
-    override _wideTruncatedDivision(dividend: string, divisor: string): string {
-        return this._truncatedDivision(dividend, divisor)
     }
     /** The result, or an error of the query when the day of the value isn't in the month the duration reaches */
     override _appendWithDurationRejecting(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass, sign: 1 | -1): string {

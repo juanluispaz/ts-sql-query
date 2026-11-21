@@ -138,8 +138,8 @@ export abstract class SqlServerConnection<NAME extends string> extends AbstractA
      * `dbo.tsq_round_to`, `dbo.tsq_ticks_between`, `dbo.tsq_time_of_ticks` and `dbo.tsq_datetime_of_ticks`, for a rounding
      * and the difference of two dates and times, writing each value once; `dbo.tsq_duration_sum`,
      * `dbo.tsq_duration_total_of`, `dbo.tsq_duration_round_of`, `dbo.tsq_duration_negated`,
-     * `dbo.tsq_datetime_plus_duration`, `dbo.tsq_instant_plus_duration` and `dbo.tsq_day_in_month_or_error`, which take a
-     * duration or a date whole.
+     * `dbo.tsq_datetime_plus_duration`, `dbo.tsq_instant_plus_duration`, `dbo.tsq_day_in_month_or_error`, `dbo.tsq_utc_of_epoch`
+     * and `dbo.tsq_date_with`, which take a duration or a date whole.
      */
     protected libraryFunctions: 'installed' | 'not installed' = 'not installed'
 

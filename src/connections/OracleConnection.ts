@@ -93,6 +93,8 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
      *   its text, with `tsq_ds_interval_text` and `tsq_ym_interval_text`) or a date whole, writing it once.
      * - `tsq_duration_negated`, `tsq_time_plus_duration`, `tsq_instant_plus_duration` and `tsq_day_in_month_or_error`,
      *   for a negated duration, a value plus an interval of the query and `overflow: 'reject'`, writing each value once.
+     * - `tsq_utc_of_epoch` and `tsq_date_with`, for the instant of an epoch and a date with some fields, writing each
+     *   value once.
      * - `tsq_string_util.concat_strict`, for a concatenation (`concat` and the patterns of `startsWith`, `endsWith` and
      *   `contains`) that gives null for a null operand writing each operand once; without it, a `CASE` repeats them.
      */

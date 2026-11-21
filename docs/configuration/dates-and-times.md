@@ -625,7 +625,7 @@ The executed query is:
     select 
         version as version, 
         deployed_at as deployedAt, 
-        date_add(date_add(date '1970-01-01', interval (floor(timestampdiff(microsecond, '1970-01-01 00:00:00', deployed_at) / 1000) - ((floor(timestampdiff(microsecond, '1970-01-01 00:00:00', deployed_at) / 1000) % 86400000 + 86400000) % 86400000)) div 86400000 day), interval (((floor(timestampdiff(microsecond, '1970-01-01 00:00:00', deployed_at) / 1000) % 86400000 + 86400000) % 86400000) * 1000000) div 1000 microsecond) as sameInstant 
+        tsq_utc_of_epoch(floor(timestampdiff(microsecond, '1970-01-01 00:00:00', deployed_at) / 1000), 1000000) as sameInstant 
     from project_release 
     where deployed_at < ? 
     order by version
@@ -635,7 +635,7 @@ The executed query is:
     select 
         version as version, 
         deployed_at as deployedAt, 
-        date_add(date_add(date '1970-01-01', interval (floor(timestampdiff(microsecond, '1970-01-01 00:00:00', deployed_at) / 1000) - ((floor(timestampdiff(microsecond, '1970-01-01 00:00:00', deployed_at) / 1000) % 86400000 + 86400000) % 86400000)) div 86400000 day), interval (((floor(timestampdiff(microsecond, '1970-01-01 00:00:00', deployed_at) / 1000) % 86400000 + 86400000) % 86400000) * 1000000) div 1000 microsecond) as sameInstant 
+        tsq_utc_of_epoch(floor(timestampdiff(microsecond, '1970-01-01 00:00:00', deployed_at) / 1000), 1000000) as sameInstant 
     from project_release 
     where deployed_at < ? 
     order by version
@@ -645,7 +645,7 @@ The executed query is:
     select 
         version as "version", 
         to_char(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "deployedAt", 
-        to_char(sys_extract_utc(cast(from_tz(cast((date '1970-01-01' + trunc(((trunc(timestamp '1970-01-01 00:00:00' + (deployed_at - timestamp '1970-01-01 00:00:00')) - date '1970-01-01') * 86400000 + to_number(to_char(timestamp '1970-01-01 00:00:00' + (deployed_at - timestamp '1970-01-01 00:00:00'), 'SSSSSFF3')) - (mod((mod((trunc(timestamp '1970-01-01 00:00:00' + (deployed_at - timestamp '1970-01-01 00:00:00')) - date '1970-01-01') * 86400000 + to_number(to_char(timestamp '1970-01-01 00:00:00' + (deployed_at - timestamp '1970-01-01 00:00:00'), 'SSSSSFF3')), 86400000) + 86400000), 86400000))) / 86400000)) as timestamp(9)) + numtodsinterval(((mod((mod((trunc(timestamp '1970-01-01 00:00:00' + (deployed_at - timestamp '1970-01-01 00:00:00')) - date '1970-01-01') * 86400000 + to_number(to_char(timestamp '1970-01-01 00:00:00' + (deployed_at - timestamp '1970-01-01 00:00:00'), 'SSSSSFF3')), 86400000) + 86400000), 86400000)) * 1000000) / 1000000000, 'second'), '+00:00') as timestamp(9) with time zone)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "sameInstant" 
+        to_char(sys_extract_utc(cast(from_tz(tsq_utc_of_epoch((trunc(timestamp '1970-01-01 00:00:00' + (deployed_at - timestamp '1970-01-01 00:00:00')) - date '1970-01-01') * 86400000 + to_number(to_char(timestamp '1970-01-01 00:00:00' + (deployed_at - timestamp '1970-01-01 00:00:00'), 'SSSSSFF3')), 1000000), '+00:00') as timestamp(9) with time zone)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "sameInstant" 
     from project_release 
     where deployed_at < to_timestamp(:0, 'YYYY-MM-DD HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN') 
     order by "version"
@@ -655,7 +655,7 @@ The executed query is:
     select 
         version as version, 
         deployed_at as "deployedAt", 
-        (date '1970-01-01' + cast(((cast(floor(extract(epoch from deployed_at) * 1000) as bigint) - ((cast(floor(extract(epoch from deployed_at) * 1000) as bigint) % 86400000 + 86400000) % 86400000)) / 86400000) as integer)) + make_interval(secs => (((cast(floor(extract(epoch from deployed_at) * 1000) as bigint) % 86400000 + 86400000) % 86400000) * 1000000) / 1000000000.0) as "sameInstant" 
+        tsq_utc_of_epoch(cast(floor(extract(epoch from deployed_at) * 1000) as bigint), 1000000) as "sameInstant" 
     from project_release 
     where deployed_at < $1 
     order by version
@@ -665,7 +665,7 @@ The executed query is:
     select 
         version as version, 
         deployed_at as deployedAt, 
-        strftime('%Y-%m-%dT%H:%M:%fZ', date('1970-01-01', (cast((round(unixepoch(deployed_at, 'subsec') * 1000) - ((round(unixepoch(deployed_at, 'subsec') * 1000) % 86400000 + 86400000) % 86400000)) / 86400000 as integer)) || ' days'), ((((round(unixepoch(deployed_at, 'subsec') * 1000) % 86400000 + 86400000) % 86400000) * 1000000) / 1000000000.0) || ' seconds') as sameInstant 
+        strftime('%Y-%m-%dT%H:%M:%fZ', tsq_utc_of_epoch(cast(round(unixepoch(deployed_at, 'subsec') * 1000) as text), 1000000)) as sameInstant 
     from project_release 
     where deployed_at < ?1 
     order by version
@@ -675,7 +675,7 @@ The executed query is:
     select 
         version as version, 
         deployed_at as deployedAt, 
-        dateadd(nanosecond, (((cast(datediff_big(millisecond, '1970-01-01 00:00:00', deployed_at) as bigint) % 86400000 + 86400000) % 86400000) * 1000000) % 1000000000, dateadd(second, (((cast(datediff_big(millisecond, '1970-01-01 00:00:00', deployed_at) as bigint) % 86400000 + 86400000) % 86400000) * 1000000) / 1000000000, cast(dateadd(day, (cast(datediff_big(millisecond, '1970-01-01 00:00:00', deployed_at) as bigint) - ((cast(datediff_big(millisecond, '1970-01-01 00:00:00', deployed_at) as bigint) % 86400000 + 86400000) % 86400000)) / 86400000, cast('1970-01-01' as date)) as datetime2))) as sameInstant 
+        dbo.tsq_utc_of_epoch(cast(datediff_big(millisecond, '1970-01-01 00:00:00', deployed_at) as bigint), 1000000) as sameInstant 
     from project_release 
     where deployed_at < @0 
     order by version
@@ -1852,7 +1852,7 @@ The executed query is:
     ```mariadb
     select 
         version as version, 
-        date_add(date_add(makedate(year(released_on), 1), interval month(released_on) - 1 month), interval 1 - 1 day) as monthOfRelease, 
+        tsq_date_with(released_on, null, null, 1, 0) as monthOfRelease, 
         sec_to_time(mod(tsq_round_to((floor(time_to_sec(cutoff_time)) * 1000000 + microsecond(cutoff_time)), 21600000000, 'halfExpand'), 86400000000) * 0.000001) as cutoffSlot 
     from project_release 
     order by version
@@ -1861,7 +1861,7 @@ The executed query is:
     ```mysql
     select 
         version as version, 
-        date_add(date_add(makedate(year(released_on), 1), interval month(released_on) - 1 month), interval 1 - 1 day) as monthOfRelease, 
+        tsq_date_with(released_on, null, null, 1, 0) as monthOfRelease, 
         sec_to_time(mod(tsq_round_to((floor(time_to_sec(cutoff_time)) * 1000000 + microsecond(cutoff_time)), 21600000000, 'halfExpand'), 86400000000) * 0.000001) as cutoffSlot 
     from project_release 
     order by version
@@ -1870,7 +1870,7 @@ The executed query is:
     ```oracle
     select 
         version as "version", 
-        to_char((add_months(date '0001-01-01', (extract(year from released_on) - 1) * 12 + extract(month from released_on) - 1) + 1 - 1), 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "monthOfRelease", 
+        to_char(tsq_date_with(released_on, null, null, 1, 0), 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "monthOfRelease", 
         to_char(cast(timestamp '1972-01-01 00:00:00' + numtodsinterval(mod(tsq_round_to(to_number(to_char(cutoff_time, 'SSSSSFF9')), 21600000000000, 'halfExpand'), 86400000000000) / 1000000000, 'second') as timestamp(9)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "cutoffSlot" 
     from project_release 
     order by "version"
@@ -1879,7 +1879,7 @@ The executed query is:
     ```postgresql
     select 
         version as version, 
-        make_date(cast(extract(year from released_on) as integer), cast(extract(month from released_on) as integer), 1) as "monthOfRelease", 
+        tsq_date_with(released_on, null, null, 1, 0) as "monthOfRelease", 
         cast(date_bin(interval '6 hours', (date '2000-01-01' + cutoff_time) + interval '3 hours', date_trunc('day', (date '2000-01-01' + cutoff_time))) as time) as "cutoffSlot" 
     from project_release 
     order by version
@@ -1888,7 +1888,7 @@ The executed query is:
     ```sqlite
     select 
         version as version, 
-        date(printf('%04d-%02d-%02d', cast(strftime('%Y', released_on) as integer), cast(strftime('%m', released_on) as integer), 1)) as monthOfRelease, 
+        date(tsq_date_with(strftime('%Y-%m-%d', released_on), null, null, 1, 0)) as monthOfRelease, 
         strftime('%H:%M:%fZ', '00:00:00', ((cast(tsq_round_to(cast(cast(round((julianday(cutoff_time) - julianday(date(cutoff_time))) * 86400000) as integer) as text), 21600000, 'halfExpand') as integer)) / 1000.0) || ' seconds') as cutoffSlot 
     from project_release 
     order by version
@@ -1897,7 +1897,7 @@ The executed query is:
     ```sqlserver
     select 
         version as version, 
-        datefromparts(datepart(year, released_on), datepart(month, released_on), 1) as monthOfRelease, 
+        dbo.tsq_date_with(released_on, null, null, 1, 0) as monthOfRelease, 
         dbo.tsq_time_of_ticks(dbo.tsq_round_to((datediff_big(nanosecond, cast('00:00' as time), cast(cutoff_time as time)) / 100), cast(216000000000 as bigint), 'halfExpand')) as cutoffSlot 
     from project_release 
     order by version
@@ -1985,7 +1985,7 @@ The executed query is:
         date_add(cast(date_format(released_on, '%Y-%m-01') as date), interval ? month) as nextMonth, 
         day(last_day(released_on)) as daysInMonth, 
         cast(date_format(released_on, '1972-%m-%d') as date) as anniversary, 
-        date_add(date_add(makedate(2025, 1), interval month(cast(date_format(released_on, '1972-%m-%d') as date)) - 1 month), interval least(day(cast(date_format(released_on, '1972-%m-%d') as date)), day(last_day(date_add(makedate(2025, 1), interval month(cast(date_format(released_on, '1972-%m-%d') as date)) - 1 month)))) - 1 day) as anniversaryIn2025 
+        tsq_date_with(cast(date_format(released_on, '1972-%m-%d') as date), 2025, null, null, 0) as anniversaryIn2025 
     from project_release 
     order by version
     ```
@@ -1997,7 +1997,7 @@ The executed query is:
         date_add(cast(date_format(released_on, '%Y-%m-01') as date), interval ? month) as nextMonth, 
         day(last_day(released_on)) as daysInMonth, 
         cast(date_format(released_on, '1972-%m-%d') as date) as anniversary, 
-        date_add(date_add(makedate(2025, 1), interval month(cast(date_format(released_on, '1972-%m-%d') as date)) - 1 month), interval least(day(cast(date_format(released_on, '1972-%m-%d') as date)), day(last_day(date_add(makedate(2025, 1), interval month(cast(date_format(released_on, '1972-%m-%d') as date)) - 1 month)))) - 1 day) as anniversaryIn2025 
+        tsq_date_with(cast(date_format(released_on, '1972-%m-%d') as date), 2025, null, null, 0) as anniversaryIn2025 
     from project_release 
     order by version
     ```
@@ -2009,7 +2009,7 @@ The executed query is:
         to_char((add_months(trunc(released_on, 'MM'), :0) - greatest(0, extract(day from add_months(trunc(released_on, 'MM'), :0)) - extract(day from trunc(released_on, 'MM')))), 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "nextMonth", 
         extract(day from last_day(released_on)) as "daysInMonth", 
         to_char(to_date('1972' || to_char(released_on, 'MMDD'), 'YYYYMMDD'), 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "anniversary", 
-        to_char((add_months(date '0001-01-01', (2025 - 1) * 12 + extract(month from to_date('1972' || to_char(released_on, 'MMDD'), 'YYYYMMDD')) - 1) + least(extract(day from to_date('1972' || to_char(released_on, 'MMDD'), 'YYYYMMDD')), extract(day from last_day((add_months(date '0001-01-01', (2025 - 1) * 12 + extract(month from to_date('1972' || to_char(released_on, 'MMDD'), 'YYYYMMDD')) - 1) + 1 - 1)))) - 1), 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "anniversaryIn2025" 
+        to_char(tsq_date_with(to_date('1972' || to_char(released_on, 'MMDD'), 'YYYYMMDD'), 2025, null, null, 0), 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "anniversaryIn2025" 
     from project_release 
     order by "version"
     ```
@@ -2021,7 +2021,7 @@ The executed query is:
         cast(date_trunc('month', released_on)::date + $1::interval as date) as "nextMonth", 
         extract(day from date_trunc('month', released_on) + interval '1 month - 1 day')::integer as "daysInMonth", 
         make_date(1972, cast(extract(month from released_on) as integer), cast(extract(day from released_on) as integer)) as anniversary, 
-        make_date(2025, cast(extract(month from make_date(1972, cast(extract(month from released_on) as integer), cast(extract(day from released_on) as integer))) as integer), least(cast(extract(day from make_date(1972, cast(extract(month from released_on) as integer), cast(extract(day from released_on) as integer))) as integer), extract(day from make_date(2025, cast(extract(month from make_date(1972, cast(extract(month from released_on) as integer), cast(extract(day from released_on) as integer))) as integer), 1) + interval '1 month - 1 day')::integer)) as "anniversaryIn2025" 
+        tsq_date_with(make_date(1972, cast(extract(month from released_on) as integer), cast(extract(day from released_on) as integer)), 2025, null, null, 0) as "anniversaryIn2025" 
     from project_release 
     order by version
     ```
@@ -2033,7 +2033,7 @@ The executed query is:
         date(date(date(released_on, 'start of month'), 'start of month', ?1), (min(cast(strftime('%d', date(released_on, 'start of month')) as integer), cast(strftime('%d', date(date(released_on, 'start of month'), 'start of month', ?1), '+1 months', '-1 days') as integer)) - 1) || ' days') as nextMonth, 
         cast(strftime('%d', released_on, 'start of month', '+1 months', '-1 days') as integer) as daysInMonth, 
         date(strftime('1972-%m-%d', released_on)) as anniversary, 
-        date(printf('%04d-%02d-%02d', 2025, cast(strftime('%m', date(strftime('1972-%m-%d', released_on))) as integer), min(cast(strftime('%d', date(strftime('1972-%m-%d', released_on))) as integer), cast(strftime('%d', printf('%04d-%02d-01', 2025, cast(strftime('%m', date(strftime('1972-%m-%d', released_on))) as integer)), '+1 months', '-1 days') as integer)))) as anniversaryIn2025 
+        date(tsq_date_with(strftime('%Y-%m-%d', date(strftime('1972-%m-%d', released_on))), 2025, null, null, 0)) as anniversaryIn2025 
     from project_release 
     order by version
     ```
@@ -2045,7 +2045,7 @@ The executed query is:
         dateadd(month, @0, datefromparts(datepart(year, released_on), datepart(month, released_on), 1)) as nextMonth, 
         day(eomonth(released_on)) as daysInMonth, 
         datefromparts(1972, datepart(month, released_on), datepart(day, released_on)) as anniversary, 
-        datefromparts(2025, datepart(month, datefromparts(1972, datepart(month, released_on), datepart(day, released_on))), case when datepart(day, datefromparts(1972, datepart(month, released_on), datepart(day, released_on))) < day(eomonth(datefromparts(2025, datepart(month, datefromparts(1972, datepart(month, released_on), datepart(day, released_on))), 1))) then datepart(day, datefromparts(1972, datepart(month, released_on), datepart(day, released_on))) else day(eomonth(datefromparts(2025, datepart(month, datefromparts(1972, datepart(month, released_on), datepart(day, released_on))), 1))) end) as anniversaryIn2025 
+        dbo.tsq_date_with(datefromparts(1972, datepart(month, released_on), datepart(day, released_on)), 2025, null, null, 0) as anniversaryIn2025 
     from project_release 
     order by version
     ```

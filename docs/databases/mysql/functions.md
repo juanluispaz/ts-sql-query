@@ -9,7 +9,7 @@ Some queries call a function that MySQL doesn't have built in. This page says wh
 They are of two kinds:
 
 - **The functions of the library**, whose names start with `tsq_`. The queries of durations call them (see [Dates and times](../../configuration/dates-and-times.md)). Create them with their file, as it is.
-- **The optional ones**, `tsq_zoned_wall`, `tsq_zoned_utc`, `tsq_round_to`, `tsq_duration_sum`, `tsq_duration_total_of`, `tsq_duration_round_of`, `tsq_duration_negated` and the ones that add a duration to a value: a query calls them only with `libraryFunctions = 'installed'` on the connection; without it, the SQL of MySQL does the same, writing the text of the value more times (see each one).
+- **The optional ones**, `tsq_zoned_wall`, `tsq_zoned_utc`, `tsq_round_to`, `tsq_duration_sum`, `tsq_duration_total_of`, `tsq_duration_round_of`, `tsq_duration_negated`, the ones that add a duration to a value, `tsq_utc_of_epoch` and `tsq_date_with`: a query calls them only with `libraryFunctions = 'installed'` on the connection; without it, the SQL of MySQL does the same, writing the text of the value more times (see each one).
 - **Functions of your own**, which on MySQL 5.7, have the names of functions that MySQL has built in from version 8.0, and that the library calls. Their file is an example of them.
 
 ## Which function each query needs
@@ -29,6 +29,8 @@ They are of two kinds:
 | [`tsq_duration_round_of`](#tsq_duration_round_of) | `until` or `since` of two dates or two dates and times in months or years, or rounded to a week, a month or a year, with `libraryFunctions = 'installed'` | `tsq_duration_round` |
 | [`tsq_duration_negated`](#tsq_duration_negated) | `negated()` of a duration kept as its text, with `libraryFunctions = 'installed'` | `tsq_duration_part` |
 | [`tsq_date_plus_duration`, `tsq_time_plus_duration`, `tsq_datetime_plus_duration` and `tsq_instant_plus_duration`](#tsq_date_plus_duration-tsq_time_plus_duration-tsq_datetime_plus_duration-and-tsq_instant_plus_duration) | a duration of the query (a column, a computation) is added to or subtracted from a date, a time, a date and time or an instant, with `libraryFunctions = 'installed'` | `tsq_duration_part` |
+| [`tsq_utc_of_epoch`](#tsq_utc_of_epoch) | `instantFromEpochMilliseconds` or `instantFromEpochNanoseconds` of a value of the query, with `libraryFunctions = 'installed'` | — |
+| [`tsq_date_with`](#tsq_date_with) | `with` of a date, or `toPlainDate` of a month of a year or of a day of a month, with `libraryFunctions = 'installed'` | — |
 | [`UUID_TO_BIN` and `BIN_TO_UUID`](#uuid_to_bin-and-bin_to_uuid-for-mysql-57) | a uuid is read or written with the `'binary'` uuid strategy, on MySQL 5.7 | — |
 
 ## Creating them
@@ -110,6 +112,18 @@ Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 ## `tsq_date_plus_duration`, `tsq_time_plus_duration`, `tsq_datetime_plus_duration` and `tsq_instant_plus_duration`
 
 `tsq_date_plus_duration`, `tsq_time_plus_duration`, `tsq_datetime_plus_duration` and `tsq_instant_plus_duration` add a duration of the query, given whole, to a date, a time of the day, a date and time or an instant (its date and time in UTC), or subtract it, as Temporal's `add` and `subtract` (see [Adding and subtracting a duration](../../configuration/dates-and-times.md#adding-and-subtracting-a-duration)): its years and months first, keeping the day in the month, then its weeks and days, then its time. An instant takes only a duration of hours and smaller units: one with days, weeks, months or years makes the query fail. With `libraryFunctions = 'installed'` a query calls them and writes the duration once; without it, the query writes the same computation inline, with the duration several times.
+
+Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
+
+## `tsq_utc_of_epoch`
+
+`tsq_utc_of_epoch` gives the date and time in UTC of an instant given as a number of units since `1970-01-01T00:00Z`, of the nanoseconds given each (`1000000` for milliseconds, `1` for nanoseconds), as Temporal's `Instant.fromEpochMilliseconds` and `fromEpochNanoseconds` (see [The epoch of an instant, and its date and time](../../configuration/dates-and-times.md#the-epoch-of-an-instant-and-its-date-and-time)). With `libraryFunctions = 'installed'` a query calls it for a number of the query and writes it once; without it, the query writes it five or six times.
+
+Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
+
+## `tsq_date_with`
+
+`tsq_date_with` gives a date with the year, the month and the day given in place of its own (a null keeps its own), as Temporal's `with`: a day the month hasn't is its last day, or makes the query fail with `overflow: 'reject'`. With `libraryFunctions = 'installed'` a query calls it for `with` of a date (see [Changing a field and rounding](../../configuration/dates-and-times.md#changing-a-field-and-rounding)) and for `toPlainDate` of a month of a year and of a day of a month (see [A month of a year and a day of a month](../../configuration/dates-and-times.md#a-month-of-a-year-and-a-day-of-a-month)), and writes the date once; without it, the query writes it several times.
 
 Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 

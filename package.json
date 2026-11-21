@@ -16,6 +16,7 @@
         "README.md",
         "AGENTS.md",
         "docs/**/*.md",
+        "docs/**/*.sql",
         "llms/*.txt"
     ],
     "exports": {

@@ -1,5 +1,5 @@
-// The functions of the library for durations and zoned dates and times that the page of the functions of each database
-// gives (tsq_duration_part, tsq_duration_text, tsq_duration_round, tsq_duration_total, tsq_duration_add,
+// The functions of the library for durations and zoned dates and times that the file of SQL of each database gives
+// (the one its page of functions links) (tsq_duration_part, tsq_duration_text, tsq_duration_round, tsq_duration_total, tsq_duration_add,
 // tsq_zoned_until, tsq_zoned_of_wall) are the ones the suite creates in the
 // schema of that database (test/db/<db>/domain/schema.sql), which the tests of the arithmetic, the differences of dates,
 // the totals and the sums of durations run against every engine: the text of the page is the tested one.
@@ -10,23 +10,19 @@ import { describe, expect, test } from '../../lib/testRunner.js'
 
 const root = join(import.meta.dirname, '../../..')
 
-/** The code of the section of a function in the page of the functions of a database: its blocks of SQL, one after another */
+/**
+ * The code of a function in the file of the functions of the library of a database that its page links
+ * (docs/configuration/supported-databases/<db>/functions/tsq-functions.sql): its blocks, after its marker; without the
+ * `/` that runs a PL/SQL unit in SQL*Plus
+ */
 function documented(db: string, name: string): string {
-    const page = readFileSync(join(root, 'docs/configuration/supported-databases', db, 'functions.md'), 'utf8')
-    const heading = '\n## `' + name + '`\n'
-    expect(page.indexOf(heading)).toBeGreaterThan(0)
-    let section = page.slice(page.indexOf(heading) + heading.length)
-    const next = section.indexOf('\n## ')
+    const file = readFileSync(join(root, 'docs/configuration/supported-databases', db, 'functions/tsq-functions.sql'), 'utf8')
+    const marker = '-- ===== ' + name + ' =====\n'
+    expect(file.indexOf(marker)).toBeGreaterThan(0)
+    let section = file.slice(file.indexOf(marker) + marker.length)
+    const next = section.indexOf('\n-- ===== ')
     section = next < 0 ? section : section.slice(0, next)
-    const blocks: string[] = []
-    let start = section.indexOf('\n```sql\n')
-    while (start >= 0) {
-        const code = section.slice(start + '\n```sql\n'.length)
-        blocks.push(code.slice(0, code.indexOf('\n```\n')))
-        start = section.indexOf('\n```sql\n', start + 1)
-    }
-    expect(blocks.length).toBeGreaterThan(0)
-    return blocks.join('\n\n')
+    return section.split('\n').filter(line => line !== '/').join('\n').trim()
 }
 
 /** The function in the schema of the database, after its comment, up to the comment of the next function of the library */
@@ -81,5 +77,15 @@ describe('DurationPartFunctionDocs', () => {
         expect(documented('oracle', 'tsq_duration_add')).toBe(tested('oracle', 'tsq_duration_add'))
         expect(documented('postgresql', 'tsq_duration_add')).toBe(tested('postgres', 'tsq_duration_add'))
         expect(documented('sqlserver', 'tsq_duration_add')).toBe(tested('sqlserver', 'tsq_duration_add'))
+    })
+
+    test('the-documented-functions-of-the-uuids-of-oracle-are-the-tested-ones', () => {
+        // tsq_uuid_to_raw and tsq_raw_to_uuid of the uuid strategy 'custom-functions', without the comments and the `/` of SQL*Plus
+        const file = readFileSync(join(root, 'docs/configuration/supported-databases/oracle/functions/tsq-uuid-functions.sql'), 'utf8')
+        const code = file.split('\n').filter(line => line !== '/' && !line.startsWith('--')).join('\n').trim().replace(/\n{2,}/g, '\n\n')
+        const schema = readFileSync(join(root, 'test/db/oracle/domain/schema.sql'), 'utf8')
+        const start = schema.indexOf('CREATE OR REPLACE FUNCTION tsq_uuid_to_raw')
+        expect(start).toBeGreaterThan(0)
+        expect(code).toBe(schema.slice(start).trim())
     })
 })

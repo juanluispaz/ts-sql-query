@@ -884,7 +884,7 @@ The parameters are: `[]`
 
 A zone given as a value is checked as Temporal checks it before the query is sent, and written in the SQL as its name (Oracle takes no parameter after `at time zone`; PostgreSQL gets an offset like `+05:30` as an interval, as it reads such a text as a POSIX zone, west of UTC). A string of the query, like a column with the zone of each user, is taken as it is, and the database rejects a zone it doesn't know (`ORA-01882`, *time zone "…" not recognized*); on PostgreSQL `timeZoneId()` gives it as written, where Temporal writes a name in its own case.
 
-On PostgreSQL the query knows the zone of a zoned date and time from what computes it: `toZonedDateTimeISO`, `toZonedDateTime`, `withTimeZone`, a value, and the arithmetic below, which keeps the zone it starts from. A zoned date and time of another expression, like `valueWhenNull` of two of them, a `case`, an aggregate or a column of a subquery, may have a zone in each row the query doesn't know: its instant and its comparisons work, but reading it, its parts or its arithmetic fail when the query is built (`UNSUPPORTED_QUERY`), and so does a column of the type `zonedDateTime` and one inside an aggregated array. Its value has the digits of a `timestamptz`, up to the microsecond, also with Bun SQL.
+On PostgreSQL the query knows the zone of a zoned date and time from what computes it: `toZonedDateTimeISO`, `toZonedDateTime`, `withTimeZone`, a value, the text of a column, and the arithmetic below, which keeps the zone it starts from. A zoned date and time of another expression, like `valueWhenNull` of two of them, a `case`, an aggregate or a column of a subquery, may have a zone in each row the query doesn't know: its instant and its comparisons work, but reading it, its parts or its arithmetic fail when the query is built (`UNSUPPORTED_QUERY`). Inside an aggregated array it is read with its zone, but for the zone of the text of a column in an aggregated array with `distinct`, an order by, a limit or an offset, which fails when the query is built. Its value has the digits of a `timestamptz`, up to the microsecond, also with Bun SQL.
 
 A `zonedDateTime` has the methods of Temporal that give its parts and its instant:
 
@@ -905,10 +905,16 @@ Two zoned dates and times are compared and ordered by their instant, as Temporal
 | Database | The column | Computes with the rules of the zones |
 |---|---|---|
 | MariaDB, MySQL, SQLite, SQL Server | A text, like `varchar(100)`: the [RFC 9557](https://www.rfc-editor.org/rfc/rfc9557) text of Temporal's `toString`, `2024-03-02T12:05:00+01:00[Europe/Madrid]` | No |
-| Oracle | `TIMESTAMP WITH TIME ZONE`, with the region of its zone | Yes |
+| Oracle | `TIMESTAMP WITH TIME ZONE`, with the region of its zone; or a text, when the column says it (below): the RFC 9557 text, a value computed in the query written with its offset and its region in capitals | Yes |
 | PostgreSQL | A text, like `text`: the RFC 9557 text, a value computed in the query kept as its instant in UTC with a `Z` (`2024-03-02T11:05:00.000000Z[Europe/Madrid]`); or none, computed in the query from a `timestamptz` and a zone | Yes |
 
 The library writes the text as Temporal's `toString` does: the wall clock in its zone with the digits of the fraction of a second it has, the offset rounded to the minute, and the zone in brackets. It reads it as `Temporal.ZonedDateTime.from(text, { offset: 'prefer' })` does: the value written; a text with a `Z` instead of the offset, written by another program, as that instant in its zone; and when the zone no longer has the offset written at that wall clock, because its rules changed, the wall clock in its zone.
+
+A column says it keeps the text with its [SQL data type](../advanced/data-types/sql-data-types.md), which on Oracle chooses the text instead of a `TIMESTAMP WITH TIME ZONE` (on the other databases a text is what it keeps anyway); `withSqlDataType` is exported by `ts-sql-query`:
+
+```typescriptreact
+startsAt = this.column('starts_at', 'zonedDateTime', withSqlDataType({ family: 'character string', length: 100 }))
+```
 
 From the text, without the rules of the zones, the database gives its wall clock and its parts (`toPlainDateTime()`, `year()`, `hour()`, ...), its offset, its zone, its instant (the wall clock minus the offset) and its epoch, with the digits of the fraction of a second it computes with: microseconds on MariaDB and MySQL, 100 nanoseconds on SQL Server, milliseconds on SQLite. A zoned date and time is compared (`equals`, `in`, `lessThan`, `between`, ...), ordered and taken by `min` and `max` by its instant, as Temporal's `compare` and as on Oracle and PostgreSQL: the same instant in two zones is equal. What needs the rules of the zones, like `toZonedDateTimeISO`, `withTimeZone` or the arithmetic below, doesn't compile on MariaDB, MySQL, SQLite and SQL Server; PostgreSQL computes it on a column of text as on any other zoned date and time.
 

@@ -1,4 +1,4 @@
--- Oracle: the functions of the library ts-sql-query, in the order to create them.
+-- Oracle: the functions of the library ts-sql-query, and the ones of its settings of functions, in the order to create them.
 -- See https://ts-sql-query.readthedocs.io/en/latest/configuration/supported-databases/oracle/functions/
 -- Run it with: sqlplus <user>/<password>@<service> @tsq-functions.sql
 
@@ -591,4 +591,36 @@ BEGIN
     END IF;
     RETURN tsq_duration_text(v_years * negation, v_months * negation, v_weeks * negation, v_days * negation, v_t * negation, 'hour');
 END;
+/
+
+-- ===== The function of concatFunction =====
+CREATE OR REPLACE PACKAGE tsq_string_util AS
+    FUNCTION concat_strict(a IN VARCHAR2, b IN VARCHAR2) RETURN VARCHAR2;
+    FUNCTION concat_strict(a IN CLOB, b IN CLOB) RETURN CLOB;
+    FUNCTION concat_strict(a IN CLOB, b IN VARCHAR2) RETURN CLOB;
+    FUNCTION concat_strict(a IN VARCHAR2, b IN CLOB) RETURN CLOB;
+END tsq_string_util;
+/
+CREATE OR REPLACE PACKAGE BODY tsq_string_util AS
+    FUNCTION concat_strict(a IN VARCHAR2, b IN VARCHAR2) RETURN VARCHAR2 IS
+    BEGIN
+        IF a IS NULL OR b IS NULL THEN RETURN NULL; END IF;
+        RETURN a || b;
+    END;
+    FUNCTION concat_strict(a IN CLOB, b IN CLOB) RETURN CLOB IS
+    BEGIN
+        IF a IS NULL OR b IS NULL THEN RETURN NULL; END IF;
+        RETURN a || b;
+    END;
+    FUNCTION concat_strict(a IN CLOB, b IN VARCHAR2) RETURN CLOB IS
+    BEGIN
+        IF a IS NULL OR b IS NULL THEN RETURN NULL; END IF;
+        RETURN a || b;
+    END;
+    FUNCTION concat_strict(a IN VARCHAR2, b IN CLOB) RETURN CLOB IS
+    BEGIN
+        IF a IS NULL OR b IS NULL THEN RETURN NULL; END IF;
+        RETURN a || b;
+    END;
+END tsq_string_util;
 /

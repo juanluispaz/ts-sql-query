@@ -24,7 +24,7 @@ They are of two kinds:
 
 ## Creating them
 
-[`tsq-functions.sql`](functions/tsq-functions.sql) creates every function of the library on MySQL, in the order they need, dropping the one of the same name first: run it as it is, with the client of your database, like `mysql <database> < tsq-functions.sql`, or in the editor you use. Each function is described below; a query that doesn't use one doesn't need it. The functions of your own are in a file of their own, an example to adapt.
+[`tsq-functions.sql`](functions/tsq-functions.sql) creates every function of the library on MySQL, in the order they need, dropping the one of the same name first: run it as it is, with the client of your database, like `mysql <database> < tsq-functions.sql`, or in the editor you use. Each function is described below; a query that doesn't use one doesn't need it. The functions that stand in for the ones MySQL 5.7 lacks are in a file of their own.
 
 ## `tsq_duration_part`
 

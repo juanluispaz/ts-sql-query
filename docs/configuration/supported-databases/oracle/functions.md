@@ -27,7 +27,7 @@ They are of two kinds:
 
 ## Creating them
 
-[`tsq-functions.sql`](functions/tsq-functions.sql) creates every function of the library on Oracle, in the order they need, dropping the one of the same name first: run it as it is, with the client of your database, like `sqlplus <user>/<password>@<service> @tsq-functions.sql`, or in the editor you use. Each function is described below; a query that doesn't use one doesn't need it. The functions of your own are in a file of their own, an example to adapt.
+[`tsq-functions.sql`](functions/tsq-functions.sql) creates every function of the library on Oracle, in the order they need, dropping the one of the same name first: run it as it is, with the client of your database, like `sqlplus <user>/<password>@<service> @tsq-functions.sql`, or in the editor you use. Each function is described below; a query that doesn't use one doesn't need it. It also has the functions a setting of the connection names, with a name of the library you can change.
 
 ## `tsq_duration_part`
 
@@ -81,10 +81,17 @@ Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 
     Four overloads, not two. With only `(VARCHAR2, VARCHAR2)` and `(CLOB, CLOB)`, Oracle cannot resolve the commonest call of all — a `CLOB` column against a `VARCHAR2` literal — and raises `ORA-06553: PLS-307: too many declarations of ... match this call`. The two mixed overloads are what make it resolvable. `NVARCHAR2` and `NCLOB` arguments reach these through implicit conversion and need no overloads of their own.
 
-The code is in [`tsq-string-util.sql`](functions/tsq-string-util.sql).
+Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql), with the functions of the library; the name is yours.
 
 ## `tsq_uuid_to_raw` and `tsq_raw_to_uuid`
 
-The `'custom-functions'` [uuid strategy](index.md#uuid-strategies) keeps a uuid in a `RAW(16)` and converts it with `tsq_uuid_to_raw` and `tsq_raw_to_uuid`. They keep its 16 bytes as they are, for any version of uuid and on any version of Oracle: a version 7 uuid, whose timestamp comes first, is kept in the order of its time. The text read is in lower case, as the other strategies and databases give it. The `'built-in'` strategy doesn't need them: it calls Oracle's own `UUID_TO_RAW` and `RAW_TO_UUID` of Oracle 23.9, which do the same for version 4 uuids only.
+The `'custom-functions'` [uuid strategy](index.md#uuid-strategies) keeps a uuid in a `RAW(16)` and converts it with `tsq_uuid_to_raw` and `tsq_raw_to_uuid`, on any version of Oracle. The text read is in lower case, as the other strategies and databases give it. The `'built-in'` strategy doesn't need them: it calls Oracle's own `UUID_TO_RAW` and `RAW_TO_UUID` of Oracle 23.9, which keep the bytes as they are for version 4 uuids only.
 
-Their code is in [`tsq-uuid-functions.sql`](functions/tsq-uuid-functions.sql).
+Their code comes in two forms; create the one of the version of uuid your application makes:
+
+| File | Keeps the 16 bytes | For |
+|---|---|---|
+| [`tsq-uuid-functions.sql`](functions/tsq-uuid-functions.sql) | As they are | Version 7, whose time comes first, so the values sort as they were made and an index grows at its end; and version 4, random, whose order doesn't matter |
+| [`tsq-uuid-functions-time-first.sql`](functions/tsq-uuid-functions-time-first.sql) | With the high part of the time first, then its middle and its low part | Version 1, whose time is split with its low part first: so its values sort as they were made too. It scrambles the order of a version 7 |
+
+Choose one before keeping uuids: a uuid kept by one form is read as another uuid by the other.

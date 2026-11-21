@@ -20,7 +20,7 @@ They are the functions of the library, whose names start with `tsq_`: the querie
 
 ## Creating them
 
-[`tsq-functions.sql`](functions/tsq-functions.sql) creates every function of the library on MariaDB, in the order they need, dropping the one of the same name first: run it as it is, with the client of your database, like `mariadb <database> < tsq-functions.sql`, or in the editor you use. Each function is described below; a query that doesn't use one doesn't need it. The functions of your own are in a file of their own, an example to adapt.
+[`tsq-functions.sql`](functions/tsq-functions.sql) creates every function of the library on MariaDB, in the order they need, dropping the one of the same name first: run it as it is, with the client of your database, like `mariadb <database> < tsq-functions.sql`, or in the editor you use. Each function is described below; a query that doesn't use one doesn't need it.
 
 ## `tsq_duration_part`
 

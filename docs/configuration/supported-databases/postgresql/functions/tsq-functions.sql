@@ -1,4 +1,4 @@
--- PostgreSQL: the functions of the library ts-sql-query, in the order to create them.
+-- PostgreSQL: the functions of the library ts-sql-query, and the ones of its settings of functions, in the order to create them.
 -- See https://ts-sql-query.readthedocs.io/en/latest/configuration/supported-databases/postgresql/functions/
 -- Run it with: psql -d <database> -f tsq-functions.sql
 
@@ -506,3 +506,10 @@ BEGIN
     END IF;
     RETURN make_interval(years => (v_years * negation)::integer, months => (v_months * negation)::integer, weeks => (v_weeks * negation)::integer, days => (v_days * negation)::integer, secs => v_t * negation / 1000000000.0);
 END $$;
+
+-- ===== The functions of minValueFunction and maxValueFunction =====
+CREATE FUNCTION tsq_greatest_strict(a anycompatible, b anycompatible) RETURNS anycompatible
+LANGUAGE sql IMMUTABLE AS $$ SELECT CASE WHEN a IS NULL OR b IS NULL THEN NULL ELSE greatest(a, b) END $$;
+
+CREATE FUNCTION tsq_least_strict(a anycompatible, b anycompatible) RETURNS anycompatible
+LANGUAGE sql IMMUTABLE AS $$ SELECT CASE WHEN a IS NULL OR b IS NULL THEN NULL ELSE least(a, b) END $$;

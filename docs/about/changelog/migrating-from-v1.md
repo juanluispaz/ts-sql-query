@@ -425,7 +425,7 @@ class DBConnection extends OracleConnection<'DBConnection'> {
 
 ### Oracle: the functions of the uuids
 
-v1 kept a uuid in a `RAW(16)` with the functions `uuid_to_raw` and `raw_to_uuid` of your database (its default strategy, `'custom-functions'`). In v2 the default strategy, `'built-in'`, calls `UUID_TO_RAW` and `RAW_TO_UUID`, the functions Oracle has from 23.9, which take version 4 uuids only; `'custom-functions'` calls `tsq_uuid_to_raw` and `tsq_raw_to_uuid`. If your uuids aren't version 4, or your functions reorder their bytes (the example of v1, made for UUID v1, did), choose `'custom-functions'` and create `tsq_uuid_to_raw` and `tsq_raw_to_uuid` with the body of your `uuid_to_raw` and `raw_to_uuid`, so the uuids you have are read as they were:
+v1 kept a uuid in a `RAW(16)` with the functions `uuid_to_raw` and `raw_to_uuid` of your database (its default strategy, `'custom-functions'`). In v2 the default strategy, `'built-in'`, calls `UUID_TO_RAW` and `RAW_TO_UUID`, the functions Oracle has from 23.9, which take version 4 uuids only; `'custom-functions'` calls `tsq_uuid_to_raw` and `tsq_raw_to_uuid`. If your uuids aren't version 4, or your functions reorder their bytes, choose `'custom-functions'` and create `tsq_uuid_to_raw` and `tsq_raw_to_uuid` that keep them as your `uuid_to_raw` and `raw_to_uuid` did, so the uuids you have are read as they were: the example of v1 for UUID v1 is [`tsq-uuid-functions-time-first.sql`](../../configuration/supported-databases/oracle/functions/tsq-uuid-functions-time-first.sql), and the one that kept the bytes as they are, [`tsq-uuid-functions.sql`](../../configuration/supported-databases/oracle/functions/tsq-uuid-functions.sql):
 
 <!-- doc-code-snippet-template: oracle -->
 ```ts

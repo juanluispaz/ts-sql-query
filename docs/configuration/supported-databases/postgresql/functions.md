@@ -25,7 +25,7 @@ They are of two kinds:
 
 ## Creating them
 
-[`tsq-functions.sql`](functions/tsq-functions.sql) creates every function of the library on PostgreSQL, in the order they need, dropping the one of the same name first: run it as it is, with the client of your database, like `psql -d <database> -f tsq-functions.sql`, or in the editor you use. Each function is described below; a query that doesn't use one doesn't need it. The functions of your own are in a file of their own, an example to adapt.
+[`tsq-functions.sql`](functions/tsq-functions.sql) creates every function of the library on PostgreSQL, in the order they need, dropping the one of the same name first: run it as it is, with the client of your database, like `psql -d <database> -f tsq-functions.sql`, or in the editor you use. Each function is described below; a query that doesn't use one doesn't need it. It also has the functions a setting of the connection names, with a name of the library you can change.
 
 ## `tsq_duration_part`
 
@@ -69,4 +69,4 @@ Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 
 Create the functions with `anycompatible` (PostgreSQL 14+) so they keep the operand's numeric type — `int` stays `int`, `double precision` stays `double precision`:
 
-The code is in [`tsq-strict-functions.sql`](functions/tsq-strict-functions.sql).
+Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql), with the functions of the library; the name is yours.

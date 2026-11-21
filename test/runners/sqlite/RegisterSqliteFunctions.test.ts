@@ -11,7 +11,7 @@ type Rows = Record<string, unknown>[]
 interface Driver {
     name: string
     enabled: boolean
-    open(options?: { before?: 'ci_replace of my own' | 'uuid of my own', skip?: string[] }): Promise<{ all(sql: string, ...params: unknown[]): Rows, run(sql: string): void, close(): void, hadUuid: boolean }>
+    open(options?: { before?: 'tsq_ci_replace of my own' | 'uuid of my own', skip?: string[] }): Promise<{ all(sql: string, ...params: unknown[]): Rows, run(sql: string): void, close(): void, hadUuid: boolean }>
 }
 
 // A database whose SQLite has the uuid extension built in (the one of macOS) already has uuid(), a version 4 UUID
@@ -31,7 +31,7 @@ const drivers: Driver[] = [
             const { registerSqliteFunctions } = await import('../../../src/queryRunners/BetterSqlite3QueryRunner.js')
             const db = new Database(':memory:')
             const hadUuid = db.prepare(uuidListed).all().length > 0
-            if (options?.before === 'ci_replace of my own') db.function('ci_replace', (_source: unknown, _find: unknown, _replacement: unknown) => 'mine')
+            if (options?.before === 'tsq_ci_replace of my own') db.function('tsq_ci_replace', (_source: unknown, _find: unknown, _replacement: unknown) => 'mine')
             if (options?.before === 'uuid of my own') db.function('uuid', () => uuidOfMyOwn)
             registerSqliteFunctions(db, options?.skip ? { skip: options.skip } : undefined)
             return { all: (sql, ...params) => db.prepare(sql).all(...params) as Rows, run: sql => { db.exec(sql) }, close: () => { db.close() }, hadUuid }
@@ -45,7 +45,7 @@ const drivers: Driver[] = [
             const { registerSqliteFunctions } = await import('../../../src/queryRunners/NodeSqliteQueryRunner.js')
             const db = new DatabaseSync(':memory:')
             const hadUuid = db.prepare(uuidListed).all().length > 0
-            if (options?.before === 'ci_replace of my own') db.function('ci_replace', (_source: unknown, _find: unknown, _replacement: unknown) => 'mine')
+            if (options?.before === 'tsq_ci_replace of my own') db.function('tsq_ci_replace', (_source: unknown, _find: unknown, _replacement: unknown) => 'mine')
             if (options?.before === 'uuid of my own') db.function('uuid', () => uuidOfMyOwn)
             registerSqliteFunctions(db, options?.skip ? { skip: options.skip } : undefined)
             return { all: (sql, ...params) => db.prepare(sql).all(...(params as never[])) as Rows, run: sql => { db.exec(sql) }, close: () => { db.close() }, hadUuid }
@@ -59,7 +59,7 @@ const drivers: Driver[] = [
             const { registerSqliteFunctions } = await import('../../../src/queryRunners/BunSqliteQueryRunner.js')
             const db = new Database(':memory:')
             const hadUuid = db.query(uuidListed).all().length > 0
-            if (options?.before === 'ci_replace of my own') db.function('ci_replace', (_source: unknown, _find: unknown, _replacement: unknown) => 'mine')
+            if (options?.before === 'tsq_ci_replace of my own') db.function('tsq_ci_replace', (_source: unknown, _find: unknown, _replacement: unknown) => 'mine')
             if (options?.before === 'uuid of my own') db.function('uuid', () => uuidOfMyOwn)
             registerSqliteFunctions(db, options?.skip ? { skip: options.skip } : undefined)
             return { all: (sql, ...params) => db.query(sql).all(...(params as never[])) as Rows, run: sql => { db.run(sql) }, close: () => { db.close() }, hadUuid }
@@ -73,7 +73,7 @@ const drivers: Driver[] = [
             const { registerSqliteFunctions } = await import('../../../src/queryRunners/Sqlite3WasmOO1QueryRunner.js')
             const db = new sqlite3.oo1.DB(':memory:', 'c')
             const hadUuid = db.selectObjects(uuidListed).length > 0
-            if (options?.before === 'ci_replace of my own') db.createFunction('ci_replace', () => 'mine', { arity: 3 })
+            if (options?.before === 'tsq_ci_replace of my own') db.createFunction('tsq_ci_replace', () => 'mine', { arity: 3 })
             if (options?.before === 'uuid of my own') db.createFunction('uuid', () => uuidOfMyOwn, { arity: 0 })
             registerSqliteFunctions(db, sqlite3, options?.skip ? { skip: options.skip } : undefined)
             return { all: (sql, ...params) => db.selectObjects(sql, params as never) as Rows, run: sql => { db.exec(sql) }, close: () => { db.close() }, hadUuid }
@@ -125,10 +125,10 @@ for (const driver of drivers) {
             }
         })
 
-        test('the-uuid-functions-and-ci_replace', async () => {
+        test('the-uuid-functions-and-tsq_ci_replace', async () => {
             const db = await driver.open()
             try {
-                const [row] = db.all("select uuid() as u, uuid_str(uuid_blob('{A0EEBC99-9C0B4EF8-BB6D-6BB9BD380A11}')) as s, typeof(uuid_blob('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11')) as t, uuid_blob('nope') as invalid, uuid_str(null) as n, ci_replace('Hello hello', 'HELLO', 'x') as r")
+                const [row] = db.all("select uuid() as u, uuid_str(uuid_blob('{A0EEBC99-9C0B4EF8-BB6D-6BB9BD380A11}')) as s, typeof(uuid_blob('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11')) as t, uuid_blob('nope') as invalid, uuid_str(null) as n, tsq_ci_replace('Hello hello', 'HELLO', 'x') as r")
                 // uuid() is the library's, a version 7 UUID, also where the database had the uuid extension's (version 4)
                 expect(row!['u']).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
                 expect({ ...row, u: undefined }).toEqual({ u: undefined, s: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', t: 'blob', invalid: null, n: null, r: 'x x' })
@@ -165,9 +165,9 @@ for (const driver of drivers) {
         })
 
         test('a-function-the-database-already-has-is-left-and-skip-leaves-out', async () => {
-            const mine = await driver.open({ before: 'ci_replace of my own' })
+            const mine = await driver.open({ before: 'tsq_ci_replace of my own' })
             try {
-                expect(mine.all("select ci_replace('Hello', 'h', 'x') as r, decimal_add('1', '2') as a")).toEqual([{ r: 'mine', a: '3' }])
+                expect(mine.all("select tsq_ci_replace('Hello', 'h', 'x') as r, decimal_add('1', '2') as a")).toEqual([{ r: 'mine', a: '3' }])
             } finally {
                 mine.close()
             }

@@ -15,7 +15,7 @@
  * - The functions of SQLite's uuid extension (ext/misc/uuid.c) the uuid strategy 'uuid-extension' writes: uuid,
  *   uuid_str and uuid_blob. uuid() generates a version 7 UUID (the extension generates a version 4), whose text and
  *   whose blob sort by the time they were generated.
- * - ci_replace, a case-insensitive replace, for the connections whose replaceAllInsensitiveFunction is 'ci_replace'.
+ * - tsq_ci_replace, a case-insensitive replace, for the connections whose replaceAllInsensitiveFunction is 'tsq_ci_replace'.
  * - tsq_duration_part, a part of the ISO 8601 text of a duration, to add or subtract a duration kept as its text.
  * - tsq_duration_text, the ISO 8601 text of a duration of its fields, to write a duration a query computes (until,
  *   since).
@@ -40,7 +40,7 @@
  * - registerSqliteFunctions reads the functions the database already has (pragma function_list) once, when it is
  *   called: it is a setup call the user makes, not a query added to the ones the user runs.
  * - A decimal function the database already has with the same name and number of arguments (the real decimal
- *   extension, written in C, exact and faster) is left as it is, and so is a ci_replace the user registered (it may
+ *   extension, written in C, exact and faster) is left as it is, and so is a tsq_ci_replace the user registered (it may
  *   be a replace on purpose different, like one aware of more of Unicode). The uuid functions are always registered,
  *   replacing the ones the database has: the SQLite of some platforms (macOS) ships the uuid extension, whose uuid()
  *   generates version 4 UUIDs, which don't sort by the time they were generated. The skip option keeps any of them.
@@ -897,7 +897,7 @@ export const sqliteScalarFunctions: readonly SqliteScalarFunction[] = [
     { name: 'uuid', arity: 0, deterministic: false, replacesExisting: true, fn: uuidV7 },
     { name: 'uuid_str', arity: 1, deterministic: pure, replacesExisting: true, fn: uuidStr as SqliteScalarFunction['fn'] },
     { name: 'uuid_blob', arity: 1, deterministic: pure, replacesExisting: true, fn: uuidBlob as SqliteScalarFunction['fn'] },
-    { name: 'ci_replace', arity: 3, deterministic: pure, fn: ciReplace as SqliteScalarFunction['fn'] },
+    { name: 'tsq_ci_replace', arity: 3, deterministic: pure, fn: ciReplace as SqliteScalarFunction['fn'] },
     { name: 'tsq_duration_part', arity: 2, deterministic: pure, fn: durationPart as SqliteScalarFunction['fn'] },
     { name: 'tsq_duration_text', arity: 6, deterministic: pure, fn: durationText as SqliteScalarFunction['fn'] },
     { name: 'tsq_duration_round', arity: 13, deterministic: pure, fn: durationRound as SqliteScalarFunction['fn'] },

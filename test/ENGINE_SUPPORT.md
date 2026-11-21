@@ -1214,12 +1214,12 @@ When the rows of a recursive `with` form a cycle, Oracle answers `ORA-32044: cyc
 ### `replaceAllInsensitiveFunction`'s UDF cannot be registered on Bun SQL
 
 `replaceAllInsensitiveFunction` lets a SQLite connection route
-`replaceAllInsensitive` through a case-folding user-defined function (`ci_replace`).
+`replaceAllInsensitive` through a case-folding user-defined function (`tsq_ci_replace`).
 Registering that UDF needs a driver-level user-defined-function API. **better-sqlite3**,
 **bun:sqlite** (`Database.function`, Bun 1.4+), **node:sqlite** and **sqlite-wasm**
 expose one and run the test live; Bun SQL's sqlite adapter (no UDF API, and it does not
 expose the `bun:sqlite` `Database` it opens) does not, so
-`ci_replace` cannot be registered there. This is **within-dialect divergence** across SQLite runners, so it is a
+`tsq_ci_replace` cannot be registered there. This is **within-dialect divergence** across SQLite runners, so it is a
 per-runner boundary, not a dialect frontier — and only that driver growing a
 UDF-registration API would close it. The `replaceAllInsensitiveFunction` test is
 commented with `// NOT-SUPPORTED:` (full canonical body preserved) on `bun_sql_sqlite`

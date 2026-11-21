@@ -263,12 +263,12 @@ GO
 -- name them. A scalar function is not polymorphic, so `float` covers the numeric operands
 -- (int / bigint widen to it), and the `CASE` comparison works on every SQL Server version.
 -- These are the same helpers the docs (sqlserver.md) tell users to create.
-IF OBJECT_ID('greatest_strict', 'FN') IS NOT NULL DROP FUNCTION greatest_strict;
-IF OBJECT_ID('least_strict',    'FN') IS NOT NULL DROP FUNCTION least_strict;
+IF OBJECT_ID('tsq_greatest_strict', 'FN') IS NOT NULL DROP FUNCTION tsq_greatest_strict;
+IF OBJECT_ID('tsq_least_strict',    'FN') IS NOT NULL DROP FUNCTION tsq_least_strict;
 GO
-CREATE FUNCTION greatest_strict(@a FLOAT, @b FLOAT) RETURNS FLOAT AS BEGIN RETURN CASE WHEN @a IS NULL OR @b IS NULL THEN NULL WHEN @a >= @b THEN @a ELSE @b END END;
+CREATE FUNCTION tsq_greatest_strict(@a FLOAT, @b FLOAT) RETURNS FLOAT AS BEGIN RETURN CASE WHEN @a IS NULL OR @b IS NULL THEN NULL WHEN @a >= @b THEN @a ELSE @b END END;
 GO
-CREATE FUNCTION least_strict(@a FLOAT, @b FLOAT) RETURNS FLOAT AS BEGIN RETURN CASE WHEN @a IS NULL OR @b IS NULL THEN NULL WHEN @a <= @b THEN @a ELSE @b END END;
+CREATE FUNCTION tsq_least_strict(@a FLOAT, @b FLOAT) RETURNS FLOAT AS BEGIN RETURN CASE WHEN @a IS NULL OR @b IS NULL THEN NULL WHEN @a <= @b THEN @a ELSE @b END END;
 GO
 
 -- Constant-returning functions, one per remaining executeFunction return kind.

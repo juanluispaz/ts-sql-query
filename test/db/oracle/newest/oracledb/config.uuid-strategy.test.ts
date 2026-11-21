@@ -7,11 +7,10 @@
 //   - `'string'`: uuids are plain TEXT — `_asString` and the param/column
 //     hooks return the underlying SQL unchanged (no `raw_to_uuid` /
 //     `uuid_to_raw` wrapping).
-//   - `'custom-functions'`: identical EMITTED SQL to `'built-in'` (both go
-//     through `_uuidUsesRawFunctions()`), so it wraps with the same
-//     `raw_to_uuid` / `uuid_to_raw` user-defined functions — this pins that
-//     the `custom-functions` arm routes through the raw-function path (vs the
-//     plain-text `'string'` arm above).
+//   - `'custom-functions'`: the same RAW(16), through the functions of the
+//     library `tsq_uuid_to_raw` / `tsq_raw_to_uuid`, which take any version of
+//     uuid: a version 7 uuid, which Oracle's own `uuid_to_raw` rejects, goes
+//     there and back.
 //
 // `ctx.withUuidStrategy(...)` returns a `DBConnection` whose `uuidStrategy`
 // is pinned to the requested value while sharing `ctx.conn`'s underlying
@@ -62,16 +61,18 @@ describe(ctx.label, () => {
         `)
     })
 
-    test('uuid-strategy: custom-functions wraps asString in raw_to_uuid/uuid_to_raw', async () => {
+    test('uuid-strategy: custom-functions wraps asString in the functions of the library', async () => {
         const conn = ctx.withUuidStrategy('custom-functions')
-        ctx.mockNext(UUID_VALUE)
-        await conn.selectFromNoTable()
-            .selectOneColumn(conn.const(UUID_VALUE, 'uuid').asString())
+        const v7 = '018f3a2b-7c4d-7e5f-8a6b-1c2d3e4f5a6b'
+        ctx.mockNext(v7)
+        const read = await conn.selectFromNoTable()
+            .selectOneColumn(conn.const(v7, 'uuid').asString())
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select raw_to_uuid(uuid_to_raw(:0)) as "result" from dual"`)
+        expect(read).toBe(v7)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_raw_to_uuid(tsq_uuid_to_raw(:0)) as "result" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "123e4567-e89b-42d3-a456-426614174000",
+            "018f3a2b-7c4d-7e5f-8a6b-1c2d3e4f5a6b",
           ]
         `)
     })

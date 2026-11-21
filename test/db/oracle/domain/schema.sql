@@ -235,19 +235,19 @@ CREATE OR REPLACE FUNCTION estimated_total(p_id IN NUMBER) RETURN BINARY_DOUBLE 
 -- and with only the (VARCHAR2,VARCHAR2) and (CLOB,CLOB) pair Oracle cannot resolve it
 -- (ORA-06553: too many declarations match this call). NVARCHAR2 / NCLOB reach these
 -- through implicit conversion.
-CREATE OR REPLACE PACKAGE string_util AS
+CREATE OR REPLACE PACKAGE tsq_string_util AS
     FUNCTION concat_strict(a IN VARCHAR2, b IN VARCHAR2) RETURN VARCHAR2;
     FUNCTION concat_strict(a IN CLOB, b IN CLOB) RETURN CLOB;
     FUNCTION concat_strict(a IN CLOB, b IN VARCHAR2) RETURN CLOB;
     FUNCTION concat_strict(a IN VARCHAR2, b IN CLOB) RETURN CLOB;
-END string_util;
+END tsq_string_util;
 
-CREATE OR REPLACE PACKAGE BODY string_util AS
+CREATE OR REPLACE PACKAGE BODY tsq_string_util AS
     FUNCTION concat_strict(a IN VARCHAR2, b IN VARCHAR2) RETURN VARCHAR2 IS BEGIN IF a IS NULL OR b IS NULL THEN RETURN NULL; END IF; RETURN a || b; END;
     FUNCTION concat_strict(a IN CLOB, b IN CLOB) RETURN CLOB IS BEGIN IF a IS NULL OR b IS NULL THEN RETURN NULL; END IF; RETURN a || b; END;
     FUNCTION concat_strict(a IN CLOB, b IN VARCHAR2) RETURN CLOB IS BEGIN IF a IS NULL OR b IS NULL THEN RETURN NULL; END IF; RETURN a || b; END;
     FUNCTION concat_strict(a IN VARCHAR2, b IN CLOB) RETURN CLOB IS BEGIN IF a IS NULL OR b IS NULL THEN RETURN NULL; END IF; RETURN a || b; END;
-END string_util;
+END tsq_string_util;
 
 -- Constant-returning functions, one per remaining executeFunction return kind.
 -- Oracle has no TIME type (localTime rides in a TIMESTAMP) and no SQL boolean
@@ -1084,4 +1084,19 @@ BEGIN
     v_total := (days1 + sgn * days2) * v_day + (seconds1 + sgn * seconds2) * 1000000000 + nanoseconds1 + sgn * nanoseconds2;
     IF v_largest = 3 THEN v_days := TRUNC(v_total / v_day); END IF;
     RETURN tsq_duration_text(0, 0, 0, v_days, v_total - v_days * v_day, CASE WHEN v_largest <= 4 THEN 'hour' WHEN v_largest = 5 THEN 'minute' ELSE 'second' END);
+END;
+
+-- tsq_uuid_to_raw and tsq_raw_to_uuid: a uuid and its RAW(16), the 16 bytes as they are (any version of uuid, any
+-- Oracle), the functions of the library that uuidStrategy 'custom-functions' calls; the text read is in lower case.
+CREATE OR REPLACE FUNCTION tsq_uuid_to_raw(uuid IN VARCHAR2) RETURN RAW DETERMINISTIC IS
+BEGIN
+    RETURN HEXTORAW(REPLACE(uuid, '-'));
+END;
+
+CREATE OR REPLACE FUNCTION tsq_raw_to_uuid(raw_uuid IN RAW) RETURN VARCHAR2 DETERMINISTIC IS
+    hex_text VARCHAR2(32);
+BEGIN
+    IF raw_uuid IS NULL THEN RETURN NULL; END IF;
+    hex_text := LOWER(RAWTOHEX(raw_uuid));
+    RETURN SUBSTR(hex_text, 1, 8) || '-' || SUBSTR(hex_text, 9, 4) || '-' || SUBSTR(hex_text, 13, 4) || '-' || SUBSTR(hex_text, 17, 4) || '-' || SUBSTR(hex_text, 21);
 END;

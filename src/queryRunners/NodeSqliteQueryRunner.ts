@@ -159,8 +159,8 @@ export class NodeSqliteQueryRunner extends SqlTransactionQueryRunner {
  * Registers on the database the SQL functions the library may write on SQLite, so they are always available: the
  * functions of SQLite's decimal extension and the library's own ones (tsq_) the decimal strategies of
  * SqliteConnection write, uuid, uuid_str and uuid_blob for the uuid strategy 'uuid-extension' (uuid() generates a
- * version 7 UUID), and ci_replace (for replaceAllInsensitiveFunction = 'ci_replace'). Every function but uuid() is
- * registered as deterministic, so it can be used in an index on an expression. A decimal function or a ci_replace the
+ * version 7 UUID), and tsq_ci_replace (for replaceAllInsensitiveFunction = 'tsq_ci_replace'). Every function but uuid() is
+ * registered as deterministic, so it can be used in an index on an expression. A decimal function or a tsq_ci_replace the
  * database already has with the same name and number of arguments (a loaded extension, like SQLite's decimal
  * extension, or one you registered before) is left as it is: the call reads the functions of the database (pragma
  * function_list) once, before registering. The uuid functions are always registered, replacing the ones the database

@@ -85,6 +85,16 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         const strategy = this._connectionConfiguration.uuidStrategy
         return strategy === 'string as sent' ? 'string' : strategy as any || 'built-in'
     }
+    /**
+     * The functions that convert a uuid to its RAW(16) and back: Oracle's own UUID_TO_RAW and RAW_TO_UUID (from 23.9,
+     * version 4 uuids only) with 'built-in', the ones of the library with 'custom-functions' (any version, any Oracle)
+     */
+    _uuidToRawFunction(): string {
+        return this._getUuidStrategy() === 'custom-functions' ? 'tsq_uuid_to_raw' : 'uuid_to_raw'
+    }
+    _rawToUuidFunction(): string {
+        return this._getUuidStrategy() === 'custom-functions' ? 'tsq_raw_to_uuid' : 'raw_to_uuid'
+    }
     _uuidUsesRawFunctions(): boolean {
         const strategy = this._getUuidStrategy()
         return strategy === 'custom-functions' || strategy === 'built-in'
@@ -698,14 +708,14 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     }
     override _appendParam(value: any, context: SqlBuildContext, typeClass: DataTypeClass, forceTypeCast: boolean): string {
         if (__sqlFamilyOf(typeClass) === 'uuid' && this._uuidUsesRawFunctions()) {
-            return 'uuid_to_raw(' + super._appendParam(value, context, typeClass, forceTypeCast) + ')'
+            return this._uuidToRawFunction() + '(' + super._appendParam(value, context, typeClass, forceTypeCast) + ')'
         }
         return super._appendParam(value, context, typeClass, forceTypeCast)
     }
     override _appendColumnValue(value: AnyValueSource, context: SqlBuildContext, isOutermostQuery: boolean): string {
         if (isOutermostQuery && this._uuidUsesRawFunctions()) {
             if (__isUuidValueSource(__asNodeValueSource(value))) {
-                return 'raw_to_uuid(' + this._appendSql(value, context, false) + ')'
+                return this._rawToUuidFunction() + '(' + this._appendSql(value, context, false) + ')'
             }
         }
         return this._appendSql(value, context, false)
@@ -716,7 +726,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             // No conversion required
             return this._appendSql(valueSource, context, false)
         }
-        return 'raw_to_uuid(' + this._appendSql(valueSource, context, false) + ')'
+        return this._rawToUuidFunction() + '(' + this._appendSql(valueSource, context, false) + ')'
     }
     override _appendCompoundOperator(compoundOperator: CompoundOperator, _context: SqlBuildContext): string {
         switch(compoundOperator) {
@@ -2125,7 +2135,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         const distict = aggregatedArrayDistinct ? 'distinct ' : ''
         if (isValueSource(aggregatedArrayColumns)) {
             if (__isUuidValueSource(__asNodeValueSource(aggregatedArrayColumns)) && this._uuidUsesRawFunctions()) {
-                return 'json_arrayagg(' + distict + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, 'raw_to_uuid(' + this._appendSql(aggregatedArrayColumns, context, false) + ')', context) + ')'
+                return 'json_arrayagg(' + distict + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, this._rawToUuidFunction() + '(' + this._appendSql(aggregatedArrayColumns, context, false) + ')', context) + ')'
             }
             return 'json_arrayagg(' + distict + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, this._appendSql(aggregatedArrayColumns, context, false), context) + ')'
         } else {
@@ -2140,7 +2150,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 result += "'" + prop + "' value "
                 const column = columns[prop]!
                 if (__isUuidValueSource(__asNodeValueSource(column)) && this._uuidUsesRawFunctions()) {
-                    result += this._appendAggregatedArrayValueProjection(column, 'raw_to_uuid(' + this._appendSql(column, context, false) + ')', context)
+                    result += this._appendAggregatedArrayValueProjection(column, this._rawToUuidFunction() + '(' + this._appendSql(column, context, false) + ')', context)
                 } else {
                     result += this._appendAggregatedArrayValueProjection(column, this._appendSql(column, context, false), context)
                 }
@@ -2152,7 +2162,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     override _appendAggregateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, context: SqlBuildContext, aggregateId: number): string {
         if (isValueSource(aggregatedArrayColumns)) {
             if (__isUuidValueSource(__asNodeValueSource(aggregatedArrayColumns)) && this._uuidUsesRawFunctions()) {
-                return 'json_arrayagg(' + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, 'raw_to_uuid(a_' + aggregateId + '_.result)', context) + ')'
+                return 'json_arrayagg(' + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, this._rawToUuidFunction() + '(a_' + aggregateId + '_.result)', context) + ')'
             }
             return 'json_arrayagg(' + this._appendAggregatedArrayValueProjection(aggregatedArrayColumns, 'a_' + aggregateId + '_.result', context) + ')'
         } else {
@@ -2167,7 +2177,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 result += "'" + prop + "' value "
                 const column = columns[prop]!
                 if (__isUuidValueSource(__asNodeValueSource(column)) && this._uuidUsesRawFunctions()) {
-                    result += this._appendAggregatedArrayValueProjection(column, 'raw_to_uuid(a_' + aggregateId + '_.' + this._escape(prop, true) + ')', context)
+                    result += this._appendAggregatedArrayValueProjection(column, this._rawToUuidFunction() + '(a_' + aggregateId + '_.' + this._escape(prop, true) + ')', context)
                 } else {
                     result += this._appendAggregatedArrayValueProjection(column, 'a_' + aggregateId + '_.' + this._escape(prop, true), context)
                 }

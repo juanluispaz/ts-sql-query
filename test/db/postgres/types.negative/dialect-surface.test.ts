@@ -64,7 +64,7 @@ function _typeNegatives() {
 
         // Rule: the insensitive replace function is not configurable on PostgreSqlConnection.
         // @ts-expect-error replaceAllInsensitiveFunction is not declared on PostgreSqlConnection
-        protected override replaceAllInsensitiveFunction = 'ci_replace'
+        protected override replaceAllInsensitiveFunction = 'tsq_ci_replace'
 
         // Rule: PostgreSQL stores date/time values in a date/time data type, so the integer
         // reading rule is not part of PostgreSqlConnection.

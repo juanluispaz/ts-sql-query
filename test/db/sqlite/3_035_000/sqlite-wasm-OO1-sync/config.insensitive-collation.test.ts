@@ -224,16 +224,16 @@ describe(ctx.label, () => {
     })
 
     test('replaceAllInsensitiveFunction routes through the named UDF', async () => {
-        // With `replaceAllInsensitiveFunction = 'ci_replace'`, `replaceAllInsensitive`
-        // emits `ci_replace(?, ?, ?)` instead of the case-sensitive `replace(...)`
-        // fallback. `ci_replace` folds case, so 'ABCabc' with 'abc' → 'X' rewrites both
+        // With `replaceAllInsensitiveFunction = 'tsq_ci_replace'`, `replaceAllInsensitive`
+        // emits `tsq_ci_replace(?, ?, ?)` instead of the case-sensitive `replace(...)`
+        // fallback. `tsq_ci_replace` folds case, so 'ABCabc' with 'abc' → 'X' rewrites both
         // 'ABC' and 'abc' → 'XX'.
                 ctx.mockNext([{ v: 'XX' }])
-const conn = ctx.withReplaceAllInsensitiveFunction('ci_replace')
+const conn = ctx.withReplaceAllInsensitiveFunction('tsq_ci_replace')
         const rows = sync(conn.selectFromNoTable()
             .select({ v: conn.const('ABCabc', 'string').replaceAllInsensitive('abc', 'X') })
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ci_replace(?1, ?2, ?3) as v"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_ci_replace(?1, ?2, ?3) as v"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ABCabc",

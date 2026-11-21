@@ -7,7 +7,7 @@
 // select.value-source.greatest-least.test.ts). This file pins the two escape hatches:
 //   - `ignoreNullInMinAndMaxValue = true` — keep the bare native form (ignores NULL).
 //   - `minValueFunction` / `maxValueFunction` — a user null-propagating function, emitted
-//     as `func(a, b)` (no operand repetition). `greatest_strict` / `least_strict` are
+//     as `func(a, b)` (no operand repetition). `tsq_greatest_strict` / `tsq_least_strict` are
 //     created by the schema (domain/schema.sql) — the same helpers the docs tell users to
 //     create.
 //
@@ -55,7 +55,7 @@ describe(ctx.label, () => {
         // With the opt-in, the emitted SQL calls the user function once per operand (no
         // repetition), and a NULL row (issue 3) poisons to NULL — matching the default
         // CASE, without repeating the operand.
-        const conn = ctx.withMinMaxFunctions('greatest_strict', 'least_strict')
+        const conn = ctx.withMinMaxFunctions('tsq_greatest_strict', 'tsq_least_strict')
         const expected = [
             { id: 1, floored: 5,         capped: 1 },
             { id: 2, floored: 5,         capped: 2 },
@@ -67,7 +67,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id, floored: tIssue.assigneeId.minValue(5), capped: tIssue.assigneeId.maxValue(5) })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, greatest_strict(assignee_id, $1) as floored, least_strict(assignee_id, $2) as capped from issue order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, tsq_greatest_strict(assignee_id, $1) as floored, tsq_least_strict(assignee_id, $2) as capped from issue order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             5,

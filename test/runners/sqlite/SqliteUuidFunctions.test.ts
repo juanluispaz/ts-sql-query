@@ -60,7 +60,7 @@ describe.skipIf('reason' in extension)('SQLite: the JavaScript uuid functions gi
         both.loadExtension(extensionPath())
         registerSqliteFunctions(both)
         expect(both.prepare('select substr(uuid(), 15, 1) as version').get()).toEqual({ version: '7' })
-        expect(both.prepare("select ci_replace('Hello', 'h', 'x') as r").get()).toEqual({ r: 'xello' })
+        expect(both.prepare("select tsq_ci_replace('Hello', 'h', 'x') as r").get()).toEqual({ r: 'xello' })
         both.close()
         // With skip, the extension's are kept
         const kept = new Database(':memory:')

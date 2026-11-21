@@ -222,15 +222,15 @@ describe(ctx.label, () => {
     })
 
 
-    // NOT-SUPPORTED: Bun SQL's sqlite adapter exposes neither a user-defined-function API nor its bun:sqlite `Database`, so the ci_replace UDF can't be registered
+    // NOT-SUPPORTED: Bun SQL's sqlite adapter exposes neither a user-defined-function API nor its bun:sqlite `Database`, so the tsq_ci_replace UDF can't be registered
     /*
     test('replaceAllInsensitiveFunction routes through the named UDF', async () => {
-        // With `replaceAllInsensitiveFunction = 'ci_replace'`, `replaceAllInsensitive`
-        // emits `ci_replace(?, ?, ?)` instead of the case-sensitive `replace(...)`
-        // fallback. `ci_replace` folds case, so 'ABCabc' with 'abc' → 'X' rewrites both
+        // With `replaceAllInsensitiveFunction = 'tsq_ci_replace'`, `replaceAllInsensitive`
+        // emits `tsq_ci_replace(?, ?, ?)` instead of the case-sensitive `replace(...)`
+        // fallback. `tsq_ci_replace` folds case, so 'ABCabc' with 'abc' → 'X' rewrites both
         // 'ABC' and 'abc' → 'XX'.
                 ctx.mockNext([{ v: 'XX' }])
-const conn = ctx.withReplaceAllInsensitiveFunction('ci_replace')
+const conn = ctx.withReplaceAllInsensitiveFunction('tsq_ci_replace')
         const rows = await conn.selectFromNoTable()
             .select({ v: conn.const('ABCabc', 'string').replaceAllInsensitive('abc', 'X') })
             .executeSelectMany()

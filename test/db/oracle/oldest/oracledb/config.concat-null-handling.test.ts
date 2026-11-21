@@ -12,7 +12,7 @@
 //     build-time optionality (required operands stay the bare `||`), matching the other dialects.
 //   - `ignoreNullInConcat = true` — keep the bare native `||` (Oracle's own ignore-NULL semantics).
 //   - `concatFunction` — route every concatenation through a user null-propagating function,
-//     which poisons NULL itself without repeating the operand. `string_util.concat_strict` is
+//     which poisons NULL itself without repeating the operand. `tsq_string_util.concat_strict` is
 //     created by the schema (domain/schema.sql) — the same helper the docs tell users to create.
 //
 // A subclass of `DBConnection` sets the option while sharing `ctx.conn`'s CaptureInterceptor, so
@@ -282,14 +282,14 @@ describe(ctx.label, () => {
     test('concatFunction: concat on a null receiver answers null', async () => {
         // `body` is NULL on issue 1, and the result type is optional — which is what the
         // other databases answer. The function propagates NULL without repeating the operand.
-        const conn = ctx.withConcatFunction('string_util.concat_strict')
+        const conn = ctx.withConcatFunction('tsq_string_util.concat_strict')
         const expected = [{ id: 1 }]
         ctx.mockNext(expected)
         const rows = await conn.selectFrom(tIssue)
             .where(tIssue.id.equals(1))
             .select({ id: tIssue.id, tagged: tIssue.body.concat('!') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", string_util.concat_strict("body", :0) as "tagged" from issue where id = :1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", tsq_string_util.concat_strict("body", :0) as "tagged" from issue where id = :1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "!",
@@ -301,14 +301,14 @@ describe(ctx.label, () => {
     })
 
     test('concatFunction: concat on a present receiver is unchanged', async () => {
-        const conn = ctx.withConcatFunction('string_util.concat_strict')
+        const conn = ctx.withConcatFunction('tsq_string_util.concat_strict')
         const expected = [{ id: 2, tagged: 'Use new tokens!' }]
         ctx.mockNext(expected)
         const rows = await conn.selectFrom(tIssue)
             .where(tIssue.id.equals(2))
             .select({ id: tIssue.id, tagged: tIssue.body.concat('!') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", string_util.concat_strict("body", :0) as "tagged" from issue where id = :1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", tsq_string_util.concat_strict("body", :0) as "tagged" from issue where id = :1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "!",
@@ -323,14 +323,14 @@ describe(ctx.label, () => {
         // The half that silently corrupts a result set: with `||`, `title like (NULL || '%')`
         // is `title like '%'` and every issue comes back. Routing through the function makes the
         // pattern NULL, so nothing matches — which is what every other database does.
-        const conn = ctx.withConcatFunction('string_util.concat_strict')
+        const conn = ctx.withConcatFunction('tsq_string_util.concat_strict')
         const expected: Array<{ id: number }> = []
         ctx.mockNext(expected)
         const rows = await conn.selectFrom(tIssue)
             .where(tIssue.title.startsWith(tIssue.body))
             .select({ id: tIssue.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where title like string_util.concat_strict(replace(replace(replace("body", '\\', '\\\\'), '%', '\\%'), '_', '\\_'), '%') escape '\\'"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where title like tsq_string_util.concat_strict(replace(replace(replace("body", '\\', '\\\\'), '%', '\\%'), '_', '\\_'), '%') escape '\\'"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
         expect(rows).toEqual(expected)
@@ -338,14 +338,14 @@ describe(ctx.label, () => {
 
     test('concatFunction: an affix predicate on a present term still matches', async () => {
         // The function must not disable the predicate — only the NULL case changes.
-        const conn = ctx.withConcatFunction('string_util.concat_strict')
+        const conn = ctx.withConcatFunction('tsq_string_util.concat_strict')
         const expected = [{ id: 2 }]
         ctx.mockNext(expected)
         const rows = await conn.selectFrom(tIssue)
             .where(tIssue.title.startsWith('Redesign'))
             .select({ id: tIssue.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where title like string_util.concat_strict(:0, '%') escape '\\'"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where title like tsq_string_util.concat_strict(:0, '%') escape '\\'"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "Redesign",
@@ -356,14 +356,14 @@ describe(ctx.label, () => {
     })
 
     test('concatFunction: contains glues the wildcard on both sides through the function', async () => {
-        const conn = ctx.withConcatFunction('string_util.concat_strict')
+        const conn = ctx.withConcatFunction('tsq_string_util.concat_strict')
         const expected = [{ id: 2 }]
         ctx.mockNext(expected)
         const rows = await conn.selectFrom(tIssue)
             .where(tIssue.title.contains('design'))
             .select({ id: tIssue.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where title like string_util.concat_strict(string_util.concat_strict('%', :0), '%') escape '\\'"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where title like tsq_string_util.concat_strict(tsq_string_util.concat_strict('%', :0), '%') escape '\\'"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "design",
@@ -377,14 +377,14 @@ describe(ctx.label, () => {
         // `||` is an operator, so a concat embedded in a larger expression is wrapped —
         // `(title || :0) = :1`. The function is not an operator: it already stands alone,
         // and wrapping it would only add noise. A nested concat is not wrapped either.
-        const conn = ctx.withConcatFunction('string_util.concat_strict')
+        const conn = ctx.withConcatFunction('tsq_string_util.concat_strict')
         const expected = [{ id: 2 }]
         ctx.mockNext(expected)
         const rows = await conn.selectFrom(tIssue)
             .where(tIssue.title.concat('!').equals('Redesign navbar!'))
             .select({ id: tIssue.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where string_util.concat_strict(title, :0) = :1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where tsq_string_util.concat_strict(title, :0) = :1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "!",
@@ -396,14 +396,14 @@ describe(ctx.label, () => {
     })
 
     test('concatFunction: a chained concat nests the function calls', async () => {
-        const conn = ctx.withConcatFunction('string_util.concat_strict')
+        const conn = ctx.withConcatFunction('tsq_string_util.concat_strict')
         const expected = [{ id: 2, v: 'Redesign navbarab' }]
         ctx.mockNext(expected)
         const rows = await conn.selectFrom(tIssue)
             .where(tIssue.id.equals(2))
             .select({ id: tIssue.id, v: tIssue.title.concat('a').concat('b') })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", string_util.concat_strict(string_util.concat_strict(title, :0), :1) as "v" from issue where id = :2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", tsq_string_util.concat_strict(tsq_string_util.concat_strict(title, :0), :1) as "v" from issue where id = :2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "a",
@@ -480,14 +480,14 @@ describe(ctx.label, () => {
     })
 
     test('concatFunction: endsWith glues the wildcard on the left through the function', async () => {
-        const conn = ctx.withConcatFunction('string_util.concat_strict')
+        const conn = ctx.withConcatFunction('tsq_string_util.concat_strict')
         const expected = [{ id: 2 }]
         ctx.mockNext(expected)
         const rows = await conn.selectFrom(tIssue)
             .where(tIssue.title.endsWith('navbar'))
             .select({ id: tIssue.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where title like string_util.concat_strict('%', :0) escape '\\'"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where title like tsq_string_util.concat_strict('%', :0) escape '\\'"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "navbar",
@@ -501,7 +501,7 @@ describe(ctx.label, () => {
         // startsWith / endsWith / contains insensitive: each pattern is glued
         // through the function and lowered. Only issue 2 ('Redesign navbar')
         // matches all three.
-        const conn = ctx.withConcatFunction('string_util.concat_strict')
+        const conn = ctx.withConcatFunction('tsq_string_util.concat_strict')
         const expected = [{ id: 2 }]
         ctx.mockNext(expected)
         const rows = await conn.selectFrom(tIssue)
@@ -510,7 +510,7 @@ describe(ctx.label, () => {
             .and(tIssue.title.containsInsensitive('SIGN'))
             .select({ id: tIssue.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where lower(title) like lower(string_util.concat_strict(:0, '%')) escape '\\' and lower(title) like lower(string_util.concat_strict('%', :1)) escape '\\' and lower(title) like lower(string_util.concat_strict(string_util.concat_strict('%', :2), '%')) escape '\\'"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where lower(title) like lower(tsq_string_util.concat_strict(:0, '%')) escape '\\' and lower(title) like lower(tsq_string_util.concat_strict('%', :1)) escape '\\' and lower(title) like lower(tsq_string_util.concat_strict(tsq_string_util.concat_strict('%', :2), '%')) escape '\\'"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "REDESIGN",

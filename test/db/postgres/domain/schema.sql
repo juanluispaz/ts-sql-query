@@ -246,13 +246,13 @@ LANGUAGE sql AS $$ SELECT COALESCE(SUM(estimated_hours), 0)::double precision FR
 -- function form over the CASE the builder emits by default can name them. `anycompatible`
 -- keeps the operand's numeric type (int stays int, double stays double) — the same helper
 -- the docs (postgresql.md) tell users to create.
-DROP FUNCTION IF EXISTS greatest_strict(anycompatible, anycompatible);
-DROP FUNCTION IF EXISTS least_strict(anycompatible, anycompatible);
+DROP FUNCTION IF EXISTS tsq_greatest_strict(anycompatible, anycompatible);
+DROP FUNCTION IF EXISTS tsq_least_strict(anycompatible, anycompatible);
 
-CREATE FUNCTION greatest_strict(a anycompatible, b anycompatible) RETURNS anycompatible
+CREATE FUNCTION tsq_greatest_strict(a anycompatible, b anycompatible) RETURNS anycompatible
 LANGUAGE sql IMMUTABLE AS $$ SELECT CASE WHEN a IS NULL OR b IS NULL THEN NULL ELSE greatest(a, b) END $$;
 
-CREATE FUNCTION least_strict(a anycompatible, b anycompatible) RETURNS anycompatible
+CREATE FUNCTION tsq_least_strict(a anycompatible, b anycompatible) RETURNS anycompatible
 LANGUAGE sql IMMUTABLE AS $$ SELECT CASE WHEN a IS NULL OR b IS NULL THEN NULL ELSE least(a, b) END $$;
 
 -- Constant-returning functions, one per remaining executeFunction return kind

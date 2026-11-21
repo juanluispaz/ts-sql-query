@@ -4,6 +4,7 @@ import type { NAggregate, NConnection, NSource } from '../utils/sourceName.js'
 import { argumentNumber, integerDigits, nativeNameFor, nativeTypeParts } from '../utils/sqlDataTypeNames.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import { OracleSqlBuilder, oracleZonedValueSql } from '../sqlBuilders/OracleSqlBuilder.js'
+import { oracleUtcOfInstantOfUtc } from '../utils/oracle/oracleInstantSql.js'
 import { AbstractAdvancedConnection } from './AbstractAdvancedConnection.js'
 import type { TransactionIsolationLevel } from './AbstractConnection.js'
 import type { source } from '../utils/symbols.js'
@@ -263,7 +264,9 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
             // A value without zone is completed with the zone of the session (the zone of the database). It compares
             // like the value but doesn't order like it (a year BC)
             context.comparison = 'equality'
-            return "to_char(sys_extract_utc(cast(" + sql + " as timestamp(9) with time zone)), 'YYYY-MM-DD\"T\"HH24:MI:SS.FF9\"Z\" BC', 'NLS_DATE_LANGUAGE=AMERICAN')"
+            // An instant the query computed in UTC is that date and time (see oracleUtcOfInstantOfUtc)
+            const utc = oracleUtcOfInstantOfUtc(sql) ?? 'sys_extract_utc(cast(' + sql + ' as timestamp(9) with time zone))'
+            return "to_char(" + utc + ", 'YYYY-MM-DD\"T\"HH24:MI:SS.FF9\"Z\" BC', 'NLS_DATE_LANGUAGE=AMERICAN')"
         }
         if (this.isDatabaseOutsideUtc()) {
             const zoned = oracleZonedValueSql(sql, context.requestedType, this.dateToConvertTimesBetweenZones)

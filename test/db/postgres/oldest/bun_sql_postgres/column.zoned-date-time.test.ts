@@ -406,6 +406,50 @@ describe(ctx.label, () => {
         expect([failure, hours.toString()]).toEqual([ctx.realDbEnabled, zoned[1]!.until(madrid).toString()])
     })
 
+    test('a-zoned-date-and-time-kept-and-computed-with-the-zones', async () => {
+        // A column that keeps its RFC 9557 text, computed with the rules of its zone: row 1 plus a day is 02:30 on the next
+        // day, an hour later in UTC, as Madrid goes back an hour. A value sent is the text of Temporal's toString, and
+        // one computed in the query is kept as its instant in UTC with a Z; they are ordered by their instant
+        const kept = [
+            Temporal.ZonedDateTime.from('2024-10-27T02:30:00.123456+02:00[Europe/Madrid]'),
+            Temporal.ZonedDateTime.from('2024-01-14T14:45:30.123456+05:30[Asia/Kolkata]'),
+            Temporal.ZonedDateTime.from('1969-07-20T15:17:40-05:00[-05:00]'),
+        ]
+        const summer = Temporal.ZonedDateTime.from('2024-07-01T12:00:00.987654+02:00[Europe/Madrid]')
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tZonedValue).set({ zonedAt: summer }).where(tZonedValue.id.equals(3)).executeUpdate()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update zoned_value set zoned_at = $1 where id = $2"`)
+            expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
+              [
+                "2024-07-01T12:00:00.987654+02:00[Europe/Madrid]",
+                "3",
+              ]
+            `)
+            ctx.mockNext(1)
+            await ctx.conn.update(tZonedValue).set({ zonedAt: tZonedValue.zonedAt.add({ days: 1 }) }).where(tZonedValue.id.equals(1)).executeUpdate()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update zoned_value set zoned_at = (to_char(((((split_part(zoned_at, '[', 1)::timestamptz at time zone (case when rtrim(split_part(zoned_at, '[', 2), ']') ~ '^[+-]' then translate(rtrim(split_part(zoned_at, '[', 2), ']'), '+-', '-+') else rtrim(split_part(zoned_at, '[', 2), ']') end)) + make_interval(days => $1)) at time zone (case when rtrim(split_part(zoned_at, '[', 2), ']') ~ '^[+-]' then translate(rtrim(split_part(zoned_at, '[', 2), ']'), '+-', '-+') else rtrim(split_part(zoned_at, '[', 2), ']') end))) at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') || '[' || rtrim(split_part(zoned_at, '[', 2), ']') || ']') where id = $2"`)
+            const expected = [kept[0]!.add({ days: 1 }), kept[1]!, summer]
+            const ordered = expected.map((value, i) => ({ id: i + 1, value })).sort((a, b) => Temporal.ZonedDateTime.compare(a.value, b.value))
+            ctx.mockNext(ordered.map(({ id, value }) => ({
+                id, zonedAt: value.toInstant().toString() + ' AD[' + value.timeZoneId + ']', hour: value.hour,
+                inTokyo: value.toInstant().toString() + ' AD[Asia/Tokyo]', hoursInDay: value.hoursInDay,
+            })))
+            const rows = await ctx.conn.selectFrom(tZonedValue)
+                .select({
+                    id: tZonedValue.id,
+                    zonedAt: tZonedValue.zonedAt,
+                    hour: tZonedValue.zonedAt.hour(),
+                    inTokyo: tZonedValue.zonedAt.withTimeZone('Asia/Tokyo'),
+                    hoursInDay: tZonedValue.zonedAt.hoursInDay(),
+                })
+                .orderBy('zonedAt')
+                .executeSelectMany()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, to_char((split_part(zoned_at, '[', 1)::timestamptz) at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z" BC') || '[' || rtrim(split_part(zoned_at, '[', 2), ']') || ']' as "zonedAt", extract(hour from (split_part(zoned_at, '[', 1)::timestamptz at time zone (case when rtrim(split_part(zoned_at, '[', 2), ']') ~ '^[+-]' then translate(rtrim(split_part(zoned_at, '[', 2), ']'), '+-', '-+') else rtrim(split_part(zoned_at, '[', 2), ']') end))) as hour, to_char((split_part(zoned_at, '[', 1)::timestamptz) at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z" BC') || '[Asia/Tokyo]' as "inTokyo", (extract(epoch from ((date_trunc('day', (split_part(zoned_at, '[', 1)::timestamptz at time zone (case when rtrim(split_part(zoned_at, '[', 2), ']') ~ '^[+-]' then translate(rtrim(split_part(zoned_at, '[', 2), ']'), '+-', '-+') else rtrim(split_part(zoned_at, '[', 2), ']') end))) + interval '1 day') at time zone (case when rtrim(split_part(zoned_at, '[', 2), ']') ~ '^[+-]' then translate(rtrim(split_part(zoned_at, '[', 2), ']'), '+-', '-+') else rtrim(split_part(zoned_at, '[', 2), ']') end)) - ((date_trunc('day', (split_part(zoned_at, '[', 1)::timestamptz at time zone (case when rtrim(split_part(zoned_at, '[', 2), ']') ~ '^[+-]' then translate(rtrim(split_part(zoned_at, '[', 2), ']'), '+-', '-+') else rtrim(split_part(zoned_at, '[', 2), ']') end)))) at time zone (case when rtrim(split_part(zoned_at, '[', 2), ']') ~ '^[+-]' then translate(rtrim(split_part(zoned_at, '[', 2), ']'), '+-', '-+') else rtrim(split_part(zoned_at, '[', 2), ']') end))) / 3600)::float8 as "hoursInDay" from zoned_value order by split_part(zoned_value.zoned_at, '[', 1)::timestamptz"`)
+            expect(rows.map(row => [row.id, row.zonedAt?.toString(), row.hour, row.inTokyo?.toString(), row.hoursInDay])).toEqual(ordered.map(({ id, value }) => [id, value.toString(), value.hour, value.withTimeZone('Asia/Tokyo').toString(), value.hoursInDay]))
+        })
+    })
+
     test('a-zoned-date-and-time-needs-a-database-with-zones', async () => {
         // PostgreSQL computes a zoned date and time in the query: the query is built
         ctx.mockNext([{ id: 1, at: '2024-01-14T09:15:30.123456Z AD[EUROPE/MADRID]' }])

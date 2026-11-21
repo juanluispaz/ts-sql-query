@@ -375,6 +375,48 @@ describe(ctx.label, () => {
     })
     */
 
+    // NOT-SUPPORTED: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA, which this needs
+    /*
+    test('a-zoned-date-and-time-kept-and-computed-with-the-zones', async () => {
+        // A column that keeps its RFC 9557 text, computed with the rules of its zone: row 1 plus a day is 02:30 on the next
+        // day, an hour later in UTC, as Madrid goes back an hour. A value sent is the text of Temporal's toString, and
+        // one computed in the query is kept as its instant in UTC with a Z; they are ordered by their instant
+        const kept = [
+            Temporal.ZonedDateTime.from('2024-10-27T02:30:00.123456+02:00[Europe/Madrid]'),
+            Temporal.ZonedDateTime.from('2024-01-14T14:45:30.123456+05:30[Asia/Kolkata]'),
+            Temporal.ZonedDateTime.from('1969-07-20T15:17:40-05:00[-05:00]'),
+        ]
+        const summer = Temporal.ZonedDateTime.from('2024-07-01T12:00:00.987654+02:00[Europe/Madrid]')
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tZonedValue).set({ zonedAt: summer }).where(tZonedValue.id.equals(3)).executeUpdate()
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams.map(String)).toMatchInlineSnapshot()
+            ctx.mockNext(1)
+            await ctx.conn.update(tZonedValue).set({ zonedAt: tZonedValue.zonedAt.add({ days: 1 }) }).where(tZonedValue.id.equals(1)).executeUpdate()
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            const expected = [kept[0]!.add({ days: 1 }), kept[1]!, summer]
+            const ordered = expected.map((value, i) => ({ id: i + 1, value })).sort((a, b) => Temporal.ZonedDateTime.compare(a.value, b.value))
+            ctx.mockNext(ordered.map(({ id, value }) => ({
+                id, zonedAt: value.toInstant().toString() + ' AD[' + value.timeZoneId + ']', hour: value.hour,
+                inTokyo: value.toInstant().toString() + ' AD[Asia/Tokyo]', hoursInDay: value.hoursInDay,
+            })))
+            const rows = await ctx.conn.selectFrom(tZonedValue)
+                .select({
+                    id: tZonedValue.id,
+                    zonedAt: tZonedValue.zonedAt,
+                    hour: tZonedValue.zonedAt.hour(),
+                    inTokyo: tZonedValue.zonedAt.withTimeZone('Asia/Tokyo'),
+                    hoursInDay: tZonedValue.zonedAt.hoursInDay(),
+                })
+                .orderBy('zonedAt')
+                .executeSelectMany()
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(rows.map(row => [row.id, row.zonedAt?.toString(), row.hour, row.inTokyo?.toString(), row.hoursInDay])).toEqual(ordered.map(({ id, value }) => [id, value.toString(), value.hour, value.withTimeZone('Asia/Tokyo').toString(), value.hoursInDay]))
+        })
+    })
+    */
+
     test('a-zoned-date-and-time-needs-a-database-with-zones', async () => {
         // This database keeps no zone with each value: the query isn't sent
         const reason = await reasonOf(() => ctx.conn.selectFrom(tInstantValue)

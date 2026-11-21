@@ -409,6 +409,49 @@ describe(ctx.label, () => {
         expect([failure, hours.toString()]).toEqual([ctx.realDbEnabled, zoned[1]!.until(madrid).toString()])
     })
 
+    test('a-zoned-date-and-time-kept-and-computed-with-the-zones', async () => {
+        // A column that keeps its zone, computed with the rules of its zone: row 1 plus a day is 02:30 on the next
+        // day, an hour later in UTC, as Madrid goes back an hour; they are ordered by their instant
+        const kept = [
+            Temporal.ZonedDateTime.from('2024-10-27T02:30:00.123456789+02:00[Europe/Madrid]'),
+            Temporal.ZonedDateTime.from('2024-01-14T14:45:30.123456789+05:30[Asia/Kolkata]'),
+            Temporal.ZonedDateTime.from('1969-07-20T15:17:40-05:00[-05:00]'),
+        ]
+        const summer = Temporal.ZonedDateTime.from('2024-07-01T12:00:00.987654+02:00[Europe/Madrid]')
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tZonedValue).set({ zonedAt: summer }).where(tZonedValue.id.equals(3)).executeUpdate()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update zoned_value set zoned_at = (from_tz(to_timestamp(:0, 'YYYY-MM-DD HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN'), '+00:00') at time zone 'Europe/Madrid') where id = :1"`)
+            expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
+              [
+                "2024-07-01T12:00:00.987654+02:00[Europe/Madrid]",
+                "3",
+              ]
+            `)
+            ctx.mockNext(1)
+            await ctx.conn.update(tZonedValue).set({ zonedAt: tZonedValue.zonedAt.add({ days: 1 }) }).where(tZonedValue.id.equals(1)).executeUpdate()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update zoned_value set zoned_at = from_tz((cast(zoned_at as timestamp(9)) + numtodsinterval(:0, 'day')), to_char(zoned_at, 'TZR')) where id = :1"`)
+            const expected = [kept[0]!.add({ days: 1 }), kept[1]!, summer]
+            const ordered = expected.map((value, i) => ({ id: i + 1, value })).sort((a, b) => Temporal.ZonedDateTime.compare(a.value, b.value))
+            ctx.mockNext(ordered.map(({ id, value }) => ({
+                id, zonedAt: value.toInstant().toString() + ' AD[' + value.timeZoneId.toUpperCase() + ']', hour: value.hour,
+                inTokyo: value.toInstant().toString() + ' AD[ASIA/TOKYO]', hoursInDay: value.hoursInDay,
+            })))
+            const rows = await ctx.conn.selectFrom(tZonedValue)
+                .select({
+                    id: tZonedValue.id,
+                    zonedAt: tZonedValue.zonedAt,
+                    hour: tZonedValue.zonedAt.hour(),
+                    inTokyo: tZonedValue.zonedAt.withTimeZone('Asia/Tokyo'),
+                    hoursInDay: tZonedValue.zonedAt.hoursInDay(),
+                })
+                .orderBy('zonedAt')
+                .executeSelectMany()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", to_char(zoned_at, 'YYYY-MM-DD"T"HH24:MI:SS.FF9TZH:TZM BC"["TZR"]"', 'NLS_DATE_LANGUAGE=AMERICAN') as "zonedAt", extract(hour from cast(zoned_at as timestamp(9))) as "hour", to_char(from_tz(sys_extract_utc(cast(zoned_at as timestamp(9) with time zone)), '+00:00') at time zone 'Asia/Tokyo', 'YYYY-MM-DD"T"HH24:MI:SS.FF9TZH:TZM BC"["TZR"]"', 'NLS_DATE_LANGUAGE=AMERICAN') as "inTokyo", (cast(sys_extract_utc(from_tz(cast(trunc(cast(zoned_at as timestamp(9))) + 1 as timestamp(9)), to_char(zoned_at, 'TZR'))) as date) - cast(sys_extract_utc(from_tz(cast(trunc(cast(zoned_at as timestamp(9))) as timestamp(9)), to_char(zoned_at, 'TZR'))) as date)) * 24 as "hoursInDay" from zoned_value order by zoned_value.zoned_at"`)
+            expect(rows.map(row => [row.id, row.zonedAt?.toString(), row.hour, row.inTokyo?.toString(), row.hoursInDay])).toEqual(ordered.map(({ id, value }) => [id, value.toString(), value.hour, value.withTimeZone('Asia/Tokyo').toString(), value.hoursInDay]))
+        })
+    })
+
     test('a-zoned-date-and-time-needs-a-database-with-zones', async () => {
         // Oracle keeps a zone with each value: the query is built
         ctx.mockNext([{ id: 1, at: '2024-01-14T09:15:30.123456Z AD[EUROPE/MADRID]' }])

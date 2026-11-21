@@ -430,13 +430,15 @@ CREATE TABLE instant_value (
 );
 
 -- zoned_value: exact moments in a time zone (Temporal.ZonedDateTime), which PostgreSQL computes: the instant instant_at
--- in the zone value_zone; wall_at a wall clock to take to a zone, zone_name the name of a zone.
+-- in the zone value_zone, and the same moment kept as its RFC 9557 text in zoned_at; wall_at a wall clock to take to a
+-- zone, zone_name the name of a zone.
 CREATE TABLE zoned_value (
     id INTEGER PRIMARY KEY,
     instant_at TIMESTAMPTZ NOT NULL,
     value_zone TEXT NOT NULL,
     wall_at TIMESTAMP,
-    zone_name TEXT
+    zone_name TEXT,
+    zoned_at TEXT
 );
 
 -- View side of col_matrix — surfaces the same per-kind read marshalling through

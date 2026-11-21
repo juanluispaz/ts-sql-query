@@ -1,9 +1,9 @@
 // Zoned dates and times (Temporal.ZonedDateTime) as the library takes them: the text it reads of one (its instant and
 // its zone in brackets, as Temporal writes it or as Oracle gives it, the zone in capitals), the zone of a value checked
 // as Temporal checks it, the options of toZonedDateTime and of the arithmetic of a zoned date and time, PostgreSQL, which
-// computes one in the query and knows its zone only from the operation that computed it, and the databases without
-// zones, which keep it as its RFC 9557 text and where a computation with the zones fails when it is built and nothing
-// is sent.
+// computes one in the query and knows its zone from the operation that computed it or the text of a column, and the
+// databases without zones, which keep it as its RFC 9557 text and where a computation with the zones fails when it is
+// built and nothing is sent.
 
 import { describe, expect, test } from '../../lib/testRunner.js'
 import { PostgreSqlConnection } from '../../../src/connections/PostgreSqlConnection.js'
@@ -123,8 +123,9 @@ describe('ZonedDateTimeValues', () => {
     })
 
     test('postgresql-knows-the-zone-of-a-zoned-date-and-time-only-where-the-query-computes-it', async () => {
-        // A zoned date and time sent is its instant; a column can't be one, and a value whose zone the query doesn't know
-        // (valueWhenNull of two, which may have different zones) can't be read: nothing is sent
+        // A zoned date and time sent is its instant; a column keeps its RFC 9557 text, whose zone is in it, and a value
+        // whose zone the query doesn't know (valueWhenNull of two, which may have different zones) can't be read: nothing
+        // is sent
         let sql = ''
         let params: unknown[] = []
         const connection = new PostgreSqlDBConnection(new MockQueryRunner((_type, query, sent) => {
@@ -143,8 +144,8 @@ describe('ZonedDateTimeValues', () => {
             reasonOf(() => connection.selectFrom(tPostgreSqlEvent).select({ zoned: zoned.valueWhenNull(tPostgreSqlEvent.at.toZonedDateTimeISO('UTC')) }).executeSelectMany()),
             reasonOf(() => connection.selectFrom(tPostgreSqlEvent).select({ hour: zoned.valueWhenNull(tPostgreSqlEvent.at.toZonedDateTimeISO('UTC')).hour() }).executeSelectMany()),
             reasonOf(() => connection.selectFrom(tPostgreSqlEvent).select({ zoneName: zoned.timeZoneId(), instant: zoned.valueWhenNull(madrid).toInstant() }).executeSelectMany()),
-        ])).toEqual(['UNSUPPORTED_QUERY', 'UNSUPPORTED_QUERY', 'UNSUPPORTED_QUERY', 'no error'])
-        expect(queries).toBe(1)
+        ])).toEqual(['no error', 'UNSUPPORTED_QUERY', 'UNSUPPORTED_QUERY', 'no error'])
+        expect(queries).toBe(2)
     })
 
     test('a-database-without-zones-fails-the-query-when-it-is-built', async () => {

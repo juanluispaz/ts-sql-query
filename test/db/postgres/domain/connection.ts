@@ -1248,13 +1248,15 @@ export const tInstantValue = new class TInstantValue extends Table<DBConnection,
 }()
 
 // zoned_value: exact moments in a time zone (Temporal.ZonedDateTime), which PostgreSQL computes: the instant instantAt
-// in the zone valueZone (see zonedAt in the tests); wallAt a wall clock to take to a zone, zoneName the name of a zone
+// in the zone valueZone (see zonedAt in the tests), and the same moment kept as its RFC 9557 text (zonedAt); wallAt a
+// wall clock to take to a zone, zoneName the name of a zone
 export const tZonedValue = new class TZonedValue extends Table<DBConnection, 'TZonedValue'> {
     id        = this.primaryKey('id', 'int')
     instantAt = this.column('instant_at', 'instant')
     valueZone = this.column('value_zone', 'string')
     wallAt    = this.optionalColumn('wall_at', 'plainDateTime')
     zoneName  = this.optionalColumn('zone_name', 'string')
+    zonedAt   = this.optionalColumn('zoned_at', 'zonedDateTime')
     constructor() { super('zoned_value') }
 }()
 

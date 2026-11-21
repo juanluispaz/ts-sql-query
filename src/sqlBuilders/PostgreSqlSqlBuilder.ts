@@ -21,6 +21,7 @@ import { __isColumn, __isConst, __asDBColumnValueSource, __asNodeValueSource, is
 import { __isZonedDateTimeClass } from '../typeSystem/dataTypeQuestions.js'
 import { noopValueSourceNode } from '../nodes/operations.js'
 import { isZonedDateTimeValue } from '../utils/instantValues.js'
+import { zonedDateTimeText } from '../utils/plainDateTimeText.js'
 import { __temporal } from '../typeSystem/temporal.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import { durationOfParts, isZeroDuration } from '../utils/durationValues.js'
@@ -52,9 +53,6 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         // PostgreSQL 18+: a column reference on a `.oldValues()` table-or-view is
         // emitted as `old.col` inside RETURNING. Bare references to the updated
         // table emit unqualified column names, which is the post-update value.
-        if (__isZonedDateTimeClass(__classOf(__asNodeValueSource(column as unknown as AnyValueSource)))) {
-            return this._pgZonedColumnUnsupported()
-        }
         if (this._connectionConfiguration.compatibilityVersion >= 18_000_000) {
             const nodeColumn = __asDBColumnValueSource(column)
             const tableOrView = nodeColumn.__tableOrView
@@ -670,15 +668,33 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     override _supportZonedDateTimes(): boolean {
         return true
     }
-    /** A column can't be a zonedDateTime: PostgreSQL would keep its instant without its zone */
+    /**
+     * A column of a zoned date and time keeps its RFC 9557 text, the one of Temporal's toString: in the query its SQL is
+     * the instant of the text, a timestamptz, and its zone the one in brackets (see _pgZoneOf)
+     */
     override _appendColumnName(column: DBColumn, context: SqlBuildContext): string {
         if (__isZonedDateTimeClass(__classOf(__asNodeValueSource(column as unknown as AnyValueSource)))) {
-            return this._pgZonedColumnUnsupported()
+            return "split_part(" + super._appendColumnName(column, context) + ", '[', 1)::timestamptz"
         }
         return super._appendColumnName(column, context)
     }
-    _pgZonedColumnUnsupported(): never {
-        throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_QUERY' }, 'PostgreSQL keeps no time zone with a value: a column can\'t be a zonedDateTime; keep its instant in a timestamptz and its zone in a text, and compute it with toZonedDateTimeISO')
+    /**
+     * The value of a column of a zoned date and time, its RFC 9557 text: of a value, the text of Temporal's toString; of a
+     * value computed in the query, its instant in UTC with a Z, followed by its zone in brackets
+     */
+    override _appendValueForColumn(column: DBColumn, value: any, context: SqlBuildContext, forceTypeCast: boolean): string {
+        if (!__isZonedDateTimeClass(__classOf(__asNodeValueSource(column as unknown as AnyValueSource)))) {
+            return super._appendValueForColumn(column, value, context, forceTypeCast)
+        }
+        if (isZonedDateTimeValue(value)) {
+            return this._appendValue(zonedDateTimeText(value), context, __registeredDataType('string'), forceTypeCast)
+        }
+        if (!isValueSource(value)) {
+            return super._appendValueForColumn(column, value, context, forceTypeCast)
+        }
+        const zone = this._pgZoneText(this._pgZoneOf(context, value as unknown as ToSql))
+        const bracketed = zone.startsWith("'") ? "'[" + zone.slice(1, -1) + "]'" : "'[' || " + zone + " || ']'"
+        return "(to_char(" + this._appendSqlParenthesis(value as unknown as ToSql, context, false) + " at time zone 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') || " + bracketed + ')'
     }
     /**
      * The zone of a zoned date and time, as `at time zone` takes it (see _zonedTimeZoneSql): the one of the operation
@@ -689,6 +705,10 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     _pgZoneOf(context: SqlBuildContext, zoned: ToSql): string {
         let node: any = isValueSource(zoned) ? __asNodeValueSource(zoned as unknown as AnyValueSource) : undefined
         while (node) {
+            if (__isColumn(node)) {
+                // A column keeps its zone in brackets after its date and time (see _appendColumnName)
+                return "rtrim(split_part(" + super._appendColumnName(node as unknown as DBColumn, context) + ", '[', 2), ']')"
+            }
             if (__isConst(node)) {
                 const value = (node as unknown as { __value: unknown }).__value
                 if (isZonedDateTimeValue(value)) {

@@ -240,11 +240,10 @@ matrix on MySQL 26.10 showed it once too (`mysql/8_000_000/bun_sql_mysql`, `colu
 passed alone. Bun SQL always prepares on the
 server and rejects `prepare: false` on MySQL.
 
-In the tests it shows mostly on `mysql/oldest/bun_sql_mysql` with `--docker-version closest` (MySQL 5.7), and rarely on
-the other `bun_sql_mysql` cells: each worker
-creates its functions (`schema.sql`) while the other workers run queries, so one or two of the tests that call a `tsq_*`
-function fail at random. They pass alone and on the newest image, where the cell runs by default, so they stay live:
-a 1615 of a `bun_sql_mysql` cell is this, and is rerun.
+In the tests each worker created its functions (`schema.sql`) while the other workers ran queries, so one or two of the
+tests that call a `tsq_*` function failed at random, mostly on `mysql/oldest/bun_sql_mysql` with `--docker-version
+closest` (MySQL 5.7). A worker DB that already has its schema now only restores its data (`test/db/mysql/runners.ts`),
+so no function is created while the tests run, but in the first run after a change of the schema.
 
 ### A duration kept as text needs a function on SQLite
 

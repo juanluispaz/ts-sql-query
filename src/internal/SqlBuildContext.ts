@@ -74,6 +74,8 @@ export class SqlBuildContext {
     uuidTextsAsText: Set<AnyValueSource> | undefined = undefined
     /** SQLite: a decimal of the order by is ordered as a real */
     orderByDecimalAsReal: boolean = false
+    /** A zoned date and time kept as text of the order by is ordered by its instant */
+    orderByZonedAsInstant: boolean = false
 
     /** The last number given by generateUnique */
     private unique = 0

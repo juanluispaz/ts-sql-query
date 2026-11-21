@@ -318,6 +318,7 @@ export interface SqlBuilder extends SqlOperation {
     _checkConnectionConfiguration(): void
     /** Whether the database keeps a time zone with each value and computes with its rules: a zonedDateTime */
     _supportZonedDateTimes(): boolean
+    _zonedKeptAsText(): boolean
     /** The error of a zonedDateTime on a database without zones */
     _zonedDateTimeUnsupported(): never
     _isValue(value: any): boolean

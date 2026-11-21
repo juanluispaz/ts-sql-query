@@ -26,6 +26,7 @@ DELETE FROM col_matrix;
 DELETE FROM temporal_precision;
 DELETE FROM duration_value;
 DELETE FROM calendar_value;
+DELETE FROM zoned_value;
 DELETE FROM instant_value;
 DELETE FROM flight_leg;
 DELETE FROM country;

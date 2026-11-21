@@ -1,10 +1,14 @@
-// An exact moment in a time zone (Temporal.ZonedDateTime), which only a database that keeps a zone with each value has:
-// this one has none, and a query with one fails when it is built.
+// An exact moment in a time zone (Temporal.ZonedDateTime), which this database keeps as its RFC 9557 text, the one of
+// Temporal's toString: kept, read, its parts and compared by its instant, which need no rules of the zones; what needs
+// them fails when the query is built. zoned_value row 1 is 2024-10-27T02:30:00.123456789+02:00[Europe/Madrid], row 2 is
+// 2024-01-14T14:45:30.123456789+05:30[Asia/Kolkata] and row 3 is 1969-07-20T15:17:40-05:00[-05:00]. Every value expected
+// is the one Temporal gives, of the value rounded to the microsecond where the database computes it (atDatabase).
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { TsSqlError } from '../../../../../src/exports/v2/index.js'
-import { tInstantValue } from '../../domain/connection.js'
+import { tInstantValue, tZonedValue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+import { assertType, type Exact } from '../../../../lib/assertType.js'
 
 const zoned = [
     Temporal.ZonedDateTime.from('2024-10-27T02:30:00.123456789+02:00[Europe/Madrid]'),
@@ -13,6 +17,11 @@ const zoned = [
 ]
 const walls = [Temporal.PlainDateTime.from('2024-10-27T02:30:00'), Temporal.PlainDateTime.from('2024-03-31T02:30:00'), Temporal.PlainDateTime.from('2024-01-14T10:00:00')]
 const zoneNames = ['Europe/Madrid', 'America/New_York', undefined]
+
+/** The value as the database computes it, to the microsecond: MySQL rounds the digits below */
+function atDatabase(value: Temporal.ZonedDateTime): Temporal.ZonedDateTime {
+    return value.round({ smallestUnit: 'microsecond', roundingMode: 'halfExpand' })
+}
 
 /** The reason of the error the construction of the query throws, or 'no error' */
 async function reasonOf(query: () => unknown): Promise<string> {
@@ -34,7 +43,6 @@ async function failureOf(query: Promise<unknown>): Promise<boolean> {
     }
 }
 
-void zoned
 void walls
 void zoneNames
 void failureOf
@@ -44,33 +52,33 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // NOT-SUPPORTED: this database computes no time zone with the rules of IANA: a zonedDateTime is kept on Oracle, and computed on Oracle and PostgreSQL
-    /*
     test('a-zoned-date-and-time-kept-and-read', async () => {
         // A zoned date and time sent keeps its instant and its zone; one read is the one kept
         await ctx.withRollback(async () => {
             const summer = Temporal.ZonedDateTime.from('2024-07-01T12:00:00.987654321+02:00[Europe/Madrid]')
             ctx.mockNext(1)
             await ctx.conn.insertInto(tZonedValue).set({ id: 10, zonedAt: summer }).executeInsert()
-            expect(ctx.lastSql).toMatchInlineSnapshot()
-            expect(ctx.lastParams.map(String)).toMatchInlineSnapshot()
-            ctx.mockNext([...zoned, summer].map((value, i) => ({ id: i < 3 ? i + 1 : 10, zonedAt: value.toInstant().toString() + ' AD[' + value.timeZoneId.toUpperCase() + ']' })))
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into zoned_value (id, zoned_at) values (?, ?)"`)
+            expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
+              [
+                "10",
+                "2024-07-01T12:00:00.987654321+02:00[Europe/Madrid]",
+              ]
+            `)
+            ctx.mockNext([...zoned, summer].map((value, i) => ({ id: i < 3 ? i + 1 : 10, zonedAt: value.toString() })))
             const rows = await ctx.conn.selectFrom(tZonedValue)
                 .select({ id: tZonedValue.id, zonedAt: tZonedValue.zonedAt })
                 .orderBy('id')
                 .executeSelectMany()
-            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, zoned_at as zonedAt from zoned_value order by id"`)
             assertType<Exact<typeof rows, Array<{ id: number; zonedAt: Temporal.ZonedDateTime }>>>()
             expect(rows.map(row => [row.id, row.zonedAt.toString()])).toEqual([[1, zoned[0]!.toString()], [2, zoned[1]!.toString()], [3, zoned[2]!.toString()], [10, summer.toString()]])
         })
     })
-    */
 
-    // NOT-SUPPORTED: this database computes no time zone with the rules of IANA: a zonedDateTime is kept on Oracle, and computed on Oracle and PostgreSQL
-    /*
     test('the-parts-of-a-zoned-date-and-time', async () => {
-        ctx.mockNext(zoned.map((value, i) => ({
-            id: i + 1, instant: value.toInstant().toString() + ' AD', wall: value.toPlainDateTime().toString() + ' AD', day: value.toPlainDate().toString() + ' AD', time: '1970-01-01T' + value.toPlainTime().toString() + ' AD',
+        ctx.mockNext(zoned.map(atDatabase).map((value, i) => ({
+            id: i + 1, instant: value.toInstant().toString(), wall: value.toPlainDateTime().toString(), day: value.toPlainDate().toString(), time: value.toPlainTime().toString(),
             zone: value.timeZoneId, offset: value.offset, offsetNanoseconds: value.offsetNanoseconds, milliseconds: value.epochMilliseconds, nanoseconds: String(value.epochNanoseconds),
             year: value.year, month: value.month, dayOfMonth: value.day, dayOfWeek: value.dayOfWeek, dayOfYear: value.dayOfYear, hour: value.hour, minute: value.minute, second: value.second, millisecond: value.millisecond, microsecond: value.microsecond,
         })))
@@ -99,17 +107,16 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot()
-        expect(ctx.lastParams).toMatchInlineSnapshot()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (cast(replace(left(substring_index(zoned_at, '[', 1), char_length(substring_index(zoned_at, '[', 1)) - if(substring_index(zoned_at, '[', 1) like '%Z', 1, 6)), 'T', ' ') as datetime(6)) - interval if(substring_index(zoned_at, '[', 1) like '%Z', 0, if(substr(substring_index(zoned_at, '[', 1), -6, 1) = '-', -1, 1) * (substr(substring_index(zoned_at, '[', 1), -5, 2) * 3600 + substr(substring_index(zoned_at, '[', 1), -2, 2) * 60)) second) as instant, cast(replace(left(substring_index(zoned_at, '[', 1), char_length(substring_index(zoned_at, '[', 1)) - if(substring_index(zoned_at, '[', 1) like '%Z', 1, 6)), 'T', ' ') as datetime(6)) as wall, date(cast(replace(left(substring_index(zoned_at, '[', 1), char_length(substring_index(zoned_at, '[', 1)) - if(substring_index(zoned_at, '[', 1) like '%Z', 1, 6)), 'T', ' ') as datetime(6))) as day, time(cast(replace(left(substring_index(zoned_at, '[', 1), char_length(substring_index(zoned_at, '[', 1)) - if(substring_index(zoned_at, '[', 1) like '%Z', 1, 6)), 'T', ' ') as datetime(6))) as time, trim(trailing ']' from substring_index(zoned_at, '[', -1)) as zone, if(substring_index(zoned_at, '[', 1) like '%Z', '+00:00', right(substring_index(zoned_at, '[', 1), 6)) as offset, (if(substring_index(zoned_at, '[', 1) like '%Z', 0, if(substr(substring_index(zoned_at, '[', 1), -6, 1) = '-', -1, 1) * (substr(substring_index(zoned_at, '[', 1), -5, 2) * 3600 + substr(substring_index(zoned_at, '[', 1), -2, 2) * 60)) * 1000000000) as offsetNanoseconds, floor(timestampdiff(microsecond, '1970-01-01 00:00:00', (cast(replace(left(substring_index(zoned_at, '[', 1), char_length(substring_index(zoned_at, '[', 1)) - if(substring_index(zoned_at, '[', 1) like '%Z', 1, 6)), 'T', ' ') as datetime(6)) - interval if(substring_index(zoned_at, '[', 1) like '%Z', 0, if(substr(substring_index(zoned_at, '[', 1), -6, 1) = '-', -1, 1) * (substr(substring_index(zoned_at, '[', 1), -5, 2) * 3600 + substr(substring_index(zoned_at, '[', 1), -2, 2) * 60)) second)) / 1000) as milliseconds, cast(timestampdiff(microsecond, '1970-01-01 00:00:00', (cast(replace(left(substring_index(zoned_at, '[', 1), char_length(substring_index(zoned_at, '[', 1)) - if(substring_index(zoned_at, '[', 1) like '%Z', 1, 6)), 'T', ' ') as datetime(6)) - interval if(substring_index(zoned_at, '[', 1) like '%Z', 0, if(substr(substring_index(zoned_at, '[', 1), -6, 1) = '-', -1, 1) * (substr(substring_index(zoned_at, '[', 1), -5, 2) * 3600 + substr(substring_index(zoned_at, '[', 1), -2, 2) * 60)) second)) as decimal(30)) * 1000 as nanoseconds, year(cast(replace(left(substring_index(zoned_at, '[', 1), char_length(substring_index(zoned_at, '[', 1)) - if(substring_index(zoned_at, '[', 1) like '%Z', 1, 6)), 'T', ' ') as datetime(6))) as year, month(cast(replace(left(substring_index(zoned_at, '[', 1), char_length(substring_index(zoned_at, '[', 1)) - if(substring_index(zoned_at, '[', 1) like '%Z', 1, 6)), 'T', ' ') as datetime(6))) as month, dayofmonth(cast(replace(left(substring_index(zoned_at, '[', 1), char_length(substring_index(zoned_at, '[', 1)) - if(substring_index(zoned_at, '[', 1) like '%Z', 1, 6)), 'T', ' ') as datetime(6))) as dayOfMonth, weekday(cast(replace(left(substring_index(zoned_at, '[', 1), char_length(substring_index(zoned_at, '[', 1)) - if(substring_index(zoned_at, '[', 1) like '%Z', 1, 6)), 'T', ' ') as datetime(6))) + 1 as dayOfWeek, dayofyear(cast(replace(left(substring_index(zoned_at, '[', 1), char_length(substring_index(zoned_at, '[', 1)) - if(substring_index(zoned_at, '[', 1) like '%Z', 1, 6)), 'T', ' ') as datetime(6))) as dayOfYear, hour(cast(replace(left(substring_index(zoned_at, '[', 1), char_length(substring_index(zoned_at, '[', 1)) - if(substring_index(zoned_at, '[', 1) like '%Z', 1, 6)), 'T', ' ') as datetime(6))) as hour, minute(cast(replace(left(substring_index(zoned_at, '[', 1), char_length(substring_index(zoned_at, '[', 1)) - if(substring_index(zoned_at, '[', 1) like '%Z', 1, 6)), 'T', ' ') as datetime(6))) as minute, second(cast(replace(left(substring_index(zoned_at, '[', 1), char_length(substring_index(zoned_at, '[', 1)) - if(substring_index(zoned_at, '[', 1) like '%Z', 1, 6)), 'T', ' ') as datetime(6))) as second, floor(microsecond(cast(replace(left(substring_index(zoned_at, '[', 1), char_length(substring_index(zoned_at, '[', 1)) - if(substring_index(zoned_at, '[', 1) like '%Z', 1, 6)), 'T', ' ') as datetime(6))) / 1000) as millisecond, microsecond(cast(replace(left(substring_index(zoned_at, '[', 1), char_length(substring_index(zoned_at, '[', 1)) - if(substring_index(zoned_at, '[', 1) like '%Z', 1, 6)), 'T', ' ') as datetime(6))) % 1000 as microsecond from zoned_value order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         expect(rows.map(row => [row.id, row.instant.toString(), row.wall.toString(), row.day.toString(), row.time.toString(), row.zone, row.offset, row.offsetNanoseconds, row.milliseconds, row.nanoseconds,
-            row.year, row.month, row.dayOfMonth, row.dayOfWeek, row.dayOfYear, row.hour, row.minute, row.second, row.millisecond, row.microsecond])).toEqual(zoned.map((value, i) => [
+            row.year, row.month, row.dayOfMonth, row.dayOfWeek, row.dayOfYear, row.hour, row.minute, row.second, row.millisecond, row.microsecond])).toEqual(zoned.map(atDatabase).map((value, i) => [
             i + 1, value.toInstant().toString(), value.toPlainDateTime().toString(), value.toPlainDate().toString(), value.toPlainTime().toString(), value.timeZoneId, value.offset, value.offsetNanoseconds, value.epochMilliseconds, value.epochNanoseconds,
             value.year, value.month, value.day, value.dayOfWeek, value.dayOfYear, value.hour, value.minute, value.second, value.millisecond, value.microsecond,
         ]))
     })
-    */
 
-    // NOT-SUPPORTED: this database computes no time zone with the rules of IANA: a zonedDateTime is kept on Oracle, and computed on Oracle and PostgreSQL
+    // NOT-SUPPORTED: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA, which this needs
     /*
     test('an-instant-in-a-zone', async () => {
         // The same instant in another zone, in the zone of a column (none in row 3), and an instant given in an offset zone
@@ -140,7 +147,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: this database computes no time zone with the rules of IANA: a zonedDateTime is kept on Oracle, and computed on Oracle and PostgreSQL
+    // NOT-SUPPORTED: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA, which this needs
     /*
     test('a-wall-clock-in-a-zone-with-each-disambiguation', async () => {
         // Row 1's wall clock is repeated in Madrid, row 2's skipped: compatible takes the earlier of a repeated one and
@@ -172,7 +179,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: this database computes no time zone with the rules of IANA: a zonedDateTime is kept on Oracle, and computed on Oracle and PostgreSQL
+    // NOT-SUPPORTED: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA, which this needs
     /*
     test('reject-fails-for-a-wall-clock-the-zone-repeats-or-skips', async () => {
         // As Temporal: row 1's wall clock is repeated in Madrid and row 2's skipped; row 3's is a wall clock of Madrid
@@ -189,8 +196,6 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: this database computes no time zone with the rules of IANA: a zonedDateTime is kept on Oracle, and computed on Oracle and PostgreSQL
-    /*
     test('zoned-date-and-times-compared-by-their-instant', async () => {
         // Compared and ordered by their instant, as Temporal's compare: row 2 in Tokyo is row 2 (Temporal's equals also
         // compares the zone)
@@ -199,28 +204,31 @@ describe(ctx.label, () => {
             .where(tZonedValue.zonedAt.greaterThan(zoned[1]!.withTimeZone('UTC')))
             .selectOneColumn(tZonedValue.id)
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot()
-        expect(ctx.lastParams.map(String)).toMatchInlineSnapshot()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as result from zoned_value where (cast(replace(left(substring_index(zoned_at, '[', 1), char_length(substring_index(zoned_at, '[', 1)) - if(substring_index(zoned_at, '[', 1) like '%Z', 1, 6)), 'T', ' ') as datetime(6)) - interval if(substring_index(zoned_at, '[', 1) like '%Z', 0, if(substr(substring_index(zoned_at, '[', 1), -6, 1) = '-', -1, 1) * (substr(substring_index(zoned_at, '[', 1), -5, 2) * 3600 + substr(substring_index(zoned_at, '[', 1), -2, 2) * 60)) second) > ?"`)
+        expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
+          [
+            "2024-01-14T09:15:30.123456789Z",
+          ]
+        `)
         ctx.mockNext([2])
         const same = await ctx.conn.selectFrom(tZonedValue)
             .where(tZonedValue.zonedAt.equals(zoned[1]!.withTimeZone('Asia/Tokyo')))
             .selectOneColumn(tZonedValue.id)
             .executeSelectMany()
-        ctx.mockNext([3, 2, 1].map(id => ({ id, at: zoned[id - 1]!.toInstant().toString() + ' AD[' + zoned[id - 1]!.timeZoneId.toUpperCase() + ']' })))
+        ctx.mockNext([3, 2, 1].map(id => ({ id, at: zoned[id - 1]!.toString() })))
         const ordered = (await ctx.conn.selectFrom(tZonedValue)
             .select({ id: tZonedValue.id, at: tZonedValue.zonedAt })
             .orderBy('at')
             .executeSelectMany()).map(row => row.id)
-        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, zoned_at as at from zoned_value order by (cast(replace(left(substring_index(zoned_at, '[', 1), char_length(substring_index(zoned_at, '[', 1)) - if(substring_index(zoned_at, '[', 1) like '%Z', 1, 6)), 'T', ' ') as datetime(6)) - interval if(substring_index(zoned_at, '[', 1) like '%Z', 0, if(substr(substring_index(zoned_at, '[', 1), -6, 1) = '-', -1, 1) * (substr(substring_index(zoned_at, '[', 1), -5, 2) * 3600 + substr(substring_index(zoned_at, '[', 1), -2, 2) * 60)) second)"`)
         expect([later, same, ordered]).toEqual([
             zoned.flatMap((value, i) => Temporal.ZonedDateTime.compare(value, zoned[1]!) > 0 ? [i + 1] : []),
             [2],
             zoned.map((value, i) => ({ value, id: i + 1 })).sort((a, b) => Temporal.ZonedDateTime.compare(a.value, b.value)).map(entry => entry.id),
         ])
     })
-    */
 
-    // NOT-SUPPORTED: this database computes no time zone with the rules of IANA: a zonedDateTime is kept on Oracle, and computed on Oracle and PostgreSQL
+    // NOT-SUPPORTED: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA, which this needs
     /*
     test('a-zoned-date-and-time-plus-a-duration', async () => {
         // Days are added to the wall clock in the zone: row 1 plus a day is 02:30 on the next day, an hour later in UTC,
@@ -249,7 +257,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: this database computes no time zone with the rules of IANA: a zonedDateTime is kept on Oracle, and computed on Oracle and PostgreSQL
+    // NOT-SUPPORTED: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA, which this needs
     /*
     test('a-zoned-date-and-time-with-other-fields-rounded-and-at-the-start-of-its-day', async () => {
         // Row 1 is in the first 02:30 of a day Madrid repeats, with 25 hours: with keeps its offset when the zone still
@@ -283,7 +291,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: this database computes no time zone with the rules of IANA: a zonedDateTime is kept on Oracle, and computed on Oracle and PostgreSQL
+    // NOT-SUPPORTED: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA, which this needs
     /*
     test('operations-on-a-computed-zoned-date-and-time', async () => {
         // A value computed from another one is computed once and named in the query; each operation is Temporal's
@@ -305,7 +313,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: this database computes no time zone with the rules of IANA: a zonedDateTime is kept on Oracle, and computed on Oracle and PostgreSQL
+    // NOT-SUPPORTED: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA, which this needs
     /*
     test('reject-fails-for-a-day-the-month-has-not-or-an-offset-the-zone-has-not', async () => {
         // As Temporal: row 1 is in October, a month later November has its day 27; February has no day 30; Madrid has
@@ -324,7 +332,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: this database computes no time zone with the rules of IANA: a zonedDateTime is kept on Oracle, and computed on Oracle and PostgreSQL
+    // NOT-SUPPORTED: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA, which this needs
     /*
     test('the-duration-between-two-zoned-dates-and-times', async () => {
         // In hours by default, the difference of their instants; in days, the days of the calendar in their zone: row 1
@@ -353,7 +361,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: this database computes no time zone with the rules of IANA: a zonedDateTime is kept on Oracle, and computed on Oracle and PostgreSQL
+    // NOT-SUPPORTED: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA, which this needs
     /*
     test('a-difference-in-days-needs-the-same-zone', async () => {
         // As Temporal, which rejects it: row 2 is in Kolkata, the other value in Madrid; in hours any two are compared

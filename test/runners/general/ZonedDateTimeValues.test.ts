@@ -2,7 +2,8 @@
 // its zone in brackets, as Temporal writes it or as Oracle gives it, the zone in capitals), the zone of a value checked
 // as Temporal checks it, the options of toZonedDateTime and of the arithmetic of a zoned date and time, PostgreSQL, which
 // computes one in the query and knows its zone only from the operation that computed it, and the databases without
-// zones, where a query with one fails when it is built and nothing is sent.
+// zones, which keep it as its RFC 9557 text and where a computation with the zones fails when it is built and nothing
+// is sent.
 
 import { describe, expect, test } from '../../lib/testRunner.js'
 import { PostgreSqlConnection } from '../../../src/connections/PostgreSqlConnection.js'
@@ -147,11 +148,28 @@ describe('ZonedDateTimeValues', () => {
     })
 
     test('a-database-without-zones-fails-the-query-when-it-is-built', async () => {
-        // MySQL computes with no zones of IANA: nothing is sent, for a value source and for a value
+        // MySQL computes with no zones of IANA: a computation with them sends nothing
         const connection = new MySqlDBConnection(runner())
         queries = 0
         expect(await reasonOf(() => connection.selectFrom(tMySqlEvent).select({ at: tMySqlEvent.at.toZonedDateTimeISO('Europe/Madrid') }).executeSelectMany())).toBe('UNSUPPORTED_QUERY')
-        expect(await reasonOf(() => connection.selectFromNoTable().select({ at: connection.const(Temporal.ZonedDateTime.from('2024-01-14T10:00:00+01:00[Europe/Madrid]'), 'zonedDateTime') }).executeSelectOne())).toBe('UNSUPPORTED_QUERY')
         expect(queries).toBe(0)
+    })
+
+    test('a-database-without-zones-keeps-it-as-its-rfc-9557-text', async () => {
+        // MySQL keeps a zoned date and time as the text of Temporal's toString, also for an offset of seconds of a zone
+        // before its standard time (rounded to the minute), and reads it as Temporal's from with offset 'prefer': the
+        // value written, the wall clock in its zone when the zone no longer has the offset, and a Z as the instant
+        const values = ['2024-01-14T10:00:00.5+01:00[Europe/Madrid]', '1900-01-01T00:00:00[Europe/Madrid]', '2024-03-02T10:00:00-09:30[Pacific/Marquesas]'].map(text => Temporal.ZonedDateTime.from(text))
+        const sent: unknown[] = []
+        const read = ['2024-01-14T10:00:00.5+01:00[Europe/Madrid]', '1900-01-01T00:00:00-00:15[Europe/Madrid]', '2024-03-02T10:00:00-09:30[Pacific/Marquesas]', '2024-07-01T09:00:00+01:00[Europe/Madrid]', '2024-03-02T11:05:00Z[Europe/Paris]']
+        const connection = new MySqlDBConnection(new MockQueryRunner((_type, _query, params) => {
+            sent.push(...params)
+            return read.map(at => ({ at }))
+        }))
+        const rows = await connection.selectFromNoTable().select({ at: connection.const(values[0]!, 'zonedDateTime') }).executeSelectMany()
+        await connection.selectFromNoTable().select({ at: connection.const(values[1]!, 'zonedDateTime') }).executeSelectMany()
+        await connection.selectFromNoTable().select({ at: connection.const(values[2]!, 'zonedDateTime') }).executeSelectMany()
+        expect(sent).toEqual(values.map(value => value.toString()))
+        expect(rows.map(row => row.at.toString())).toEqual([...values.map(value => value.toString()), '2024-07-01T09:00:00+02:00[Europe/Madrid]', '2024-03-02T12:05:00+01:00[Europe/Paris]'])
     })
 })

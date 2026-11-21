@@ -18,6 +18,7 @@ IF OBJECT_ID('col_matrix', 'U') IS NOT NULL DROP TABLE col_matrix;
 IF OBJECT_ID('temporal_precision', 'U') IS NOT NULL DROP TABLE temporal_precision;
 IF OBJECT_ID('duration_value', 'U') IS NOT NULL DROP TABLE duration_value;
 IF OBJECT_ID('calendar_value', 'U') IS NOT NULL DROP TABLE calendar_value;
+IF OBJECT_ID('zoned_value', 'U') IS NOT NULL DROP TABLE zoned_value;
 IF OBJECT_ID('instant_value', 'U') IS NOT NULL DROP TABLE instant_value;
 IF OBJECT_ID('flight_leg', 'U') IS NOT NULL DROP TABLE flight_leg;
 IF OBJECT_ID('country', 'U') IS NOT NULL DROP TABLE country;
@@ -433,6 +434,17 @@ CREATE TABLE calendar_value (
     month_of DATE NOT NULL,
     day_of DATE NOT NULL,
     born_on DATE NOT NULL
+);
+GO
+
+-- zoned_value: exact moments in a time zone (Temporal.ZonedDateTime), zoned_at kept as its RFC 9557 text (the one of
+-- Temporal's toString, its wall clock, its offset and its zone); wall_at a wall clock to take to a zone, zone_name the
+-- name of a zone.
+CREATE TABLE zoned_value (
+    id INT PRIMARY KEY,
+    zoned_at NVARCHAR(100) NOT NULL,
+    wall_at DATETIME2(7),
+    zone_name NVARCHAR(40)
 );
 GO
 

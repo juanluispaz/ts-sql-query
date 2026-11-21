@@ -1186,6 +1186,16 @@ export const tCalendarValue = new class TCalendarValue extends Table<DBConnectio
     constructor() { super('calendar_value') }
 }()
 
+// zoned_value: exact moments in a time zone (Temporal.ZonedDateTime), kept as their RFC 9557 text (zoned_at), a wall
+// clock to take to a zone (wall_at) and the name of a zone (zone_name).
+export const tZonedValue = new class TZonedValue extends Table<DBConnection, 'TZonedValue'> {
+    id       = this.primaryKey('id', 'int')
+    zonedAt  = this.column('zoned_at', 'zonedDateTime')
+    wallAt   = this.optionalColumn('wall_at', 'plainDateTime')
+    zoneName = this.optionalColumn('zone_name', 'string')
+    constructor() { super('zoned_value') }
+}()
+
 // instant_value: exact moments (Temporal.Instant) in the column recommended for an instant (instant_at), in a column
 // without zone (wall_at) and in one converted with the zone of the session where the database has it (session_at)
 export const tInstantValue = new class TInstantValue extends Table<DBConnection, 'TInstantValue'> {

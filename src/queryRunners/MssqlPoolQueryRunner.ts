@@ -385,7 +385,8 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
                     return TYPES.Time
                 }
                 if (sqlDataType.fields === 'timestamp') {
-                    return TYPES.DateTime2
+                    // A zoned date and time is kept as its RFC 9557 text: the connection hands that text
+                    return sqlDataType.timeZone === 'kept' && typeof params[index] === 'string' ? TYPES.NVarChar : TYPES.DateTime2
                 }
                 break
             default:

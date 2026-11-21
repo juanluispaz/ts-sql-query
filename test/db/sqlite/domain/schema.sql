@@ -21,6 +21,7 @@ DROP TABLE IF EXISTS col_matrix;
 DROP TABLE IF EXISTS temporal_precision;
 DROP TABLE IF EXISTS duration_value;
 DROP TABLE IF EXISTS calendar_value;
+DROP TABLE IF EXISTS zoned_value;
 DROP TABLE IF EXISTS instant_value;
 DROP TABLE IF EXISTS country;
 DROP TABLE IF EXISTS issue;
@@ -335,6 +336,16 @@ CREATE TABLE calendar_value (
     month_of DATE NOT NULL,
     day_of DATE NOT NULL,
     born_on DATE NOT NULL
+);
+
+-- zoned_value: exact moments in a time zone (Temporal.ZonedDateTime), zoned_at kept as its RFC 9557 text (the one of
+-- Temporal's toString, its wall clock, its offset and its zone); wall_at a wall clock to take to a zone, zone_name the
+-- name of a zone.
+CREATE TABLE zoned_value (
+    id INTEGER PRIMARY KEY,
+    zoned_at TEXT NOT NULL,
+    wall_at DATETIME,
+    zone_name TEXT
 );
 
 -- instant_value: exact moments (Temporal.Instant) in the columns a database has for them: instant_at in the one

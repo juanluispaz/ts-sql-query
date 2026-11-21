@@ -3,7 +3,7 @@ import { mySqlMariaDBOperationsThatNeedParenthesis } from '../utils/mySqlMariaDB
 import type { ToSql, SqlOperation, SelectData, InsertData, UpdateData, DeleteData, FlatQueryColumns, OrderByEntry, PlainSelectData } from './SqlBuilder.js'
 import { getQueryColumn, flattenQueryColumns } from './SqlBuilder.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
-import { AbstractSqlBuilder, __withChangesOnlyWholeTime, type PlainTemporalDifferenceSql, type SelectColumnSql } from './AbstractSqlBuilder.js'
+import { AbstractSqlBuilder, ZonedTextInstantOperand, __withChangesOnlyWholeTime, __zonedTextInstantValue, type PlainTemporalDifferenceSql, type SelectColumnSql } from './AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import { __getColumnOfObject } from '../utils/Column.js'
 import { __columnPathsOf } from '../utils/columnPaths.js'
@@ -696,12 +696,18 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         return ''
     }
     override _is(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
+        if (this._isZonedTextComparison(typeClass)) {
+            return this._is(context, new ZonedTextInstantOperand(valueSource), __zonedTextInstantValue(value), __registeredDataType('instant'))
+        }
         if (__isColumn(valueSource) && __isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
             return this._appendRawColumnName(valueSource, context) + ' <=>' + this._appendRawColumnName(value, context)
         }
         return this._appendSqlParenthesis(valueSource, context, false) + ' <=> ' + this._appendValueParenthesis(value, context, __valueOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value))
     }
     override _isNot(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
+        if (this._isZonedTextComparison(typeClass)) {
+            return this._isNot(context, new ZonedTextInstantOperand(valueSource), __zonedTextInstantValue(value), __registeredDataType('instant'))
+        }
         if (__isColumn(valueSource) && __isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
             return 'not (' + this._appendRawColumnName(valueSource, context) + ' <=> ' + this._appendRawColumnName(value, context) + ')'
         }
@@ -1001,6 +1007,41 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     }
     override _daysInMonth(context: SqlBuildContext, year: string, month: string): string {
         return 'day(last_day(' + this._makeDate(context, year, month, '1') + '))'
+    }
+    /*
+     * A zoned date and time is kept as its RFC 9557 text (see _zonedKeptAsText). MySQL before 8.0.19 and MariaDB take a
+     * text with an offset as its wall clock, ignoring the offset, so the instant is computed here: the wall clock minus
+     * the seconds of the offset
+     */
+    override _zonedKeptAsText(): boolean {
+        return true
+    }
+    /** The date and time of the text before its zone, `2024-03-02T12:05:00+01:00` (with a `Z` instead of the offset too) */
+    _mySqlZonedTextDateTime(context: SqlBuildContext, valueSource: ToSql): string {
+        return "substring_index(" + this._appendSql(valueSource, context, false) + ", '[', 1)"
+    }
+    override _zonedTextWall(context: SqlBuildContext, valueSource: ToSql): string {
+        return "cast(replace(left(" + this._mySqlZonedTextDateTime(context, valueSource) + ', char_length(' + this._mySqlZonedTextDateTime(context, valueSource) + ') - if(' + this._mySqlZonedTextDateTime(context, valueSource) + " like '%Z', 1, 6)), 'T', ' ') as datetime(6))"
+    }
+    /** The seconds of the offset of the text of a zoned date and time, 0 for a `Z` */
+    _mySqlZonedTextOffsetSeconds(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'if(' + this._mySqlZonedTextDateTime(context, valueSource) + " like '%Z', 0, if(substr(" + this._mySqlZonedTextDateTime(context, valueSource) + ", -6, 1) = '-', -1, 1) * (substr(" + this._mySqlZonedTextDateTime(context, valueSource) + ', -5, 2) * 3600 + substr(' + this._mySqlZonedTextDateTime(context, valueSource) + ', -2, 2) * 60))'
+    }
+    override _zonedTextUtc(context: SqlBuildContext, valueSource: ToSql): string {
+        return '(' + this._zonedTextWall(context, valueSource) + ' - interval ' + this._mySqlZonedTextOffsetSeconds(context, valueSource) + ' second)'
+    }
+    override _zonedTextMinOrMax(kind: 'min' | 'max', context: SqlBuildContext, value: ToSql): string {
+        // The instant in UTC with its 6 digits, 26 characters, orders as the instants do
+        return 'substr(' + kind + "(concat(date_format(" + this._zonedTextUtc(context, value) + ", '%Y-%m-%d %H:%i:%s.%f'), " + this._appendSql(value, context, false) + ')), 27)'
+    }
+    override _zonedTextZone(context: SqlBuildContext, valueSource: ToSql): string {
+        return "trim(trailing ']' from substring_index(" + this._appendSql(valueSource, context, false) + ", '[', -1))"
+    }
+    override _zonedTextOffset(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'if(' + this._mySqlZonedTextDateTime(context, valueSource) + " like '%Z', '+00:00', right(" + this._mySqlZonedTextDateTime(context, valueSource) + ', 6))'
+    }
+    override _zonedTextOffsetNanoseconds(context: SqlBuildContext, valueSource: ToSql): string {
+        return '(' + this._mySqlZonedTextOffsetSeconds(context, valueSource) + ' * 1000000000)'
     }
     override _makeDate(_context: SqlBuildContext, year: string, month: string, day: string): string {
         // The first day of the year, plus the months, plus the days: in the order of the text, as the parameters

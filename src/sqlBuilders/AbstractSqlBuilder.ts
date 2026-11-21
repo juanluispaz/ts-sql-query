@@ -41,7 +41,8 @@ import type { BooleanType } from '../typeSystem/logical.js'
 import type { EqualableType } from '../typeSystem/equalable.js'
 import { UuidTextType } from '../typeSystem/uuidText.js'
 import { __classOf, __adaptedTypeClassOf, __unadaptedClassOf, __sqlDataTypeOf } from '../nodes/adaptedTypeClass.js'
-import { __isIntClass, __isPlainYearMonthClass } from '../typeSystem/dataTypeQuestions.js'
+import { __isIntClass, __isPlainYearMonthClass, __isZonedDateTimeClass } from '../typeSystem/dataTypeQuestions.js'
+import { isZonedDateTimeValue } from '../utils/instantValues.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
 import { __arithmeticOperandClassOf, __valueOperandClassOf } from '../typeSystem/dataTypeClasses.js'
 import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
@@ -52,6 +53,53 @@ export type SelectColumnSql = { sql: string, name: string, position: number, par
 
 function isIntersectOperator(operator: CompoundOperator): boolean {
     return operator === 'intersect' || operator === 'intersectAll'
+}
+
+/** An entry of an order by as an operand: the column it names written where it is used, again in each place (see _appendOrderByColumnForExpression) */
+class OrderByEntryOperand implements ToSql {
+    readonly entry: OrderByEntry
+    readonly query: SelectData
+    constructor(entry: OrderByEntry, query: SelectData) {
+        this.entry = entry
+        this.query = query
+    }
+    __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext): string {
+        return (sqlBuilder as unknown as AbstractSqlBuilder)._appendOrderByColumnForExpression(this.entry, this.query, context)
+    }
+    __toSqlForCondition(sqlBuilder: SqlBuilder, context: SqlBuildContext): string {
+        return this.__toSql(sqlBuilder, context)
+    }
+}
+
+/** The instant of a zoned date and time kept as text, as an operand of a comparison (see _isZonedTextComparison) */
+export class ZonedTextInstantOperand implements ToSql {
+    readonly valueSource: ToSql
+    constructor(valueSource: ToSql) {
+        this.valueSource = valueSource
+    }
+    __toSql(sqlBuilder: SqlBuilder, context: SqlBuildContext): string {
+        return (sqlBuilder as unknown as AbstractSqlBuilder)._zonedToInstant(context, this.valueSource)
+    }
+    __toSqlForCondition(sqlBuilder: SqlBuilder, context: SqlBuildContext): string {
+        return this.__toSql(sqlBuilder, context)
+    }
+}
+
+/**
+ * The other operand of a comparison of a zoned date and time kept as text, as an instant: a Temporal value, its instant
+ * (sent as an instant); a value source, its instant; each one of a list; anything else (a null) as it is
+ */
+export function __zonedTextInstantValue(value: unknown): unknown {
+    if (isZonedDateTimeValue(value)) {
+        return value.toInstant()
+    }
+    if (isValueSource(value)) {
+        return new ZonedTextInstantOperand(value as unknown as ToSql)
+    }
+    if (Array.isArray(value)) {
+        return value.map(__zonedTextInstantValue)
+    }
+    return value
 }
 
 export class AbstractSqlBuilder implements SqlBuilder {
@@ -1731,6 +1779,15 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return !!column && this._needsTheValueOfResultColumnToOrder(column, context)
     }
     _appendOrderByColumnAlias(entry: OrderByEntry, query: SelectData, context: SqlBuildContext): string {
+        if (!context.orderByZonedAsInstant && this._isZonedTextOrderByEntry(entry, query)) {
+            // Ordered by its instant, as Temporal's compare (its text orders by its wall clock)
+            context.orderByZonedAsInstant = true
+            try {
+                return this._zonedToInstant(context, new OrderByEntryOperand(entry, query))
+            } finally {
+                context.orderByZonedAsInstant = false
+            }
+        }
         const wrapperAlias = context.resultConversionWrapperAlias
         if (wrapperAlias && this._isConvertedOrderByAlias(entry, query, context)) {
             // Over the query that wraps the select, the column of the wrapped query, not the converted one
@@ -2048,7 +2105,20 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * ORDER BY on the strict engines and becomes legal on the plain wrapper.
      */
     _needsCompoundOrderByWrap(query: SelectData): boolean {
-        return this._needsCompoundInsensitiveOrderByWrap(query) || this._needsCompoundExpressionOrderByWrap(query) || this._needsCompoundNullsEmulationOrderByWrap(query)
+        return this._needsCompoundInsensitiveOrderByWrap(query) || this._needsCompoundExpressionOrderByWrap(query) || this._needsCompoundNullsEmulationOrderByWrap(query) || this._needsCompoundZonedOrderByWrap(query)
+    }
+    /** A compound query can only order by its columns: a zoned date and time kept as text is ordered by its instant over a query that wraps it */
+    _needsCompoundZonedOrderByWrap(query: SelectData): boolean {
+        return query.__type === 'compound' && !!query.__orderBy && query.__orderBy.some(entry => this._isZonedTextOrderByEntry(entry, query))
+    }
+    /** The order by names a zoned date and time kept as text (see _zonedKeptAsText) */
+    _isZonedTextOrderByEntry(entry: OrderByEntry, query: SelectData): boolean {
+        if (!this._zonedKeptAsText()) {
+            return false
+        }
+        const expression = entry.expression
+        const column = typeof expression === 'string' ? getQueryColumn(query.__columns, expression) : expression
+        return isValueSource(column) && __isZonedDateTimeClass(__classOf(__asNodeValueSource(column as AnyValueSource)))
     }
     /**
      * Render the ORDER BY for the outer `select * from (<compound>)` wrapper
@@ -3477,24 +3547,36 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     // SqlComparator1
     _equals(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
+        if (this._isZonedTextComparison(typeClass)) {
+            return this._equals(context, new ZonedTextInstantOperand(valueSource), __zonedTextInstantValue(value), __registeredDataType('instant'))
+        }
         if (__isColumn(valueSource) && __isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
             return this._appendRawColumnName(valueSource, context) + ' = ' + this._appendRawColumnName(value, context)
         }
         return this._appendSqlParenthesis(valueSource, context, false) + ' = ' + this._appendValueParenthesis(value, context, __valueOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value))
     }
     _notEquals(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
+        if (this._isZonedTextComparison(typeClass)) {
+            return this._notEquals(context, new ZonedTextInstantOperand(valueSource), __zonedTextInstantValue(value), __registeredDataType('instant'))
+        }
         if (__isColumn(valueSource) && __isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
             return this._appendRawColumnName(valueSource, context) + ' <> ' + this._appendRawColumnName(value, context)
         }
         return this._appendSqlParenthesis(valueSource, context, false) + ' <> ' + this._appendValueParenthesis(value, context, __valueOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value))
     }
     _is(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
+        if (this._isZonedTextComparison(typeClass)) {
+            return this._is(context, new ZonedTextInstantOperand(valueSource), __zonedTextInstantValue(value), __registeredDataType('instant'))
+        }
         if (__isColumn(valueSource) && __isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
             return this._appendRawColumnName(valueSource, context) + ' is not distinct from ' + this._appendRawColumnName(value, context)
         }
         return this._appendSqlParenthesis(valueSource, context, false) + ' is not distinct from ' + this._appendValueParenthesis(value, context, __valueOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value))
     }
     _isNot(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
+        if (this._isZonedTextComparison(typeClass)) {
+            return this._isNot(context, new ZonedTextInstantOperand(valueSource), __zonedTextInstantValue(value), __registeredDataType('instant'))
+        }
         if (__isColumn(valueSource) && __isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
             return this._appendRawColumnName(valueSource, context) + ' is distinct from ' + this._appendRawColumnName(value, context)
         }
@@ -3521,18 +3603,33 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
     }
     _lessThan(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
+        if (this._isZonedTextComparison(typeClass)) {
+            return this._lessThan(context, new ZonedTextInstantOperand(valueSource), __zonedTextInstantValue(value), __registeredDataType('instant'))
+        }
         return this._appendSqlParenthesis(valueSource, context, false) + ' < ' + this._appendValueParenthesis(value, context, __valueOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value))
     }
     _greaterThan(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
+        if (this._isZonedTextComparison(typeClass)) {
+            return this._greaterThan(context, new ZonedTextInstantOperand(valueSource), __zonedTextInstantValue(value), __registeredDataType('instant'))
+        }
         return this._appendSqlParenthesis(valueSource, context, false) + ' > ' + this._appendValueParenthesis(value, context, __valueOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value))
     }
     _lessOrEqual(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
+        if (this._isZonedTextComparison(typeClass)) {
+            return this._lessOrEqual(context, new ZonedTextInstantOperand(valueSource), __zonedTextInstantValue(value), __registeredDataType('instant'))
+        }
         return this._appendSqlParenthesis(valueSource, context, false) + ' <= ' + this._appendValueParenthesis(value, context, __valueOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value))
     }
     _greaterOrEqual(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
+        if (this._isZonedTextComparison(typeClass)) {
+            return this._greaterOrEqual(context, new ZonedTextInstantOperand(valueSource), __zonedTextInstantValue(value), __registeredDataType('instant'))
+        }
         return this._appendSqlParenthesis(valueSource, context, false) + ' >= ' + this._appendValueParenthesis(value, context, __valueOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value))
     }
     _in(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
+        if (this._isZonedTextComparison(typeClass)) {
+            return this._in(context, new ZonedTextInstantOperand(valueSource), __zonedTextInstantValue(value), __registeredDataType('instant'))
+        }
         // An empty array can never match, so short-circuit to the false constant.
         // `<x> in ()` is invalid SQL on every engine, so the guard lives here in the
         // base (not duplicated per dialect) — a dialect that does not override this
@@ -3543,6 +3640,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return this._appendSqlParenthesis(valueSource, context, false) + ' in ' + this._appendSpreadValue(value, context, __valueOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value))
     }
     _notIn(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
+        if (this._isZonedTextComparison(typeClass)) {
+            return this._notIn(context, new ZonedTextInstantOperand(valueSource), __zonedTextInstantValue(value), __registeredDataType('instant'))
+        }
         // An empty array excludes nothing, so short-circuit to the true constant
         // (`<x> not in ()` is likewise invalid SQL everywhere). See `_in` above.
         if (Array.isArray(value) && value.length <= 0) {
@@ -3712,6 +3812,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     // SqlComparator2
     _between(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, typeClass: DataTypeClass): string {
+        if (this._isZonedTextComparison(typeClass)) {
+            return this._between(context, new ZonedTextInstantOperand(valueSource), __zonedTextInstantValue(value), __zonedTextInstantValue(value2), __registeredDataType('instant'))
+        }
         // Both bounds are compared against the SAME receiver, so they are widened together: one
         // fractional bound decides the data type of the pair.
         const bounds = [value, value2]
@@ -3720,6 +3823,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return this._appendSqlParenthesis(valueSource, context, false) + ' between ' + this._appendValueParenthesis(value, context, boundClass, boundNeedsTypeCast) + ' and ' + this._appendValueParenthesis(value2, context, boundClass, boundNeedsTypeCast)
     }
     _notBetween(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, typeClass: DataTypeClass): string {
+        if (this._isZonedTextComparison(typeClass)) {
+            return this._notBetween(context, new ZonedTextInstantOperand(valueSource), __zonedTextInstantValue(value), __zonedTextInstantValue(value2), __registeredDataType('instant'))
+        }
         // Both bounds are compared against the SAME receiver, so they are widened together: one
         // fractional bound decides the data type of the pair.
         const bounds = [value, value2]
@@ -4140,19 +4246,71 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _zonedDateTimeUnsupported(): never {
         throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_QUERY' }, 'A zoned date and time (zonedDateTime) needs a database that computes with the rules of the time zones, Oracle or PostgreSQL: this database has none')
     }
-    _zonedToInstant(_context: SqlBuildContext, _valueSource: ToSql): string {
+    /*
+     * A database without a type for a zoned date and time keeps it as its RFC 9557 text, the one of Temporal's toString
+     * (`2024-03-02T12:05:00+01:00[Europe/Madrid]`): its SQL is that text, which gives without the rules of the zones its
+     * wall clock, its offset, its zone and its instant (the wall clock minus the offset). Each piece is written by the
+     * database from the value source, written again in each place it is used (a parameter can't be repeated by its text)
+     */
+    /** Whether a zonedDateTime is kept as its RFC 9557 text: its SQL is that text */
+    _zonedKeptAsText(): boolean {
+        return false
+    }
+    /** The wall clock in UTC of the instant of the RFC 9557 text of a zoned date and time, a value without zone of the database */
+    _zonedTextUtc(_context: SqlBuildContext, _valueSource: ToSql): string {
         return this._zonedDateTimeUnsupported()
     }
-    _zonedToPlainDateTime(_context: SqlBuildContext, _valueSource: ToSql): string {
+    /** The wall clock in its zone of the RFC 9557 text of a zoned date and time, a plainDateTime */
+    _zonedTextWall(_context: SqlBuildContext, _valueSource: ToSql): string {
         return this._zonedDateTimeUnsupported()
     }
-    _zonedTimeZoneId(_context: SqlBuildContext, _valueSource: ToSql): string {
+    /** The zone in brackets of the RFC 9557 text of a zoned date and time */
+    _zonedTextZone(_context: SqlBuildContext, _valueSource: ToSql): string {
         return this._zonedDateTimeUnsupported()
     }
-    _zonedOffset(_context: SqlBuildContext, _valueSource: ToSql): string {
+    /** The offset of the RFC 9557 text of a zoned date and time, `+00:00` for a `Z` */
+    _zonedTextOffset(_context: SqlBuildContext, _valueSource: ToSql): string {
         return this._zonedDateTimeUnsupported()
     }
-    _zonedOffsetNanoseconds(_context: SqlBuildContext, _valueSource: ToSql): string {
+    /** The nanoseconds of the offset of the RFC 9557 text of a zoned date and time, an integer */
+    _zonedTextOffsetNanoseconds(_context: SqlBuildContext, _valueSource: ToSql): string {
+        return this._zonedDateTimeUnsupported()
+    }
+    /**
+     * A comparison of a zoned date and time kept as text (see _zonedKeptAsText), which is the comparison of their
+     * instants, as on the databases with zones and as Temporal's compare (its text compares its wall clock)
+     */
+    _isZonedTextComparison(typeClass: DataTypeClass): boolean {
+        return this._zonedKeptAsText() && __isZonedDateTimeClass(typeClass)
+    }
+    _zonedToInstant(context: SqlBuildContext, valueSource: ToSql): string {
+        if (this._zonedKeptAsText()) {
+            return this._instantOfUtc(context, this._zonedTextUtc(context, valueSource))
+        }
+        return this._zonedDateTimeUnsupported()
+    }
+    _zonedToPlainDateTime(context: SqlBuildContext, valueSource: ToSql): string {
+        if (this._zonedKeptAsText()) {
+            return this._zonedTextWall(context, valueSource)
+        }
+        return this._zonedDateTimeUnsupported()
+    }
+    _zonedTimeZoneId(context: SqlBuildContext, valueSource: ToSql): string {
+        if (this._zonedKeptAsText()) {
+            return this._zonedTextZone(context, valueSource)
+        }
+        return this._zonedDateTimeUnsupported()
+    }
+    _zonedOffset(context: SqlBuildContext, valueSource: ToSql): string {
+        if (this._zonedKeptAsText()) {
+            return this._zonedTextOffset(context, valueSource)
+        }
+        return this._zonedDateTimeUnsupported()
+    }
+    _zonedOffsetNanoseconds(context: SqlBuildContext, valueSource: ToSql): string {
+        if (this._zonedKeptAsText()) {
+            return this._zonedTextOffsetNanoseconds(context, valueSource)
+        }
         return this._zonedDateTimeUnsupported()
     }
     _instantToZoned(_context: SqlBuildContext, _valueSource: ToSql, _value: any, _typeClass: DataTypeClass): string {
@@ -5960,10 +6118,23 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return 'count(distinct ' + this._appendSql(value, context, false) + ')'
     }
     _max(context: SqlBuildContext, value: any): string {
+        if (this._zonedKeptAsText() && isValueSource(value) && __isZonedDateTimeClass(__classOf(__asNodeValueSource(value)))) {
+            return this._zonedTextMinOrMax('max', context, value as unknown as ToSql)
+        }
         return 'max(' + this._appendSql(value, context, false) + ')'
     }
     _min(context: SqlBuildContext, value: any): string {
+        if (this._zonedKeptAsText() && isValueSource(value) && __isZonedDateTimeClass(__classOf(__asNodeValueSource(value)))) {
+            return this._zonedTextMinOrMax('min', context, value as unknown as ToSql)
+        }
         return 'min(' + this._appendSql(value, context, false) + ')'
+    }
+    /**
+     * min or max of a zoned date and time kept as text, by its instant as Temporal's compare: of a text of fixed width of
+     * its instant followed by its text, the text after it (of the same instant in two zones, either one)
+     */
+    _zonedTextMinOrMax(_kind: 'min' | 'max', _context: SqlBuildContext, _value: ToSql): string {
+        return this._zonedDateTimeUnsupported()
     }
     _sum(context: SqlBuildContext, value: any): string {
         return 'sum(' + this._appendSql(value, context, false) + ')'

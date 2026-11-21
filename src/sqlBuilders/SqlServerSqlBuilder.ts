@@ -5,7 +5,7 @@ import type { ToSql, SelectData, InsertData, DeleteData, UpdateData, FlatQueryCo
 import { hasToSql, flattenQueryColumns, getQueryColumn } from './SqlBuilder.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
-import { AbstractSqlBuilder, type PlainTemporalDifferenceSql, type SelectColumnSql } from './AbstractSqlBuilder.js'
+import { AbstractSqlBuilder, ZonedTextInstantOperand, __zonedTextInstantValue, type PlainTemporalDifferenceSql, type SelectColumnSql } from './AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import { __columnPathsOf } from '../utils/columnPaths.js'
 import { __getColumnOfObject } from '../utils/Column.js'
@@ -608,6 +608,9 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         return this._appendValueParenthesis(value, context, typeClass, false) + ' is not null'
     }
     override _is(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
+        if (this._isZonedTextComparison(typeClass)) {
+            return this._is(context, new ZonedTextInstantOperand(valueSource), __zonedTextInstantValue(value), __registeredDataType('instant'))
+        }
         const valueIsNull = this._isNullValue(value)
         const valueSourceIsNull = this._isNullValue(valueSource)
         const valueIsOptional = this._isOptionalValue(value)
@@ -633,6 +636,9 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         // return 'exists(select ' + this._appendSqlParenthesis(valueSource, params) + ' intersect select ' + this._appendValueParenthesis(value, params, typeClass) + ')'
     }
     override _isNot(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
+        if (this._isZonedTextComparison(typeClass)) {
+            return this._isNot(context, new ZonedTextInstantOperand(valueSource), __zonedTextInstantValue(value), __registeredDataType('instant'))
+        }
         const valueIsNull = this._isNullValue(value)
         const valueSourceIsNull = this._isNullValue(valueSource)
         const valueIsOptional = this._isOptionalValue(value)
@@ -1197,6 +1203,36 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _leastOf(value: string, other: string): string {
         // least came in SQL Server 2022
         return 'case when ' + value + ' < ' + other + ' then ' + value + ' else ' + other + ' end'
+    }
+    /*
+     * A zoned date and time is kept as its RFC 9557 text (see _zonedKeptAsText): the text before its zone is a
+     * datetimeoffset (style 127, with an offset or a Z; its fraction kept to 7 digits)
+     */
+    override _zonedKeptAsText(): boolean {
+        return true
+    }
+    /** The date and time with its offset of the text of a zoned date and time, a datetimeoffset */
+    _sqlServerZonedTextDateTimeOffset(context: SqlBuildContext, valueSource: ToSql): string {
+        return "convert(datetimeoffset(7), left(" + this._appendSql(valueSource, context, false) + ", charindex('[', " + this._appendSql(valueSource, context, false) + ') - 1), 127)'
+    }
+    override _zonedTextUtc(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'cast(switchoffset(' + this._sqlServerZonedTextDateTimeOffset(context, valueSource) + ', 0) as datetime2(7))'
+    }
+    override _zonedTextWall(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'cast(' + this._sqlServerZonedTextDateTimeOffset(context, valueSource) + ' as datetime2(7))'
+    }
+    override _zonedTextZone(context: SqlBuildContext, valueSource: ToSql): string {
+        return "substring(" + this._appendSql(valueSource, context, false) + ", charindex('[', " + this._appendSql(valueSource, context, false) + ') + 1, len(' + this._appendSql(valueSource, context, false) + ") - charindex('[', " + this._appendSql(valueSource, context, false) + ') - 1)'
+    }
+    override _zonedTextOffset(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'datename(tzoffset, ' + this._sqlServerZonedTextDateTimeOffset(context, valueSource) + ')'
+    }
+    override _zonedTextOffsetNanoseconds(context: SqlBuildContext, valueSource: ToSql): string {
+        return '(datepart(tzoffset, ' + this._sqlServerZonedTextDateTimeOffset(context, valueSource) + ') * cast(60000000000 as bigint))'
+    }
+    override _zonedTextMinOrMax(kind: 'min' | 'max', context: SqlBuildContext, value: ToSql): string {
+        // The instant in UTC with its 7 digits (style 121), 27 characters, orders as the instants do
+        return 'substring(' + kind + '(convert(varchar(27), ' + this._zonedTextUtc(context, value) + ', 121) + ' + this._appendSql(value, context, false) + '), 28, 200)'
     }
     override _daysInMonth(_context: SqlBuildContext, year: string, month: string): string {
         return 'day(eomonth(datefromparts(' + year + ', ' + month + ', 1)))'

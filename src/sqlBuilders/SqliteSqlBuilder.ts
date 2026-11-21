@@ -3,7 +3,7 @@ import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import type { ToSql, SelectData, InsertData, UpdateData, FlatQueryColumns, OrderByEntry, PlainSelectData, CompoundSelectData } from './SqlBuilder.js'
 import { flattenQueryColumns, getQueryColumn, hasToSql } from './SqlBuilder.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
-import { AbstractSqlBuilder, type PlainTemporalDifferenceSql, type SelectColumnSql } from './AbstractSqlBuilder.js'
+import { AbstractSqlBuilder, ZonedTextInstantOperand, __zonedTextInstantValue, type PlainTemporalDifferenceSql, type SelectColumnSql } from './AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import type { SqliteDateTimeFormat, SqliteDateTimeFormatType, SqliteDecimalStrategy } from '../connections/SqliteConfiguration.js'
 import type { AnyTableOrView } from '../utils/ITableOrView.js'
@@ -1062,6 +1062,9 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return ''
     }
     override _is(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
+        if (this._isZonedTextComparison(typeClass)) {
+            return this._is(context, new ZonedTextInstantOperand(valueSource), __zonedTextInstantValue(value), __registeredDataType('instant'))
+        }
         if (__isExactDecimalSql(typeClass)) {
             return this._decimalIs(context, valueSource, value, typeClass)
         }
@@ -1071,6 +1074,9 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return this._appendSqlParenthesis(valueSource, context, false) + ' is ' + this._appendValueParenthesis(value, context, __valueOperandClassOf(typeClass, value), this._operandNeedsTypeCast(typeClass, value))
     }
     override _isNot(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
+        if (this._isZonedTextComparison(typeClass)) {
+            return this._isNot(context, new ZonedTextInstantOperand(valueSource), __zonedTextInstantValue(value), __registeredDataType('instant'))
+        }
         if (__isExactDecimalSql(typeClass)) {
             return 'not ' + this._decimalIs(context, valueSource, value, typeClass)
         }
@@ -1400,6 +1406,37 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     }
     override _leastOf(value: string, other: string): string {
         return 'min(' + value + ', ' + other + ')'
+    }
+    /*
+     * A zoned date and time is kept as its RFC 9557 text (see _zonedKeptAsText): the date functions of SQLite take the
+     * text before its zone, with its offset or its Z, as its instant (to the millisecond)
+     */
+    override _zonedKeptAsText(): boolean {
+        return true
+    }
+    /** The date and time with its offset of the text of a zoned date and time, as the date functions take it */
+    _sqliteZonedTextDateTime(context: SqlBuildContext, valueSource: ToSql): string {
+        return "substr(" + this._appendSql(valueSource, context, false) + ", 1, instr(" + this._appendSql(valueSource, context, false) + ", '[') - 1)"
+    }
+    override _zonedTextUtc(context: SqlBuildContext, valueSource: ToSql): string {
+        return this._sqliteTemporalIn('dateTime', this._sqliteZonedTextDateTime(context, valueSource))
+    }
+    override _zonedTextWall(context: SqlBuildContext, valueSource: ToSql): string {
+        // The date and time without its offset
+        return this._sqliteTemporalIn('dateTime', 'substr(' + this._sqliteZonedTextDateTime(context, valueSource) + ', 1, length(' + this._sqliteZonedTextDateTime(context, valueSource) + ') - case when ' + this._sqliteZonedTextDateTime(context, valueSource) + " like '%Z' then 1 else 6 end)")
+    }
+    override _zonedTextZone(context: SqlBuildContext, valueSource: ToSql): string {
+        return "rtrim(substr(" + this._appendSql(valueSource, context, false) + ", instr(" + this._appendSql(valueSource, context, false) + ", '[') + 1), ']')"
+    }
+    override _zonedTextOffset(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'case when ' + this._sqliteZonedTextDateTime(context, valueSource) + " like '%Z' then '+00:00' else substr(" + this._sqliteZonedTextDateTime(context, valueSource) + ', -6) end'
+    }
+    override _zonedTextOffsetNanoseconds(context: SqlBuildContext, valueSource: ToSql): string {
+        return '(case when ' + this._sqliteZonedTextDateTime(context, valueSource) + " like '%Z' then 0 else (case when substr(" + this._sqliteZonedTextDateTime(context, valueSource) + ", -6, 1) = '-' then -1 else 1 end) * (cast(substr(" + this._sqliteZonedTextDateTime(context, valueSource) + ', -5, 2) as integer) * 3600 + cast(substr(' + this._sqliteZonedTextDateTime(context, valueSource) + ', -2, 2) as integer) * 60) end * 1000000000)'
+    }
+    override _zonedTextMinOrMax(kind: 'min' | 'max', context: SqlBuildContext, value: ToSql): string {
+        // The instant in UTC with its milliseconds, 23 characters, orders as the instants do
+        return 'substr(' + kind + "(strftime('%Y-%m-%d %H:%M:%f', " + this._sqliteZonedTextDateTime(context, value) + ') || ' + this._appendSql(value, context, false) + '), 24)'
     }
     override _daysInMonth(_context: SqlBuildContext, year: string, month: string): string {
         return "cast(strftime('%d', printf('%04d-%02d-01', " + year + ', ' + month + "), '+1 months', '-1 days') as integer)"

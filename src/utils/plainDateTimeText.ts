@@ -146,6 +146,33 @@ export function plainTimeText(value: TemporalPlainTime | TemporalPlainDateTime):
 }
 
 /**
+ * The RFC 9557 text of a zoned date and time, as Temporal's `toString` writes it: its wall clock in its zone, with the
+ * digits of the fraction of a second it has, its offset rounded to the minute (`+00:00` in UTC) and its zone in brackets:
+ * `2024-03-02T12:05:00+01:00[Europe/Madrid]`. A database without a type for it keeps it as this text
+ */
+export function zonedDateTimeText(value: TemporalZonedDateTime): string {
+    const wall = value.toPlainDateTime()
+    // Temporal rounds an offset of seconds (the local mean time of a zone before its standard time) to the minute, half away from zero
+    const offsetMinutes = Math.round(Math.abs(value.offsetNanoseconds) / 60_000_000_000)
+    const offset = (value.offsetNanoseconds < 0 && offsetMinutes > 0 ? '-' : '+') + pad(Math.trunc(offsetMinutes / 60), 2) + ':' + pad(offsetMinutes % 60, 2)
+    return plainDateText(wall) + 'T' + plainTimeText(wall) + offset + '[' + value.timeZoneId + ']'
+}
+
+/**
+ * The zoned date and time of the RFC 9557 text a database keeps it in (see zonedDateTimeText), as Temporal's `from`
+ * reads it with the option `offset: 'prefer'`: the offset written when the zone has it at that wall clock (also rounded to
+ * the minute), otherwise the wall clock in its zone, as the rules of the zone now give it. Another text the database
+ * gives of an instant and a zone is read as parseZonedDateTimeText does. Undefined when it isn't one
+ */
+export function parseStoredZonedDateTimeText(text: string, typeName: string): TemporalZonedDateTime | undefined {
+    try {
+        return __temporal(typeName).ZonedDateTime.from(text, { offset: 'prefer' })
+    } catch {
+        return parseZonedDateTimeText(text, typeName)
+    }
+}
+
+/**
  * The zoned date and time of a text: its instant followed by its zone in brackets, as Temporal writes it
  * (`2024-01-14T10:15:30.123+01:00[Europe/Madrid]`) or as a database gives it (the instant in UTC, `...Z[EUROPE/MADRID]`;
  * Temporal reads the name of the zone whatever its case). Undefined when it isn't one, or the zone is unknown

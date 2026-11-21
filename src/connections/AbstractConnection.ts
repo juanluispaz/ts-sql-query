@@ -47,7 +47,7 @@ import { LocalDateTimeType, LocalTimeType, LocalDateType } from '../typeSystem/l
 import { __temporal, type TemporalPlainDateTime } from '../typeSystem/temporal.js'
 import { PlainDateTimeType, PlainDateType, PlainTimeType } from '../typeSystem/plainDates.js'
 import { InstantType, __instantFromEpoch } from '../typeSystem/instants.js'
-import { parseInstantText, parsePlainDateTimeText, parseZonedDateTimeText, plainDateTimeOfUtcDate } from '../utils/plainDateTimeText.js'
+import { parseInstantText, parsePlainDateTimeText, parseStoredZonedDateTimeText, parseZonedDateTimeText, plainDateTimeOfUtcDate, zonedDateTimeText } from '../utils/plainDateTimeText.js'
 import { durationIsoText, durationOfReceivedValue, isDurationValue } from '../utils/durationValues.js'
 import { dayOfStoredYearMonthsOf, yearOfStoredMonthDaysOf } from '../utils/temporalReference.js'
 import type { NumberType } from '../typeSystem/number.js'
@@ -1326,11 +1326,12 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             return received
         }
         if (__isZonedDateTimeClass(context.requestedType)) {
-            // Its instant followed by its zone in brackets, the text the database writes of it (see parseZonedDateTimeText)
+            // Its instant followed by its zone in brackets, the text the database writes of it (see parseZonedDateTimeText),
+            // or on a database that keeps it as text, the RFC 9557 text kept (see parseStoredZonedDateTimeText)
             if (value instanceof __temporal(type).ZonedDateTime) {
                 return value
             }
-            const received = typeof value === 'string' ? parseZonedDateTimeText(value, type) : undefined
+            const received = typeof value !== 'string' ? undefined : this.__sqlBuilder._zonedKeptAsText() ? parseStoredZonedDateTimeText(value, type) : parseZonedDateTimeText(value, type)
             if (!received) {
                 throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid zonedDateTime value received from the db: ' + String(value))
             }
@@ -1507,6 +1508,9 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         if (__isZonedDateTimeClass(context.requestedType)) {
             if (!(value instanceof __temporal(type).ZonedDateTime)) {
                 throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid zonedDateTime value to send to the db: ' + String(value))
+            }
+            if (this.__sqlBuilder._zonedKeptAsText()) {
+                return zonedDateTimeText(value)
             }
             if (!this.__sqlBuilder._supportZonedDateTimes()) {
                 return this.__sqlBuilder._zonedDateTimeUnsupported()

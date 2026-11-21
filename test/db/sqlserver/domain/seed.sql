@@ -101,6 +101,14 @@ INSERT INTO calendar_value (id, month_of, day_of, born_on) VALUES
     (1, '2024-02-01', '1972-02-29', '2024-02-29'),
     (2, '1999-12-01', '1972-12-31', '1999-12-31'),
     (3, '2025-01-15', '2000-03-15', '2023-07-04');
+-- zoned_value: 1 is 2024-10-27T02:30:00.123456789+02:00[Europe/Madrid], the first of the two 02:30 of that day, with the
+-- wall clock 2024-10-27 02:30, which Madrid repeats; 2 is 2024-01-14T14:45:30.123456789+05:30[Asia/Kolkata], with
+-- 2024-03-31 02:30, which Madrid skips, and the zone America/New_York; 3 is 1969-07-20T15:17:40-05:00[-05:00], with
+-- 2024-01-14 10:00, without a zone.
+INSERT INTO zoned_value (id, zoned_at, wall_at, zone_name) VALUES
+    (1, '2024-10-27T02:30:00.123456789+02:00[Europe/Madrid]', '2024-10-27 02:30:00', 'Europe/Madrid'),
+    (2, '2024-01-14T14:45:30.123456789+05:30[Asia/Kolkata]', '2024-03-31 02:30:00', 'America/New_York'),
+    (3, '1969-07-20T15:17:40-05:00[-05:00]', '2024-01-14 10:00:00', NULL);
 -- instant_value: 1 is 2024-01-14T09:15:30.123456Z, written with the offset +09:00 where the column keeps one;
 -- 2 is 1969-07-20T20:17:40Z, without session_at (a MySQL and MariaDB TIMESTAMP starts in 1970).
 INSERT INTO instant_value (id, instant_at, wall_at, session_at) VALUES

@@ -1135,6 +1135,19 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         return super._appendResultColumnProjection(value, sql, context)
     }
     /** The text a zoned date and time leaves the database as: its instant in UTC with all its digits and its era, and its zone in brackets */
+    /**
+     * The parts of an interval for tsq_duration_add: the function of PostgreSQL returns an interval, so of the largest
+     * field it only tells the years and months (rejected), the days and the time apart
+     */
+    override _durationPartsForSum(context: SqlBuildContext, valueSource: ToSql): string {
+        if (this._isDurationKeptAsText(valueSource)) {
+            return super._durationPartsForSum(context, valueSource)
+        }
+        const interval = this._appendSqlParenthesis(valueSource, context, false)
+        let result = 'case when extract(year from ' + interval + ') <> 0 or extract(month from ' + interval + ') <> 0 then 1 when extract(day from ' + interval + ') <> 0 then 3 else 4 end, '
+        result += 'cast(extract(day from ' + interval + ') as bigint), cast(extract(hour from ' + interval + ') * 3600 + extract(minute from ' + interval + ') * 60 + trunc(extract(second from ' + interval + ')) as bigint), '
+        return result + 'cast(extract(microseconds from ' + interval + ') as bigint) % 1000000 * 1000'
+    }
     _pgZonedText(_value: AnyValueSource, sql: string, zone: string): string {
         const instant = /^(?:[\w."]+|\$\d+(?:::timestamptz)?)$/.test(sql) || isWholeBetweenParentheses(sql) ? sql : '(' + sql + ')'
         const bracketed = zone.startsWith("'") ? "'[" + zone.slice(1, -1) + "]'" : "'[' || " + zone + " || ']'"

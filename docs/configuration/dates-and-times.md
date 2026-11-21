@@ -1588,6 +1588,8 @@ As in Temporal, `since` is `until` with the mode negated (`'floor'` for `'ceil'`
 
 On MariaDB, MySQL, Oracle, SQLite and SQL Server the query writes the text of the duration with `tsq_duration_text`, a function of the library. A difference in months or years, and one rounded with a largest unit of a week, a month or a year (a `smallestUnit` or a `roundingIncrement` other than the defaults), is computed by `tsq_duration_round`, on every database, PostgreSQL too: it counts the whole months from the first value without passing the second one, as Temporal does and no database does by itself, and rounds them as Temporal does, which a query without variables would write many times over. Create them once in the database, as `tsq_duration_part`; without them, the query fails with the error of the database for a function that doesn't exist.
 
+With `libraryFunctions = 'installed'` on the connection, a query calls `tsq_duration_round_of` instead, which takes each date or date and time whole and writes it once; the result is the same.
+
 Their code for each database:
 
 | Database | The code |
@@ -1701,6 +1703,8 @@ On Oracle, a date before 15 October 1582 is in the Julian calendar: a total coun
 
 `total` is computed by `tsq_duration_total`, a function of the library, on every database: it adds the duration to the date of reference and divides with integers, so the `double` is rounded once, as Temporal rounds it. It takes the months of the duration (its years too), its weeks, its days, the whole seconds of its time and the nanoseconds of the second, the year, the month and the day of the date of reference (`0, 0, 0` without one) and the unit. Create it once in the database, as `tsq_duration_part`; without it, the query fails with the error of the database for a function that doesn't exist.
 
+With `libraryFunctions = 'installed'` on the connection, a query calls `tsq_duration_total_of` instead, which takes each duration whole and writes it once; the result is the same.
+
 Its code for each database:
 
 | Database | The code |
@@ -1799,6 +1803,8 @@ As with `until` and `since`, on PostgreSQL the sum is an interval, which keeps i
 ### The function `tsq_duration_add`
 
 The sum is computed by `tsq_duration_add`, a function of the library, on every database. It takes, of each duration, its largest field that isn't zero (`tsq_duration_part` gives it with `'largest'`), its days, the whole seconds of its time and the nanoseconds of the second, and the sign of the second one (1 to add it, -1 to subtract it). Create it once in the database, as `tsq_duration_part`; on MariaDB, MySQL, Oracle and SQL Server it writes the text with `tsq_duration_text` (see [The functions `tsq_duration_text` and `tsq_duration_round`](#the-functions-tsq_duration_text-and-tsq_duration_round)). Without it, the query fails with the error of the database for a function that doesn't exist.
+
+With `libraryFunctions = 'installed'` on the connection, a query calls `tsq_duration_sum` instead, which takes each duration whole and writes it once; the result is the same.
 
 Its code for each database:
 

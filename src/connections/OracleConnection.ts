@@ -89,6 +89,8 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
      *   a query writes once; without it, the query reads the text inline, writing it five times.
      * - `tsq_round_to`, `tsq_nanoseconds_between`, `tsq_zoned_hours_in_day` and `tsq_zoned_round_day`, for a rounding,
      *   the difference of two dates and times and the day of a zoned date and time, writing each value once.
+     * - `tsq_duration_sum`, `tsq_duration_total_of` and `tsq_duration_round_of`, which take a duration (an interval as
+     *   its text, with `tsq_ds_interval_text` and `tsq_ym_interval_text`) or a date whole, writing it once.
      * - `tsq_string_util.concat_strict`, for a concatenation (`concat` and the patterns of `startsWith`, `endsWith` and
      *   `contains`) that gives null for a null operand writing each operand once; without it, a `CASE` repeats them.
      */

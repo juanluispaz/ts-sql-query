@@ -9,7 +9,7 @@ Some queries call a function that SQL Server doesn't have built in. This page sa
 They are of these kinds, and all of them are in [one file](#creating-them):
 
 - **The ones a query always needs**, the ones of durations: a query that uses one calls it (see [Dates and times](../../configuration/dates-and-times.md)).
-- **The optional ones**, `tsq_round_to`, `tsq_ticks_between`, `tsq_time_of_ticks`, `tsq_datetime_of_ticks`, `tsq_greatest_strict` and `tsq_least_strict`: a query calls them only with `libraryFunctions = 'installed'` on the connection; without it, the SQL of SQL Server does the same with less (see each one).
+- **The optional ones**, `tsq_round_to`, `tsq_ticks_between`, `tsq_time_of_ticks`, `tsq_datetime_of_ticks`, `tsq_duration_sum`, `tsq_duration_total_of`, `tsq_duration_round_of`, `tsq_greatest_strict` and `tsq_least_strict`: a query calls them only with `libraryFunctions = 'installed'` on the connection; without it, the SQL of SQL Server does the same with less (see each one).
 
 ## Which function each query needs
 
@@ -24,11 +24,14 @@ They are of these kinds, and all of them are in [one file](#creating-them):
 | [`tsq_ticks_between`](#tsq_ticks_between) | `until` or `since` of two dates and times or two instants, with `libraryFunctions = 'installed'` | — |
 | [`tsq_time_of_ticks`](#tsq_time_of_ticks) | `round` of a time, with `libraryFunctions = 'installed'` | — |
 | [`tsq_datetime_of_ticks`](#tsq_datetime_of_ticks) | `round` of a date and time or an instant, with `libraryFunctions = 'installed'` | — |
+| [`tsq_duration_sum`](#tsq_duration_sum) | `add` or `subtract` of two durations, with `libraryFunctions = 'installed'` | `tsq_duration_part`, `tsq_duration_add` |
+| [`tsq_duration_total_of`](#tsq_duration_total_of) | `total` of a duration, with `libraryFunctions = 'installed'` | `tsq_duration_part`, `tsq_duration_total` |
+| [`tsq_duration_round_of`](#tsq_duration_round_of) | `until` or `since` of two dates or two dates and times in months or years, or rounded to a week, a month or a year, with `libraryFunctions = 'installed'` | `tsq_duration_round` |
 | [`tsq_greatest_strict` and `tsq_least_strict`](#tsq_greatest_strict-and-tsq_least_strict) | `minValue` or `maxValue` is written, with `libraryFunctions = 'installed'` | — |
 
 ## Creating them
 
-[`tsq-functions.sql`](functions/tsq-functions.sql) creates every function of the library on SQL Server, in the order they need, dropping the one of the same name first: run it as it is, with the client of your database, like `sqlcmd -d <database> -i tsq-functions.sql`, or in the editor you use. Each function is described below; a query that doesn't use one doesn't need it. A query calls the ones of the setting `libraryFunctions` only with it (see each one).
+[`tsq-functions.sql`](functions/tsq-functions.sql) creates every function of the library on SQL Server, in the order they need, dropping the one of the same name first: run it as it is, with the client of your database, like `sqlcmd -d <database> -i tsq-functions.sql`, or in the editor you use. Each function is described below; a query that doesn't use one doesn't need it. `tsq_duration_sum`, `tsq_duration_total_of` and `tsq_duration_round_of` call others with schema binding, which can't be changed while they exist: the file drops them first. A query calls the ones of the setting `libraryFunctions` only with it (see each one).
 
 ## `tsq_duration_part`
 
@@ -83,6 +86,24 @@ Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 ## `tsq_datetime_of_ticks`
 
 `dbo.tsq_datetime_of_ticks` gives a date plus a number of hundreds of nanoseconds, a `datetime2(7)`: `round` of a date and time or an instant builds its result with it. With `libraryFunctions = 'installed'` the query calls it and writes the number once; without it, the query writes it twice, in two `dateadd`.
+
+Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
+
+## `tsq_duration_sum`
+
+`dbo.tsq_duration_sum` adds or subtracts two durations given whole, as their ISO 8601 text, the way SQL Server keeps them: it calls `tsq_duration_add` with the parts `tsq_duration_part` reads of each one. With `libraryFunctions = 'installed'` a query calls it for `add` and `subtract` of a duration to another one (see [Durations added and subtracted together](../../configuration/dates-and-times.md#durations-added-and-subtracted-together)), and writes each duration once, a duration given as a value as its ISO 8601 text; without it, the query calls `tsq_duration_add` with the parts of each one, the duration written four times. Create it after `tsq_duration_part` and `tsq_duration_add`.
+
+Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
+
+## `tsq_duration_total_of`
+
+`dbo.tsq_duration_total_of` gives a duration given whole in one unit, as Temporal's `total`: it calls `tsq_duration_total` with the parts `tsq_duration_part` reads of it. With `libraryFunctions = 'installed'` a query calls it for `total` (see [The total of a duration in a unit](../../configuration/dates-and-times.md#the-total-of-a-duration-in-a-unit)) and writes the duration once; without it, the query writes it five times. A difference that `until` or `since` computes is given by its parts, as without the function. Create it after `tsq_duration_part` and `tsq_duration_total`.
+
+Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
+
+## `tsq_duration_round_of`
+
+`dbo.tsq_duration_round_of` gives the duration from one date or date and time to another, given whole, as Temporal's `until` in months or years, or rounded to the calendar: it calls `tsq_duration_round` with the year, the month, the day and the nanoseconds of the day of each one. With `libraryFunctions = 'installed'` a query calls it where it would call `tsq_duration_round` (see [The duration between two dates and times](../../configuration/dates-and-times.md#the-duration-between-two-dates-and-times)), except for two months of a year, and writes each value once; without it, the query writes each value four times. Create it after `tsq_duration_round`. A value is given as its date and time in UTC.
 
 Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 

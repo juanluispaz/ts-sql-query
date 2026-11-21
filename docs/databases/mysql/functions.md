@@ -9,7 +9,7 @@ Some queries call a function that MySQL doesn't have built in. This page says wh
 They are of two kinds:
 
 - **The functions of the library**, whose names start with `tsq_`. The queries of durations call them (see [Dates and times](../../configuration/dates-and-times.md)). Create them with their file, as it is.
-- **The optional ones**, `tsq_zoned_wall`, `tsq_zoned_utc` and `tsq_round_to`: a query calls them only with `libraryFunctions = 'installed'` on the connection; without it, the SQL of MySQL does the same, writing the text of the value more times (see each one).
+- **The optional ones**, `tsq_zoned_wall`, `tsq_zoned_utc`, `tsq_round_to`, `tsq_duration_sum`, `tsq_duration_total_of` and `tsq_duration_round_of`: a query calls them only with `libraryFunctions = 'installed'` on the connection; without it, the SQL of MySQL does the same, writing the text of the value more times (see each one).
 - **Functions of your own**, which on MySQL 5.7, have the names of functions that MySQL has built in from version 8.0, and that the library calls. Their file is an example of them.
 
 ## Which function each query needs
@@ -24,6 +24,9 @@ They are of two kinds:
 | [`tsq_zoned_wall`](#tsq_zoned_wall) | the date and time or a part of a zoned date and time kept as its text is read, with `libraryFunctions = 'installed'` | — |
 | [`tsq_zoned_utc`](#tsq_zoned_utc) | the instant of a zoned date and time kept as its text is compared, ordered or read, with `libraryFunctions = 'installed'`, before MySQL 8.0.19 | `tsq_zoned_wall` |
 | [`tsq_round_to`](#tsq_round_to) | `round` of a time, a date and time or an instant, or `until` or `since` with a rounding, with `libraryFunctions = 'installed'` | — |
+| [`tsq_duration_sum`](#tsq_duration_sum) | `add` or `subtract` of two durations, with `libraryFunctions = 'installed'` | `tsq_duration_part`, `tsq_duration_add` |
+| [`tsq_duration_total_of`](#tsq_duration_total_of) | `total` of a duration, with `libraryFunctions = 'installed'` | `tsq_duration_part`, `tsq_duration_total` |
+| [`tsq_duration_round_of`](#tsq_duration_round_of) | `until` or `since` of two dates or two dates and times in months or years, or rounded to a week, a month or a year, with `libraryFunctions = 'installed'` | `tsq_duration_round` |
 | [`UUID_TO_BIN` and `BIN_TO_UUID`](#uuid_to_bin-and-bin_to_uuid-for-mysql-57) | a uuid is read or written with the `'binary'` uuid strategy, on MySQL 5.7 | — |
 
 ## Creating them
@@ -75,6 +78,24 @@ Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 ## `tsq_round_to`
 
 `tsq_round_to` rounds an integer to a multiple of a step in a rounding mode of Temporal (`'ceil'`, `'floor'`, `'expand'`, `'trunc'`, `'halfCeil'`, `'halfFloor'`, `'halfExpand'`, `'halfTrunc'`, `'halfEven'`), as Temporal rounds: `-90` to a step of `60` in `'halfEven'` is `-120`. A query rounds with it the time since midnight of `round` of a time, a date and time or an instant (see [Changing a field and rounding](../../configuration/dates-and-times.md#changing-a-field-and-rounding)), and the difference of `until` and `since` with a `smallestUnit`, a `roundingIncrement` or a `roundingMode` (see [The options of `until` and `since`](../../configuration/dates-and-times.md#the-options-of-until-and-since)). With `libraryFunctions = 'installed'` the query calls it and writes the value once; without it, the query writes the rounding inline, with the value two to four times.
+
+Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
+
+## `tsq_duration_sum`
+
+`tsq_duration_sum` adds or subtracts two durations given whole, as their ISO 8601 text, the way MySQL keeps them: it calls `tsq_duration_add` with the parts `tsq_duration_part` reads of each one. With `libraryFunctions = 'installed'` a query calls it for `add` and `subtract` of a duration to another one (see [Durations added and subtracted together](../../configuration/dates-and-times.md#durations-added-and-subtracted-together)), and writes each duration once, a duration given as a value as its ISO 8601 text; without it, the query calls `tsq_duration_add` with the parts of each one, the duration written four times. Create it after `tsq_duration_part` and `tsq_duration_add`.
+
+Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
+
+## `tsq_duration_total_of`
+
+`tsq_duration_total_of` gives a duration given whole in one unit, as Temporal's `total`: it calls `tsq_duration_total` with the parts `tsq_duration_part` reads of it. With `libraryFunctions = 'installed'` a query calls it for `total` (see [The total of a duration in a unit](../../configuration/dates-and-times.md#the-total-of-a-duration-in-a-unit)) and writes the duration once; without it, the query writes it five times. A difference that `until` or `since` computes is given by its parts, as without the function. Create it after `tsq_duration_part` and `tsq_duration_total`.
+
+Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
+
+## `tsq_duration_round_of`
+
+`tsq_duration_round_of` gives the duration from one date or date and time to another, given whole, as Temporal's `until` in months or years, or rounded to the calendar: it calls `tsq_duration_round` with the year, the month, the day and the nanoseconds of the day of each one. With `libraryFunctions = 'installed'` a query calls it where it would call `tsq_duration_round` (see [The duration between two dates and times](../../configuration/dates-and-times.md#the-duration-between-two-dates-and-times)), except for two months of a year, and writes each value once; without it, the query writes each value four times. Create it after `tsq_duration_round`.
 
 Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 

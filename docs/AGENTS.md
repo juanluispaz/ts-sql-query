@@ -77,7 +77,7 @@ Start with the file of the area of your task. These files are written for you: o
 
 | To | Read | Tokens |
 |---|---|---|
-| Write SQL of your own in a query, customize a query, or create the functions the library calls in each database (and the extensions of SQLite) | [`llms-own-sql-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-own-sql-postgresql.txt) | 13k |
+| Write SQL of your own in a query, customize a query, or create the functions the library calls in each database (and the extensions of SQLite) | [`llms-own-sql-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-own-sql-postgresql.txt) | 15k |
 
 **Extend the library**
 
@@ -102,7 +102,7 @@ Start with the file of the area of your task. These files are written for you: o
 | Find what writes a SQL keyword | [`llms-keywords.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-keywords.txt) | 12k |
 | Know what the library is, and what it can't do | [`llms-general.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-general.txt) | 8k |
 | Move a project from v1 to v2 | [`llms-migrating-from-v1.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-migrating-from-v1.txt) | 17k |
-| See what changed in a version | [`llms-changelog-v2.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-changelog-v2.txt), or `llms-changelog-v1.txt` | 45k |
+| See what changed in a version | [`llms-changelog-v2.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-changelog-v2.txt), or `llms-changelog-v1.txt` | 46k |
 
 The files with `<database>` also come with all the databases, like `llms-queries-all.txt`, to compare them or to move code between them. Otherwise use the one of your database, which is smaller.
 

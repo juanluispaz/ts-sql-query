@@ -136,7 +136,8 @@ export abstract class SqlServerConnection<NAME extends string> extends AbstractA
      * installed the library also calls `dbo.tsq_greatest_strict` and `dbo.tsq_least_strict`, for `minValue` and
      * `maxValue`, which give null for a null operand writing each operand once; without them, a `CASE` repeats them; and
      * `dbo.tsq_round_to`, `dbo.tsq_ticks_between`, `dbo.tsq_time_of_ticks` and `dbo.tsq_datetime_of_ticks`, for a rounding
-     * and the difference of two dates and times, writing each value once.
+     * and the difference of two dates and times, writing each value once; `dbo.tsq_duration_sum`,
+     * `dbo.tsq_duration_total_of` and `dbo.tsq_duration_round_of`, which take a duration or a date whole.
      */
     protected libraryFunctions: 'installed' | 'not installed' = 'not installed'
 

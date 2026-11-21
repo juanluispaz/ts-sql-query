@@ -115,7 +115,8 @@ export abstract class MariaDBConnection</*in|out*/ NAME extends string> extends 
      * Whether the functions of the library are in the database (its file of SQL, tsq-functions.sql): `'installed'` or
      * `'not installed'` (the default). The ones a query always needs, of durations, are called anyway. With them
      * installed the library also calls `tsq_zoned_wall` and `tsq_zoned_utc`, which read the date and time and the instant
-     * of the text of a zoned date and time writing the text once, and `tsq_round_to`, which rounds writing the value once;
+     * of the text of a zoned date and time writing the text once, `tsq_round_to`, which rounds writing the value once,
+     * and `tsq_duration_sum`, `tsq_duration_total_of` and `tsq_duration_round_of`, which take a duration or a date whole;
      * without them, the query writes them inline.
      */
     protected libraryFunctions: 'installed' | 'not installed' = 'not installed'

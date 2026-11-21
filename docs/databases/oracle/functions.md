@@ -9,7 +9,7 @@ Some queries call a function that Oracle doesn't have built in. This page says w
 They are of these kinds:
 
 - **The ones a query always needs**, the ones of durations and of differences of zoned dates and times in days: a query that uses one calls it (see [Dates and times](../../configuration/dates-and-times.md)).
-- **The optional ones**, `tsq_zoned_of_wall`, `tsq_zoned_of_text`, `tsq_zoned_hours_in_day`, `tsq_zoned_round_day`, `tsq_round_to`, `tsq_nanoseconds_between` and `tsq_string_util.concat_strict`: a query calls them only with `libraryFunctions = 'installed'` on the connection; without it, the SQL of Oracle does the same with less (see each one).
+- **The optional ones**, `tsq_zoned_of_wall`, `tsq_zoned_of_text`, `tsq_zoned_hours_in_day`, `tsq_zoned_round_day`, `tsq_round_to`, `tsq_nanoseconds_between`, `tsq_duration_sum`, `tsq_duration_total_of`, `tsq_duration_round_of`, `tsq_ds_interval_text`, `tsq_ym_interval_text` and `tsq_string_util.concat_strict`: a query calls them only with `libraryFunctions = 'installed'` on the connection; without it, the SQL of Oracle does the same with less (see each one).
 - **The ones of the uuid strategy** `'custom-functions'`, `tsq_uuid_to_raw` and `tsq_raw_to_uuid`, in two forms to choose, in files of their own.
 
 ## Which function each query needs
@@ -28,6 +28,10 @@ They are of these kinds:
 | [`tsq_zoned_round_day`](#tsq_zoned_round_day) | `round` of a zoned date and time to a day, with `libraryFunctions = 'installed'` | `tsq_zoned_of_wall` |
 | [`tsq_round_to`](#tsq_round_to) | `round` of a time, a date and time or an instant, or `until` or `since` with a rounding, with `libraryFunctions = 'installed'` | — |
 | [`tsq_nanoseconds_between`](#tsq_nanoseconds_between) | `until` or `since` of two dates and times or two instants, with `libraryFunctions = 'installed'` | — |
+| [`tsq_duration_sum`](#tsq_duration_sum) | `add` or `subtract` of two durations, with `libraryFunctions = 'installed'` | `tsq_duration_part`, `tsq_duration_add` |
+| [`tsq_duration_total_of`](#tsq_duration_total_of) | `total` of a duration, with `libraryFunctions = 'installed'` | `tsq_duration_part`, `tsq_duration_total` |
+| [`tsq_duration_round_of`](#tsq_duration_round_of) | `until` or `since` of two dates or two dates and times in months or years, or rounded to a week, a month or a year, with `libraryFunctions = 'installed'` | `tsq_duration_round` |
+| [`tsq_ds_interval_text` and `tsq_ym_interval_text`](#tsq_ds_interval_text-and-tsq_ym_interval_text) | a duration kept in an interval is added, subtracted or has its total computed, with `libraryFunctions = 'installed'` | — |
 | [`tsq_string_util.concat_strict`](#tsq_string_utilconcat_strict) | `concat` or an affix pattern is written, with `libraryFunctions = 'installed'` | — |
 | [`tsq_uuid_to_raw` and `tsq_raw_to_uuid`](#tsq_uuid_to_raw-and-tsq_raw_to_uuid) | a uuid is read or written with the `'custom-functions'` uuid strategy | — |
 
@@ -104,6 +108,30 @@ Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 ## `tsq_nanoseconds_between`
 
 `tsq_nanoseconds_between` gives the nanoseconds from one date and time (a `TIMESTAMP` or a `DATE`) to another: the days of their dates and the nanoseconds of their times of the day. A query computes with it the difference of `until` and `since` of two dates and times, and of two instants, in their wall clocks in UTC. With `libraryFunctions = 'installed'` the query calls it and writes each value once; without it, the query writes each value twice.
+
+Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
+
+## `tsq_duration_sum`
+
+`tsq_duration_sum` adds or subtracts two durations given whole, as their ISO 8601 text: it calls `tsq_duration_add` with the parts `tsq_duration_part` reads of each one. With `libraryFunctions = 'installed'` a query calls it for `add` and `subtract` of a duration to another one (see [Durations added and subtracted together](../../configuration/dates-and-times.md#durations-added-and-subtracted-together)), and writes each duration once, a duration given as a value as its ISO 8601 text; without it, the query calls `tsq_duration_add` with the parts of each one, the duration written four times. A duration kept in an interval is given as its text, with `tsq_ds_interval_text` or `tsq_ym_interval_text`. Create it after `tsq_duration_part` and `tsq_duration_add`.
+
+Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
+
+## `tsq_duration_total_of`
+
+`tsq_duration_total_of` gives a duration given whole in one unit, as Temporal's `total`: it calls `tsq_duration_total` with the parts `tsq_duration_part` reads of it. With `libraryFunctions = 'installed'` a query calls it for `total` (see [The total of a duration in a unit](../../configuration/dates-and-times.md#the-total-of-a-duration-in-a-unit)) and writes the duration once; without it, the query writes it five times. A difference that `until` or `since` computes is given by its parts, as without the function. Create it after `tsq_duration_part` and `tsq_duration_total`.
+
+Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
+
+## `tsq_duration_round_of`
+
+`tsq_duration_round_of` gives the duration from one date or date and time to another, given whole, as Temporal's `until` in months or years, or rounded to the calendar: it calls `tsq_duration_round` with the year, the month, the day and the nanoseconds of the day of each one. With `libraryFunctions = 'installed'` a query calls it where it would call `tsq_duration_round` (see [The duration between two dates and times](../../configuration/dates-and-times.md#the-duration-between-two-dates-and-times)), except for two months of a year, and writes each value once; without it, the query writes each value four times. Create it after `tsq_duration_round`.
+
+Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
+
+## `tsq_ds_interval_text` and `tsq_ym_interval_text`
+
+`tsq_ds_interval_text` gives the ISO 8601 text of an `INTERVAL DAY TO SECOND`, with all the digits of its fraction (`P1DT12H0M0.000000000S`), and `tsq_ym_interval_text` the one of an `INTERVAL YEAR TO MONTH` (`-P1Y2M`). With `libraryFunctions = 'installed'` a query gives a duration kept in an interval to `tsq_duration_sum` and `tsq_duration_total_of` as that text, written once.
 
 Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 

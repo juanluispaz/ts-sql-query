@@ -480,10 +480,12 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as version, make_interval(days => (cast(published_at as date) - released_on)) as "toPublication", (extract(epoch from published_at - cast(released_on as timestamp)) || ' seconds')::interval as "publishedAfter", tsq_duration_round(cast(extract(year from released_on) as integer), cast(extract(month from released_on) as integer), cast(extract(day from released_on) as integer), 0, cast(extract(year from $1::date) as integer), cast(extract(month from $1::date) as integer), cast(extract(day from $1::date) as integer), 0, 'month', 'day', 1, 'trunc', 1) as "untilEndOfJune" from project_release order by version"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as version, make_interval(days => (cast(published_at as date) - released_on)) as "toPublication", (extract(epoch from published_at - cast(released_on as timestamp)) || ' seconds')::interval as "publishedAfter", tsq_duration_round(cast(extract(year from released_on) as integer), cast(extract(month from released_on) as integer), cast(extract(day from released_on) as integer), 0, $1, $2, $3, 0, 'month', 'day', 1, 'trunc', 1) as "untilEndOfJune" from project_release order by version"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
-            "2024-06-30",
+            "2024",
+            "6",
+            "30",
           ]
         `)
         assertType<Exact<typeof releases, Array<{ version: string; toPublication: Temporal.Duration; publishedAfter: Temporal.Duration; untilEndOfJune: Temporal.Duration }>>>()

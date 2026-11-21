@@ -229,15 +229,15 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, tsq_duration_text(0, (cast(year(?) as signed) * 12 + cast(month(?) as signed) - (cast(year(month_of) as signed) * 12 + cast(month(month_of) as signed))), 0, 0, 0, 'year') as until, tsq_duration_text(0, (cast(year(?) as signed) * 12 + cast(month(?) as signed) - (cast(year(month_of) as signed) * 12 + cast(month(month_of) as signed))), 0, 0, 0, 'month') as inMonths, tsq_duration_round(cast(year(month_of) as signed), cast(month(month_of) as signed), 1, 0, cast(year(?) as signed), cast(month(?) as signed), 1, 0, 'year', 'year', 1, 'halfExpand', -1) as sinceInYears, tsq_duration_text(0, ((cast(year(?) as signed) * 12 + cast(month(?) as signed) - (cast(year(month_of) as signed) * 12 + cast(month(month_of) as signed))) div 5 * 5), 0, 0, 0, 'month') as byFive from calendar_value where id <= ? order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, tsq_duration_text(0, (cast(year(?) as signed) * 12 + cast(month(?) as signed) - (cast(year(month_of) as signed) * 12 + cast(month(month_of) as signed))), 0, 0, 0, 'year') as until, tsq_duration_text(0, (cast(year(?) as signed) * 12 + cast(month(?) as signed) - (cast(year(month_of) as signed) * 12 + cast(month(month_of) as signed))), 0, 0, 0, 'month') as inMonths, tsq_duration_round(cast(year(month_of) as signed), cast(month(month_of) as signed), 1, 0, ?, ?, 1, 0, 'year', 'year', 1, 'halfExpand', -1) as sinceInYears, tsq_duration_text(0, ((cast(year(?) as signed) * 12 + cast(month(?) as signed) - (cast(year(month_of) as signed) * 12 + cast(month(month_of) as signed))) div 5 * 5), 0, 0, 0, 'month') as byFive from calendar_value where id <= ? order by id"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
             "2026-08-01",
             "2026-08-01",
             "2026-08-01",
             "2026-08-01",
-            "2026-08-01",
-            "2026-08-01",
+            "2026",
+            "8",
             "2026-08-01",
             "2026-08-01",
             "2",

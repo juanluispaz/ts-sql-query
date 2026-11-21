@@ -480,10 +480,12 @@ describe(ctx.label, () => {
             .executeSelectMany())
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as version, tsq_duration_text(0, 0, 0, cast(julianday(date(date(published_at))) - julianday(date(released_on)) as integer), 0, 'day') as toPublication, tsq_duration_text(0, 0, 0, 0, cast(-cast(round((julianday(strftime('%Y-%m-%d %H:%M:%f', released_on)) - julianday(published_at)) * 86400000) as integer) * 1000000 as text), 'hour') as publishedAfter, tsq_duration_round(cast(strftime('%Y', released_on) as integer), cast(strftime('%m', released_on) as integer), cast(strftime('%d', released_on) as integer), 0, cast(strftime('%Y', ?1) as integer), cast(strftime('%m', ?1) as integer), cast(strftime('%d', ?1) as integer), 0, 'month', 'day', 1, 'trunc', 1) as untilEndOfJune from project_release order by version"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as version, tsq_duration_text(0, 0, 0, cast(julianday(date(date(published_at))) - julianday(date(released_on)) as integer), 0, 'day') as toPublication, tsq_duration_text(0, 0, 0, 0, cast(-cast(round((julianday(strftime('%Y-%m-%d %H:%M:%f', released_on)) - julianday(published_at)) * 86400000) as integer) * 1000000 as text), 'hour') as publishedAfter, tsq_duration_round(cast(strftime('%Y', released_on) as integer), cast(strftime('%m', released_on) as integer), cast(strftime('%d', released_on) as integer), 0, ?1, ?2, ?3, 0, 'month', 'day', 1, 'trunc', 1) as untilEndOfJune from project_release order by version"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
-            "2024-06-30",
+            "2024",
+            "6",
+            "30",
           ]
         `)
         assertType<Exact<typeof releases, Array<{ version: string; toPublication: Temporal.Duration; publishedAfter: Temporal.Duration; untilEndOfJune: Temporal.Duration }>>>()

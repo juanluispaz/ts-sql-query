@@ -58,21 +58,45 @@ describe(ctx.label, () => {
                 nextYear: ctx.conn.const(Temporal.PlainDate.from('2024-02-29'), 'plainDate').until(Temporal.PlainDate.from('2025-03-01'), { largestUnit: 'year' }),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_duration_round(cast(extract(year from $1) as integer), cast(extract(month from $1) as integer), cast(extract(day from $1) as integer), 0, cast(extract(year from $2) as integer), cast(extract(month from $2) as integer), cast(extract(day from $2) as integer), 0, 'month', 'day', 1, 'trunc', 1) as february, tsq_duration_round(cast(extract(year from $3) as integer), cast(extract(month from $3) as integer), cast(extract(day from $3) as integer), 0, cast(extract(year from $4) as integer), cast(extract(month from $4) as integer), cast(extract(day from $4) as integer), 0, 'month', 'day', 1, 'trunc', 1) as march1, tsq_duration_round(cast(extract(year from $5) as integer), cast(extract(month from $5) as integer), cast(extract(day from $5) as integer), 0, cast(extract(year from $6) as integer), cast(extract(month from $6) as integer), cast(extract(day from $6) as integer), 0, 'month', 'day', 1, 'trunc', 1) as march30, tsq_duration_round(cast(extract(year from $7) as integer), cast(extract(month from $7) as integer), cast(extract(day from $7) as integer), 0, cast(extract(year from $8) as integer), cast(extract(month from $8) as integer), cast(extract(day from $8) as integer), 0, 'month', 'day', 1, 'trunc', 1) as back, tsq_duration_round(cast(extract(year from $9) as integer), cast(extract(month from $9) as integer), cast(extract(day from $9) as integer), 0, cast(extract(year from $10) as integer), cast(extract(month from $10) as integer), cast(extract(day from $10) as integer), 0, 'year', 'day', 1, 'trunc', 1) as "leapYear", tsq_duration_round(cast(extract(year from $11) as integer), cast(extract(month from $11) as integer), cast(extract(day from $11) as integer), 0, cast(extract(year from $12) as integer), cast(extract(month from $12) as integer), cast(extract(day from $12) as integer), 0, 'year', 'day', 1, 'trunc', 1) as "nextYear""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_duration_round($1, $2, $3, 0, $4, $5, $6, 0, 'month', 'day', 1, 'trunc', 1) as february, tsq_duration_round($7, $8, $9, 0, $10, $11, $12, 0, 'month', 'day', 1, 'trunc', 1) as march1, tsq_duration_round($13, $14, $15, 0, $16, $17, $18, 0, 'month', 'day', 1, 'trunc', 1) as march30, tsq_duration_round($19, $20, $21, 0, $22, $23, $24, 0, 'month', 'day', 1, 'trunc', 1) as back, tsq_duration_round($25, $26, $27, 0, $28, $29, $30, 0, 'year', 'day', 1, 'trunc', 1) as "leapYear", tsq_duration_round($31, $32, $33, 0, $34, $35, $36, 0, 'year', 'day', 1, 'trunc', 1) as "nextYear""`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
-            "2024-01-31",
-            "2024-02-29",
-            "2024-01-31",
-            "2024-03-01",
-            "2024-01-31",
-            "2024-03-30",
-            "2024-03-31",
-            "2024-02-29",
-            "2024-02-29",
-            "2025-02-28",
-            "2024-02-29",
-            "2025-03-01",
+            "2024",
+            "1",
+            "31",
+            "2024",
+            "2",
+            "29",
+            "2024",
+            "1",
+            "31",
+            "2024",
+            "3",
+            "1",
+            "2024",
+            "1",
+            "31",
+            "2024",
+            "3",
+            "30",
+            "2024",
+            "3",
+            "31",
+            "2024",
+            "2",
+            "29",
+            "2024",
+            "2",
+            "29",
+            "2025",
+            "2",
+            "28",
+            "2024",
+            "2",
+            "29",
+            "2025",
+            "3",
+            "1",
           ]
         `)
         expect([row.february.toString(), row.march1.toString(), row.march30.toString(), row.back.toString(), row.leapYear.toString(), row.nextYear.toString()]).toEqual(['P29D', 'P1M1D', 'P1M30D', '-P1M', 'P11M30D', 'P1Y1D'])
@@ -89,13 +113,21 @@ describe(ctx.label, () => {
                 weeks: ctx.conn.const(Temporal.PlainDate.from('2024-01-01'), 'plainDate').until(Temporal.PlainDate.from('2024-03-15'), { largestUnit: 'week' }),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_duration_round(cast(extract(year from $1) as integer), cast(extract(month from $1) as integer), cast(extract(day from $1) as integer), 0, cast(extract(year from $2) as integer), cast(extract(month from $2) as integer), cast(extract(day from $2) as integer), 0, 'month', 'day', 1, 'trunc', -1) as since, tsq_duration_round(cast(extract(year from $3) as integer), cast(extract(month from $3) as integer), cast(extract(day from $3) as integer), 0, cast(extract(year from $4) as integer), cast(extract(month from $4) as integer), cast(extract(day from $4) as integer), 0, 'month', 'day', 1, 'trunc', 1) as "untilBack", make_interval(days => ($5 - $6)) as weeks"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_duration_round($1, $2, $3, 0, $4, $5, $6, 0, 'month', 'day', 1, 'trunc', -1) as since, tsq_duration_round($7, $8, $9, 0, $10, $11, $12, 0, 'month', 'day', 1, 'trunc', 1) as "untilBack", make_interval(days => ($13 - $14)) as weeks"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
-            "2024-01-31",
-            "2024-03-30",
-            "2024-03-30",
-            "2024-01-31",
+            "2024",
+            "1",
+            "31",
+            "2024",
+            "3",
+            "30",
+            "2024",
+            "3",
+            "30",
+            "2024",
+            "1",
+            "31",
             "2024-03-15",
             "2024-01-01",
           ]
@@ -113,15 +145,21 @@ describe(ctx.label, () => {
                 months: ctx.conn.const(Temporal.PlainDateTime.from('2024-01-31T10:00'), 'plainDateTime').until(Temporal.PlainDateTime.from('2024-02-29T09:00'), { largestUnit: 'month' }),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ($1 - $2) as overnight, (extract(epoch from $3 - $4) || ' seconds')::interval as "inMinutes", tsq_duration_round(cast(extract(year from $5) as integer), cast(extract(month from $5) as integer), cast(extract(day from $5) as integer), (round(extract(epoch from cast($5 as time)) * 1000000)::bigint * 1000), cast(extract(year from $6) as integer), cast(extract(month from $6) as integer), cast(extract(day from $6) as integer), (round(extract(epoch from cast($6 as time)) * 1000000)::bigint * 1000), 'month', 'nanosecond', 1, 'trunc', 1) as months"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ($1 - $2) as overnight, (extract(epoch from $3 - $4) || ' seconds')::interval as "inMinutes", tsq_duration_round($5, $6, $7, $8, $9, $10, $11, $12, 'month', 'nanosecond', 1, 'trunc', 1) as months"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
             "2024-01-02T01:00:00",
             "2024-01-01T23:00:00",
             "2024-01-02T01:00:00",
             "2024-01-01T23:00:00",
-            "2024-01-31T10:00:00",
-            "2024-02-29T09:00:00",
+            "2024",
+            "1",
+            "31",
+            "36000000000000",
+            "2024",
+            "2",
+            "29",
+            "32400000000000",
           ]
         `)
         expect([row.overnight.toString(), row.inMinutes.toString(), row.months.toString()]).toEqual(['PT2H', 'PT2H', 'P28DT23H'])
@@ -169,19 +207,39 @@ describe(ctx.label, () => {
                 sinceCeil: january1.since(Temporal.PlainDate.from('2024-03-15'), { smallestUnit: 'month', roundingMode: 'ceil' }),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_duration_round(cast(extract(year from $1) as integer), cast(extract(month from $1) as integer), cast(extract(day from $1) as integer), 0, cast(extract(year from $2) as integer), cast(extract(month from $2) as integer), cast(extract(day from $2) as integer), 0, 'month', 'month', 1, 'trunc', 1) as month, tsq_duration_round(cast(extract(year from $3) as integer), cast(extract(month from $3) as integer), cast(extract(day from $3) as integer), 0, cast(extract(year from $4) as integer), cast(extract(month from $4) as integer), cast(extract(day from $4) as integer), 0, 'month', 'week', 1, 'trunc', 1) as week, tsq_duration_round(cast(extract(year from $5) as integer), cast(extract(month from $5) as integer), cast(extract(day from $5) as integer), 0, cast(extract(year from $6) as integer), cast(extract(month from $6) as integer), cast(extract(day from $6) as integer), 0, 'month', 'month', 1, 'halfExpand', 1) as "halfUp", tsq_duration_round(cast(extract(year from $7) as integer), cast(extract(month from $7) as integer), cast(extract(day from $7) as integer), 0, cast(extract(year from $8) as integer), cast(extract(month from $8) as integer), cast(extract(day from $8) as integer), 0, 'year', 'year', 1, 'halfExpand', 1) as year, tsq_duration_round(cast(extract(year from $9) as integer), cast(extract(month from $9) as integer), cast(extract(day from $9) as integer), 0, cast(extract(year from $10) as integer), cast(extract(month from $10) as integer), cast(extract(day from $10) as integer), 0, 'month', 'month', 1, 'floor', -1) as "sinceCeil""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_duration_round($1, $2, $3, 0, $4, $5, $6, 0, 'month', 'month', 1, 'trunc', 1) as month, tsq_duration_round($7, $8, $9, 0, $10, $11, $12, 0, 'month', 'week', 1, 'trunc', 1) as week, tsq_duration_round($13, $14, $15, 0, $16, $17, $18, 0, 'month', 'month', 1, 'halfExpand', 1) as "halfUp", tsq_duration_round($19, $20, $21, 0, $22, $23, $24, 0, 'year', 'year', 1, 'halfExpand', 1) as year, tsq_duration_round($25, $26, $27, 0, $28, $29, $30, 0, 'month', 'month', 1, 'floor', -1) as "sinceCeil""`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
-            "2024-01-01",
-            "2024-03-15",
-            "2024-01-01",
-            "2024-03-15",
-            "2024-01-01",
-            "2024-03-17",
-            "2024-01-01",
-            "2025-08-01",
-            "2024-01-01",
-            "2024-03-15",
+            "2024",
+            "1",
+            "1",
+            "2024",
+            "3",
+            "15",
+            "2024",
+            "1",
+            "1",
+            "2024",
+            "3",
+            "15",
+            "2024",
+            "1",
+            "1",
+            "2024",
+            "3",
+            "17",
+            "2024",
+            "1",
+            "1",
+            "2025",
+            "8",
+            "1",
+            "2024",
+            "1",
+            "1",
+            "2024",
+            "3",
+            "15",
           ]
         `)
         expect([row.month.toString(), row.week.toString(), row.halfUp.toString(), row.year.toString(), row.sinceCeil.toString()]).toEqual(['P2M', 'P2M14D', 'P3M', 'P2Y', '-P2M'])
@@ -195,11 +253,15 @@ describe(ctx.label, () => {
                 rounded: ctx.conn.const(Temporal.PlainDate.from('2024-01-01'), 'plainDate').until(Temporal.PlainDate.from('2024-01-31'), { largestUnit: 'month', smallestUnit: 'day', roundingIncrement: 7, roundingMode: 'ceil' }),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_duration_round(cast(extract(year from $1) as integer), cast(extract(month from $1) as integer), cast(extract(day from $1) as integer), 0, cast(extract(year from $2) as integer), cast(extract(month from $2) as integer), cast(extract(day from $2) as integer), 0, 'month', 'day', 7, 'ceil', 1) as rounded"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_duration_round($1, $2, $3, 0, $4, $5, $6, 0, 'month', 'day', 7, 'ceil', 1) as rounded"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
-            "2024-01-01",
-            "2024-01-31",
+            "2024",
+            "1",
+            "1",
+            "2024",
+            "1",
+            "31",
           ]
         `)
         expect(row.rounded.toString()).toBe('P1M')

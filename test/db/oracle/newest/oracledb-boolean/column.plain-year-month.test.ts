@@ -229,12 +229,13 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", tsq_duration_text(0, (extract(year from to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')) * 12 + extract(month from to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')) - (extract(year from month_of) * 12 + extract(month from month_of))), 0, 0, 0, 'year') as "until", tsq_duration_text(0, (extract(year from to_date(:1, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')) * 12 + extract(month from to_date(:1, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')) - (extract(year from month_of) * 12 + extract(month from month_of))), 0, 0, 0, 'month') as "inMonths", tsq_duration_round(extract(year from month_of), extract(month from month_of), 1, 0, extract(year from to_date(:2, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(month from to_date(:2, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), 1, 0, 'year', 'year', 1, 'halfExpand', -1) as "sinceInYears", tsq_duration_text(0, (trunc((extract(year from to_date(:3, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')) * 12 + extract(month from to_date(:3, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')) - (extract(year from month_of) * 12 + extract(month from month_of))) / 5) * 5), 0, 0, 0, 'month') as "byFive" from calendar_value where id <= :4 order by "id""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", tsq_duration_text(0, (extract(year from to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')) * 12 + extract(month from to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')) - (extract(year from month_of) * 12 + extract(month from month_of))), 0, 0, 0, 'year') as "until", tsq_duration_text(0, (extract(year from to_date(:1, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')) * 12 + extract(month from to_date(:1, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')) - (extract(year from month_of) * 12 + extract(month from month_of))), 0, 0, 0, 'month') as "inMonths", tsq_duration_round(extract(year from month_of), extract(month from month_of), 1, 0, :2, :3, 1, 0, 'year', 'year', 1, 'halfExpand', -1) as "sinceInYears", tsq_duration_text(0, (trunc((extract(year from to_date(:4, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')) * 12 + extract(month from to_date(:4, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')) - (extract(year from month_of) * 12 + extract(month from month_of))) / 5) * 5), 0, 0, 0, 'month') as "byFive" from calendar_value where id <= :5 order by "id""`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
             "2026-08-01",
             "2026-08-01",
-            "2026-08-01",
+            "2026",
+            "8",
             "2026-08-01",
             "2",
           ]

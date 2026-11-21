@@ -229,12 +229,13 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, make_interval(months => (cast(extract(year from $1::date) as integer) * 12 + cast(extract(month from $1::date) as integer) - (cast(extract(year from month_of) as integer) * 12 + cast(extract(month from month_of) as integer)))) as until, make_interval(months => (cast(extract(year from $2::date) as integer) * 12 + cast(extract(month from $2::date) as integer) - (cast(extract(year from month_of) as integer) * 12 + cast(extract(month from month_of) as integer)))) as "inMonths", tsq_duration_round(cast(extract(year from month_of) as integer), cast(extract(month from month_of) as integer), 1, 0, cast(extract(year from $3::date) as integer), cast(extract(month from $3::date) as integer), 1, 0, 'year', 'year', 1, 'halfExpand', -1) as "sinceInYears", make_interval(months => (((cast(extract(year from $4::date) as integer) * 12 + cast(extract(month from $4::date) as integer) - (cast(extract(year from month_of) as integer) * 12 + cast(extract(month from month_of) as integer))) / 5) * 5)) as "byFive" from calendar_value where id <= $5 order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, make_interval(months => (cast(extract(year from $1::date) as integer) * 12 + cast(extract(month from $1::date) as integer) - (cast(extract(year from month_of) as integer) * 12 + cast(extract(month from month_of) as integer)))) as until, make_interval(months => (cast(extract(year from $2::date) as integer) * 12 + cast(extract(month from $2::date) as integer) - (cast(extract(year from month_of) as integer) * 12 + cast(extract(month from month_of) as integer)))) as "inMonths", tsq_duration_round(cast(extract(year from month_of) as integer), cast(extract(month from month_of) as integer), 1, 0, $3, $4, 1, 0, 'year', 'year', 1, 'halfExpand', -1) as "sinceInYears", make_interval(months => (((cast(extract(year from $5::date) as integer) * 12 + cast(extract(month from $5::date) as integer) - (cast(extract(year from month_of) as integer) * 12 + cast(extract(month from month_of) as integer))) / 5) * 5)) as "byFive" from calendar_value where id <= $6 order by id"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
             "2026-08-01",
             "2026-08-01",
-            "2026-08-01",
+            "2026",
+            "8",
             "2026-08-01",
             "2",
           ]

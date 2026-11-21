@@ -481,12 +481,12 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as version, tsq_duration_text(0, 0, 0, datediff(date(published_at), released_on), 0, 'day') as toPublication, tsq_duration_text(0, 0, 0, 0, cast(-timestampdiff(microsecond, published_at, timestamp(released_on)) as decimal(65)) * 1000, 'hour') as publishedAfter, tsq_duration_round(cast(year(released_on) as signed), cast(month(released_on) as signed), cast(dayofmonth(released_on) as signed), 0, cast(year(?) as signed), cast(month(?) as signed), cast(dayofmonth(?) as signed), 0, 'month', 'day', 1, 'trunc', 1) as untilEndOfJune from project_release order by version"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as version, tsq_duration_text(0, 0, 0, datediff(date(published_at), released_on), 0, 'day') as toPublication, tsq_duration_text(0, 0, 0, 0, cast(-timestampdiff(microsecond, published_at, timestamp(released_on)) as decimal(65)) * 1000, 'hour') as publishedAfter, tsq_duration_round(cast(year(released_on) as signed), cast(month(released_on) as signed), cast(dayofmonth(released_on) as signed), 0, ?, ?, ?, 0, 'month', 'day', 1, 'trunc', 1) as untilEndOfJune from project_release order by version"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
-            "2024-06-30",
-            "2024-06-30",
-            "2024-06-30",
+            "2024",
+            "6",
+            "30",
           ]
         `)
         assertType<Exact<typeof releases, Array<{ version: string; toPublication: Temporal.Duration; publishedAfter: Temporal.Duration; untilEndOfJune: Temporal.Duration }>>>()

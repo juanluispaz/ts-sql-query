@@ -479,10 +479,12 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as version, dbo.tsq_duration_text(0, 0, 0, datediff(day, released_on, cast(switchoffset(published_at, '+00:00') as date)), 0, 'day') as toPublication, dbo.tsq_duration_text(0, 0, 0, 0, cast(-(datediff(day, cast(published_at as date), cast(cast(released_on as datetime2) as date)) * cast(864000000000 as bigint) + (datediff_big(nanosecond, cast(published_at as time), cast(cast(released_on as datetime2) as time)) / 100)) as decimal(38)) * 100, 'hour') as publishedAfter, dbo.tsq_duration_round(datepart(year, released_on), datepart(month, released_on), datepart(day, released_on), 0, datepart(year, @0), datepart(month, @0), datepart(day, @0), 0, 'month', 'day', 1, 'trunc', 1) as untilEndOfJune from project_release order by version"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as version, dbo.tsq_duration_text(0, 0, 0, datediff(day, released_on, cast(switchoffset(published_at, '+00:00') as date)), 0, 'day') as toPublication, dbo.tsq_duration_text(0, 0, 0, 0, cast(-(datediff(day, cast(published_at as date), cast(cast(released_on as datetime2) as date)) * cast(864000000000 as bigint) + (datediff_big(nanosecond, cast(published_at as time), cast(cast(released_on as datetime2) as time)) / 100)) as decimal(38)) * 100, 'hour') as publishedAfter, dbo.tsq_duration_round(datepart(year, released_on), datepart(month, released_on), datepart(day, released_on), 0, @0, @1, @2, 0, 'month', 'day', 1, 'trunc', 1) as untilEndOfJune from project_release order by version"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
-            "2024-06-30",
+            "2024",
+            "6",
+            "30",
           ]
         `)
         assertType<Exact<typeof releases, Array<{ version: string; toPublication: Temporal.Duration; publishedAfter: Temporal.Duration; untilEndOfJune: Temporal.Duration }>>>()

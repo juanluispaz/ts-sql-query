@@ -481,10 +481,12 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as "version", tsq_duration_text(0, 0, 0, (trunc(published_at) - released_on), 0, 'day') as "toPublication", tsq_duration_text(0, 0, 0, 0, -((trunc(cast(released_on as timestamp(9))) - trunc(published_at)) * 86400000000000 + (to_number(to_char(cast(released_on as timestamp(9)), 'SSSSSFF9')) - to_number(to_char(published_at, 'SSSSSFF9')))), 'hour') as "publishedAfter", tsq_duration_round(extract(year from released_on), extract(month from released_on), extract(day from released_on), 0, extract(year from to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(month from to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(day from to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), 0, 'month', 'day', 1, 'trunc', 1) as "untilEndOfJune" from project_release order by "version""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as "version", tsq_duration_text(0, 0, 0, (trunc(published_at) - released_on), 0, 'day') as "toPublication", tsq_duration_text(0, 0, 0, 0, -((trunc(cast(released_on as timestamp(9))) - trunc(published_at)) * 86400000000000 + (to_number(to_char(cast(released_on as timestamp(9)), 'SSSSSFF9')) - to_number(to_char(published_at, 'SSSSSFF9')))), 'hour') as "publishedAfter", tsq_duration_round(extract(year from released_on), extract(month from released_on), extract(day from released_on), 0, :0, :1, :2, 0, 'month', 'day', 1, 'trunc', 1) as "untilEndOfJune" from project_release order by "version""`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
-            "2024-06-30",
+            "2024",
+            "6",
+            "30",
           ]
         `)
         assertType<Exact<typeof releases, Array<{ version: string; toPublication: Temporal.Duration; publishedAfter: Temporal.Duration; untilEndOfJune: Temporal.Duration }>>>()

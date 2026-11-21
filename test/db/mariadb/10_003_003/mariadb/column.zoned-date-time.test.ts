@@ -449,6 +449,8 @@ describe(ctx.label, () => {
         })
     })
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
     test('zoned-dates-and-times-in-an-aggregated-array', async () => {
         // Inside the JSON of an aggregated array a zoned date and time keeps its zone: a column kept as its text
         ctx.mockNext({ ats: zoned.map((value, i) => ({ id: i + 1, at: value.toString() })) })
@@ -458,6 +460,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(json_arrayagg(json_object('id', id, 'at', zoned_at)) as char) as ats from zoned_value"`)
         expect(row.ats.map(entry => [entry.id, entry.at?.toString()]).sort((a, b) => Number(a[0]) - Number(b[0]))).toEqual(zoned.map((value, i) => [i + 1, value.toString()]))
     })
+    */
 
     // NOT-APPLICABLE: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA: what needs them is not offered here
     /*

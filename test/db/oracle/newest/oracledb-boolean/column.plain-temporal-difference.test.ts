@@ -59,21 +59,45 @@ describe(ctx.label, () => {
                 nextYear: ctx.conn.const(Temporal.PlainDate.from('2024-02-29'), 'plainDate').until(Temporal.PlainDate.from('2025-03-01'), { largestUnit: 'year' }),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_duration_round(extract(year from to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(month from to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(day from to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), 0, extract(year from to_date(:1, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(month from to_date(:1, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(day from to_date(:1, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), 0, 'month', 'day', 1, 'trunc', 1) as "february", tsq_duration_round(extract(year from to_date(:2, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(month from to_date(:2, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(day from to_date(:2, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), 0, extract(year from to_date(:3, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(month from to_date(:3, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(day from to_date(:3, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), 0, 'month', 'day', 1, 'trunc', 1) as "march1", tsq_duration_round(extract(year from to_date(:4, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(month from to_date(:4, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(day from to_date(:4, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), 0, extract(year from to_date(:5, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(month from to_date(:5, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(day from to_date(:5, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), 0, 'month', 'day', 1, 'trunc', 1) as "march30", tsq_duration_round(extract(year from to_date(:6, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(month from to_date(:6, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(day from to_date(:6, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), 0, extract(year from to_date(:7, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(month from to_date(:7, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(day from to_date(:7, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), 0, 'month', 'day', 1, 'trunc', 1) as "back", tsq_duration_round(extract(year from to_date(:8, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(month from to_date(:8, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(day from to_date(:8, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), 0, extract(year from to_date(:9, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(month from to_date(:9, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(day from to_date(:9, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), 0, 'year', 'day', 1, 'trunc', 1) as "leapYear", tsq_duration_round(extract(year from to_date(:10, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(month from to_date(:10, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(day from to_date(:10, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), 0, extract(year from to_date(:11, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(month from to_date(:11, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(day from to_date(:11, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), 0, 'year', 'day', 1, 'trunc', 1) as "nextYear" from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_duration_round(:0, :1, :2, 0, :3, :4, :5, 0, 'month', 'day', 1, 'trunc', 1) as "february", tsq_duration_round(:6, :7, :8, 0, :9, :10, :11, 0, 'month', 'day', 1, 'trunc', 1) as "march1", tsq_duration_round(:12, :13, :14, 0, :15, :16, :17, 0, 'month', 'day', 1, 'trunc', 1) as "march30", tsq_duration_round(:18, :19, :20, 0, :21, :22, :23, 0, 'month', 'day', 1, 'trunc', 1) as "back", tsq_duration_round(:24, :25, :26, 0, :27, :28, :29, 0, 'year', 'day', 1, 'trunc', 1) as "leapYear", tsq_duration_round(:30, :31, :32, 0, :33, :34, :35, 0, 'year', 'day', 1, 'trunc', 1) as "nextYear" from dual"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
-            "2024-01-31",
-            "2024-02-29",
-            "2024-01-31",
-            "2024-03-01",
-            "2024-01-31",
-            "2024-03-30",
-            "2024-03-31",
-            "2024-02-29",
-            "2024-02-29",
-            "2025-02-28",
-            "2024-02-29",
-            "2025-03-01",
+            "2024",
+            "1",
+            "31",
+            "2024",
+            "2",
+            "29",
+            "2024",
+            "1",
+            "31",
+            "2024",
+            "3",
+            "1",
+            "2024",
+            "1",
+            "31",
+            "2024",
+            "3",
+            "30",
+            "2024",
+            "3",
+            "31",
+            "2024",
+            "2",
+            "29",
+            "2024",
+            "2",
+            "29",
+            "2025",
+            "2",
+            "28",
+            "2024",
+            "2",
+            "29",
+            "2025",
+            "3",
+            "1",
           ]
         `)
         expect([row.february.toString(), row.march1.toString(), row.march30.toString(), row.back.toString(), row.leapYear.toString(), row.nextYear.toString()]).toEqual(['P29D', 'P1M1D', 'P1M30D', '-P1M', 'P11M30D', 'P1Y1D'])
@@ -89,13 +113,21 @@ describe(ctx.label, () => {
                 weeks: ctx.conn.const(Temporal.PlainDate.from('2024-01-01'), 'plainDate').until(Temporal.PlainDate.from('2024-03-15'), { largestUnit: 'week' }),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_duration_round(extract(year from to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(month from to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(day from to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), 0, extract(year from to_date(:1, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(month from to_date(:1, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(day from to_date(:1, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), 0, 'month', 'day', 1, 'trunc', -1) as "since", tsq_duration_round(extract(year from to_date(:2, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(month from to_date(:2, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(day from to_date(:2, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), 0, extract(year from to_date(:3, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(month from to_date(:3, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(day from to_date(:3, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), 0, 'month', 'day', 1, 'trunc', 1) as "untilBack", tsq_duration_text(0, 0, 0, (to_date(:4, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') - to_date(:5, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), 0, 'week') as "weeks" from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_duration_round(:0, :1, :2, 0, :3, :4, :5, 0, 'month', 'day', 1, 'trunc', -1) as "since", tsq_duration_round(:6, :7, :8, 0, :9, :10, :11, 0, 'month', 'day', 1, 'trunc', 1) as "untilBack", tsq_duration_text(0, 0, 0, (to_date(:12, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') - to_date(:13, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), 0, 'week') as "weeks" from dual"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
-            "2024-01-31",
-            "2024-03-30",
-            "2024-03-30",
-            "2024-01-31",
+            "2024",
+            "1",
+            "31",
+            "2024",
+            "3",
+            "30",
+            "2024",
+            "3",
+            "30",
+            "2024",
+            "1",
+            "31",
             "2024-03-15",
             "2024-01-01",
           ]
@@ -113,15 +145,21 @@ describe(ctx.label, () => {
                 months: ctx.conn.const(Temporal.PlainDateTime.from('2024-01-31T10:00'), 'plainDateTime').until(Temporal.PlainDateTime.from('2024-02-29T09:00'), { largestUnit: 'month' }),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_duration_text(0, 0, 0, 0, ((trunc(to_timestamp(:0, 'YYYY-MM-DD HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN')) - trunc(to_timestamp(:1, 'YYYY-MM-DD HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN'))) * 86400000000000 + (to_number(to_char(to_timestamp(:0, 'YYYY-MM-DD HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN'), 'SSSSSFF9')) - to_number(to_char(to_timestamp(:1, 'YYYY-MM-DD HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN'), 'SSSSSFF9')))), 'day') as "overnight", tsq_duration_text(0, 0, 0, 0, ((trunc(to_timestamp(:2, 'YYYY-MM-DD HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN')) - trunc(to_timestamp(:3, 'YYYY-MM-DD HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN'))) * 86400000000000 + (to_number(to_char(to_timestamp(:2, 'YYYY-MM-DD HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN'), 'SSSSSFF9')) - to_number(to_char(to_timestamp(:3, 'YYYY-MM-DD HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN'), 'SSSSSFF9')))), 'minute') as "inMinutes", tsq_duration_round(extract(year from to_timestamp(:4, 'YYYY-MM-DD HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(month from to_timestamp(:4, 'YYYY-MM-DD HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(day from to_timestamp(:4, 'YYYY-MM-DD HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN')), to_number(to_char(to_timestamp(:4, 'YYYY-MM-DD HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN'), 'SSSSSFF9')), extract(year from to_timestamp(:5, 'YYYY-MM-DD HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(month from to_timestamp(:5, 'YYYY-MM-DD HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(day from to_timestamp(:5, 'YYYY-MM-DD HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN')), to_number(to_char(to_timestamp(:5, 'YYYY-MM-DD HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN'), 'SSSSSFF9')), 'month', 'nanosecond', 1, 'trunc', 1) as "months" from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_duration_text(0, 0, 0, 0, ((trunc(to_timestamp(:0, 'YYYY-MM-DD HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN')) - trunc(to_timestamp(:1, 'YYYY-MM-DD HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN'))) * 86400000000000 + (to_number(to_char(to_timestamp(:0, 'YYYY-MM-DD HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN'), 'SSSSSFF9')) - to_number(to_char(to_timestamp(:1, 'YYYY-MM-DD HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN'), 'SSSSSFF9')))), 'day') as "overnight", tsq_duration_text(0, 0, 0, 0, ((trunc(to_timestamp(:2, 'YYYY-MM-DD HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN')) - trunc(to_timestamp(:3, 'YYYY-MM-DD HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN'))) * 86400000000000 + (to_number(to_char(to_timestamp(:2, 'YYYY-MM-DD HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN'), 'SSSSSFF9')) - to_number(to_char(to_timestamp(:3, 'YYYY-MM-DD HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN'), 'SSSSSFF9')))), 'minute') as "inMinutes", tsq_duration_round(:4, :5, :6, :7, :8, :9, :10, :11, 'month', 'nanosecond', 1, 'trunc', 1) as "months" from dual"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
             "2024-01-02T01:00:00",
             "2024-01-01T23:00:00",
             "2024-01-02T01:00:00",
             "2024-01-01T23:00:00",
-            "2024-01-31T10:00:00",
-            "2024-02-29T09:00:00",
+            "2024",
+            "1",
+            "31",
+            "36000000000000",
+            "2024",
+            "2",
+            "29",
+            "32400000000000",
           ]
         `)
         expect([row.overnight.toString(), row.inMinutes.toString(), row.months.toString()]).toEqual(['PT2H', 'PT120M', 'P28DT23H'])
@@ -168,19 +206,39 @@ describe(ctx.label, () => {
                 sinceCeil: january1.since(Temporal.PlainDate.from('2024-03-15'), { smallestUnit: 'month', roundingMode: 'ceil' }),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_duration_round(extract(year from to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(month from to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(day from to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), 0, extract(year from to_date(:1, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(month from to_date(:1, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(day from to_date(:1, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), 0, 'month', 'month', 1, 'trunc', 1) as "month", tsq_duration_round(extract(year from to_date(:2, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(month from to_date(:2, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(day from to_date(:2, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), 0, extract(year from to_date(:3, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(month from to_date(:3, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(day from to_date(:3, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), 0, 'month', 'week', 1, 'trunc', 1) as "week", tsq_duration_round(extract(year from to_date(:4, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(month from to_date(:4, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(day from to_date(:4, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), 0, extract(year from to_date(:5, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(month from to_date(:5, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(day from to_date(:5, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), 0, 'month', 'month', 1, 'halfExpand', 1) as "halfUp", tsq_duration_round(extract(year from to_date(:6, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(month from to_date(:6, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(day from to_date(:6, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), 0, extract(year from to_date(:7, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(month from to_date(:7, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(day from to_date(:7, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), 0, 'year', 'year', 1, 'halfExpand', 1) as "year", tsq_duration_round(extract(year from to_date(:8, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(month from to_date(:8, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(day from to_date(:8, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), 0, extract(year from to_date(:9, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(month from to_date(:9, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(day from to_date(:9, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), 0, 'month', 'month', 1, 'floor', -1) as "sinceCeil" from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_duration_round(:0, :1, :2, 0, :3, :4, :5, 0, 'month', 'month', 1, 'trunc', 1) as "month", tsq_duration_round(:6, :7, :8, 0, :9, :10, :11, 0, 'month', 'week', 1, 'trunc', 1) as "week", tsq_duration_round(:12, :13, :14, 0, :15, :16, :17, 0, 'month', 'month', 1, 'halfExpand', 1) as "halfUp", tsq_duration_round(:18, :19, :20, 0, :21, :22, :23, 0, 'year', 'year', 1, 'halfExpand', 1) as "year", tsq_duration_round(:24, :25, :26, 0, :27, :28, :29, 0, 'month', 'month', 1, 'floor', -1) as "sinceCeil" from dual"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
-            "2024-01-01",
-            "2024-03-15",
-            "2024-01-01",
-            "2024-03-15",
-            "2024-01-01",
-            "2024-03-17",
-            "2024-01-01",
-            "2025-08-01",
-            "2024-01-01",
-            "2024-03-15",
+            "2024",
+            "1",
+            "1",
+            "2024",
+            "3",
+            "15",
+            "2024",
+            "1",
+            "1",
+            "2024",
+            "3",
+            "15",
+            "2024",
+            "1",
+            "1",
+            "2024",
+            "3",
+            "17",
+            "2024",
+            "1",
+            "1",
+            "2025",
+            "8",
+            "1",
+            "2024",
+            "1",
+            "1",
+            "2024",
+            "3",
+            "15",
           ]
         `)
         expect([row.month.toString(), row.week.toString(), row.halfUp.toString(), row.year.toString(), row.sinceCeil.toString()]).toEqual(['P2M', 'P2M2W', 'P3M', 'P2Y', '-P2M'])
@@ -194,11 +252,15 @@ describe(ctx.label, () => {
                 rounded: ctx.conn.const(Temporal.PlainDate.from('2024-01-01'), 'plainDate').until(Temporal.PlainDate.from('2024-01-31'), { largestUnit: 'month', smallestUnit: 'day', roundingIncrement: 7, roundingMode: 'ceil' }),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_duration_round(extract(year from to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(month from to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(day from to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), 0, extract(year from to_date(:1, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(month from to_date(:1, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(day from to_date(:1, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), 0, 'month', 'day', 7, 'ceil', 1) as "rounded" from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_duration_round(:0, :1, :2, 0, :3, :4, :5, 0, 'month', 'day', 7, 'ceil', 1) as "rounded" from dual"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
-            "2024-01-01",
-            "2024-01-31",
+            "2024",
+            "1",
+            "1",
+            "2024",
+            "1",
+            "31",
           ]
         `)
         expect(row.rounded.toString()).toBe('P1M')

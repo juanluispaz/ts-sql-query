@@ -25,7 +25,7 @@ import { isUtcTimeZoneName } from '../utils/processTimeZone.js'
 import { __durationSqlDataTypeOf, __isIntegerSql, __isJsonDocumentSql, __sqlFamilyOf, __temporalFieldsOf } from '../typeSystem/dataTypes.js'
 import { type DurationTotalDate, type DurationTotalUnit } from '../utils/durationTotal.js'
 import type { SqlOperation0ValueSource, SqlOperation2ValueSource } from '../nodes/operations.js'
-import type { TemporalDuration } from '../typeSystem/temporal.js'
+import { __temporalIfAvailable, type TemporalDuration } from '../typeSystem/temporal.js'
 import { durationOfArgument, durationOfParts, durationPartsFor, isZeroDuration, type DurationParts, type DurationPartsSql } from '../utils/durationValues.js'
 import { plainTemporalFieldsOf, type PlainTemporalFields } from '../utils/plainTemporalFields.js'
 import { dateOfStoredTimesOf, dayOfStoredYearMonthsOf, yearOfStoredMonthDaysOf } from '../utils/temporalReference.js'
@@ -5072,11 +5072,42 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     /** The year, the month, the day and the nanoseconds of the day of a value, as arguments of a function */
     _differencePartsForFunction(context: SqlBuildContext, d: PlainTemporalDifferenceSql, valueSource: ToSql): string {
+        const value = this._differenceConstParts(valueSource)
+        if (value) {
+            // A value given: its parts, computed here, each one a parameter
+            const int = __registeredDataType('int')
+            let parts = this._appendValue(value.year, context, int, false) + ', ' + this._appendValue(value.month, context, int, false) + ', '
+            parts += d.fields === 'yearMonth' ? '1, ' : this._appendValue(value.day, context, int, false) + ', '
+            return parts + (d.fields === 'date' || d.fields === 'yearMonth' ? '0' : this._appendValue(value.nanoseconds, context, __registeredDataType('bigint'), false))
+        }
         let result = this._integerPart(this._year(context, valueSource)) + ', ' + this._integerPart(this._month(context, valueSource)) + ', '
         // A month of a year is counted from its 1st, as Temporal does
         result += d.fields === 'yearMonth' ? '1, ' : this._integerPart(this._day(context, valueSource)) + ', '
         result += d.fields === 'date' || d.fields === 'yearMonth' ? '0' : this._nanosecondsSinceMidnight(context, valueSource)
         return result
+    }
+    /**
+     * The parts of a value given for a difference computed by a function of the library: of a Temporal date, date and time
+     * or month of a year whose time the database keeps whole (no digit below its _temporalTick) and of a year from 1 (a
+     * database may count the years before it in its own way); undefined otherwise, written by the database
+     */
+    _differenceConstParts(valueSource: ToSql): { year: number, month: number, day: number, nanoseconds: bigint } | undefined {
+        // A const, also one whose placeholder is repeated (its operation is the one of the const)
+        if (!isValueSource(valueSource) || (valueSource as unknown as { __operation?: unknown }).__operation !== '_const') {
+            return undefined
+        }
+        const value = (valueSource as unknown as { __value: unknown }).__value
+        const temporal = __temporalIfAvailable()
+        if (!temporal || !(value instanceof temporal.PlainDate || value instanceof temporal.PlainDateTime || value instanceof temporal.PlainYearMonth) || value.year < 1) {
+            return undefined
+        }
+        const nanoseconds = value instanceof temporal.PlainDateTime
+            ? BigInt(value.hour) * 3600000000000n + BigInt(value.minute) * 60000000000n + BigInt(value.second) * 1000000000n + BigInt(value.millisecond) * 1000000n + BigInt(value.microsecond) * 1000n + BigInt(value.nanosecond)
+            : 0n
+        if (nanoseconds % this._temporalTick() !== 0n) {
+            return undefined
+        }
+        return { year: value.year, month: value.month, day: value instanceof temporal.PlainYearMonth ? 1 : value.day, nanoseconds }
     }
     /** The name of the function of the library that rounds a difference to the calendar */
     _durationRoundFunctionName(): string {

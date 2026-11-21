@@ -230,12 +230,13 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, tsq_duration_text(0, (cast(strftime('%Y', ?1) as integer) * 12 + cast(strftime('%m', ?1) as integer) - (cast(strftime('%Y', month_of) as integer) * 12 + cast(strftime('%m', month_of) as integer))), 0, 0, 0, 'year') as until, tsq_duration_text(0, (cast(strftime('%Y', ?2) as integer) * 12 + cast(strftime('%m', ?2) as integer) - (cast(strftime('%Y', month_of) as integer) * 12 + cast(strftime('%m', month_of) as integer))), 0, 0, 0, 'month') as inMonths, tsq_duration_round(cast(strftime('%Y', month_of) as integer), cast(strftime('%m', month_of) as integer), 1, 0, cast(strftime('%Y', ?3) as integer), cast(strftime('%m', ?3) as integer), 1, 0, 'year', 'year', 1, 'halfExpand', -1) as sinceInYears, tsq_duration_text(0, (cast((cast(strftime('%Y', ?4) as integer) * 12 + cast(strftime('%m', ?4) as integer) - (cast(strftime('%Y', month_of) as integer) * 12 + cast(strftime('%m', month_of) as integer))) / 5 as integer) * 5), 0, 0, 0, 'month') as byFive from calendar_value where id <= ?5 order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, tsq_duration_text(0, (cast(strftime('%Y', ?1) as integer) * 12 + cast(strftime('%m', ?1) as integer) - (cast(strftime('%Y', month_of) as integer) * 12 + cast(strftime('%m', month_of) as integer))), 0, 0, 0, 'year') as until, tsq_duration_text(0, (cast(strftime('%Y', ?2) as integer) * 12 + cast(strftime('%m', ?2) as integer) - (cast(strftime('%Y', month_of) as integer) * 12 + cast(strftime('%m', month_of) as integer))), 0, 0, 0, 'month') as inMonths, tsq_duration_round(cast(strftime('%Y', month_of) as integer), cast(strftime('%m', month_of) as integer), 1, 0, ?3, ?4, 1, 0, 'year', 'year', 1, 'halfExpand', -1) as sinceInYears, tsq_duration_text(0, (cast((cast(strftime('%Y', ?5) as integer) * 12 + cast(strftime('%m', ?5) as integer) - (cast(strftime('%Y', month_of) as integer) * 12 + cast(strftime('%m', month_of) as integer))) / 5 as integer) * 5), 0, 0, 0, 'month') as byFive from calendar_value where id <= ?6 order by id"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
             "2026-08-01",
             "2026-08-01",
-            "2026-08-01",
+            "2026",
+            "8",
             "2026-08-01",
             "2",
           ]

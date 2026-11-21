@@ -59,21 +59,45 @@ describe(ctx.label, () => {
                 nextYear: ctx.conn.const(Temporal.PlainDate.from('2024-02-29'), 'plainDate').until(Temporal.PlainDate.from('2025-03-01'), { largestUnit: 'year' }),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.tsq_duration_round(datepart(year, @0), datepart(month, @0), datepart(day, @0), 0, datepart(year, @1), datepart(month, @1), datepart(day, @1), 0, 'month', 'day', 1, 'trunc', 1) as february, dbo.tsq_duration_round(datepart(year, @2), datepart(month, @2), datepart(day, @2), 0, datepart(year, @3), datepart(month, @3), datepart(day, @3), 0, 'month', 'day', 1, 'trunc', 1) as march1, dbo.tsq_duration_round(datepart(year, @4), datepart(month, @4), datepart(day, @4), 0, datepart(year, @5), datepart(month, @5), datepart(day, @5), 0, 'month', 'day', 1, 'trunc', 1) as march30, dbo.tsq_duration_round(datepart(year, @6), datepart(month, @6), datepart(day, @6), 0, datepart(year, @7), datepart(month, @7), datepart(day, @7), 0, 'month', 'day', 1, 'trunc', 1) as back, dbo.tsq_duration_round(datepart(year, @8), datepart(month, @8), datepart(day, @8), 0, datepart(year, @9), datepart(month, @9), datepart(day, @9), 0, 'year', 'day', 1, 'trunc', 1) as leapYear, dbo.tsq_duration_round(datepart(year, @10), datepart(month, @10), datepart(day, @10), 0, datepart(year, @11), datepart(month, @11), datepart(day, @11), 0, 'year', 'day', 1, 'trunc', 1) as nextYear"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.tsq_duration_round(@0, @1, @2, 0, @3, @4, @5, 0, 'month', 'day', 1, 'trunc', 1) as february, dbo.tsq_duration_round(@6, @7, @8, 0, @9, @10, @11, 0, 'month', 'day', 1, 'trunc', 1) as march1, dbo.tsq_duration_round(@12, @13, @14, 0, @15, @16, @17, 0, 'month', 'day', 1, 'trunc', 1) as march30, dbo.tsq_duration_round(@18, @19, @20, 0, @21, @22, @23, 0, 'month', 'day', 1, 'trunc', 1) as back, dbo.tsq_duration_round(@24, @25, @26, 0, @27, @28, @29, 0, 'year', 'day', 1, 'trunc', 1) as leapYear, dbo.tsq_duration_round(@30, @31, @32, 0, @33, @34, @35, 0, 'year', 'day', 1, 'trunc', 1) as nextYear"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
-            "2024-01-31",
-            "2024-02-29",
-            "2024-01-31",
-            "2024-03-01",
-            "2024-01-31",
-            "2024-03-30",
-            "2024-03-31",
-            "2024-02-29",
-            "2024-02-29",
-            "2025-02-28",
-            "2024-02-29",
-            "2025-03-01",
+            "2024",
+            "1",
+            "31",
+            "2024",
+            "2",
+            "29",
+            "2024",
+            "1",
+            "31",
+            "2024",
+            "3",
+            "1",
+            "2024",
+            "1",
+            "31",
+            "2024",
+            "3",
+            "30",
+            "2024",
+            "3",
+            "31",
+            "2024",
+            "2",
+            "29",
+            "2024",
+            "2",
+            "29",
+            "2025",
+            "2",
+            "28",
+            "2024",
+            "2",
+            "29",
+            "2025",
+            "3",
+            "1",
           ]
         `)
         expect([row.february.toString(), row.march1.toString(), row.march30.toString(), row.back.toString(), row.leapYear.toString(), row.nextYear.toString()]).toEqual(['P29D', 'P1M1D', 'P1M30D', '-P1M', 'P11M30D', 'P1Y1D'])
@@ -89,13 +113,21 @@ describe(ctx.label, () => {
                 weeks: ctx.conn.const(Temporal.PlainDate.from('2024-01-01'), 'plainDate').until(Temporal.PlainDate.from('2024-03-15'), { largestUnit: 'week' }),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.tsq_duration_round(datepart(year, @0), datepart(month, @0), datepart(day, @0), 0, datepart(year, @1), datepart(month, @1), datepart(day, @1), 0, 'month', 'day', 1, 'trunc', -1) as since, dbo.tsq_duration_round(datepart(year, @2), datepart(month, @2), datepart(day, @2), 0, datepart(year, @3), datepart(month, @3), datepart(day, @3), 0, 'month', 'day', 1, 'trunc', 1) as untilBack, dbo.tsq_duration_text(0, 0, 0, datediff(day, @5, @4), 0, 'week') as weeks"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.tsq_duration_round(@0, @1, @2, 0, @3, @4, @5, 0, 'month', 'day', 1, 'trunc', -1) as since, dbo.tsq_duration_round(@6, @7, @8, 0, @9, @10, @11, 0, 'month', 'day', 1, 'trunc', 1) as untilBack, dbo.tsq_duration_text(0, 0, 0, datediff(day, @13, @12), 0, 'week') as weeks"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
-            "2024-01-31",
-            "2024-03-30",
-            "2024-03-30",
-            "2024-01-31",
+            "2024",
+            "1",
+            "31",
+            "2024",
+            "3",
+            "30",
+            "2024",
+            "3",
+            "30",
+            "2024",
+            "1",
+            "31",
             "2024-03-15",
             "2024-01-01",
           ]
@@ -113,15 +145,21 @@ describe(ctx.label, () => {
                 months: ctx.conn.const(Temporal.PlainDateTime.from('2024-01-31T10:00'), 'plainDateTime').until(Temporal.PlainDateTime.from('2024-02-29T09:00'), { largestUnit: 'month' }),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.tsq_duration_text(0, 0, 0, 0, cast((datediff(day, cast(@1 as date), cast(@0 as date)) * cast(864000000000 as bigint) + (datediff_big(nanosecond, cast(@1 as time), cast(@0 as time)) / 100)) as decimal(38)) * 100, 'day') as overnight, dbo.tsq_duration_text(0, 0, 0, 0, cast((datediff(day, cast(@3 as date), cast(@2 as date)) * cast(864000000000 as bigint) + (datediff_big(nanosecond, cast(@3 as time), cast(@2 as time)) / 100)) as decimal(38)) * 100, 'minute') as inMinutes, dbo.tsq_duration_round(datepart(year, switchoffset(@4, '+00:00')), datepart(month, switchoffset(@4, '+00:00')), datepart(day, switchoffset(@4, '+00:00')), datediff_big(nanosecond, cast('00:00' as time), cast(@4 as time)), datepart(year, switchoffset(@5, '+00:00')), datepart(month, switchoffset(@5, '+00:00')), datepart(day, switchoffset(@5, '+00:00')), datediff_big(nanosecond, cast('00:00' as time), cast(@5 as time)), 'month', 'nanosecond', 1, 'trunc', 1) as months"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.tsq_duration_text(0, 0, 0, 0, cast((datediff(day, cast(@1 as date), cast(@0 as date)) * cast(864000000000 as bigint) + (datediff_big(nanosecond, cast(@1 as time), cast(@0 as time)) / 100)) as decimal(38)) * 100, 'day') as overnight, dbo.tsq_duration_text(0, 0, 0, 0, cast((datediff(day, cast(@3 as date), cast(@2 as date)) * cast(864000000000 as bigint) + (datediff_big(nanosecond, cast(@3 as time), cast(@2 as time)) / 100)) as decimal(38)) * 100, 'minute') as inMinutes, dbo.tsq_duration_round(@4, @5, @6, @7, @8, @9, @10, @11, 'month', 'nanosecond', 1, 'trunc', 1) as months"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
             "2024-01-02T01:00:00",
             "2024-01-01T23:00:00",
             "2024-01-02T01:00:00",
             "2024-01-01T23:00:00",
-            "2024-01-31T10:00:00",
-            "2024-02-29T09:00:00",
+            "2024",
+            "1",
+            "31",
+            "36000000000000",
+            "2024",
+            "2",
+            "29",
+            "32400000000000",
           ]
         `)
         expect([row.overnight.toString(), row.inMinutes.toString(), row.months.toString()]).toEqual(['PT2H', 'PT120M', 'P28DT23H'])
@@ -168,19 +206,39 @@ describe(ctx.label, () => {
                 sinceCeil: january1.since(Temporal.PlainDate.from('2024-03-15'), { smallestUnit: 'month', roundingMode: 'ceil' }),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.tsq_duration_round(datepart(year, @0), datepart(month, @0), datepart(day, @0), 0, datepart(year, @1), datepart(month, @1), datepart(day, @1), 0, 'month', 'month', 1, 'trunc', 1) as month, dbo.tsq_duration_round(datepart(year, @2), datepart(month, @2), datepart(day, @2), 0, datepart(year, @3), datepart(month, @3), datepart(day, @3), 0, 'month', 'week', 1, 'trunc', 1) as week, dbo.tsq_duration_round(datepart(year, @4), datepart(month, @4), datepart(day, @4), 0, datepart(year, @5), datepart(month, @5), datepart(day, @5), 0, 'month', 'month', 1, 'halfExpand', 1) as halfUp, dbo.tsq_duration_round(datepart(year, @6), datepart(month, @6), datepart(day, @6), 0, datepart(year, @7), datepart(month, @7), datepart(day, @7), 0, 'year', 'year', 1, 'halfExpand', 1) as year, dbo.tsq_duration_round(datepart(year, @8), datepart(month, @8), datepart(day, @8), 0, datepart(year, @9), datepart(month, @9), datepart(day, @9), 0, 'month', 'month', 1, 'floor', -1) as sinceCeil"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.tsq_duration_round(@0, @1, @2, 0, @3, @4, @5, 0, 'month', 'month', 1, 'trunc', 1) as month, dbo.tsq_duration_round(@6, @7, @8, 0, @9, @10, @11, 0, 'month', 'week', 1, 'trunc', 1) as week, dbo.tsq_duration_round(@12, @13, @14, 0, @15, @16, @17, 0, 'month', 'month', 1, 'halfExpand', 1) as halfUp, dbo.tsq_duration_round(@18, @19, @20, 0, @21, @22, @23, 0, 'year', 'year', 1, 'halfExpand', 1) as year, dbo.tsq_duration_round(@24, @25, @26, 0, @27, @28, @29, 0, 'month', 'month', 1, 'floor', -1) as sinceCeil"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
-            "2024-01-01",
-            "2024-03-15",
-            "2024-01-01",
-            "2024-03-15",
-            "2024-01-01",
-            "2024-03-17",
-            "2024-01-01",
-            "2025-08-01",
-            "2024-01-01",
-            "2024-03-15",
+            "2024",
+            "1",
+            "1",
+            "2024",
+            "3",
+            "15",
+            "2024",
+            "1",
+            "1",
+            "2024",
+            "3",
+            "15",
+            "2024",
+            "1",
+            "1",
+            "2024",
+            "3",
+            "17",
+            "2024",
+            "1",
+            "1",
+            "2025",
+            "8",
+            "1",
+            "2024",
+            "1",
+            "1",
+            "2024",
+            "3",
+            "15",
           ]
         `)
         expect([row.month.toString(), row.week.toString(), row.halfUp.toString(), row.year.toString(), row.sinceCeil.toString()]).toEqual(['P2M', 'P2M2W', 'P3M', 'P2Y', '-P2M'])
@@ -194,11 +252,15 @@ describe(ctx.label, () => {
                 rounded: ctx.conn.const(Temporal.PlainDate.from('2024-01-01'), 'plainDate').until(Temporal.PlainDate.from('2024-01-31'), { largestUnit: 'month', smallestUnit: 'day', roundingIncrement: 7, roundingMode: 'ceil' }),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.tsq_duration_round(datepart(year, @0), datepart(month, @0), datepart(day, @0), 0, datepart(year, @1), datepart(month, @1), datepart(day, @1), 0, 'month', 'day', 7, 'ceil', 1) as rounded"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.tsq_duration_round(@0, @1, @2, 0, @3, @4, @5, 0, 'month', 'day', 7, 'ceil', 1) as rounded"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
-            "2024-01-01",
-            "2024-01-31",
+            "2024",
+            "1",
+            "1",
+            "2024",
+            "1",
+            "31",
           ]
         `)
         expect(row.rounded.toString()).toBe('P1M')

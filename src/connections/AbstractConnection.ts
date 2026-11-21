@@ -1481,7 +1481,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid duration value to send to the db: ' + String(value))
             }
             if (!this.isDurationKeptAsInterval(__durationSqlDataTypeOf(context.requestedSqlDataType, context.requestedType))) {
-                return durationIsoText(value)
+                return durationIsoText(value, this.durationFractionDigits())
             }
             // An interval of the database: each query runner gives its driver the form it needs
             return value
@@ -1490,6 +1490,25 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'This would not happened, something went wrong handling aggregate arrays, aggregated arrays cannot be sent to the database')
         }
         return value
+    }
+
+    /**
+     * The digits of the fraction of a second (0 to 9) a duration keeps where it is stored as its ISO 8601 text, the
+     * storage the library emulates where the database has no type for it: the ones beyond are truncated, as Temporal's
+     * `toString({ fractionalSecondDigits, roundingMode: 'trunc' })` does. All of them by default; fewer take less space,
+     * like 3 for milliseconds. A duration a query computes keeps the digits of the database
+     */
+    protected getDurationFractionDigits(): number {
+        return 9
+    }
+
+    /** The digits of getDurationFractionDigits, checked */
+    private durationFractionDigits(): number {
+        const digits = this.getDurationFractionDigits()
+        if (!Number.isInteger(digits) || digits < 0 || digits > 9) {
+            throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'getDurationFractionDigits', value: digits }, 'getDurationFractionDigits must give an integer from 0 to 9, not ' + String(digits))
+        }
+        return digits
     }
 
     protected transformPlaceholder(placeholder: string, _context: TypeAdapterPlaceholderContext): string {

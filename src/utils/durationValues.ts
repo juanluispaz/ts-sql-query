@@ -130,13 +130,14 @@ export function durationIsoTextWithoutWeeks(value: TemporalDuration, signInEachF
 /**
  * The ISO 8601 text of a duration, as Temporal's `toString` writes it (`-P1Y2W3DT4H0.5S`), written here: the toString
  * of Node 26.1 drops the fraction of a second when its seconds are 0 and it has another field (`PT1H` for one hour and
- * one nanosecond)
+ * one nanosecond). The fraction of a second keeps up to fractionDigits digits, the others truncated, as Temporal's
+ * `toString({ fractionalSecondDigits, roundingMode: 'trunc' })` does (`PT0S` when nothing is left)
  */
-export function durationIsoText(value: TemporalDuration): string {
-    return isoTextOf(value, false, false)
+export function durationIsoText(value: TemporalDuration, fractionDigits: number = 9): string {
+    return isoTextOf(value, false, false, fractionDigits)
 }
 
-function isoTextOf(value: TemporalDuration, weeksAsDays: boolean, signInEachField: boolean): string {
+function isoTextOf(value: TemporalDuration, weeksAsDays: boolean, signInEachField: boolean, fractionDigits: number = 9): string {
     const sign = value.sign < 0 ? -1 : 1
     const fields = {
         years: Math.abs(value.years), months: Math.abs(value.months), weeks: weeksAsDays ? 0 : Math.abs(value.weeks),
@@ -145,7 +146,10 @@ function isoTextOf(value: TemporalDuration, weeksAsDays: boolean, signInEachFiel
     }
     // The seconds and the fields below them, as Temporal writes them: one number of seconds with its fraction, as each
     // field may hold more than one of the next (1500 milliseconds are 1.5 seconds)
-    const nanoseconds = BigInt(Math.abs(value.seconds)) * 1_000_000_000n + BigInt(Math.abs(value.milliseconds)) * 1_000_000n + BigInt(Math.abs(value.microseconds)) * 1000n + BigInt(Math.abs(value.nanoseconds))
+    let nanoseconds = BigInt(Math.abs(value.seconds)) * 1_000_000_000n + BigInt(Math.abs(value.milliseconds)) * 1_000_000n + BigInt(Math.abs(value.microseconds)) * 1000n + BigInt(Math.abs(value.nanoseconds))
+    if (fractionDigits < 9) {
+        nanoseconds -= nanoseconds % 10n ** BigInt(9 - fractionDigits)
+    }
     const seconds = nanoseconds / 1_000_000_000n
     const fraction = String(nanoseconds % 1_000_000_000n).padStart(9, '0').replace(/0+$/, '')
     const each = signInEachField && sign < 0 ? '-' : ''
@@ -159,8 +163,11 @@ function isoTextOf(value: TemporalDuration, weeksAsDays: boolean, signInEachFiel
     if (fields.minutes) { time += each + fields.minutes + 'M' }
     if (seconds !== 0n || fraction !== '') { time += each + String(seconds) + (fraction === '' ? '' : '.' + fraction) + 'S' }
     const text = 'P' + date + (time === '' ? '' : 'T' + time)
-    const result = text === 'P' ? 'PT0S' : text
-    return sign < 0 && !signInEachField ? '-' + result : result
+    if (text === 'P') {
+        // Without a sign: a duration that the truncation leaves at zero is zero
+        return 'PT0S'
+    }
+    return sign < 0 && !signInEachField ? '-' + text : text
 }
 
 /**

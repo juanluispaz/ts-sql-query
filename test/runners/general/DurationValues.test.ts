@@ -60,6 +60,20 @@ const pg = new PgConnection(new MockQueryRunner(executor, { queryRunner: 'PgPool
 const oracle = new OraConnection(new MockQueryRunner(executor, { queryRunner: 'OracleDBQueryRunner' }))
 const mysql = new MyConnection(new MockQueryRunner(executor, { queryRunner: 'MySql2QueryRunner' }))
 
+/** A connection that keeps the milliseconds of a duration stored as its text, or the digits given */
+class MyMillisecondsConnection extends MySqlConnection<'MyMillisecondsConnection'> {
+    digits = 3
+    protected override getDurationFractionDigits(): number {
+        return this.digits
+    }
+}
+const tMyMillisecondsSpan = new class TMyMillisecondsSpan extends Table<MyMillisecondsConnection, 'TMyMillisecondsSpan'> {
+    id = this.primaryKey('id', 'int')
+    span = this.column('span', 'duration')
+    constructor() { super('span') }
+}()
+const mysqlMilliseconds = new MyMillisecondsConnection(new MockQueryRunner(executor, { queryRunner: 'MySql2QueryRunner' }))
+
 function reasonOf(error: unknown): string {
     return error instanceof TsSqlError ? error.errorReason.reason : String(error)
 }
@@ -221,6 +235,29 @@ describe('DurationValues', () => {
             .where(tMySpan.id.equals(1))
             .executeUpdate()
         expect(lastParams.map(String)).toEqual(['-P1Y2W3DT0.000000001S', '1'])
+    })
+
+    test('a-duration-kept-as-text-keeps-the-digits-of-the-fraction-the-connection-says', async () => {
+        // The digits beyond are truncated, as Temporal's toString with fractionalSecondDigits and roundingMode 'trunc'
+        const durations = ['PT1.123456789S', '-PT2H0.9999S', 'P1DT0.0001S', '-PT0.0009S', 'PT59.5S', 'P1W']
+        const sentWith = async (digits: number): Promise<string[]> => {
+            mysqlMilliseconds.digits = digits
+            const sent: string[] = []
+            for (const text of durations) {
+                await mysqlMilliseconds.update(tMyMillisecondsSpan).set({ span: Temporal.Duration.from(text) }).where(tMyMillisecondsSpan.id.equals(1)).executeUpdate()
+                sent.push(String(lastParams[0]))
+            }
+            return sent
+        }
+        expect(await sentWith(3)).toEqual(['PT1.123S', '-PT2H0.999S', 'P1D', 'PT0S', 'PT59.5S', 'P1W'])
+        for (const digits of [0, 3, 6, 9] as const) {
+            const truncated = durations.map(text => Temporal.Duration.from(Temporal.Duration.from(text).toString({ fractionalSecondDigits: digits, roundingMode: 'trunc' })).toString())
+            expect((await sentWith(digits)).map(text => Temporal.Duration.from(text).toString())).toEqual(truncated)
+        }
+        // Another number of digits is a mistake of the connection
+        mysqlMilliseconds.digits = 10
+        expect(await outcome(() => mysqlMilliseconds.update(tMyMillisecondsSpan).set({ span: Temporal.Duration.from('PT1S') }).where(tMyMillisecondsSpan.id.equals(1)).executeUpdate())).toBe('INVALID_CONFIGURATION')
+        mysqlMilliseconds.digits = 3
     })
 
     test('the-text-of-a-duration-writes-its-seconds-as-temporal', async () => {

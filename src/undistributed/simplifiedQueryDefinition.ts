@@ -1001,6 +1001,11 @@ interface Connection {
      * For example, 10_005_000 for MariaDB 10.5. By default, the latest version.
      */
     compatibilityVersion: number
+    /**
+     * Protected method with the digits of the fraction of a second (0 to 9) a duration keeps where it is stored as its
+     * ISO 8601 text; the others are truncated. By default, 9
+     */
+    getDurationFractionDigits(): number
 
     /** Protected method that transforms the values received from the database, as the type requested for them */
     transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext): unknown

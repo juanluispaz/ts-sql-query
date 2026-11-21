@@ -352,6 +352,7 @@ interface OracleConnectionConfiguration {
     concatFunction?: string
     replaceCollation: string // Default: 'BINARY'
     replaceInsensitiveCollation: string // Default: 'BINARY_CI'
+    temporalFunctions: 'installed' | 'not installed' // Default: 'not installed'
 }
 
 interface PostgreSqlConnectionConfiguration {

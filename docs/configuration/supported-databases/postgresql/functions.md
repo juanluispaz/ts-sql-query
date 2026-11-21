@@ -325,7 +325,7 @@ $$;
 
 ## `tsq_zoned_of_wall`
 
-`tsq_zoned_of_wall` gives the instant of a wall clock in a zone, a name or an offset like `+05:30`, as Temporal's `disambiguation` takes it: `'compatible'`, `'earlier'`, `'later'` or `'reject'`, which fails for a wall clock the zone repeats or skips. `tsq_zoned_until` calls it: create it first. A query calls it in each wall clock taken to its zone when the connection has `temporalFunctions = 'installed'`; without that setting, PostgreSQL takes the later instant of a wall clock its zone repeats (see [A wall clock the zone repeats, on PostgreSQL](../../dates-and-times.md#a-wall-clock-the-zone-repeats-on-postgresql)).
+`tsq_zoned_of_wall` gives the instant of a wall clock in a zone, a name or an offset like `+05:30`, as Temporal's `disambiguation` takes it: `'compatible'`, `'earlier'`, `'later'` or `'reject'`, which fails for a wall clock the zone repeats or skips. `tsq_zoned_until` calls it: create it first. A query calls it in each wall clock taken to its zone when the connection has `temporalFunctions = 'installed'`; without that setting, PostgreSQL takes the later instant of a wall clock its zone repeats (see [A wall clock the zone repeats or skips](../../dates-and-times.md#a-wall-clock-the-zone-repeats-or-skips)).
 
 ```sql
 CREATE OR REPLACE FUNCTION tsq_zoned_of_wall(wall timestamp, zone text, disambiguation text, preferred_offset interval DEFAULT NULL) RETURNS timestamptz LANGUAGE plpgsql IMMUTABLE AS $$

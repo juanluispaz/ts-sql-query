@@ -20,13 +20,14 @@ They are of two kinds:
 | [`tsq_duration_round`](#tsq_duration_round) | `until` or `since` in months or years, or rounded to a week, a month or a year | `tsq_duration_text` |
 | [`tsq_duration_total`](#tsq_duration_total) | `total` of a duration | — |
 | [`tsq_duration_add`](#tsq_duration_add) | `add` or `subtract` of two durations | `tsq_duration_text` |
-| [`tsq_zoned_until`](#tsq_zoned_until) | `until` or `since` of two zoned dates and times, in days or larger units | `tsq_duration_text` |
+| [`tsq_zoned_of_wall`](#tsq_zoned_of_wall) | a wall clock is taken to its zone, with `temporalFunctions = 'installed'` | — |
+| [`tsq_zoned_until`](#tsq_zoned_until) | `until` or `since` of two zoned dates and times, in days or larger units | `tsq_duration_text`, `tsq_zoned_of_wall` |
 | [The function of `concatFunction`](#the-function-of-concatfunction) | `concat` or an affix pattern is written, with `concatFunction` set | — |
 | [`uuid_to_raw` and `raw_to_uuid`](#uuid_to_raw-and-raw_to_uuid) | a uuid is read or written with the `'custom-functions'` uuid strategy | — |
 
 ## The order to create them
 
-Create `tsq_duration_text` before `tsq_duration_round`, `tsq_duration_add` and `tsq_zoned_until`, which call it; the others in any order.
+Create `tsq_duration_text` before `tsq_duration_round`, `tsq_duration_add` and `tsq_zoned_until`, and `tsq_zoned_of_wall` before `tsq_zoned_until`, which call them; the others in any order.
 
 ## `tsq_duration_part`
 
@@ -357,9 +358,57 @@ BEGIN
 END;
 ```
 
+## `tsq_zoned_of_wall`
+
+`tsq_zoned_of_wall` gives the instant of a wall clock (a `TIMESTAMP`) in a zone, a region or an offset like `+05:30`, as a `TIMESTAMP WITH TIME ZONE` in it, as Temporal's `disambiguation` takes it: `'compatible'`, `'earlier'`, `'later'` or `'reject'`, which fails with `ORA-20001` for a wall clock the zone repeats or skips. With a preferred offset (like `'+02:00'`), it is the wall clock with that offset when the zone gives it back with it, Temporal's `offset: 'prefer'`. `tsq_zoned_until` calls it: create it first. A query calls it in each wall clock taken to its zone when the connection has `temporalFunctions = 'installed'`; without that setting, Oracle takes the later instant of a wall clock its zone repeats, and fails for one it skips (see [A wall clock the zone repeats or skips](../../dates-and-times.md#a-wall-clock-the-zone-repeats-or-skips)).
+
+```sql
+CREATE OR REPLACE FUNCTION tsq_zoned_of_wall(wall IN TIMESTAMP_UNCONSTRAINED, zone IN VARCHAR2, disambiguation IN VARCHAR2, preferred_offset IN VARCHAR2 DEFAULT NULL) RETURN TIMESTAMP_TZ_UNCONSTRAINED DETERMINISTIC IS
+    v_candidate TIMESTAMP_TZ_UNCONSTRAINED;
+    v_before TIMESTAMP_UNCONSTRAINED;
+    v_after TIMESTAMP_UNCONSTRAINED;
+    v_is_before BOOLEAN;
+    v_is_after BOOLEAN;
+    -- The wall clock in the zone of an instant (its wall clock in UTC)
+    FUNCTION wall_of(u IN TIMESTAMP_UNCONSTRAINED) RETURN TIMESTAMP_UNCONSTRAINED IS
+        v_z TIMESTAMP_TZ_UNCONSTRAINED;
+        v_w TIMESTAMP_UNCONSTRAINED;
+    BEGIN
+        v_z := FROM_TZ(u, '+00:00') AT TIME ZONE zone;
+        v_w := v_z;
+        RETURN v_w;
+    END;
+BEGIN
+    IF wall IS NULL OR zone IS NULL OR disambiguation IS NULL THEN
+        RETURN NULL;
+    END IF;
+    IF preferred_offset IS NOT NULL THEN
+        v_candidate := FROM_TZ(wall, preferred_offset) AT TIME ZONE zone;
+        IF wall_of(SYS_EXTRACT_UTC(v_candidate)) = wall THEN
+            RETURN v_candidate;
+        END IF;
+    END IF;
+    -- The wall clock minus the offset of the zone a day before and a day after it: an instant of it when the zone gives
+    -- it back (two for a wall clock it repeats, none for one it skips)
+    v_before := wall - (wall_of(wall - INTERVAL '1' DAY) - (wall - INTERVAL '1' DAY));
+    v_after := wall - (wall_of(wall + INTERVAL '1' DAY) - (wall + INTERVAL '1' DAY));
+    v_is_before := wall_of(v_before) = wall;
+    v_is_after := wall_of(v_after) = wall;
+    IF disambiguation = 'reject' AND v_is_before = v_is_after AND (NOT v_is_before OR v_before <> v_after) THEN
+        RAISE_APPLICATION_ERROR(-20001, 'tsq_zoned_of_wall: the wall clock is not one instant in ' || zone);
+    END IF;
+    IF disambiguation = 'later' THEN
+        RETURN FROM_TZ(CASE WHEN v_is_after THEN v_after ELSE v_before END, '+00:00') AT TIME ZONE zone;
+    ELSIF disambiguation = 'compatible' THEN
+        RETURN FROM_TZ(CASE WHEN v_is_before OR NOT v_is_after THEN v_before ELSE v_after END, '+00:00') AT TIME ZONE zone;
+    END IF;
+    RETURN FROM_TZ(CASE WHEN v_is_before THEN v_before ELSE v_after END, '+00:00') AT TIME ZONE zone;
+END;
+```
+
 ## `tsq_zoned_until`
 
-`tsq_zoned_until` gives the duration from one zoned date and time to another as Temporal's `until` with a largest unit of days or larger: it counts the days of the calendar in their zone, each one with its length there (23 or 25 hours where the zone changes its offset), and rounds as Temporal rounds. A query calls it for `until` and `since` of two zoned dates and times in days or larger units (see [The functions `tsq_zoned_until` and `tsq_zoned_of_wall`](../../dates-and-times.md#the-functions-tsq_zoned_until-and-tsq_zoned_of_wall)). Two zoned dates and times in different zones make it fail with `ORA-20001`. It calls `tsq_duration_text`: create it after that one.
+`tsq_zoned_until` gives the duration from one zoned date and time to another as Temporal's `until` with a largest unit of days or larger: it counts the days of the calendar in their zone, each one with its length there (23 or 25 hours where the zone changes its offset), and rounds as Temporal rounds. A query calls it for `until` and `since` of two zoned dates and times in days or larger units (see [The functions `tsq_zoned_until` and `tsq_zoned_of_wall`](../../dates-and-times.md#the-functions-tsq_zoned_until-and-tsq_zoned_of_wall)). Two zoned dates and times in different zones make it fail with `ORA-20001`. It calls `tsq_duration_text` and `tsq_zoned_of_wall`: create it after them.
 
 ```sql
 CREATE OR REPLACE FUNCTION tsq_zoned_until(one IN TIMESTAMP_TZ_UNCONSTRAINED, two IN TIMESTAMP_TZ_UNCONSTRAINED, largest_unit IN VARCHAR2, smallest_unit IN VARCHAR2, increment IN NUMBER, rounding_mode IN VARCHAR2, negation IN NUMBER) RETURN VARCHAR2 DETERMINISTIC IS
@@ -413,15 +462,8 @@ CREATE OR REPLACE FUNCTION tsq_zoned_until(one IN TIMESTAMP_TZ_UNCONSTRAINED, tw
     END;
     -- The instant (its wall clock in UTC) of a wall clock in the zone, as Temporal's 'compatible' disambiguates it
     FUNCTION utc_of(w IN TIMESTAMP_UNCONSTRAINED) RETURN TIMESTAMP_UNCONSTRAINED IS
-        v_before TIMESTAMP_UNCONSTRAINED;
-        v_after TIMESTAMP_UNCONSTRAINED;
     BEGIN
-        v_before := w - (wall_of(w - INTERVAL '1' DAY) - (w - INTERVAL '1' DAY));
-        v_after := w - (wall_of(w + INTERVAL '1' DAY) - (w + INTERVAL '1' DAY));
-        IF wall_of(v_before) <> w AND wall_of(v_after) = w THEN
-            RETURN v_after;
-        END IF;
-        RETURN v_before;
+        RETURN SYS_EXTRACT_UTC(tsq_zoned_of_wall(w, v_zone, 'compatible'));
     END;
     -- A date plus years and months (the day kept in the month), weeks and days
     FUNCTION plus(d IN DATE, y IN NUMBER, mo IN NUMBER, w IN NUMBER, dd IN NUMBER) RETURN DATE IS

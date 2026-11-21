@@ -70,6 +70,7 @@ describe('DurationPartFunctionDocs', () => {
 
     test('the-documented-functions-of-zoned-dates-and-times-are-the-tested-ones', () => {
         expect(documented('oracle', 'tsq_zoned_until')).toBe(tested('oracle', 'tsq_zoned_until'))
+        expect(documented('oracle', 'tsq_zoned_of_wall')).toBe(tested('oracle', 'tsq_zoned_of_wall'))
         // tsq_zoned_until uses tsq_zoned_of_wall, created first
         expect(documented('postgresql', 'tsq_zoned_of_wall') + '\n\n' + documented('postgresql', 'tsq_zoned_until')).toBe(tested('postgres', 'tsq_zoned_of_wall'))
     })

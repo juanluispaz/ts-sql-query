@@ -1119,6 +1119,29 @@ PostgreSQL and Oracle have a type for a length of time, an interval; the other d
 
 On Oracle, declare the precision of the column: `INTERVAL DAY TO SECOND` keeps up to 99 days and six digits of fraction, and a duration of 100 days is rejected by Oracle; `INTERVAL DAY(9) TO SECOND(9)` keeps up to 999999999 days and nanoseconds. The same for the years of `INTERVAL YEAR(9) TO MONTH`.
 
+### The digits of the fraction of a second kept in a text
+
+A duration kept as text is written with every digit of its fraction of a second, up to the nanosecond: `PT1.123456789S`. To keep fewer, which takes less space, the connection says how many with the protected method `getDurationFractionDigits`, from 0 to 9; the digits beyond are truncated, as Temporal's `toString({ fractionalSecondDigits, roundingMode: 'trunc' })` does. With 3, the milliseconds:
+
+<!-- doc-code-snippet-template: mysql -->
+```ts
+import { MySqlConnection } from 'ts-sql-query/mysql'
+
+class DBConnection extends MySqlConnection<'DBConnection'> {
+    protected override getDurationFractionDigits(): number {
+        return 3
+    }
+}
+```
+
+| Duration | Kept with 9 (the default) | Kept with 3 | Kept with 0 |
+|---|---|---|---|
+| `PT1.123456789S` | `PT1.123456789S` | `PT1.123S` | `PT1S` |
+| `-PT2H0.9999S` | `-PT2H0.9999S` | `-PT2H0.999S` | `-PT2H` |
+| `-PT0.0009S` | `-PT0.0009S` | `PT0S` | `PT0S` |
+
+It applies to the durations sent to be kept as text, in a value or a column of the query, on every database where a duration is text: MariaDB, MySQL, SQLite and SQL Server, and a column of PostgreSQL or Oracle that keeps it as text. A duration a query computes, like the one of `until`, keeps the digits of the database, and an interval keeps the ones of its column. Another number is rejected with `INVALID_CONFIGURATION` when a duration is sent.
+
 ### A column that keeps it in its own way
 
 A column says how it keeps its durations with its [SQL data type](../advanced/data-types/sql-data-types.md): a text keeps the ISO 8601 text on any database, also on PostgreSQL and Oracle, where it holds what one interval of Oracle can't, like `P1M1D`; on Oracle an `INTERVAL YEAR TO MONTH` keeps the years and months. `withSqlDataType` is exported by `ts-sql-query`:

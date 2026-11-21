@@ -1255,6 +1255,19 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _dateTimeOfNanoseconds(_context: SqlBuildContext, date: string, nanoseconds: string): string {
         return 'dateadd(nanosecond, (' + nanoseconds + ') % 1000000000, dateadd(second, (' + nanoseconds + ') / 1000000000, cast(' + date + ' as datetime2)))'
     }
+    /** A time(7) and a datetime2(7) keep 100 nanoseconds */
+    override _temporalTick(): bigint {
+        return 100n
+    }
+    override _ticksSinceMidnight(context: SqlBuildContext, valueSource: ToSql): string {
+        return "(cast(datediff(second, cast('00:00' as time), cast(" + this._appendSql(valueSource, context, false) + ' as time)) as bigint) * 10000000 + datepart(nanosecond, ' + this._appendSql(valueSource, context, false) + ') / 100)'
+    }
+    override _timeOfDatabaseTicks(_context: SqlBuildContext, ticks: string): string {
+        return 'dateadd(nanosecond, (' + ticks + ') % 10000000 * 100, dateadd(second, (' + ticks + ") / 10000000 % 86400, cast('00:00' as time(7))))"
+    }
+    override _dateTimeOfDatabaseTicks(_context: SqlBuildContext, date: string, ticks: string): string {
+        return 'dateadd(nanosecond, (' + ticks + ') % 10000000 * 100, dateadd(second, (' + ticks + ') / 10000000, cast(' + date + ' as datetime2)))'
+    }
     override _validDayOrError(_context: SqlBuildContext, year: string, month: string, day: string): string {
         return 'day(datefromparts(' + year + ', ' + month + ', ' + day + '))'
     }

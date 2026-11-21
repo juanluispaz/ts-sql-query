@@ -1440,6 +1440,20 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     override _dateTimeOfNanoseconds(_context: SqlBuildContext, date: string, nanoseconds: string): string {
         return this._sqliteTemporalIn('dateTime', date + ', ((' + nanoseconds + ") / 1000000000.0) || ' seconds'")
     }
+    /** The date and time functions keep milliseconds */
+    override _temporalTick(): bigint {
+        return 1000000n
+    }
+    override _ticksSinceMidnight(context: SqlBuildContext, valueSource: ToSql): string {
+        const argument = this._dateFunctionArgument(context, valueSource)
+        return 'cast(round((julianday(' + argument + ') - julianday(date(' + argument + '))) * 86400000) as integer)'
+    }
+    override _timeOfDatabaseTicks(_context: SqlBuildContext, ticks: string): string {
+        return this._sqliteTemporalIn('time', "'00:00:00', ((" + ticks + ") / 1000.0) || ' seconds'")
+    }
+    override _dateTimeOfDatabaseTicks(_context: SqlBuildContext, date: string, ticks: string): string {
+        return this._sqliteTemporalIn('dateTime', date + ', ((' + ticks + ") / 1000.0) || ' seconds'")
+    }
     override _validDayOrError(context: SqlBuildContext, year: string, month: string, day: string): string {
         // SQLite has no date that fails: an integer overflow is the error
         return 'case when ' + day + ' > ' + this._daysInMonth(context, year, month) + ' then abs(-9223372036854775807 - 1) else ' + day + ' end'

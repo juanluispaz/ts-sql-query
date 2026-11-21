@@ -1123,6 +1123,19 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     override _dateTimeOfNanoseconds(_context: SqlBuildContext, date: string, nanoseconds: string): string {
         return 'date_add(' + date + ', interval (' + nanoseconds + ') div 1000 microsecond)'
     }
+    /** A time and a date and time keep microseconds */
+    override _temporalTick(): bigint {
+        return 1000n
+    }
+    override _ticksSinceMidnight(context: SqlBuildContext, valueSource: ToSql): string {
+        return '(floor(time_to_sec(' + this._appendSql(valueSource, context, false) + ')) * 1000000 + microsecond(' + this._appendSql(valueSource, context, false) + '))'
+    }
+    override _timeOfDatabaseTicks(_context: SqlBuildContext, ticks: string): string {
+        return 'sec_to_time(mod(' + ticks + ', 86400000000) * 0.000001)'
+    }
+    override _dateTimeOfDatabaseTicks(_context: SqlBuildContext, date: string, ticks: string): string {
+        return 'date_add(' + date + ', interval ' + ticks + ' microsecond)'
+    }
     /** The day of the value, or the one given */
     _mySqlDayWith(context: SqlBuildContext, valueSource: ToSql, given: PlainTemporalFields): string {
         return given.day === undefined ? 'day(' + this._appendSql(valueSource, context, false) + ')' : String(given.day)

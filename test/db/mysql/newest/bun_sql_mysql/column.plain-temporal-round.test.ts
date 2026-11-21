@@ -113,7 +113,7 @@ describe(ctx.label, () => {
                 sixHours: at('2024-02-29T23:59').round({ smallestUnit: 'hour', roundingIncrement: 6, roundingMode: 'floor' }),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date_add(date(?), interval ((2 * (floor(time_to_sec(?)) * 1000000 + microsecond(?)) * 1000 + 1000000000) div 2000000000 * 1000000000) div 1000 microsecond) as nextDay, date_add(date(?), interval ((2 * (floor(time_to_sec(?)) * 1000000 + microsecond(?)) * 1000 + 86400000000000) div 172800000000000 * 86400000000000) div 1000 microsecond) as toDay, date_add(date(?), interval ((2 * (floor(time_to_sec(?)) * 1000000 + microsecond(?)) * 1000 + 86400000000000) div 172800000000000 * 86400000000000) div 1000 microsecond) as sameDay, date_add(date(?), interval ((floor(time_to_sec(?)) * 1000000 + microsecond(?)) * 1000 div 21600000000000 * 21600000000000) div 1000 microsecond) as sixHours"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date_add(date(?), interval (2 * (floor(time_to_sec(?)) * 1000000 + microsecond(?)) + 1000000) div 2000000 * 1000000 microsecond) as nextDay, date_add(date(?), interval (2 * (floor(time_to_sec(?)) * 1000000 + microsecond(?)) + 86400000000) div 172800000000 * 86400000000 microsecond) as toDay, date_add(date(?), interval (2 * (floor(time_to_sec(?)) * 1000000 + microsecond(?)) + 86400000000) div 172800000000 * 86400000000 microsecond) as sameDay, date_add(date(?), interval (floor(time_to_sec(?)) * 1000000 + microsecond(?)) div 21600000000 * 21600000000 microsecond) as sixHours"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
             "2024-02-29T23:59:59.5",
@@ -144,7 +144,7 @@ describe(ctx.label, () => {
                 halfHour: tColMatrixPlain.mTime.round({ smallestUnit: 'minute', roundingIncrement: 30 }),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date_add(date(temporal_precision.micro_stamp), interval ((2 * (floor(time_to_sec(temporal_precision.micro_stamp)) * 1000000 + microsecond(temporal_precision.micro_stamp)) * 1000 + 1000000000) div 2000000000 * 1000000000) div 1000 microsecond) as second, sec_to_time(mod((2 * (floor(time_to_sec(col_matrix.m_time)) * 1000000 + microsecond(col_matrix.m_time)) * 1000 + 1800000000000) div 3600000000000 * 1800000000000, 86400000000000) div 1000 * 0.000001) as halfHour from temporal_precision inner join col_matrix on col_matrix.id = temporal_precision.id where temporal_precision.id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date_add(date(temporal_precision.micro_stamp), interval (2 * (floor(time_to_sec(temporal_precision.micro_stamp)) * 1000000 + microsecond(temporal_precision.micro_stamp)) + 1000000) div 2000000 * 1000000 microsecond) as second, sec_to_time(mod((2 * (floor(time_to_sec(col_matrix.m_time)) * 1000000 + microsecond(col_matrix.m_time)) + 1800000000) div 3600000000 * 1800000000, 86400000000) * 0.000001) as halfHour from temporal_precision inner join col_matrix on col_matrix.id = temporal_precision.id where temporal_precision.id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

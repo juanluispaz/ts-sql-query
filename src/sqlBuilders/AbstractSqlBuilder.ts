@@ -4412,8 +4412,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (!rounding) {
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: typeClass.type }, 'Invalid options to round an instant: ' + JSON.stringify(value))
         }
+        const tick = this._roundingTick(rounding)
+        if (tick === undefined) {
+            // A step that divides the smallest unit the database keeps: nothing to round
+            return this._instantOfUtc(context, this._appendSql(valueSource, context, false))
+        }
         const date = this._dateOfValue(context, valueSource)
-        return this._instantOfUtc(context, this._dateTimeOfNanoseconds(context, date, this._roundedNanosecondsSinceMidnight(context, valueSource, rounding)))
+        return this._instantOfUtc(context, this._dateTimeOfTicks(context, date, this._roundedSinceMidnight(context, valueSource, rounding, tick), tick))
     }
     /** The instant plus a duration of the time alone, added to its wall clock in UTC (the receiver) */
     _instantAddDuration(context: SqlBuildContext, valueSource: ToSql, value: any, _typeClass: DataTypeClass): string {
@@ -4631,32 +4636,78 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (!rounding) {
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: typeClass.type }, 'Invalid options to round a ' + typeClass.type + ': ' + JSON.stringify(value))
         }
+        const tick = this._roundingTick(rounding)
+        if (tick === undefined) {
+            // A step that divides the smallest unit the database keeps: nothing to round
+            return this._appendSql(valueSource, context, false)
+        }
         if (fields === 'time') {
-            return this._timeOfNanoseconds(context, this._roundedNanosecondsSinceMidnight(context, valueSource, rounding))
+            return this._timeOfTicks(context, this._roundedSinceMidnight(context, valueSource, rounding, tick), tick)
         }
         const date = this._dateOfValue(context, valueSource)
-        return this._dateTimeOfNanoseconds(context, date, this._roundedNanosecondsSinceMidnight(context, valueSource, rounding))
+        return this._dateTimeOfTicks(context, date, this._roundedSinceMidnight(context, valueSource, rounding, tick), tick)
     }
-    /** The nanoseconds since midnight of the value rounded to multiples of the step, in the mode given */
-    _roundedNanosecondsSinceMidnight(context: SqlBuildContext, valueSource: ToSql, rounding: PlainTemporalRounding): string {
-        const step = this._bigintLiteral(rounding.step)
-        const twoSteps = this._bigintLiteral(rounding.step * 2n)
+    /**
+     * The nanoseconds of the smallest unit of time the database keeps (_temporalTick), the unit a rounding is computed in;
+     * a nanosecond for a step that isn't a multiple of it, and undefined for one that divides it (nothing to round)
+     */
+    _roundingTick(rounding: PlainTemporalRounding): bigint | undefined {
+        const tick = this._temporalTick()
+        if (tick % rounding.step === 0n) {
+            return undefined
+        }
+        return rounding.step % tick === 0n ? tick : 1n
+    }
+    /** The nanoseconds of the smallest unit of time a time or a date and time of the database keeps: a nanosecond by default */
+    _temporalTick(): bigint {
+        return 1n
+    }
+    /** The time since midnight of the value in units of tick nanoseconds (see _temporalTick), rounded to the step in its mode */
+    _roundedSinceMidnight(context: SqlBuildContext, valueSource: ToSql, rounding: PlainTemporalRounding, tick: bigint): string {
+        const stepValue = rounding.step / tick
+        const step = this._bigintLiteral(stepValue)
+        const twoSteps = this._bigintLiteral(stepValue * 2n)
         switch (rounding.mode) {
             case 'trunc':
-                return this._truncatedDivision(this._nanosecondsSinceMidnight(context, valueSource), step) + ' * ' + step
+                return this._truncatedDivision(this._sinceMidnight(context, valueSource, tick), step) + ' * ' + step
             case 'ceil':
-                return this._truncatedDivision('(' + this._nanosecondsSinceMidnight(context, valueSource) + ' + ' + this._bigintLiteral(rounding.step - 1n) + ')', step) + ' * ' + step
+                return this._truncatedDivision('(' + this._sinceMidnight(context, valueSource, tick) + ' + ' + this._bigintLiteral(stepValue - 1n) + ')', step) + ' * ' + step
             case 'halfExpand':
-                return this._truncatedDivision('(2 * ' + this._nanosecondsSinceMidnight(context, valueSource) + ' + ' + step + ')', twoSteps) + ' * ' + step
+                return this._truncatedDivision('(2 * ' + this._sinceMidnight(context, valueSource, tick) + ' + ' + step + ')', twoSteps) + ' * ' + step
             case 'halfTrunc':
-                return this._truncatedDivision('(2 * ' + this._nanosecondsSinceMidnight(context, valueSource) + ' + ' + this._bigintLiteral(rounding.step - 1n) + ')', twoSteps) + ' * ' + step
-            case 'halfEven':
-                // Half way, to the even multiple; written left to right, as the parameters appear in the text
-                return '(' + this._truncatedDivision(this._nanosecondsSinceMidnight(context, valueSource), step)
-                    + ' + case when 2 * (' + this._nanosecondsSinceMidnight(context, valueSource) + ' - ' + this._truncatedDivision(this._nanosecondsSinceMidnight(context, valueSource), step) + ' * ' + step + ') > ' + step
-                    + ' or (2 * (' + this._nanosecondsSinceMidnight(context, valueSource) + ' - ' + this._truncatedDivision(this._nanosecondsSinceMidnight(context, valueSource), step) + ' * ' + step + ') = ' + step
-                    + ' and ' + this._integerRemainder(this._truncatedDivision(this._nanosecondsSinceMidnight(context, valueSource), step), '2') + ' = 1) then 1 else 0 end) * ' + step
+                return this._truncatedDivision('(2 * ' + this._sinceMidnight(context, valueSource, tick) + ' + ' + this._bigintLiteral(stepValue - 1n) + ')', twoSteps) + ' * ' + step
+            case 'halfEven': {
+                // halfExpand of y = 2 * value + step, less one at half way to an odd multiple, where y is a multiple of four
+                // steps plus two: the value appears twice, written left to right, as the parameters appear in the text
+                const y = '(2 * ' + this._sinceMidnight(context, valueSource, tick) + ' + ' + step + ')'
+                const doubled = '(2 * ' + this._sinceMidnight(context, valueSource, tick) + ' + ' + step + ')'
+                return '(' + this._truncatedDivision(y, twoSteps) + ' - case when ' + this._integerRemainder(doubled, this._bigintLiteral(stepValue * 4n)) + ' = ' + twoSteps + ' then 1 else 0 end) * ' + step
+            }
         }
+    }
+    /** The time since midnight of a time or a date and time in units of tick nanoseconds: the database's own unit, or nanoseconds */
+    _sinceMidnight(context: SqlBuildContext, valueSource: ToSql, tick: bigint): string {
+        return tick === 1n ? this._nanosecondsSinceMidnight(context, valueSource) : this._ticksSinceMidnight(context, valueSource)
+    }
+    /** The time since midnight of a time or a date and time in the smallest unit the database keeps (see _temporalTick) */
+    _ticksSinceMidnight(context: SqlBuildContext, valueSource: ToSql): string {
+        return this._nanosecondsSinceMidnight(context, valueSource)
+    }
+    /** The time of the day of a number of units of tick nanoseconds since midnight, going round at midnight */
+    _timeOfTicks(context: SqlBuildContext, ticks: string, tick: bigint): string {
+        return tick === 1n ? this._timeOfNanoseconds(context, ticks) : this._timeOfDatabaseTicks(context, ticks)
+    }
+    /** The date plus a number of units of tick nanoseconds, a date and time */
+    _dateTimeOfTicks(context: SqlBuildContext, date: string, ticks: string, tick: bigint): string {
+        return tick === 1n ? this._dateTimeOfNanoseconds(context, date, ticks) : this._dateTimeOfDatabaseTicks(context, date, ticks)
+    }
+    /** The time of the day of a number of the smallest units the database keeps since midnight (see _temporalTick) */
+    _timeOfDatabaseTicks(context: SqlBuildContext, ticks: string): string {
+        return this._timeOfNanoseconds(context, ticks)
+    }
+    /** The date plus a number of the smallest units the database keeps (see _temporalTick) */
+    _dateTimeOfDatabaseTicks(context: SqlBuildContext, date: string, ticks: string): string {
+        return this._dateTimeOfNanoseconds(context, date, ticks)
     }
     /** An integer literal that the database takes as a bigint */
     _bigintLiteral(value: bigint): string {

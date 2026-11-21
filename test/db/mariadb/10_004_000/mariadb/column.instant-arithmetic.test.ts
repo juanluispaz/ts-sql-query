@@ -224,7 +224,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, date_add(date(instant_at), interval ((2 * (floor(time_to_sec(instant_at)) * 1000000 + microsecond(instant_at)) * 1000 + 3600000000000) div 7200000000000 * 3600000000000) div 1000 microsecond) as hour, date_add(date(instant_at), interval ((2 * (floor(time_to_sec(instant_at)) * 1000000 + microsecond(instant_at)) * 1000 + 5400000000000) div 10800000000000 * 5400000000000) div 1000 microsecond) as ninety, date_add(date(instant_at), interval ((floor(time_to_sec(instant_at)) * 1000000 + microsecond(instant_at)) * 1000 div 1000000000 * 1000000000) div 1000 microsecond) as floor from instant_value order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, date_add(date(instant_at), interval (2 * (floor(time_to_sec(instant_at)) * 1000000 + microsecond(instant_at)) + 3600000000) div 7200000000 * 3600000000 microsecond) as hour, date_add(date(instant_at), interval (2 * (floor(time_to_sec(instant_at)) * 1000000 + microsecond(instant_at)) + 5400000000) div 10800000000 * 5400000000 microsecond) as ninety, date_add(date(instant_at), interval (floor(time_to_sec(instant_at)) * 1000000 + microsecond(instant_at)) div 1000000 * 1000000 microsecond) as floor from instant_value order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number; hour: Temporal.Instant; ninety: Temporal.Instant; floor: Temporal.Instant }>>>()
         expect(rows.map(row => [row.id, row.hour.toString(), row.ninety.toString(), row.floor.toString()])).toEqual([deployed, landed].map((instant, i) => [
@@ -243,7 +243,7 @@ describe(ctx.label, () => {
                 day: ctx.conn.instantFromEpochMilliseconds(tInstantValue.instantAt.epochMilliseconds()).toPlainDate(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date_add(date(instant_at), interval ((2 * (floor(time_to_sec(instant_at)) * 1000000 + microsecond(instant_at)) * 1000 + 3600000000000) div 7200000000000 * 3600000000000) div 1000 microsecond) as hour, date_add(instant_at, interval ? microsecond) as later, date(date_add(date_add(date '1970-01-01', interval (floor(timestampdiff(microsecond, '1970-01-01 00:00:00', instant_at) / 1000) - ((floor(timestampdiff(microsecond, '1970-01-01 00:00:00', instant_at) / 1000) % 86400000 + 86400000) % 86400000)) div 86400000 day), interval (((floor(timestampdiff(microsecond, '1970-01-01 00:00:00', instant_at) / 1000) % 86400000 + 86400000) % 86400000) * 1000000) div 1000 microsecond)) as day from instant_value where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date_add(date(instant_at), interval (2 * (floor(time_to_sec(instant_at)) * 1000000 + microsecond(instant_at)) + 3600000000) div 7200000000 * 3600000000 microsecond) as hour, date_add(instant_at, interval ? microsecond) as later, date(date_add(date_add(date '1970-01-01', interval (floor(timestampdiff(microsecond, '1970-01-01 00:00:00', instant_at) / 1000) - ((floor(timestampdiff(microsecond, '1970-01-01 00:00:00', instant_at) / 1000) % 86400000 + 86400000) % 86400000)) div 86400000 day), interval (((floor(timestampdiff(microsecond, '1970-01-01 00:00:00', instant_at) / 1000) % 86400000 + 86400000) % 86400000) * 1000000) div 1000 microsecond)) as day from instant_value where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3600000000n,
@@ -269,7 +269,7 @@ describe(ctx.label, () => {
                 day: ctx.conn.const(instant, 'instant').round({ smallestUnit: 'hour', roundingIncrement: 24 }),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date_add(date(?), interval ((floor(time_to_sec(?)) * 1000000 + microsecond(?)) * 1000 div 60000000000 * 60000000000) div 1000 microsecond) as trunc, date_add(date(?), interval (((floor(time_to_sec(?)) * 1000000 + microsecond(?)) * 1000 + 59999999999) div 60000000000 * 60000000000) div 1000 microsecond) as ceil, date_add(date(?), interval ((2 * (floor(time_to_sec(?)) * 1000000 + microsecond(?)) * 1000 + 86400000000000) div 172800000000000 * 86400000000000) div 1000 microsecond) as day"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date_add(date(?), interval (floor(time_to_sec(?)) * 1000000 + microsecond(?)) div 60000000 * 60000000 microsecond) as trunc, date_add(date(?), interval ((floor(time_to_sec(?)) * 1000000 + microsecond(?)) + 59999999) div 60000000 * 60000000 microsecond) as ceil, date_add(date(?), interval (2 * (floor(time_to_sec(?)) * 1000000 + microsecond(?)) + 86400000000) div 172800000000 * 86400000000 microsecond) as day"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
             "1969-12-31T23:59:30.5Z",

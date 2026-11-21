@@ -243,11 +243,11 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
      */
     protected override transformProjection(sql: string, context: TypeAdapterProjectionContext): string {
         if (context.output === 'resultColumn' && __isZonedDateTimeClass(context.requestedType)) {
-            // A zoned date and time leaves the database as its instant in UTC, with all its digits and the era always
-            // written, followed by the region of its zone in brackets (Temporal reads its name whatever its case)
-            // (null, which Oracle concatenates as an empty text, gives '[]', taken back to null)
+            // A zoned date and time leaves the database as its wall clock with its offset, which give its instant, with all
+            // its digits and the era always written, followed by the region of its zone in brackets (Temporal reads its
+            // name whatever its case): the value written once
             context.comparison = 'equality'
-            return "nullif(to_char(sys_extract_utc(" + sql + "), 'YYYY-MM-DD\"T\"HH24:MI:SS.FF9\"Z\" BC', 'NLS_DATE_LANGUAGE=AMERICAN') || '[' || to_char(" + sql + ", 'TZR') || ']', '[]')"
+            return "to_char(" + sql + ", 'YYYY-MM-DD\"T\"HH24:MI:SS.FF9TZH:TZM BC\"[\"TZR\"]\"', 'NLS_DATE_LANGUAGE=AMERICAN')"
         }
         if (context.output === 'resultColumn' && __isInstantClass(context.requestedType)) {
             // oracledb delivers a date and a time as a Date, which drops the digits below the millisecond: an instant

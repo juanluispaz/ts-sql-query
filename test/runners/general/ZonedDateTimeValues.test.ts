@@ -56,8 +56,12 @@ async function reasonOf(code: () => unknown): Promise<string> {
 describe('ZonedDateTimeValues', () => {
     test('the-text-of-a-zoned-date-and-time-is-read', () => {
         const madrid = Temporal.ZonedDateTime.from('2024-10-27T02:30:00.123456789+02:00[Europe/Madrid]')
-        // As Temporal writes it, and as Oracle gives it: the instant in UTC with its era and the region in capitals
+        // As Temporal writes it, and as Oracle gives it: the wall clock with its offset and its era and the region in
+        // capitals, or the instant in UTC
         expect(parseZonedDateTimeText(madrid.toString(), 'zonedDateTime')?.toString()).toBe(madrid.toString())
+        expect(parseZonedDateTimeText('2024-10-27T02:30:00.123456789+02:00 AD[EUROPE/MADRID]', 'zonedDateTime')?.toString()).toBe(madrid.toString())
+        expect(parseZonedDateTimeText('2024-10-27T02:30:00.123456789+01:00 AD[EUROPE/MADRID]', 'zonedDateTime')?.toString()).toBe(madrid.add({ hours: 1 }).toString())
+        expect(parseZonedDateTimeText('0044-03-15T14:45:30.000000000+05:30 BC[+05:30]', 'zonedDateTime')?.toString()).toBe(Temporal.Instant.from('-000043-03-15T09:15:30Z').toZonedDateTimeISO('+05:30').toString())
         expect(parseZonedDateTimeText('2024-10-27T00:30:00.123456789Z AD[EUROPE/MADRID]', 'zonedDateTime')?.toString()).toBe(madrid.toString())
         expect(parseZonedDateTimeText('0044-03-15T09:15:30.000000000Z BC[+05:30]', 'zonedDateTime')?.toString()).toBe(Temporal.Instant.from('-000043-03-15T09:15:30Z').toZonedDateTimeISO('+05:30').toString())
         // Not one: without a zone, with a zone Temporal doesn't know, or not a date and time

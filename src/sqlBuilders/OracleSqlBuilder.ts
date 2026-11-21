@@ -1779,9 +1779,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         }
         if (fields === 'time') {
             // The seconds of the day, with their fraction, plus the ones of the duration, modulo a day
-            const value = this._appendSql(valueSource, context, false)
-            const sinceMidnight = '(cast(' + value + ' as timestamp) - trunc(' + value + '))'
-            const secondsOfTheDay = 'extract(hour from ' + sinceMidnight + ') * 3600 + extract(minute from ' + sinceMidnight + ') * 60 + extract(second from ' + sinceMidnight + ')'
+            const secondsOfTheDay = this._nanosecondsSinceMidnight(context, valueSource) + ' / 1000000000'
             const ofTheDay = constant
                 // Less than a day, either way
                 ? 'mod(' + secondsOfTheDay + ' + ' + seconds + ' + 86400, 86400)'
@@ -1938,9 +1936,8 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return '(' + this._appendSqlParenthesis(valueSource, context, false) + ' * -1)'
     }
     override _nanosecondsSinceMidnight(context: SqlBuildContext, valueSource: ToSql): string {
-        const value = this._appendSql(valueSource, context, false)
-        const sinceMidnight = '(cast(' + value + ' as timestamp(9)) - trunc(' + value + '))'
-        return '(extract(hour from ' + sinceMidnight + ') * 3600 + extract(minute from ' + sinceMidnight + ') * 60 + extract(second from ' + sinceMidnight + ')) * 1000000000'
+        // The seconds since midnight followed by the nine digits of the fraction: the nanoseconds, a number of digits
+        return "to_number(to_char(" + this._appendTimestampForTimeGetter(context, valueSource) + ", 'SSSSSFF9'))"
     }
     override _dateOfValue(context: SqlBuildContext, valueSource: ToSql): string {
         return 'trunc(' + this._appendSql(valueSource, context, false) + ')'

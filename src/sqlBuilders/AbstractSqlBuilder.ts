@@ -4801,6 +4801,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _roundedSinceMidnight(context: SqlBuildContext, valueSource: ToSql, rounding: PlainTemporalRounding, tick: bigint): string {
         const stepValue = rounding.step / tick
         const step = this._bigintLiteral(stepValue)
+        if (this._libraryFunctionsInstalled()) {
+            return this._roundToFunction(this._sinceMidnight(context, valueSource, tick), step, rounding.mode)
+        }
         const twoSteps = this._bigintLiteral(stepValue * 2n)
         switch (rounding.mode) {
             case 'trunc':
@@ -5140,6 +5143,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _differenceRounded(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
         const stepValue = d.step / d.tick
         const step = this._bigintLiteral(stepValue)
+        if (this._libraryFunctionsInstalled()) {
+            return this._roundToFunction(this._differenceTotalInTicks(context, d), step, d.difference.mode)
+        }
         const twoSteps = this._bigintLiteral(stepValue * 2n)
         const lessOne = this._bigintLiteral(stepValue - 1n)
         const twoLessOne = this._bigintLiteral(stepValue * 2n - 1n)
@@ -5194,6 +5200,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
      */
     _differenceHalfEvenOverTotalOnce(): boolean {
         return false
+    }
+    /** The integer rounded to a multiple of the step in a mode of Temporal by the function of the library, which writes it once */
+    _roundToFunction(value: string, step: string, mode: string): string {
+        return 'tsq_round_to(' + value + ', ' + step + ", '" + mode + "')"
     }
     /** The sign of a number: -1, 0 or 1 */
     _signOf(value: string): string {

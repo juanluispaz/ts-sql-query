@@ -795,3 +795,56 @@ BEGIN
     RETURN dbo.tsq_duration_text(0, 0, 0, @days, @total - @days * @day, CASE WHEN @largest <= 4 THEN 'hour' WHEN @largest = 5 THEN 'minute' ELSE 'second' END);
 END
 GO
+
+-- tsq_round_to: an integer rounded to a multiple of a step (a positive integer) in a rounding mode of Temporal
+-- ('ceil', 'floor', 'expand', 'trunc', 'halfCeil', 'halfFloor', 'halfExpand', 'halfTrunc', 'halfEven'), as Temporal
+-- rounds a difference or a time of the day; the function of the library that writes the integer once
+-- (libraryFunctions installed).
+CREATE OR ALTER FUNCTION dbo.tsq_round_to(@value DECIMAL(38, 0), @step DECIMAL(38, 0), @rounding_mode VARCHAR(10)) RETURNS DECIMAL(38, 0) WITH SCHEMABINDING AS
+BEGIN
+    IF @value IS NULL OR @step IS NULL OR @rounding_mode IS NULL RETURN NULL;
+    DECLARE @q DECIMAL(38, 0) = ROUND(@value / @step, 0, 1);
+    DECLARE @r DECIMAL(38, 0) = @value - @q * @step;
+    IF @r = 0 RETURN @value;
+    DECLARE @away DECIMAL(38, 0) = @q + SIGN(@value);
+    RETURN @step * CASE
+        WHEN @rounding_mode = 'trunc' THEN @q
+        WHEN @rounding_mode = 'floor' THEN CASE WHEN @value < 0 THEN @away ELSE @q END
+        WHEN @rounding_mode = 'ceil' THEN CASE WHEN @value > 0 THEN @away ELSE @q END
+        WHEN @rounding_mode = 'expand' THEN @away
+        WHEN 2 * ABS(@r) > @step THEN @away
+        WHEN 2 * ABS(@r) < @step THEN @q
+        WHEN @rounding_mode = 'halfExpand' THEN @away
+        WHEN @rounding_mode = 'halfTrunc' THEN @q
+        WHEN @rounding_mode = 'halfCeil' THEN CASE WHEN @value > 0 THEN @away ELSE @q END
+        WHEN @rounding_mode = 'halfFloor' THEN CASE WHEN @value < 0 THEN @away ELSE @q END
+        WHEN @q % 2 = 0 THEN @q
+        ELSE @away
+    END;
+END
+GO
+
+-- tsq_ticks_between: the hundreds of nanoseconds (the unit a datetime2(7) keeps) from one date and time to another:
+-- the days of their dates and the time of their times of the day; the function of the library that writes each one
+-- once (libraryFunctions installed).
+CREATE OR ALTER FUNCTION dbo.tsq_ticks_between(@one DATETIME2(7), @two DATETIME2(7)) RETURNS BIGINT WITH SCHEMABINDING AS
+BEGIN
+    RETURN DATEDIFF(DAY, CAST(@one AS DATE), CAST(@two AS DATE)) * CAST(864000000000 AS BIGINT) + DATEDIFF_BIG(NANOSECOND, CAST(@one AS TIME), CAST(@two AS TIME)) / 100;
+END
+GO
+
+-- tsq_time_of_ticks: the time of the day of a number of hundreds of nanoseconds since midnight, going round at
+-- midnight; the function of the library that writes the number once (libraryFunctions installed).
+CREATE OR ALTER FUNCTION dbo.tsq_time_of_ticks(@ticks BIGINT) RETURNS TIME(7) WITH SCHEMABINDING AS
+BEGIN
+    RETURN DATEADD(NANOSECOND, @ticks % 10000000 * 100, DATEADD(SECOND, @ticks / 10000000 % 86400, CAST('00:00' AS TIME(7))));
+END
+GO
+
+-- tsq_datetime_of_ticks: a date plus a number of hundreds of nanoseconds, a datetime2(7); the function of the library
+-- that writes the number once (libraryFunctions installed).
+CREATE OR ALTER FUNCTION dbo.tsq_datetime_of_ticks(@date DATE, @ticks BIGINT) RETURNS DATETIME2(7) WITH SCHEMABINDING AS
+BEGIN
+    RETURN DATEADD(NANOSECOND, @ticks % 10000000 * 100, DATEADD(SECOND, @ticks / 10000000, CAST(@date AS DATETIME2(7))));
+END
+GO

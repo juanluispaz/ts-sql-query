@@ -7,7 +7,7 @@ import { flattenQueryColumns, hasToSql, getQueryColumn, operationOf } from './Sq
 import type { DataTypeClass } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter, OracleDateAsTimestampTypeAdapter } from '../TypeAdapter.js'
 import { DefaultImpl } from '../expressions/Default.js'
-import { AbstractSqlBuilder, __durationComputedFrom, type DurationField, type SelectColumnSql, type ZonedDurationPartsSql } from './AbstractSqlBuilder.js'
+import { AbstractSqlBuilder, __durationComputedFrom, type DurationField, type PlainTemporalDifferenceSql, type SelectColumnSql, type ZonedDurationPartsSql } from './AbstractSqlBuilder.js'
 import type { ZonedDisambiguation, ZonedInterpretation } from '../utils/zonedOptions.js'
 import type { PlainTemporalRoundingMode } from '../utils/plainTemporalRounding.js'
 import type { DBColumn } from '../utils/Column.js'
@@ -1670,6 +1670,9 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     }
     /** The hours from the start of its day to the start of the next one, in its zone: Temporal's `hoursInDay` */
     override _zonedHoursInDay(context: SqlBuildContext, valueSource: ToSql): string {
+        if (this._libraryFunctionsInstalled()) {
+            return 'tsq_zoned_hours_in_day(' + this._appendSql(valueSource, context, false) + ')'
+        }
         const zoned = this._zonedOperandSql(context, valueSource, 'x')
         const zone = this._zonedZoneOf(context, valueSource, zoned)
         // The instants in UTC as DATEs: their difference is in days (a day is whole seconds long)
@@ -1678,6 +1681,9 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     }
     /** Rounded to a day, as Temporal's `round('day')`: the start of its day or of the next one in its zone, the nearer one by the length of the day */
     override _zonedRoundToDay(context: SqlBuildContext, valueSource: ToSql, value: any, _typeClass: DataTypeClass): string {
+        if (this._libraryFunctionsInstalled()) {
+            return 'tsq_zoned_round_day(' + this._appendSql(valueSource, context, false) + ", '" + value + "')"
+        }
         const zoned = this._zonedOperandSql(context, valueSource, 'x')
         const zone = this._zonedZoneOf(context, valueSource, zoned)
         const start = this._oracleStartOfDay(zoned, zone, false)
@@ -2018,6 +2024,13 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         }
         // Oracle has no minus of an interval: an interval times -1
         return '(' + this._appendSqlParenthesis(valueSource, context, false) + ' * -1)'
+    }
+    override _differenceTotal(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
+        if (this._libraryFunctionsInstalled() && d.fields === 'timestamp') {
+            // The days of the dates and the nanoseconds of the times of the day, each value written once
+            return 'tsq_nanoseconds_between(' + this._appendSql(d.one, context, false) + ', ' + this._appendSql(d.two, context, false) + ')'
+        }
+        return super._differenceTotal(context, d)
     }
     override _nanosecondsSinceMidnight(context: SqlBuildContext, valueSource: ToSql): string {
         // The seconds since midnight followed by the nine digits of the fraction: the nanoseconds, a number of digits

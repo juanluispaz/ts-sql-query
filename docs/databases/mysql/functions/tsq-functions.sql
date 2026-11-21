@@ -333,3 +333,34 @@ BEGIN
 END
 //
 DELIMITER ;
+
+-- ===== tsq_round_to =====
+DROP FUNCTION IF EXISTS tsq_round_to;
+DELIMITER //
+CREATE FUNCTION tsq_round_to(value DECIMAL(65, 0), step DECIMAL(65, 0), rounding_mode VARCHAR(10)) RETURNS DECIMAL(65, 0) DETERMINISTIC NO SQL
+BEGIN
+    DECLARE v_q DECIMAL(65, 0);
+    DECLARE v_r DECIMAL(65, 0);
+    DECLARE v_away DECIMAL(65, 0);
+    IF value IS NULL OR step IS NULL OR rounding_mode IS NULL THEN RETURN NULL; END IF;
+    SET v_q = value DIV step;
+    SET v_r = value - v_q * step;
+    IF v_r = 0 THEN RETURN value; END IF;
+    SET v_away = v_q + SIGN(value);
+    RETURN step * CASE
+        WHEN rounding_mode = 'trunc' THEN v_q
+        WHEN rounding_mode = 'floor' THEN IF(value < 0, v_away, v_q)
+        WHEN rounding_mode = 'ceil' THEN IF(value > 0, v_away, v_q)
+        WHEN rounding_mode = 'expand' THEN v_away
+        WHEN 2 * ABS(v_r) > step THEN v_away
+        WHEN 2 * ABS(v_r) < step THEN v_q
+        WHEN rounding_mode = 'halfExpand' THEN v_away
+        WHEN rounding_mode = 'halfTrunc' THEN v_q
+        WHEN rounding_mode = 'halfCeil' THEN IF(value > 0, v_away, v_q)
+        WHEN rounding_mode = 'halfFloor' THEN IF(value < 0, v_away, v_q)
+        WHEN MOD(v_q, 2) = 0 THEN v_q
+        ELSE v_away
+    END;
+END
+//
+DELIMITER ;

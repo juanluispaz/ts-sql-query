@@ -893,6 +893,10 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
             case 'halfTrunc':
                 return pgBin(stride, timestamp, microseconds - half === 1n ? '' : pgIntervalOfMicroseconds(microseconds - half) + " - interval '1 microsecond'", origin)
             case 'halfEven':
+                if (microseconds % 2n === 0n && this._libraryFunctionsInstalled()) {
+                    // The microseconds since midnight rounded by the function of the library, the value written twice
+                    return '(' + origin + " + tsq_round_to((extract(epoch from " + timestamp + ' - ' + origin + ') * 1000000)::bigint, ' + microseconds + ", 'halfEven') * interval '1 microsecond')"
+                }
                 if (microseconds % 2n === 0n) {
                     // Exactly half way, the even bin: the bin of twice the step of the value moved half a step
                     return '(case when ' + timestamp + ' - ' + pgBin(stride, timestamp, '', origin) + ' = ' + pgIntervalOfMicroseconds(half) + ' then ' + pgBin(pgIntervalOfMicroseconds(microseconds * 2n), timestamp, pgIntervalOfMicroseconds(half), origin) + ' else ' + pgBin(stride, timestamp, pgIntervalOfMicroseconds(half), origin) + ' end)'
@@ -987,6 +991,9 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     }
     /** The hours from the start of its day to the start of the next one, in its zone: Temporal's `hoursInDay` */
     override _zonedHoursInDay(context: SqlBuildContext, valueSource: ToSql): string {
+        if (this._libraryFunctionsInstalled()) {
+            return 'tsq_zoned_hours_in_day(' + this._pgZonedSql(context, valueSource) + ', ' + this._pgZoneText(this._pgZoneOf(context, valueSource)) + ')'
+        }
         const zoned = this._zonedOperandSql(context, valueSource, 'x')
         const zone = this._pgZoneOf(context, valueSource)
         const hours = this._zonedHoursOf(this._pgStartOfDay(zoned, zone, true) + ' - ' + this._pgStartOfDay(zoned, zone, false))
@@ -994,6 +1001,9 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     }
     /** Rounded to a day, as Temporal's `round('day')`: the start of its day or of the next one in its zone, the nearer one by the length of the day */
     override _zonedRoundToDay(context: SqlBuildContext, valueSource: ToSql, value: any, _typeClass: DataTypeClass): string {
+        if (this._libraryFunctionsInstalled()) {
+            return 'tsq_zoned_round_day(' + this._pgZonedSql(context, valueSource) + ', ' + this._pgZoneText(this._pgZoneOf(context, valueSource)) + ", '" + value + "')"
+        }
         const zoned = this._zonedOperandSql(context, valueSource, 'x')
         const zone = this._pgZoneOf(context, valueSource)
         const start = this._pgStartOfDay(zoned, zone, false)

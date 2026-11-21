@@ -1,6 +1,7 @@
 // The functions of the library for durations and zoned dates and times that the file of SQL of each database gives
 // (the one its page of functions links) (tsq_duration_part, tsq_duration_text, tsq_duration_round, tsq_duration_total, tsq_duration_add,
-// tsq_zoned_until, tsq_zoned_of_wall, tsq_zoned_wall, tsq_zoned_utc, tsq_zoned_of_text, tsq_zone, tsq_zoned_offset) are the ones the suite creates in the
+// tsq_zoned_until, tsq_zoned_of_wall, tsq_zoned_wall, tsq_zoned_utc, tsq_zoned_of_text, tsq_zone, tsq_zoned_offset, tsq_round_to, tsq_nanoseconds_between, tsq_ticks_between,
+// tsq_time_of_ticks, tsq_datetime_of_ticks, tsq_zoned_hours_in_day, tsq_zoned_round_day) are the ones the suite creates in the
 // schema of that database (test/db/<db>/domain/schema.sql), which the tests of the arithmetic, the differences of dates,
 // the totals and the sums of durations run against every engine: the text of the page is the tested one.
 
@@ -87,6 +88,20 @@ describe('DurationPartFunctionDocs', () => {
         expect(documented('oracle', 'tsq_zoned_of_text')).toBe(tested('oracle', 'tsq_zoned_of_text'))
         expect(documented('postgresql', 'tsq_zone')).toBe(tested('postgres', 'tsq_zone'))
         expect(documented('postgresql', 'tsq_zoned_offset')).toBe(tested('postgres', 'tsq_zoned_offset'))
+    })
+
+    test('the-documented-functions-of-roundings-and-differences-are-the-tested-ones', () => {
+        for (const [db, schema] of [['mariadb', 'mariadb'], ['mysql', 'mysql'], ['oracle', 'oracle'], ['postgresql', 'postgres'], ['sqlserver', 'sqlserver']] as const) {
+            expect(documented(db, 'tsq_round_to')).toBe(tested(schema, 'tsq_round_to'))
+        }
+        expect(documented('oracle', 'tsq_nanoseconds_between')).toBe(tested('oracle', 'tsq_nanoseconds_between'))
+        expect(documented('sqlserver', 'tsq_ticks_between')).toBe(tested('sqlserver', 'tsq_ticks_between'))
+        expect(documented('sqlserver', 'tsq_time_of_ticks')).toBe(tested('sqlserver', 'tsq_time_of_ticks'))
+        expect(documented('sqlserver', 'tsq_datetime_of_ticks')).toBe(tested('sqlserver', 'tsq_datetime_of_ticks'))
+        for (const [db, schema] of [['oracle', 'oracle'], ['postgresql', 'postgres']] as const) {
+            expect(documented(db, 'tsq_zoned_hours_in_day')).toBe(tested(schema, 'tsq_zoned_hours_in_day'))
+            expect(documented(db, 'tsq_zoned_round_day')).toBe(tested(schema, 'tsq_zoned_round_day'))
+        }
     })
 
     test('the-documented-functions-of-the-uuids-of-oracle-are-the-tested-ones', () => {

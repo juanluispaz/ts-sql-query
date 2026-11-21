@@ -603,6 +603,69 @@ BEGIN
 END;
 /
 
+-- ===== tsq_round_to =====
+CREATE OR REPLACE FUNCTION tsq_round_to(value IN NUMBER, step IN NUMBER, rounding_mode IN VARCHAR2) RETURN NUMBER DETERMINISTIC IS
+    v_q NUMBER := TRUNC(value / step);
+    v_r NUMBER := value - v_q * step;
+    v_away NUMBER := v_q + SIGN(value);
+BEGIN
+    IF value IS NULL OR step IS NULL OR rounding_mode IS NULL THEN RETURN NULL; END IF;
+    IF v_r = 0 THEN RETURN value; END IF;
+    RETURN step * CASE
+        WHEN rounding_mode = 'trunc' THEN v_q
+        WHEN rounding_mode = 'floor' THEN CASE WHEN value < 0 THEN v_away ELSE v_q END
+        WHEN rounding_mode = 'ceil' THEN CASE WHEN value > 0 THEN v_away ELSE v_q END
+        WHEN rounding_mode = 'expand' THEN v_away
+        WHEN 2 * ABS(v_r) > step THEN v_away
+        WHEN 2 * ABS(v_r) < step THEN v_q
+        WHEN rounding_mode = 'halfExpand' THEN v_away
+        WHEN rounding_mode = 'halfTrunc' THEN v_q
+        WHEN rounding_mode = 'halfCeil' THEN CASE WHEN value > 0 THEN v_away ELSE v_q END
+        WHEN rounding_mode = 'halfFloor' THEN CASE WHEN value < 0 THEN v_away ELSE v_q END
+        WHEN MOD(v_q, 2) = 0 THEN v_q
+        ELSE v_away
+    END;
+END;
+/
+
+-- ===== tsq_nanoseconds_between =====
+CREATE OR REPLACE FUNCTION tsq_nanoseconds_between(one IN TIMESTAMP_UNCONSTRAINED, two IN TIMESTAMP_UNCONSTRAINED) RETURN NUMBER DETERMINISTIC IS
+BEGIN
+    RETURN (TRUNC(two) - TRUNC(one)) * 86400000000000 + (TO_NUMBER(TO_CHAR(two, 'SSSSSFF9')) - TO_NUMBER(TO_CHAR(one, 'SSSSSFF9')));
+END;
+/
+
+-- ===== tsq_zoned_hours_in_day =====
+CREATE OR REPLACE FUNCTION tsq_zoned_hours_in_day(value IN TIMESTAMP_TZ_UNCONSTRAINED) RETURN NUMBER DETERMINISTIC IS
+    v_zone VARCHAR2(100) := TO_CHAR(value, 'TZR');
+    v_day DATE := TRUNC(CAST(value AS TIMESTAMP_UNCONSTRAINED));
+BEGIN
+    IF value IS NULL THEN RETURN NULL; END IF;
+    RETURN (CAST(SYS_EXTRACT_UTC(tsq_zoned_of_wall(CAST(v_day + 1 AS TIMESTAMP_UNCONSTRAINED), v_zone, 'compatible')) AS DATE) - CAST(SYS_EXTRACT_UTC(tsq_zoned_of_wall(CAST(v_day AS TIMESTAMP_UNCONSTRAINED), v_zone, 'compatible')) AS DATE)) * 24;
+END;
+/
+
+-- ===== tsq_zoned_round_day =====
+CREATE OR REPLACE FUNCTION tsq_zoned_round_day(value IN TIMESTAMP_TZ_UNCONSTRAINED, rounding_mode IN VARCHAR2) RETURN TIMESTAMP_TZ_UNCONSTRAINED DETERMINISTIC IS
+    v_zone VARCHAR2(100) := TO_CHAR(value, 'TZR');
+    v_day DATE := TRUNC(CAST(value AS TIMESTAMP_UNCONSTRAINED));
+    v_start TIMESTAMP_TZ_UNCONSTRAINED;
+    v_next TIMESTAMP_TZ_UNCONSTRAINED;
+BEGIN
+    IF value IS NULL OR rounding_mode IS NULL THEN RETURN NULL; END IF;
+    v_start := tsq_zoned_of_wall(CAST(v_day AS TIMESTAMP_UNCONSTRAINED), v_zone, 'compatible');
+    IF rounding_mode = 'trunc' THEN RETURN v_start; END IF;
+    v_next := tsq_zoned_of_wall(CAST(v_day + 1 AS TIMESTAMP_UNCONSTRAINED), v_zone, 'compatible');
+    IF rounding_mode = 'ceil' THEN
+        RETURN CASE WHEN value = v_start THEN v_start ELSE v_next END;
+    END IF;
+    IF rounding_mode = 'halfExpand' THEN
+        RETURN CASE WHEN (value - v_start) * 2 >= (v_next - v_start) THEN v_next ELSE v_start END;
+    END IF;
+    RETURN CASE WHEN (value - v_start) * 2 > (v_next - v_start) THEN v_next ELSE v_start END;
+END;
+/
+
 -- ===== tsq_string_util.concat_strict =====
 CREATE OR REPLACE PACKAGE tsq_string_util AS
     FUNCTION concat_strict(a IN VARCHAR2, b IN VARCHAR2) RETURN VARCHAR2;

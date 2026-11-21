@@ -1293,6 +1293,10 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _durationTotalFunctionName(): string {
         return 'dbo.tsq_duration_total'
     }
+    override _roundToFunction(value: string, step: string, mode: string): string {
+        // A function of the user is called with its schema
+        return 'dbo.tsq_round_to(' + value + ', ' + step + ", '" + mode + "')"
+    }
     override _durationRoundFunctionName(): string {
         return 'dbo.tsq_duration_round'
     }
@@ -1318,6 +1322,13 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _temporalTick(): bigint {
         return 100n
     }
+    override _differenceTotal(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
+        if (this._libraryFunctionsInstalled() && d.fields === 'timestamp') {
+            // The days of the dates and the time of the times of the day, each value written once
+            return 'dbo.tsq_ticks_between(' + this._appendSql(d.one, context, false) + ', ' + this._appendSql(d.two, context, false) + ')'
+        }
+        return super._differenceTotal(context, d)
+    }
     override _differenceTime(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
         // The nanoseconds from one time of the day to the other, less than a day: a bigint
         return '(datediff_big(nanosecond, cast(' + this._appendSql(d.one, context, false) + ' as time), cast(' + this._appendSql(d.two, context, false) + ' as time)) / 100)'
@@ -1326,9 +1337,15 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         return "(datediff_big(nanosecond, cast('00:00' as time), cast(" + this._appendSql(valueSource, context, false) + ' as time)) / 100)'
     }
     override _timeOfDatabaseTicks(_context: SqlBuildContext, ticks: string): string {
+        if (this._libraryFunctionsInstalled()) {
+            return 'dbo.tsq_time_of_ticks(' + ticks + ')'
+        }
         return 'dateadd(nanosecond, (' + ticks + ') % 10000000 * 100, dateadd(second, (' + ticks + ") / 10000000 % 86400, cast('00:00' as time(7))))"
     }
     override _dateTimeOfDatabaseTicks(_context: SqlBuildContext, date: string, ticks: string): string {
+        if (this._libraryFunctionsInstalled()) {
+            return 'dbo.tsq_datetime_of_ticks(' + date + ', ' + ticks + ')'
+        }
         return 'dateadd(nanosecond, (' + ticks + ') % 10000000 * 100, dateadd(second, (' + ticks + ') / 10000000, cast(' + date + ' as datetime2)))'
     }
     override _validDayOrError(_context: SqlBuildContext, year: string, month: string, day: string): string {

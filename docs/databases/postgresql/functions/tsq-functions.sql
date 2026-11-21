@@ -519,6 +519,56 @@ CREATE OR REPLACE FUNCTION tsq_zoned_offset(instant timestamptz, zone text) RETU
     FROM (SELECT extract(epoch FROM (instant AT TIME ZONE tsq_zone(zone)) - (instant AT TIME ZONE 'UTC'))::integer AS s) o
 $$;
 
+-- ===== tsq_round_to =====
+CREATE OR REPLACE FUNCTION tsq_round_to(value numeric, step numeric, rounding_mode text) RETURNS numeric LANGUAGE plpgsql IMMUTABLE STRICT AS $$
+DECLARE
+    q numeric := div(value, step);
+    r numeric := value - q * step;
+    away numeric := q + sign(value);
+BEGIN
+    IF r = 0 THEN RETURN value; END IF;
+    RETURN step * CASE
+        WHEN rounding_mode = 'trunc' THEN q
+        WHEN rounding_mode = 'floor' THEN CASE WHEN value < 0 THEN away ELSE q END
+        WHEN rounding_mode = 'ceil' THEN CASE WHEN value > 0 THEN away ELSE q END
+        WHEN rounding_mode = 'expand' THEN away
+        WHEN 2 * abs(r) > step THEN away
+        WHEN 2 * abs(r) < step THEN q
+        WHEN rounding_mode = 'halfExpand' THEN away
+        WHEN rounding_mode = 'halfTrunc' THEN q
+        WHEN rounding_mode = 'halfCeil' THEN CASE WHEN value > 0 THEN away ELSE q END
+        WHEN rounding_mode = 'halfFloor' THEN CASE WHEN value < 0 THEN away ELSE q END
+        WHEN mod(q, 2) = 0 THEN q
+        ELSE away
+    END;
+END $$;
+
+-- ===== tsq_zoned_hours_in_day =====
+CREATE OR REPLACE FUNCTION tsq_zoned_hours_in_day(instant timestamptz, zone text) RETURNS double precision LANGUAGE plpgsql IMMUTABLE STRICT AS $$
+DECLARE
+    wall timestamp := date_trunc('day', instant AT TIME ZONE tsq_zone(zone));
+BEGIN
+    RETURN (extract(epoch FROM tsq_zoned_of_wall(wall + interval '1 day', zone, 'compatible') - tsq_zoned_of_wall(wall, zone, 'compatible')) / 3600)::float8;
+END $$;
+
+-- ===== tsq_zoned_round_day =====
+CREATE OR REPLACE FUNCTION tsq_zoned_round_day(instant timestamptz, zone text, rounding_mode text) RETURNS timestamptz LANGUAGE plpgsql IMMUTABLE STRICT AS $$
+DECLARE
+    wall timestamp := date_trunc('day', instant AT TIME ZONE tsq_zone(zone));
+    start_of_day timestamptz := tsq_zoned_of_wall(wall, zone, 'compatible');
+    next_day timestamptz;
+BEGIN
+    IF rounding_mode = 'trunc' THEN RETURN start_of_day; END IF;
+    next_day := tsq_zoned_of_wall(wall + interval '1 day', zone, 'compatible');
+    IF rounding_mode = 'ceil' THEN
+        RETURN CASE WHEN instant = start_of_day THEN start_of_day ELSE next_day END;
+    END IF;
+    IF rounding_mode = 'halfExpand' THEN
+        RETURN CASE WHEN (instant - start_of_day) * 2 >= next_day - start_of_day THEN next_day ELSE start_of_day END;
+    END IF;
+    RETURN CASE WHEN (instant - start_of_day) * 2 > next_day - start_of_day THEN next_day ELSE start_of_day END;
+END $$;
+
 -- ===== tsq_greatest_strict and tsq_least_strict =====
 CREATE FUNCTION tsq_greatest_strict(a anycompatible, b anycompatible) RETURNS anycompatible
 LANGUAGE sql IMMUTABLE AS $$ SELECT CASE WHEN a IS NULL OR b IS NULL THEN NULL ELSE greatest(a, b) END $$;

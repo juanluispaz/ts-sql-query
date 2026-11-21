@@ -252,6 +252,52 @@ BEGIN
 END
 GO
 
+-- ===== tsq_round_to =====
+CREATE OR ALTER FUNCTION dbo.tsq_round_to(@value DECIMAL(38, 0), @step DECIMAL(38, 0), @rounding_mode VARCHAR(10)) RETURNS DECIMAL(38, 0) WITH SCHEMABINDING AS
+BEGIN
+    IF @value IS NULL OR @step IS NULL OR @rounding_mode IS NULL RETURN NULL;
+    DECLARE @q DECIMAL(38, 0) = ROUND(@value / @step, 0, 1);
+    DECLARE @r DECIMAL(38, 0) = @value - @q * @step;
+    IF @r = 0 RETURN @value;
+    DECLARE @away DECIMAL(38, 0) = @q + SIGN(@value);
+    RETURN @step * CASE
+        WHEN @rounding_mode = 'trunc' THEN @q
+        WHEN @rounding_mode = 'floor' THEN CASE WHEN @value < 0 THEN @away ELSE @q END
+        WHEN @rounding_mode = 'ceil' THEN CASE WHEN @value > 0 THEN @away ELSE @q END
+        WHEN @rounding_mode = 'expand' THEN @away
+        WHEN 2 * ABS(@r) > @step THEN @away
+        WHEN 2 * ABS(@r) < @step THEN @q
+        WHEN @rounding_mode = 'halfExpand' THEN @away
+        WHEN @rounding_mode = 'halfTrunc' THEN @q
+        WHEN @rounding_mode = 'halfCeil' THEN CASE WHEN @value > 0 THEN @away ELSE @q END
+        WHEN @rounding_mode = 'halfFloor' THEN CASE WHEN @value < 0 THEN @away ELSE @q END
+        WHEN @q % 2 = 0 THEN @q
+        ELSE @away
+    END;
+END
+GO
+
+-- ===== tsq_ticks_between =====
+CREATE OR ALTER FUNCTION dbo.tsq_ticks_between(@one DATETIME2(7), @two DATETIME2(7)) RETURNS BIGINT WITH SCHEMABINDING AS
+BEGIN
+    RETURN DATEDIFF(DAY, CAST(@one AS DATE), CAST(@two AS DATE)) * CAST(864000000000 AS BIGINT) + DATEDIFF_BIG(NANOSECOND, CAST(@one AS TIME), CAST(@two AS TIME)) / 100;
+END
+GO
+
+-- ===== tsq_time_of_ticks =====
+CREATE OR ALTER FUNCTION dbo.tsq_time_of_ticks(@ticks BIGINT) RETURNS TIME(7) WITH SCHEMABINDING AS
+BEGIN
+    RETURN DATEADD(NANOSECOND, @ticks % 10000000 * 100, DATEADD(SECOND, @ticks / 10000000 % 86400, CAST('00:00' AS TIME(7))));
+END
+GO
+
+-- ===== tsq_datetime_of_ticks =====
+CREATE OR ALTER FUNCTION dbo.tsq_datetime_of_ticks(@date DATE, @ticks BIGINT) RETURNS DATETIME2(7) WITH SCHEMABINDING AS
+BEGIN
+    RETURN DATEADD(NANOSECOND, @ticks % 10000000 * 100, DATEADD(SECOND, @ticks / 10000000, CAST(@date AS DATETIME2(7))));
+END
+GO
+
 -- ===== tsq_greatest_strict and tsq_least_strict =====
 CREATE FUNCTION dbo.tsq_greatest_strict(@a FLOAT, @b FLOAT) RETURNS FLOAT AS
 BEGIN

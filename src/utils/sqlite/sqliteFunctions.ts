@@ -16,6 +16,8 @@
  *   uuid_str and uuid_blob. uuid() generates a version 7 UUID (the extension generates a version 4), whose text and
  *   whose blob sort by the time they were generated.
  * - tsq_ci_replace, a case-insensitive replace, for replaceAllInsensitive with libraryFunctions 'installed'.
+ * - tsq_round_to, an integer (given as its text) rounded to a multiple of a step in a rounding mode of Temporal, as
+ *   its text, for the rounding of a time and of a difference with libraryFunctions 'installed'.
  * - tsq_zoned_wall, the date and time of the RFC 9557 text of a zoned date and time, the text before its offset, for
  *   the date and time and the parts of a zoned date and time with libraryFunctions 'installed'.
  * - tsq_duration_part, a part of the ISO 8601 text of a duration, to add or subtract a duration kept as its text.
@@ -385,6 +387,50 @@ function ciReplace(source: unknown, find: unknown, replacement: unknown): unknow
     }
     const escaped = String(find).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     return String(source).replace(new RegExp(escaped, 'gi'), () => String(replacement))
+}
+
+/**
+ * tsq_round_to: an integer, given as its text (a function would read an integer of more than 53 bits as a rounded
+ * number), rounded to a multiple of a step in a rounding mode of Temporal, as its text: the quotient truncated toward
+ * zero, moved away from zero as the mode says for its remainder
+ */
+function roundTo(value: unknown, step: unknown, mode: unknown): unknown {
+    if (value === null || value === undefined || step === null || step === undefined || mode === null || mode === undefined) {
+        return null
+    }
+    const v = BigInt(String(value))
+    const s = BigInt(String(step))
+    const q = v / s
+    const r = v - q * s
+    if (r === 0n) {
+        return String(v)
+    }
+    const away = q + (v < 0n ? -1n : 1n)
+    const doubled = 2n * (r < 0n ? -r : r)
+    let result: bigint
+    switch (mode) {
+        case 'trunc': result = q; break
+        case 'floor': result = v < 0n ? away : q; break
+        case 'ceil': result = v > 0n ? away : q; break
+        case 'expand': result = away; break
+        default:
+            if (doubled > s) {
+                result = away
+            } else if (doubled < s) {
+                result = q
+            } else if (mode === 'halfExpand') {
+                result = away
+            } else if (mode === 'halfTrunc') {
+                result = q
+            } else if (mode === 'halfCeil') {
+                result = v > 0n ? away : q
+            } else if (mode === 'halfFloor') {
+                result = v < 0n ? away : q
+            } else {
+                result = q % 2n === 0n ? q : away
+            }
+    }
+    return String(result * s)
 }
 
 /**
@@ -914,6 +960,7 @@ export const sqliteScalarFunctions: readonly SqliteScalarFunction[] = [
     { name: 'uuid_str', arity: 1, deterministic: pure, replacesExisting: true, fn: uuidStr as SqliteScalarFunction['fn'] },
     { name: 'uuid_blob', arity: 1, deterministic: pure, replacesExisting: true, fn: uuidBlob as SqliteScalarFunction['fn'] },
     { name: 'tsq_ci_replace', arity: 3, deterministic: pure, fn: ciReplace as SqliteScalarFunction['fn'] },
+    { name: 'tsq_round_to', arity: 3, deterministic: pure, fn: roundTo as SqliteScalarFunction['fn'] },
     { name: 'tsq_zoned_wall', arity: 1, deterministic: pure, fn: zonedWall as SqliteScalarFunction['fn'] },
     { name: 'tsq_duration_part', arity: 2, deterministic: pure, fn: durationPart as SqliteScalarFunction['fn'] },
     { name: 'tsq_duration_text', arity: 6, deterministic: pure, fn: durationText as SqliteScalarFunction['fn'] },

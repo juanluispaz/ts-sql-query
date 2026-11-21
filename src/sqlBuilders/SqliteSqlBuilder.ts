@@ -1348,6 +1348,11 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     override _supportNativeDurations(): boolean {
         return false
     }
+    override _roundToFunction(value: string, step: string, mode: string): string {
+        // The integer goes to the function and comes back as its text: a function written in JavaScript would read an
+        // integer of more than 53 bits as a number, rounded
+        return "cast(tsq_round_to(cast(" + value + " as text), " + step + ", '" + mode + "') as integer)"
+    }
     override _truncatedDivision(dividend: string, divisor: string): string {
         // A cast to integer truncates toward zero, also a real
         return 'cast(' + dividend + ' / ' + divisor + ' as integer)'

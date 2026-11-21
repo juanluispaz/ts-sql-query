@@ -1037,3 +1037,60 @@ CREATE OR REPLACE FUNCTION tsq_zoned_offset(instant timestamptz, zone text) RETU
         || CASE WHEN abs(o.s) % 60 <> 0 THEN ':' || lpad((abs(o.s) % 60)::text, 2, '0') ELSE '' END
     FROM (SELECT extract(epoch FROM (instant AT TIME ZONE tsq_zone(zone)) - (instant AT TIME ZONE 'UTC'))::integer AS s) o
 $$;
+
+-- tsq_round_to: an integer rounded to a multiple of a step (a positive integer) in a rounding mode of Temporal
+-- ('ceil', 'floor', 'expand', 'trunc', 'halfCeil', 'halfFloor', 'halfExpand', 'halfTrunc', 'halfEven'), as Temporal
+-- rounds a difference or a time of the day; the function of the library that writes the integer once
+-- (libraryFunctions installed).
+CREATE OR REPLACE FUNCTION tsq_round_to(value numeric, step numeric, rounding_mode text) RETURNS numeric LANGUAGE plpgsql IMMUTABLE STRICT AS $$
+DECLARE
+    q numeric := div(value, step);
+    r numeric := value - q * step;
+    away numeric := q + sign(value);
+BEGIN
+    IF r = 0 THEN RETURN value; END IF;
+    RETURN step * CASE
+        WHEN rounding_mode = 'trunc' THEN q
+        WHEN rounding_mode = 'floor' THEN CASE WHEN value < 0 THEN away ELSE q END
+        WHEN rounding_mode = 'ceil' THEN CASE WHEN value > 0 THEN away ELSE q END
+        WHEN rounding_mode = 'expand' THEN away
+        WHEN 2 * abs(r) > step THEN away
+        WHEN 2 * abs(r) < step THEN q
+        WHEN rounding_mode = 'halfExpand' THEN away
+        WHEN rounding_mode = 'halfTrunc' THEN q
+        WHEN rounding_mode = 'halfCeil' THEN CASE WHEN value > 0 THEN away ELSE q END
+        WHEN rounding_mode = 'halfFloor' THEN CASE WHEN value < 0 THEN away ELSE q END
+        WHEN mod(q, 2) = 0 THEN q
+        ELSE away
+    END;
+END $$;
+
+-- tsq_zoned_hours_in_day: the hours from the start of the day of a zoned date and time to the start of the next one,
+-- in its zone, as Temporal's hoursInDay: 23 or 25 where the zone changes its offset that day; the function of the
+-- library that writes the value once (libraryFunctions installed).
+CREATE OR REPLACE FUNCTION tsq_zoned_hours_in_day(instant timestamptz, zone text) RETURNS double precision LANGUAGE plpgsql IMMUTABLE STRICT AS $$
+DECLARE
+    wall timestamp := date_trunc('day', instant AT TIME ZONE tsq_zone(zone));
+BEGIN
+    RETURN (extract(epoch FROM tsq_zoned_of_wall(wall + interval '1 day', zone, 'compatible') - tsq_zoned_of_wall(wall, zone, 'compatible')) / 3600)::float8;
+END $$;
+
+-- tsq_zoned_round_day: a zoned date and time rounded to a day in its zone, as Temporal's round('day'): the start of its
+-- day or of the next one, the nearer one by the length of its day ('trunc', 'ceil', 'halfExpand', 'halfTrunc',
+-- 'halfEven'); the function of the library that writes the value once (libraryFunctions installed).
+CREATE OR REPLACE FUNCTION tsq_zoned_round_day(instant timestamptz, zone text, rounding_mode text) RETURNS timestamptz LANGUAGE plpgsql IMMUTABLE STRICT AS $$
+DECLARE
+    wall timestamp := date_trunc('day', instant AT TIME ZONE tsq_zone(zone));
+    start_of_day timestamptz := tsq_zoned_of_wall(wall, zone, 'compatible');
+    next_day timestamptz;
+BEGIN
+    IF rounding_mode = 'trunc' THEN RETURN start_of_day; END IF;
+    next_day := tsq_zoned_of_wall(wall + interval '1 day', zone, 'compatible');
+    IF rounding_mode = 'ceil' THEN
+        RETURN CASE WHEN instant = start_of_day THEN start_of_day ELSE next_day END;
+    END IF;
+    IF rounding_mode = 'halfExpand' THEN
+        RETURN CASE WHEN (instant - start_of_day) * 2 >= next_day - start_of_day THEN next_day ELSE start_of_day END;
+    END IF;
+    RETURN CASE WHEN (instant - start_of_day) * 2 > next_day - start_of_day THEN next_day ELSE start_of_day END;
+END $$;

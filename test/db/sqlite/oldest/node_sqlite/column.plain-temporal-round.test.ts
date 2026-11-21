@@ -3,7 +3,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tColMatrixPlain, tTemporalPrecisionPlain } from '../../domain/connection.js'
+import { tColMatrixPlain, tRelease, tTemporalPrecisionPlain } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -113,5 +113,66 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{ second: Temporal.PlainDateTime; halfHour: Temporal.PlainTime }>>>()
         expect(rows.map(row => [row.second, row.halfHour].map(String))).toEqual([['2024-01-15T12:31:00', '09:30:00']])
+    })
+
+    test('the-rounding-and-the-differences-with-the-functions-of-the-library', async () => {
+        // With the functions of the library installed round, until and since write each value once: the values are the
+        // ones of Temporal for the values read, with and without the functions (the mock answers no rows: there it is
+        // the SQL that is checked). The differences fall half way to their step, where the modes differ
+        const at = Temporal.PlainDateTime.from('2024-02-01T10:07:30')
+        const time = Temporal.PlainTime.from('12:02:30')
+        const instant = Temporal.Instant.from('2024-02-01T10:07:30Z')
+        const query = (conn: typeof ctx.conn) => conn.selectFrom(tRelease)
+            .where(tRelease.deployedAt.isNotNull())
+            .select({
+                version: tRelease.version,
+                publishedAt: tRelease.publishedAt,
+                cutoffTime: tRelease.cutoffTime,
+                deployedAt: tRelease.deployedAt,
+                roundedPublishedAt: tRelease.publishedAt.round({ smallestUnit: 'hour', roundingIncrement: 3, roundingMode: 'halfEven' }),
+                roundedCutoffTime: tRelease.cutoffTime.round({ smallestUnit: 'minute', roundingIncrement: 15, roundingMode: 'halfTrunc' }),
+                roundedDeployedAt: tRelease.deployedAt.round({ smallestUnit: 'minute', roundingIncrement: 15, roundingMode: 'floor' }),
+                toAt: tRelease.publishedAt.until(at, { smallestUnit: 'minute', roundingMode: 'halfEven' }),
+                fromAt: tRelease.publishedAt.since(at, { largestUnit: 'hour', smallestUnit: 'minute', roundingMode: 'ceil' }),
+                toTime: tRelease.cutoffTime.until(time, { smallestUnit: 'minute', roundingIncrement: 5, roundingMode: 'halfFloor' }),
+                toInstant: tRelease.deployedAt.until(instant, { largestUnit: 'hour', smallestUnit: 'minute', roundingMode: 'expand' }),
+                toInstantInSeconds: tRelease.deployedAt.until(instant, { largestUnit: 'hour', smallestUnit: 'second' }),
+                exactlyToAt: tRelease.publishedAt.until(at),
+            })
+            .orderBy('version')
+            .executeSelectMany()
+        ctx.mockNext([])
+        const withFunctions = await query(ctx.withLibraryFunctions())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as version, published_at as publishedAt, cutoff_time as cutoffTime, deployed_at as deployedAt, strftime('%Y-%m-%d %H:%M:%f', date(published_at), ((cast(tsq_round_to(cast(cast(round((julianday(published_at) - julianday(date(published_at))) * 86400000) as integer) as text), 10800000, 'halfEven') as integer)) / 1000.0) || ' seconds') as roundedPublishedAt, strftime('%H:%M:%f', '00:00:00', ((cast(tsq_round_to(cast(cast(round((julianday(cutoff_time) - julianday(date(cutoff_time))) * 86400000) as integer) as text), 900000, 'halfTrunc') as integer)) / 1000.0) || ' seconds') as roundedCutoffTime, strftime('%Y-%m-%d %H:%M:%f', date(deployed_at), ((cast(tsq_round_to(cast(cast(round((julianday(deployed_at) - julianday(date(deployed_at))) * 86400000) as integer) as text), 900000, 'trunc') as integer)) / 1000.0) || ' seconds') as roundedDeployedAt, tsq_duration_text(0, 0, 0, 0, cast(cast(tsq_round_to(cast(cast(round((julianday(?1) - julianday(published_at)) * 86400000) as integer) as text), 60000, 'halfEven') as integer) * 1000000 as text), 'day') as toAt, tsq_duration_text(0, 0, 0, 0, cast(-cast(tsq_round_to(cast(cast(round((julianday(?2) - julianday(published_at)) * 86400000) as integer) as text), 60000, 'floor') as integer) * 1000000 as text), 'hour') as fromAt, tsq_duration_text(0, 0, 0, 0, cast(cast(tsq_round_to(cast(cast(round((julianday(?3) - julianday(cutoff_time)) * 86400000) as integer) as text), 300000, 'halfFloor') as integer) * 1000000 as text), 'hour') as toTime, tsq_duration_text(0, 0, 0, 0, cast(cast(tsq_round_to(cast(cast(round((julianday(?4) - julianday(deployed_at)) * 86400000) as integer) as text), 60000, 'expand') as integer) * 1000000 as text), 'hour') as toInstant, tsq_duration_text(0, 0, 0, 0, cast(cast(tsq_round_to(cast(cast(round((julianday(?5) - julianday(deployed_at)) * 86400000) as integer) as text), 1000, 'trunc') as integer) * 1000000 as text), 'hour') as toInstantInSeconds, tsq_duration_text(0, 0, 0, 0, cast(cast(round((julianday(?6) - julianday(published_at)) * 86400000) as integer) * 1000000 as text), 'day') as exactlyToAt from project_release where deployed_at is not null order by version"`)
+        ctx.mockNext([])
+        const withoutFunctions = await query(ctx.conn)
+        expect(withFunctions.length).toBe(ctx.realDbEnabled ? 2 : 0)
+        type Row = (typeof withFunctions)[number]
+        const read = (row: Row) => ({
+            version: row.version,
+            roundedPublishedAt: row.roundedPublishedAt.toString(),
+            roundedCutoffTime: row.roundedCutoffTime.toString(),
+            roundedDeployedAt: row.roundedDeployedAt?.toString(),
+            toAt: row.toAt.total('second'),
+            fromAt: row.fromAt.total('second'),
+            toTime: row.toTime.total('second'),
+            toInstant: row.toInstant?.total('second'),
+            toInstantInSeconds: row.toInstantInSeconds?.total('second'),
+            exactlyToAt: row.exactlyToAt.total('second'),
+        })
+        const ofTemporal = (row: Row) => ({
+            version: row.version,
+            roundedPublishedAt: row.publishedAt.round({ smallestUnit: 'hour', roundingIncrement: 3, roundingMode: 'halfEven' }).toString(),
+            roundedCutoffTime: row.cutoffTime.round({ smallestUnit: 'minute', roundingIncrement: 15, roundingMode: 'halfTrunc' }).toString(),
+            roundedDeployedAt: row.deployedAt?.round({ smallestUnit: 'minute', roundingIncrement: 15, roundingMode: 'floor' }).toString(),
+            toAt: row.publishedAt.until(at, { smallestUnit: 'minute', roundingMode: 'halfEven' }).total('second'),
+            fromAt: row.publishedAt.since(at, { largestUnit: 'hour', smallestUnit: 'minute', roundingMode: 'ceil' }).total('second'),
+            toTime: row.cutoffTime.until(time, { smallestUnit: 'minute', roundingIncrement: 5, roundingMode: 'halfFloor' }).total('second'),
+            toInstant: row.deployedAt?.until(instant, { largestUnit: 'hour', smallestUnit: 'minute', roundingMode: 'expand' }).total('second'),
+            toInstantInSeconds: row.deployedAt?.until(instant, { largestUnit: 'hour', smallestUnit: 'second' }).total('second'),
+            exactlyToAt: row.publishedAt.until(at).total('second'),
+        })
+        expect(withFunctions.map(read)).toEqual(withFunctions.map(ofTemporal))
+        expect(withoutFunctions.map(read)).toEqual(withoutFunctions.map(ofTemporal))
     })
 })

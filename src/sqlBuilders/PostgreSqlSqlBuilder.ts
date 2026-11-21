@@ -765,6 +765,9 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         if (zone.startsWith("'") || zone.startsWith("interval '")) {
             return '(' + timestamptz + ' at time zone ' + zone + ')'
         }
+        if (this._libraryFunctionsInstalled()) {
+            return '(' + timestamptz + ' at time zone tsq_zone(' + zone + '))'
+        }
         return '(' + timestamptz + ' at time zone (case when ' + zone + " ~ '^[+-]' then translate(" + zone + ", '+-', '-+') else " + zone + ' end))'
     }
     /**
@@ -1081,6 +1084,9 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     override _zonedOffset(context: SqlBuildContext, valueSource: ToSql): string {
         const zoned = this._pgZonedSql(context, valueSource)
         const zone = this._pgZoneOf(context, valueSource)
+        if (this._libraryFunctionsInstalled()) {
+            return 'tsq_zoned_offset(' + zoned + ', ' + this._pgZoneText(zone) + ')'
+        }
         let result = "(select case when o.s < 0 then '-' else '+' end || lpad((abs(o.s) / 3600)::text, 2, '0') || ':' || lpad((abs(o.s) / 60 % 60)::text, 2, '0')"
         result += " || case when abs(o.s) % 60 <> 0 then ':' || lpad((abs(o.s) % 60)::text, 2, '0') else '' end"
         return result + ' from (select extract(epoch from ' + this._pgWallAt(zoned, zone) + ' - ' + this._zonedUtcOf(zoned) + ')::integer as s) o)'

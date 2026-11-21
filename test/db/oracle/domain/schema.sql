@@ -1086,6 +1086,17 @@ BEGIN
     RETURN tsq_duration_text(0, 0, 0, v_days, v_total - v_days * v_day, CASE WHEN v_largest <= 4 THEN 'hour' WHEN v_largest = 5 THEN 'minute' ELSE 'second' END);
 END;
 
+-- tsq_zoned_of_text: the TIMESTAMP WITH TIME ZONE of the RFC 9557 text of a zoned date and time (Temporal.ZonedDateTime):
+-- its date and time with its offset (a Z is +00:00), in the zone in brackets; the function of the library that reads
+-- the text writing it once (libraryFunctions installed).
+CREATE OR REPLACE FUNCTION tsq_zoned_of_text(zoned IN VARCHAR2) RETURN TIMESTAMP_TZ_UNCONSTRAINED DETERMINISTIC IS
+    v_text VARCHAR2(200) := REPLACE(zoned, 'Z[', '+00:00[');
+    v_bracket PLS_INTEGER := INSTR(v_text, '[');
+BEGIN
+    IF zoned IS NULL THEN RETURN NULL; END IF;
+    RETURN TO_TIMESTAMP_TZ(SUBSTR(v_text, 1, v_bracket - 1), 'YYYY-MM-DD"T"HH24:MI:SS.FFTZH:TZM') AT TIME ZONE SUBSTR(v_text, v_bracket + 1, LENGTH(v_text) - v_bracket - 1);
+END;
+
 -- tsq_uuid_to_raw and tsq_raw_to_uuid: a uuid and its RAW(16), the 16 bytes as they are (any version of uuid, any
 -- Oracle), the functions of the library that uuidStrategy 'custom-functions' calls; the text read is in lower case.
 CREATE OR REPLACE FUNCTION tsq_uuid_to_raw(uuid IN VARCHAR2) RETURN RAW DETERMINISTIC IS

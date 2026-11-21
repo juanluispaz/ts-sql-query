@@ -49,8 +49,7 @@ function _typeNegatives() {
 
 
 
-        // Rule: MariaDBConnection calls no optional function of the library: it has no libraryFunctions.
-        // @ts-expect-error libraryFunctions is not declared on MariaDBConnection
+        // Positive control: the functions of the library, installed in the database.
         protected override libraryFunctions = 'installed' as const
 
         // Rule: the NULL-ignoring concatenation opt-out is not part of MariaDBConnection.

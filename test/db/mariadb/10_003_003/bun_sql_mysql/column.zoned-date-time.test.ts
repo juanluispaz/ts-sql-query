@@ -453,6 +453,29 @@ describe(ctx.label, () => {
         })
     })
 
+    test('a-zoned-date-and-time-in-a-column-of-text-with-the-functions-of-the-library', async () => {
+        // With the functions of the library installed the text is read writing it once: its hour, its offset and the
+        // milliseconds of its instant are the ones of Temporal, and the same as without the functions
+        const query = (conn: typeof ctx.conn) => conn.selectFrom(tZonedValue)
+            .where(tZonedValue.zonedText.greaterOrEqual(Temporal.ZonedDateTime.from('1960-01-01T00:00:00+00:00[UTC]')))
+            .select({
+                id: tZonedValue.id,
+                hour: tZonedValue.zonedText.hour(),
+                offset: tZonedValue.zonedText.offset(),
+                epochMilliseconds: tZonedValue.zonedText.epochMilliseconds(),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        const expected = zoned.map((value, i) => ({ id: i + 1, hour: value.hour, offset: value.offset, epochMilliseconds: value.epochMilliseconds }))
+        ctx.mockNext(expected)
+        const withFunctions = await query(ctx.withLibraryFunctions())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, hour(tsq_zoned_wall(zoned_at)) as hour, if(substring_index(zoned_at, '[', 1) like '%Z', '+00:00', right(substring_index(zoned_at, '[', 1), 6)) as \`offset\`, floor(timestampdiff(microsecond, '1970-01-01 00:00:00', tsq_zoned_utc(zoned_at)) / 1000) as epochMilliseconds from zoned_value where tsq_zoned_utc(zoned_at) >= ? order by id"`)
+        ctx.mockNext(expected)
+        const withoutFunctions = await query(ctx.conn)
+        expect(withFunctions).toEqual(expected)
+        expect(withoutFunctions).toEqual(expected)
+    })
+
     // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
     /*
     test('zoned-dates-and-times-in-an-aggregated-array', async () => {

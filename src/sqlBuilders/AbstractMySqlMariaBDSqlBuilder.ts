@@ -1021,6 +1021,9 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         return "substring_index(" + this._appendSql(valueSource, context, false) + ", '[', 1)"
     }
     override _zonedTextWall(context: SqlBuildContext, valueSource: ToSql): string {
+        if (this._libraryFunctionsInstalled()) {
+            return 'tsq_zoned_wall(' + this._appendSql(valueSource, context, false) + ')'
+        }
         return "cast(replace(left(" + this._mySqlZonedTextDateTime(context, valueSource) + ', char_length(' + this._mySqlZonedTextDateTime(context, valueSource) + ') - if(' + this._mySqlZonedTextDateTime(context, valueSource) + " like '%Z', 1, 6)), 'T', ' ') as datetime(6))"
     }
     /** The seconds of the offset of the text of a zoned date and time, 0 for a `Z` */
@@ -1028,6 +1031,9 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         return 'if(' + this._mySqlZonedTextDateTime(context, valueSource) + " like '%Z', 0, if(substr(" + this._mySqlZonedTextDateTime(context, valueSource) + ", -6, 1) = '-', -1, 1) * (substr(" + this._mySqlZonedTextDateTime(context, valueSource) + ', -5, 2) * 3600 + substr(' + this._mySqlZonedTextDateTime(context, valueSource) + ', -2, 2) * 60))'
     }
     override _zonedTextUtc(context: SqlBuildContext, valueSource: ToSql): string {
+        if (this._libraryFunctionsInstalled()) {
+            return 'tsq_zoned_utc(' + this._appendSql(valueSource, context, false) + ')'
+        }
         return '(' + this._zonedTextWall(context, valueSource) + ' - interval ' + this._mySqlZonedTextOffsetSeconds(context, valueSource) + ' second)'
     }
     override _zonedTextMinOrMax(kind: 'min' | 'max', context: SqlBuildContext, value: ToSql): string {

@@ -16,6 +16,8 @@
  *   uuid_str and uuid_blob. uuid() generates a version 7 UUID (the extension generates a version 4), whose text and
  *   whose blob sort by the time they were generated.
  * - tsq_ci_replace, a case-insensitive replace, for replaceAllInsensitive with libraryFunctions 'installed'.
+ * - tsq_zoned_wall, the date and time of the RFC 9557 text of a zoned date and time, the text before its offset, for
+ *   the date and time and the parts of a zoned date and time with libraryFunctions 'installed'.
  * - tsq_duration_part, a part of the ISO 8601 text of a duration, to add or subtract a duration kept as its text.
  * - tsq_duration_text, the ISO 8601 text of a duration of its fields, to write a duration a query computes (until,
  *   since).
@@ -383,6 +385,20 @@ function ciReplace(source: unknown, find: unknown, replacement: unknown): unknow
     }
     const escaped = String(find).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     return String(source).replace(new RegExp(escaped, 'gi'), () => String(replacement))
+}
+
+/**
+ * tsq_zoned_wall: the date and time of the RFC 9557 text of a zoned date and time (`2024-03-02T12:05:00+01:00[Europe/Madrid]`),
+ * the text before its offset (`2024-03-02T12:05:00`): before its `Z`, or before the 6 characters of its offset
+ */
+function zonedWall(zoned: unknown): unknown {
+    if (zoned === null || zoned === undefined) {
+        return null
+    }
+    const text = String(zoned)
+    const bracket = text.indexOf('[')
+    const dateTime = bracket < 0 ? text : text.slice(0, bracket)
+    return dateTime.slice(0, dateTime.length - (dateTime.endsWith('Z') ? 1 : 6))
 }
 
 // Durations
@@ -898,6 +914,7 @@ export const sqliteScalarFunctions: readonly SqliteScalarFunction[] = [
     { name: 'uuid_str', arity: 1, deterministic: pure, replacesExisting: true, fn: uuidStr as SqliteScalarFunction['fn'] },
     { name: 'uuid_blob', arity: 1, deterministic: pure, replacesExisting: true, fn: uuidBlob as SqliteScalarFunction['fn'] },
     { name: 'tsq_ci_replace', arity: 3, deterministic: pure, fn: ciReplace as SqliteScalarFunction['fn'] },
+    { name: 'tsq_zoned_wall', arity: 1, deterministic: pure, fn: zonedWall as SqliteScalarFunction['fn'] },
     { name: 'tsq_duration_part', arity: 2, deterministic: pure, fn: durationPart as SqliteScalarFunction['fn'] },
     { name: 'tsq_duration_text', arity: 6, deterministic: pure, fn: durationText as SqliteScalarFunction['fn'] },
     { name: 'tsq_duration_round', arity: 13, deterministic: pure, fn: durationRound as SqliteScalarFunction['fn'] },

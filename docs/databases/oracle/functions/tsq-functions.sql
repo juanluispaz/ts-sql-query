@@ -593,6 +593,16 @@ BEGIN
 END;
 /
 
+-- ===== tsq_zoned_of_text =====
+CREATE OR REPLACE FUNCTION tsq_zoned_of_text(zoned IN VARCHAR2) RETURN TIMESTAMP_TZ_UNCONSTRAINED DETERMINISTIC IS
+    v_text VARCHAR2(200) := REPLACE(zoned, 'Z[', '+00:00[');
+    v_bracket PLS_INTEGER := INSTR(v_text, '[');
+BEGIN
+    IF zoned IS NULL THEN RETURN NULL; END IF;
+    RETURN TO_TIMESTAMP_TZ(SUBSTR(v_text, 1, v_bracket - 1), 'YYYY-MM-DD"T"HH24:MI:SS.FFTZH:TZM') AT TIME ZONE SUBSTR(v_text, v_bracket + 1, LENGTH(v_text) - v_bracket - 1);
+END;
+/
+
 -- ===== tsq_string_util.concat_strict =====
 CREATE OR REPLACE PACKAGE tsq_string_util AS
     FUNCTION concat_strict(a IN VARCHAR2, b IN VARCHAR2) RETURN VARCHAR2;

@@ -1,6 +1,6 @@
 // The functions of the library for durations and zoned dates and times that the file of SQL of each database gives
 // (the one its page of functions links) (tsq_duration_part, tsq_duration_text, tsq_duration_round, tsq_duration_total, tsq_duration_add,
-// tsq_zoned_until, tsq_zoned_of_wall) are the ones the suite creates in the
+// tsq_zoned_until, tsq_zoned_of_wall, tsq_zoned_wall, tsq_zoned_utc, tsq_zoned_of_text, tsq_zone, tsq_zoned_offset) are the ones the suite creates in the
 // schema of that database (test/db/<db>/domain/schema.sql), which the tests of the arithmetic, the differences of dates,
 // the totals and the sums of durations run against every engine: the text of the page is the tested one.
 
@@ -77,6 +77,16 @@ describe('DurationPartFunctionDocs', () => {
         expect(documented('oracle', 'tsq_duration_add')).toBe(tested('oracle', 'tsq_duration_add'))
         expect(documented('postgresql', 'tsq_duration_add')).toBe(tested('postgres', 'tsq_duration_add'))
         expect(documented('sqlserver', 'tsq_duration_add')).toBe(tested('sqlserver', 'tsq_duration_add'))
+    })
+
+    test('the-documented-functions-of-the-texts-of-zoned-dates-and-times-are-the-tested-ones', () => {
+        for (const db of ['mariadb', 'mysql']) {
+            expect(documented(db, 'tsq_zoned_wall')).toBe(tested(db, 'tsq_zoned_wall'))
+            expect(documented(db, 'tsq_zoned_utc')).toBe(tested(db, 'tsq_zoned_utc'))
+        }
+        expect(documented('oracle', 'tsq_zoned_of_text')).toBe(tested('oracle', 'tsq_zoned_of_text'))
+        expect(documented('postgresql', 'tsq_zone')).toBe(tested('postgres', 'tsq_zone'))
+        expect(documented('postgresql', 'tsq_zoned_offset')).toBe(tested('postgres', 'tsq_zoned_offset'))
     })
 
     test('the-documented-functions-of-the-uuids-of-oracle-are-the-tested-ones', () => {

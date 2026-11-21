@@ -83,6 +83,13 @@ export abstract class MySqlConnection</*in|out*/ NAME extends string> extends Ab
      * on it.
      */
     protected usePlatformDependentRound: boolean = false
+    /**
+     * Whether the functions of the library are in the database (its file of SQL, tsq-functions.sql): `'installed'` or
+     * `'not installed'` (the default). The ones a query always needs, of durations, are called anyway. With them
+     * installed the library also calls `tsq_zoned_wall` and `tsq_zoned_utc`, which read the date and time and the instant
+     * of the text of a zoned date and time writing the text once; without them, the query reads it inline.
+     */
+    protected libraryFunctions: 'installed' | 'not installed' = 'not installed'
 
     constructor(queryRunner: QueryRunner, sqlBuilder: MySqlSqlBuilder = new MySqlSqlBuilder()) {
         super(queryRunner, sqlBuilder)

@@ -507,6 +507,9 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         if (this._isOracleZonedTextColumn(column)) {
             // In the query, the TIMESTAMP WITH TIME ZONE of its text in its zone (a Z is the offset +00:00)
             const raw = this._appendRawColumnName(column, context)
+            if (this._libraryFunctionsInstalled()) {
+                return 'tsq_zoned_of_text(' + raw + ')'
+            }
             const text = "replace(" + raw + ", 'Z[', '+00:00[')"
             return "(to_timestamp_tz(substr(" + text + ", 1, instr(" + text + ", '[') - 1), 'YYYY-MM-DD\"T\"HH24:MI:SS.FFTZH:TZM') at time zone substr(" + text + ", instr(" + text + ", '[') + 1, length(" + text + ") - instr(" + text + ", '[') - 1))"
         }

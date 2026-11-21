@@ -65,6 +65,8 @@ export interface MySqlTestContext extends TestContext<DBConnection> {
     /** A `DBConnection` whose `uuidStrategy` is pinned to `strategy`. */
     withUuidStrategy(strategy: 'string' | 'string as sent' | 'binary'): DBConnection
     /** A `DBConnection` with `allowEmptyString` enabled (empty strings kept, not mapped to null). */
+    /** A `DBConnection` with `libraryFunctions: 'installed'`: the functions of the library are in the database. */
+    withLibraryFunctions(): DBConnection
     withAllowEmptyString(): DBConnection
 }
 
@@ -87,6 +89,12 @@ function decorateMySqlContext(base: TestContext<DBConnection>): MySqlTestContext
         withUuidStrategy(strategy: 'string' | 'string as sent' | 'binary'): DBConnection {
             class C extends DBConnection {
                 protected override uuidStrategy: 'string' | 'string as sent' | 'binary' = strategy
+            }
+            return base.withConnection(C)
+        },
+        withLibraryFunctions(): DBConnection {
+            class C extends DBConnection {
+                protected override libraryFunctions = 'installed' as const
             }
             return base.withConnection(C)
         },

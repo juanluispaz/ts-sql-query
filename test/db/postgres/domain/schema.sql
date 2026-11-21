@@ -1022,3 +1022,18 @@ BEGIN
     RETURN make_interval(days => days::integer, secs => div(t, 1000000000)::double precision) + make_interval(secs => mod(t, 1000000000) / 1000000000.0);
 END
 $$;
+
+-- tsq_zone: a zone of Temporal (a name, or an offset like '+05:30') as `at time zone` takes it, which reads a text like
+-- '+05:30' as a POSIX zone, west of UTC: the sign of an offset inverted; the function of the library that writes the
+-- zone of a value of the query once (libraryFunctions installed).
+CREATE OR REPLACE FUNCTION tsq_zone(zone text) RETURNS text LANGUAGE sql IMMUTABLE AS $$
+    SELECT CASE WHEN zone ~ '^[+-]' THEN translate(zone, '+-', '-+') ELSE zone END
+$$;
+
+-- tsq_zoned_offset: the offset of an instant in a zone of Temporal, as Temporal writes it: '+01:00', with its seconds
+-- when it has them ('-00:14:44'); the function of the library that writes it once (libraryFunctions installed).
+CREATE OR REPLACE FUNCTION tsq_zoned_offset(instant timestamptz, zone text) RETURNS text LANGUAGE sql IMMUTABLE AS $$
+    SELECT CASE WHEN o.s < 0 THEN '-' ELSE '+' END || lpad((abs(o.s) / 3600)::text, 2, '0') || ':' || lpad((abs(o.s) / 60 % 60)::text, 2, '0')
+        || CASE WHEN abs(o.s) % 60 <> 0 THEN ':' || lpad((abs(o.s) % 60)::text, 2, '0') ELSE '' END
+    FROM (SELECT extract(epoch FROM (instant AT TIME ZONE tsq_zone(zone)) - (instant AT TIME ZONE 'UTC'))::integer AS s) o
+$$;

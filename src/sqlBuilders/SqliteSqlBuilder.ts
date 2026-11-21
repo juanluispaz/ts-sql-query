@@ -1426,6 +1426,9 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return this._sqliteTemporalIn('dateTime', this._sqliteZonedTextDateTime(context, valueSource))
     }
     override _zonedTextWall(context: SqlBuildContext, valueSource: ToSql): string {
+        if (this._libraryFunctionsInstalled()) {
+            return this._sqliteTemporalIn('dateTime', 'tsq_zoned_wall(' + this._appendSql(valueSource, context, false) + ')')
+        }
         // The date and time without its offset
         return this._sqliteTemporalIn('dateTime', 'substr(' + this._sqliteZonedTextDateTime(context, valueSource) + ', 1, length(' + this._sqliteZonedTextDateTime(context, valueSource) + ') - case when ' + this._sqliteZonedTextDateTime(context, valueSource) + " like '%Z' then 1 else 6 end)")
     }

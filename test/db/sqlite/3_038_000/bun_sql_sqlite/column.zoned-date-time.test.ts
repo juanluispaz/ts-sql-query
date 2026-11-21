@@ -456,6 +456,32 @@ describe(ctx.label, () => {
         })
     })
 
+    // NOT-SUPPORTED: Bun SQL's sqlite adapter exposes neither a user-defined-function API nor its bun:sqlite `Database`, so the functions of the library can't be registered
+    /*
+    test('a-zoned-date-and-time-in-a-column-of-text-with-the-functions-of-the-library', async () => {
+        // With the functions of the library installed the text is read writing it once: its hour, its offset and the
+        // milliseconds of its instant are the ones of Temporal, and the same as without the functions
+        const query = (conn: typeof ctx.conn) => conn.selectFrom(tZonedValue)
+            .where(tZonedValue.zonedText.greaterOrEqual(Temporal.ZonedDateTime.from('1960-01-01T00:00:00+00:00[UTC]')))
+            .select({
+                id: tZonedValue.id,
+                hour: tZonedValue.zonedText.hour(),
+                offset: tZonedValue.zonedText.offset(),
+                epochMilliseconds: tZonedValue.zonedText.epochMilliseconds(),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        const expected = zoned.map((value, i) => ({ id: i + 1, hour: value.hour, offset: value.offset, epochMilliseconds: value.epochMilliseconds }))
+        ctx.mockNext(expected)
+        const withFunctions = await query(ctx.withLibraryFunctions())
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        ctx.mockNext(expected)
+        const withoutFunctions = await query(ctx.conn)
+        expect(withFunctions).toEqual(expected)
+        expect(withoutFunctions).toEqual(expected)
+    })
+    */
+
     test('zoned-dates-and-times-in-an-aggregated-array', async () => {
         // Inside the JSON of an aggregated array a zoned date and time keeps its zone: a column kept as its text
         ctx.mockNext({ ats: zoned.map((value, i) => ({ id: i + 1, at: value.toString() })) })

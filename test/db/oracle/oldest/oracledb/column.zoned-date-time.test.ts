@@ -484,6 +484,29 @@ describe(ctx.label, () => {
         })
     })
 
+    test('a-zoned-date-and-time-in-a-column-of-text-with-the-functions-of-the-library', async () => {
+        // With the functions of the library installed the text is read writing it once: its hour, its offset and the
+        // milliseconds of its instant are the ones of Temporal, and the same as without the functions
+        const query = (conn: typeof ctx.conn) => conn.selectFrom(tZonedValue)
+            .where(tZonedValue.zonedText.greaterOrEqual(Temporal.ZonedDateTime.from('1960-01-01T00:00:00+00:00[UTC]')))
+            .select({
+                id: tZonedValue.id,
+                hour: tZonedValue.zonedText.hour(),
+                offset: tZonedValue.zonedText.offset(),
+                epochMilliseconds: tZonedValue.zonedText.epochMilliseconds(),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        const expected = zoned.map((value, i) => ({ id: i + 1, hour: value.hour, offset: value.offset, epochMilliseconds: value.epochMilliseconds }))
+        ctx.mockNext(expected)
+        const withFunctions = await query(ctx.withLibraryFunctions())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", extract(hour from cast(tsq_zoned_of_text(zoned_text) as timestamp(9))) as "hour", to_char(tsq_zoned_of_text(zoned_text), 'TZH:TZM') as "offset", (trunc(timestamp '1970-01-01 00:00:00' + (tsq_zoned_of_text(zoned_text) - timestamp '1970-01-01 00:00:00')) - date '1970-01-01') * 86400000 + to_number(to_char(timestamp '1970-01-01 00:00:00' + (tsq_zoned_of_text(zoned_text) - timestamp '1970-01-01 00:00:00'), 'SSSSSFF3')) as "epochMilliseconds" from zoned_value where tsq_zoned_of_text(zoned_text) >= (from_tz(to_timestamp(:0, 'YYYY-MM-DD HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN'), '+00:00') at time zone 'UTC') order by "id""`)
+        ctx.mockNext(expected)
+        const withoutFunctions = await query(ctx.conn)
+        expect(withFunctions).toEqual(expected)
+        expect(withoutFunctions).toEqual(expected)
+    })
+
     test('zoned-dates-and-times-in-an-aggregated-array', async () => {
         // Inside the JSON of an aggregated array a zoned date and time keeps its zone: a column kept as its text
         ctx.mockNext({ ats: zoned.map((value, i) => ({ id: i + 1, at: value.toInstant().toString() + ' AD[' + value.timeZoneId.toUpperCase() + ']' })) })

@@ -746,3 +746,27 @@ BEGIN
 END
 //
 DELIMITER ;
+
+-- tsq_zoned_wall: the date and time of the RFC 9557 text of a zoned date and time (Temporal.ZonedDateTime), the text
+-- before its offset; the function of the library that reads it writing the text once (libraryFunctions installed).
+DROP FUNCTION IF EXISTS tsq_zoned_wall;
+DELIMITER //
+CREATE FUNCTION tsq_zoned_wall(zoned VARCHAR(100)) RETURNS DATETIME(6) DETERMINISTIC NO SQL
+BEGIN
+    DECLARE v_text VARCHAR(100) DEFAULT SUBSTRING_INDEX(zoned, '[', 1);
+    RETURN CAST(REPLACE(LEFT(v_text, CHAR_LENGTH(v_text) - IF(v_text LIKE '%Z', 1, 6)), 'T', ' ') AS DATETIME(6));
+END
+//
+DELIMITER ;
+
+-- tsq_zoned_utc: the instant of the RFC 9557 text of a zoned date and time as its date and time in UTC: its date and
+-- time minus its offset (a Z is +00:00); the function of the library that reads it writing the text once.
+DROP FUNCTION IF EXISTS tsq_zoned_utc;
+DELIMITER //
+CREATE FUNCTION tsq_zoned_utc(zoned VARCHAR(100)) RETURNS DATETIME(6) DETERMINISTIC NO SQL
+BEGIN
+    DECLARE v_text VARCHAR(100) DEFAULT SUBSTRING_INDEX(zoned, '[', 1);
+    RETURN tsq_zoned_wall(zoned) - INTERVAL IF(v_text LIKE '%Z', 0, IF(SUBSTR(v_text, -6, 1) = '-', -1, 1) * (SUBSTR(v_text, -5, 2) * 3600 + SUBSTR(v_text, -2, 2) * 60)) SECOND;
+END
+//
+DELIMITER ;

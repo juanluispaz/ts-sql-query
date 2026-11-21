@@ -112,6 +112,13 @@ export abstract class MariaDBConnection</*in|out*/ NAME extends string> extends 
      */
     protected usePlatformDependentRound: boolean = false
     /**
+     * Whether the functions of the library are in the database (its file of SQL, tsq-functions.sql): `'installed'` or
+     * `'not installed'` (the default). The ones a query always needs, of durations, are called anyway. With them
+     * installed the library also calls `tsq_zoned_wall` and `tsq_zoned_utc`, which read the date and time and the instant
+     * of the text of a zoned date and time writing the text once; without them, the query reads it inline.
+     */
+    protected libraryFunctions: 'installed' | 'not installed' = 'not installed'
+    /**
      * MariaDB computes the assignments of the set of an update from left to right, and each one reads the value an
      * earlier assignment already wrote (`set a = b, b = a` leaves both equal), while the other databases read the row as
      * it was before the update. ts-sql-query makes MariaDB give the same rows: it reorders the assignments, or reads the

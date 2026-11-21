@@ -507,6 +507,18 @@ BEGIN
     RETURN make_interval(years => (v_years * negation)::integer, months => (v_months * negation)::integer, weeks => (v_weeks * negation)::integer, days => (v_days * negation)::integer, secs => v_t * negation / 1000000000.0);
 END $$;
 
+-- ===== tsq_zone =====
+CREATE OR REPLACE FUNCTION tsq_zone(zone text) RETURNS text LANGUAGE sql IMMUTABLE AS $$
+    SELECT CASE WHEN zone ~ '^[+-]' THEN translate(zone, '+-', '-+') ELSE zone END
+$$;
+
+-- ===== tsq_zoned_offset =====
+CREATE OR REPLACE FUNCTION tsq_zoned_offset(instant timestamptz, zone text) RETURNS text LANGUAGE sql IMMUTABLE AS $$
+    SELECT CASE WHEN o.s < 0 THEN '-' ELSE '+' END || lpad((abs(o.s) / 3600)::text, 2, '0') || ':' || lpad((abs(o.s) / 60 % 60)::text, 2, '0')
+        || CASE WHEN abs(o.s) % 60 <> 0 THEN ':' || lpad((abs(o.s) % 60)::text, 2, '0') ELSE '' END
+    FROM (SELECT extract(epoch FROM (instant AT TIME ZONE tsq_zone(zone)) - (instant AT TIME ZONE 'UTC'))::integer AS s) o
+$$;
+
 -- ===== tsq_greatest_strict and tsq_least_strict =====
 CREATE FUNCTION tsq_greatest_strict(a anycompatible, b anycompatible) RETURNS anycompatible
 LANGUAGE sql IMMUTABLE AS $$ SELECT CASE WHEN a IS NULL OR b IS NULL THEN NULL ELSE greatest(a, b) END $$;

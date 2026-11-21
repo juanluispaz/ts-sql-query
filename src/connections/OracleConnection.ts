@@ -1,3 +1,4 @@
+import { isKeptInADateClass } from '../utils/plainTemporalValues.js'
 import type { NAggregate, NConnection, NSource } from '../utils/sourceName.js'
 import { argumentNumber, integerDigits, nativeNameFor, nativeTypeParts } from '../utils/sqlDataTypeNames.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
@@ -10,7 +11,7 @@ import type { SameDB } from '../utils/ITableOrView.js'
 import type { Default } from '../expressions/Default.js'
 import { DefaultImpl } from '../expressions/Default.js'
 import type { SqlDataType, SqlDataTypeNative, TypeAdapterProjectionContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
-import { __isBooleanClass, __isDurationClass, __isInstantClass, __isLocalDateTimeClass, __isLocalTimeClass, __isPlainDateClass, __isPlainDateTimeClass, __isPlainTimeClass, __isZonedDateTimeClass } from '../typeSystem/dataTypeQuestions.js'
+import { __isBooleanClass, __isDurationClass, __isInstantClass, __isLocalDateTimeClass, __isLocalTimeClass, __isPlainDateTimeClass, __isPlainTimeClass, __isZonedDateTimeClass } from '../typeSystem/dataTypeQuestions.js'
 import { __durationSqlDataTypeOf } from '../typeSystem/dataTypes.js'
 import { isDurationValue } from '../utils/durationValues.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
@@ -267,7 +268,7 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
             // oracledb delivers a DATE or a TIMESTAMP as a Date, which drops the digits below the millisecond: a
             // Temporal value without zone leaves the database as its text, with the era always written (Oracle has no
             // year 0), in English whatever the language of the session. It compares like the value but doesn't order like it (a year BC)
-            if (__isPlainDateClass(context.requestedType)) {
+            if (isKeptInADateClass(context.requestedType)) {
                 context.comparison = 'equality'
                 return "to_char(" + sql + ", 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')"
             }

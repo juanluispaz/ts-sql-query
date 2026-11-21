@@ -15,6 +15,7 @@ import { InstantType } from './instants.js'
 import { ZonedDateTimeType, __zonedOfWallClock } from './zonedDateTimes.js'
 import type { operandTypeName } from '../utils/symbols.js'
 import { IntType } from './number.js'
+import { PlainMonthDayType, PlainYearMonthType } from './plainYearMonths.js'
 import { __typeClassOf } from '../nodes/dataTypeClassOf.js'
 import { __computedClassOf } from '../nodes/adaptedTypeClass.js'
 
@@ -110,6 +111,16 @@ export abstract class PlainDatesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME
             return __operation0(this as any, '_toPlainDateTime', PlainDateTimeType)
         }
         return __operation1(this as any, '_toPlainDateTimeAt', time, PlainDateTimeType)
+    }
+    /** The month of the year of this date, a plainYearMonth: Temporal's `toPlainYearMonth()` */
+    toPlainYearMonth(): ValueSource<SourceOf<this>, PlainYearMonthType, OptionalityOf<this>>
+    toPlainYearMonth(): any {
+        return __operation0(this as any, '_toPlainYearMonth', PlainYearMonthType)
+    }
+    /** The day of the month of this date, a plainMonthDay: Temporal's `toPlainMonthDay()` */
+    toPlainMonthDay(): ValueSource<SourceOf<this>, PlainMonthDayType, OptionalityOf<this>>
+    toPlainMonthDay(): any {
+        return __operation0(this as any, '_toPlainMonthDay', PlainMonthDayType)
     }
 
     /**

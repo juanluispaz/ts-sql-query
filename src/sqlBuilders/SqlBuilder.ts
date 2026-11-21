@@ -504,6 +504,11 @@ export interface SqlFunction0 {
     _toPlainDate(context: SqlBuildContext, valueSource: ToSql): string
     _toPlainTime(context: SqlBuildContext, valueSource: ToSql): string
     _toPlainDateTime(context: SqlBuildContext, valueSource: ToSql): string
+    // A month of a year and a day of a month (plainYearMonth, plainMonthDay), kept in a date: the code of its month, and
+    // a date taken to them
+    _monthCode(context: SqlBuildContext, valueSource: ToSql): string
+    _toPlainYearMonth(context: SqlBuildContext, valueSource: ToSql): string
+    _toPlainMonthDay(context: SqlBuildContext, valueSource: ToSql): string
     // An instant: its nanoseconds since the epoch, and its date and time in the zone of the database; and back
     _epochNanoseconds(context: SqlBuildContext, valueSource: ToSql): string
     _instantToPlainDateTime(context: SqlBuildContext, valueSource: ToSql): string

@@ -13,8 +13,8 @@ import { __createAggregateFunction1, __createAggregateFunction1or2, __createAggr
 import type { QueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import type { SameDB } from '../utils/ITableOrView.js'
 import type { SqlDataType, SqlDataTypeNative, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
-import { __isBigintClass, __isInstantClass, __isLocalDateClass, __isLocalDateTimeClass, __isLocalTimeClass, __isPlainDateClass, __isPlainTimeClass } from '../typeSystem/dataTypeQuestions.js'
-import { isPlainTemporalClass } from '../utils/plainTemporalValues.js'
+import { __isBigintClass, __isInstantClass, __isLocalDateClass, __isLocalDateTimeClass, __isLocalTimeClass, __isPlainTimeClass } from '../typeSystem/dataTypeQuestions.js'
+import { isKeptInADateClass, isPlainTemporalClass } from '../utils/plainTemporalValues.js'
 import { parseInstantText, plainDateText } from '../utils/plainDateTimeText.js'
 import { __temporal, type TemporalPlainDate, type TemporalPlainDateTime, type TemporalPlainTime } from '../typeSystem/temporal.js'
 import { __isExactDecimalSql } from '../typeSystem/dataTypes.js'
@@ -221,7 +221,7 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
         if (isPlainTemporalClass(context.requestedType)) {
             // A Temporal value without zone kept as a number (a Julian day, a Unix time) is read as the digits of the
             // UTC instant it gives; a text is read by the connection, with all its digits
-            const kind: SqliteDateTimeFormatType = __isPlainDateClass(context.requestedType) ? 'date' : __isPlainTimeClass(context.requestedType) ? 'time' : 'dateTime'
+            const kind: SqliteDateTimeFormatType = isKeptInADateClass(context.requestedType) ? 'date' : __isPlainTimeClass(context.requestedType) ? 'time' : 'dateTime'
             const number = typeof value === 'number' || typeof value === 'bigint' ? Number(value) : typeof value === 'string' && value.trim() !== '' && !isNaN(+value) ? +value : undefined
             if (number !== undefined) {
                 return super.transformValueFromDB(new Date(this.__sqliteMillisecondsOfNumber(number, kind)), context)
@@ -562,7 +562,7 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
         if (isPlainTemporalClass(context.requestedType)) {
             // Checked by the connection: a Temporal value of the type, kept in the format of its type (getDateTimeFormat)
             const checked = super.transformValueToDB(value, context)
-            const kind: SqliteDateTimeFormatType = __isPlainDateClass(context.requestedType) ? 'date' : __isPlainTimeClass(context.requestedType) ? 'time' : 'dateTime'
+            const kind: SqliteDateTimeFormatType = isKeptInADateClass(context.requestedType) ? 'date' : __isPlainTimeClass(context.requestedType) ? 'time' : 'dateTime'
             return sqlitePlainTemporalValue(checked as TemporalPlainDate | TemporalPlainTime | TemporalPlainDateTime, kind, this.getDateTimeFormat(kind))
         }
         if (__isLocalDateClass(context.requestedType)) {

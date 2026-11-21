@@ -17,7 +17,7 @@ import { test, expect } from '../../../lib/testRunner.js'
 import { MariaDBConnection } from '../../../../src/connections/MariaDBConnection.js'
 import { Table } from '../../../../src/Table.js'
 import type { DBConnection } from '../domain/connection.js'
-import { tColMatrixColumn as t, tColMatrixPlain, tDurationValue, tInstantValue } from '../domain/connection.js'
+import { tColMatrixColumn as t, tColMatrixPlain, tCalendarValue, tDurationValue, tInstantValue } from '../domain/connection.js'
 import { EnumType } from '../../../../src/exports/v2/index.js'
 import { DecimalsType, IntegersType, RealsType } from '../../../../src/exports/v2/index.js'
 
@@ -706,6 +706,18 @@ function _typeNegatives() {
     void tInstantValue.instantAt.toZonedDateTimeISO('Europe/Madrid').until(tInstantValue.instantAt)
     // @ts-expect-error the time of withPlainTime is a plainTime
     void tInstantValue.instantAt.toZonedDateTimeISO('Europe/Madrid').withPlainTime(tColMatrixPlain.mDatetime)
+    // A month of a year is compared and ordered; a day of a month only compared for equality, as in Temporal
+    void tCalendarValue.monthOf.lessThan(Temporal.PlainYearMonth.from('2025-01'))
+    void tCalendarValue.dayOf.equals(Temporal.PlainMonthDay.from('02-29'))
+    void tCalendarValue.bornOn.toPlainYearMonth().equals(tCalendarValue.monthOf)
+    // @ts-expect-error a day of a month has no order
+    void tCalendarValue.dayOf.lessThan(Temporal.PlainMonthDay.from('03-01'))
+    // @ts-expect-error a day of a month has no month as a number, only its code
+    void tCalendarValue.dayOf.month()
+    // @ts-expect-error a month of a year isn't a date
+    void tCalendarValue.monthOf.equals(tCalendarValue.bornOn)
+    // @ts-expect-error a date and time has no month of the year, as in Temporal
+    void tColMatrixPlain.mDatetime.toPlainYearMonth()
 }
 
 test('expressions-negative-types', () => {

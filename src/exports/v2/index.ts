@@ -145,6 +145,13 @@ export {
 } from '../../typeSystem/plainDates.js'
 
 export {
+    PlainMonthDayType,
+    PlainMonthDaysType,
+    PlainYearMonthType,
+    PlainYearMonthsType,
+} from '../../typeSystem/plainYearMonths.js'
+
+export {
     DurationType,
     DurationsType,
 } from '../../typeSystem/durations.js'

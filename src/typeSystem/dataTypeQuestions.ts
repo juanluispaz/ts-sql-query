@@ -11,6 +11,7 @@ import { PlainDatesType, PlainDateTimesType, PlainTimesType } from './plainDates
 import { DurationsType } from './durations.js'
 import { InstantsType } from './instants.js'
 import { ZonedDateTimesType } from './zonedDateTimes.js'
+import { PlainMonthDaysType, PlainYearMonthsType } from './plainYearMonths.js'
 import { AggregatedArraysType } from './aggregatedArrays.js'
 
 /*
@@ -76,6 +77,14 @@ export function __isPlainTimeClass(typeClass: DataTypeClass): boolean {
 /** A date and a time whose value is like a Temporal.PlainDateTime: a plainDateTime, or a type of the user of its family */
 export function __isPlainDateTimeClass(typeClass: DataTypeClass): boolean {
     return isOf(typeClass, PlainDateTimesType)
+}
+/** A month of a year whose value is like a Temporal.PlainYearMonth: a plainYearMonth, or a type of the user of its family */
+export function __isPlainYearMonthClass(typeClass: DataTypeClass): boolean {
+    return isOf(typeClass, PlainYearMonthsType)
+}
+/** A day of a month whose value is like a Temporal.PlainMonthDay: a plainMonthDay, or a type of the user of its family */
+export function __isPlainMonthDayClass(typeClass: DataTypeClass): boolean {
+    return isOf(typeClass, PlainMonthDaysType)
 }
 /** A duration whose value is like a Temporal.Duration: a duration, or a type of the user of its family */
 export function __isDurationClass(typeClass: DataTypeClass): boolean {

@@ -1099,6 +1099,9 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _month(context: SqlBuildContext, valueSource: ToSql): string {
         return 'datepart(month, ' + this._appendDateTimeInUtc(context, valueSource) + ')'
     }
+    override _monthCode(context: SqlBuildContext, valueSource: ToSql): string {
+        return "concat('M', right(concat('0', datepart(month, " + this._appendDateTimeInUtc(context, valueSource) + ')), 2))'
+    }
     override _dayOfWeek(context: SqlBuildContext, valueSource: ToSql): string {
         // 1 Monday to 7 Sunday whatever the session says the week starts on (see _dayOfWeekFromSunday)
         return '(datepart(weekday, ' + this._appendDateTimeInUtc(context, valueSource) + ') + @@datefirst + 5) % 7 + 1'

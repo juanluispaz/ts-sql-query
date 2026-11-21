@@ -26,6 +26,10 @@ export type TemporalPlainDate = InstanceOf<'PlainDate'>
 export type TemporalPlainTime = InstanceOf<'PlainTime'>
 /** `Temporal.PlainDateTime`: a date and a time of the day without a zone */
 export type TemporalPlainDateTime = InstanceOf<'PlainDateTime'>
+/** `Temporal.PlainYearMonth`: a month of a year, without a day */
+export type TemporalPlainYearMonth = InstanceOf<'PlainYearMonth'>
+/** `Temporal.PlainMonthDay`: a day of a month, without a year */
+export type TemporalPlainMonthDay = InstanceOf<'PlainMonthDay'>
 /** `Temporal.Instant`: an exact moment, the same everywhere, with nanoseconds */
 export type TemporalInstant = InstanceOf<'Instant'>
 /** `Temporal.Duration`: an amount of time, in years, months, weeks, days, hours ... nanoseconds */
@@ -98,6 +102,18 @@ export interface TemporalRelativeTotalOptions<RELATIVE_TO> {
 /** The fields `with` of a Temporal.PlainDate takes: integers; the month also as its code (`'M02'`) */
 export interface TemporalPlainDateFields {
     readonly year?: number | undefined
+    readonly month?: number | undefined
+    readonly monthCode?: string | undefined
+    readonly day?: number | undefined
+}
+/** The fields `with` of a Temporal.PlainYearMonth takes: integers; the month also as its code (`'M02'`) */
+export interface TemporalPlainYearMonthFields {
+    readonly year?: number | undefined
+    readonly month?: number | undefined
+    readonly monthCode?: string | undefined
+}
+/** The fields `with` of a Temporal.PlainMonthDay takes: integers; the month also as its code (`'M02'`) */
+export interface TemporalPlainMonthDayFields {
     readonly month?: number | undefined
     readonly monthCode?: string | undefined
     readonly day?: number | undefined

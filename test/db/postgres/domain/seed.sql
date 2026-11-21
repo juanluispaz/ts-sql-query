@@ -94,6 +94,12 @@ INSERT INTO duration_value (id, span, span_calendar, span_text) VALUES
     (1, '3 days 04:05:06.789', '1 year 2 months', 'P1Y2M3DT4H5M6.789S'),
     (2, '-1 days -02:00:00', NULL, '-PT26H'),
     (3, '01:30:00', NULL, 'PT90M');
+-- calendar_value: 1 is 2024-02 and 02-29 (from 2024-02-29), 2 is 1999-12 and 12-31; 3 is kept out of the reference, on
+-- 2025-01-15 and in the year 2000, read as 2025-01 and 03-15.
+INSERT INTO calendar_value (id, month_of, day_of, born_on) VALUES
+    (1, '2024-02-01', '1972-02-29', '2024-02-29'),
+    (2, '1999-12-01', '1972-12-31', '1999-12-31'),
+    (3, '2025-01-15', '2000-03-15', '2023-07-04');
 -- zoned_value: 1 is 2024-10-27T02:30:00.123456+02:00[Europe/Madrid], the first of the two 02:30 of that day, with the
 -- wall clock 2024-10-27 02:30, which Madrid repeats; 2 is 2024-01-14T14:45:30.123456+05:30[Asia/Kolkata], with
 -- 2024-03-31 02:30, which Madrid skips, and the zone America/New_York; 3 is 1969-07-20T15:17:40-05:00[-05:00], with

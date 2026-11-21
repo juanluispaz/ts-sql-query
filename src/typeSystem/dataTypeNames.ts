@@ -8,6 +8,7 @@ import type { StringType } from './strings.js'
 import type { UuidType } from './uuids.js'
 import type { LocalDateTimeType, LocalDateType, LocalTimeType } from './localDates.js'
 import type { PlainDateTimeType, PlainDateType, PlainTimeType } from './plainDates.js'
+import type { PlainMonthDayType, PlainYearMonthType } from './plainYearMonths.js'
 import type { DurationType } from './durations.js'
 import type { InstantType } from './instants.js'
 import type { ZonedDateTimeType } from './zonedDateTimes.js'
@@ -44,6 +45,8 @@ export interface DataTypes {
     plainDate: PlainDateType
     plainTime: PlainTimeType
     plainDateTime: PlainDateTimeType
+    plainYearMonth: PlainYearMonthType
+    plainMonthDay: PlainMonthDayType
     duration: DurationType
     instant: InstantType
     zonedDateTime: ZonedDateTimeType

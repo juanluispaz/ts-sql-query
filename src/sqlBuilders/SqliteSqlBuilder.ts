@@ -1291,6 +1291,18 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     override _month(context: SqlBuildContext, valueSource: ToSql): string {
         return "cast(strftime('%m', " + this._dateFunctionArgument(context, valueSource, false) + ") as integer)"
     }
+    override _monthCode(context: SqlBuildContext, valueSource: ToSql): string {
+        return "'M' || strftime('%m', " + this._dateFunctionArgument(context, valueSource, false) + ')'
+    }
+    override _toPlainMonthDay(context: SqlBuildContext, valueSource: ToSql): string {
+        // Its month and day in the reference year
+        return this._sqliteTemporalIn('date', "strftime('" + this._temporalReference().year + "-%m-%d', " + this._dateFunctionArgument(context, valueSource) + ')')
+    }
+    override _toPlainYearMonth(context: SqlBuildContext, valueSource: ToSql): string {
+        // The first day of its month, and the days to the reference day
+        const day = this._temporalReference().day
+        return this._sqliteTemporalIn('date', this._dateFunctionArgument(context, valueSource) + ", 'start of month'" + (day === 1 ? '' : ", '+" + (day - 1) + " days'"))
+    }
     override _dayOfWeek(context: SqlBuildContext, valueSource: ToSql): string {
         // `%w` is 0 Sunday to 6 Saturday; Temporal's dayOfWeek, 1 Monday to 7 Sunday (`%u`, only since SQLite 3.46)
         return "(cast(strftime('%w', " + this._dateFunctionArgument(context, valueSource, false) + ") as integer) + 6) % 7 + 1"

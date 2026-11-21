@@ -7,6 +7,7 @@ import { StringType } from './strings.js'
 import { UuidType } from './uuids.js'
 import { LocalDateTimeType, LocalDateType, LocalTimeType } from './localDates.js'
 import { PlainDateTimeType, PlainDateType, PlainTimeType } from './plainDates.js'
+import { PlainMonthDayType, PlainYearMonthType } from './plainYearMonths.js'
 import { DurationType } from './durations.js'
 import { InstantType } from './instants.js'
 import { ZonedDateTimeType } from './zonedDateTimes.js'
@@ -31,6 +32,8 @@ __registerDataType('localDateTime', LocalDateTimeType)
 __registerDataType('plainDate', PlainDateType)
 __registerDataType('plainTime', PlainTimeType)
 __registerDataType('plainDateTime', PlainDateTimeType)
+__registerDataType('plainYearMonth', PlainYearMonthType)
+__registerDataType('plainMonthDay', PlainMonthDayType)
 __registerDataType('duration', DurationType)
 __registerDataType('instant', InstantType)
 __registerDataType('zonedDateTime', ZonedDateTimeType)

@@ -17,6 +17,7 @@ IF OBJECT_ID('issue_worklog', 'U') IS NOT NULL DROP TABLE issue_worklog;
 IF OBJECT_ID('col_matrix', 'U') IS NOT NULL DROP TABLE col_matrix;
 IF OBJECT_ID('temporal_precision', 'U') IS NOT NULL DROP TABLE temporal_precision;
 IF OBJECT_ID('duration_value', 'U') IS NOT NULL DROP TABLE duration_value;
+IF OBJECT_ID('calendar_value', 'U') IS NOT NULL DROP TABLE calendar_value;
 IF OBJECT_ID('instant_value', 'U') IS NOT NULL DROP TABLE instant_value;
 IF OBJECT_ID('flight_leg', 'U') IS NOT NULL DROP TABLE flight_leg;
 IF OBJECT_ID('country', 'U') IS NOT NULL DROP TABLE country;
@@ -422,6 +423,16 @@ CREATE TABLE duration_value (
     span NVARCHAR(64) NOT NULL,
     span_calendar NVARCHAR(64),
     span_text NVARCHAR(64)
+);
+GO
+
+-- calendar_value: a month of a year (plainYearMonth) and a day of a month (plainMonthDay) in the date of their reference
+-- (the 1st of the month, the year 1972), and a date (plainDate) they are taken from: born_on.
+CREATE TABLE calendar_value (
+    id INT PRIMARY KEY,
+    month_of DATE NOT NULL,
+    day_of DATE NOT NULL,
+    born_on DATE NOT NULL
 );
 GO
 

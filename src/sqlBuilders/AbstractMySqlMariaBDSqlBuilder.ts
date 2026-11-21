@@ -986,6 +986,20 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     override _month(context: SqlBuildContext, valueSource: ToSql): string {
         return 'month(' + this._appendSql(valueSource, context, false) + ')'
     }
+    override _monthCode(context: SqlBuildContext, valueSource: ToSql): string {
+        return "date_format(" + this._appendSql(valueSource, context, false) + ", 'M%m')"
+    }
+    override _toPlainYearMonth(context: SqlBuildContext, valueSource: ToSql): string {
+        // The text of its year and month on the reference day, a date (MariaDB and MySQL dates have 4 digits)
+        return 'cast(date_format(' + this._appendSql(valueSource, context, false) + ", '%Y-%m-" + String(this._temporalReference().day).padStart(2, '0') + "') as date)"
+    }
+    override _toPlainMonthDay(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'cast(date_format(' + this._appendSql(valueSource, context, false) + ", '" + this._temporalReference().year + "-%m-%d') as date)"
+    }
+    override _makeDate(_context: SqlBuildContext, year: string, month: string, day: string): string {
+        // The first day of the year, plus the months, plus the days: in the order of the text, as the parameters
+        return 'date_add(date_add(makedate(' + year + ', 1), interval ' + month + ' - 1 month), interval ' + day + ' - 1 day)'
+    }
     override _dayOfWeek(context: SqlBuildContext, valueSource: ToSql): string {
         // `weekday`: 0 Monday to 6 Sunday
         return 'weekday(' + this._appendSql(valueSource, context, false) + ') + 1'

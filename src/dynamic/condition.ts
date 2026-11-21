@@ -1,4 +1,4 @@
-import type { TemporalDuration, TemporalInstant, TemporalPlainDate, TemporalPlainDateTime, TemporalPlainTime, TemporalZonedDateTime } from '../typeSystem/temporal.js'
+import type { TemporalDuration, TemporalInstant, TemporalPlainDate, TemporalPlainDateTime, TemporalPlainMonthDay, TemporalPlainTime, TemporalPlainYearMonth, TemporalZonedDateTime } from '../typeSystem/temporal.js'
 import type { TerminalValueObject, NonValueObject } from '../utils/objectUtils.js'
 import type { DynamicCondition, DynamicConditionExtension } from '../expressions/dynamicConditionUsingFilters.js'
 import type { ComparableType } from '../typeSystem/comparable.js'
@@ -37,6 +37,8 @@ type DynamicDefinitionLeafForModel<T> =
     [T] extends [TemporalPlainDate] ? 'plainDate' :
     [T] extends [TemporalPlainTime] ? 'plainTime' :
     [T] extends [TemporalPlainDateTime] ? 'plainDateTime' :
+    [T] extends [TemporalPlainYearMonth] ? 'plainYearMonth' :
+    [T] extends [TemporalPlainMonthDay] ? 'plainMonthDay' :
     [T] extends [TemporalDuration] ? 'duration' :
     [T] extends [TemporalInstant] ? 'instant' :
     [T] extends [TemporalZonedDateTime] ? 'zonedDateTime' :

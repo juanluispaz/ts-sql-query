@@ -1694,6 +1694,19 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     override _month(context: SqlBuildContext, valueSource: ToSql): string {
         return 'extract(month from ' + (this._appendZonedUtcTimestamp(context, valueSource) ?? this._appendSql(valueSource, context, false)) + ')'
     }
+    override _monthCode(context: SqlBuildContext, valueSource: ToSql): string {
+        return "to_char(" + this._appendSql(valueSource, context, false) + ", '\"M\"MM')"
+    }
+    override _toPlainMonthDay(context: SqlBuildContext, valueSource: ToSql): string {
+        // Its month and day in the reference year: a text of numbers, read with a format of numbers (no setting of the
+        // session takes part)
+        return "to_date('" + this._temporalReference().year + "' || to_char(" + this._appendSql(valueSource, context, false) + ", 'MMDD'), 'YYYYMMDD')"
+    }
+    override _toPlainYearMonth(context: SqlBuildContext, valueSource: ToSql): string {
+        // The first day of its month, and the days to the reference day
+        const day = this._temporalReference().day
+        return 'trunc(' + this._appendSql(valueSource, context, false) + ", 'MM')" + (day === 1 ? '' : ' + ' + (day - 1))
+    }
     override _dayOfWeek(context: SqlBuildContext, valueSource: ToSql): string {
         // The days since the Monday of its ISO week, 'IW': 1 Monday to 7 Sunday, whatever the territory of the session
         const day = this._appendValueForTheDay(context, valueSource)

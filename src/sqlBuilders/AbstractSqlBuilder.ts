@@ -28,6 +28,7 @@ import type { SqlOperation0ValueSource, SqlOperation2ValueSource } from '../node
 import type { TemporalDuration } from '../typeSystem/temporal.js'
 import { durationOfArgument, durationOfParts, durationPartsFor, isZeroDuration, type DurationParts, type DurationPartsSql } from '../utils/durationValues.js'
 import { plainTemporalFieldsOf, type PlainTemporalFields } from '../utils/plainTemporalFields.js'
+import { temporalReferenceOf, type TemporalReference } from '../utils/temporalReference.js'
 import { plainTemporalRoundingOf, type PlainTemporalRounding } from '../utils/plainTemporalRounding.js'
 import type { ZonedInterpretation } from '../utils/zonedOptions.js'
 import { plainTemporalDifferenceOf, type PlainTemporalDifference } from '../utils/plainTemporalDifference.js'
@@ -4012,6 +4013,29 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _toPlainDate(context: SqlBuildContext, valueSource: ToSql): string {
         return 'cast(' + this._appendSql(valueSource, context, false) + ' as date)'
     }
+    /** The code of the month of a date, `'M01'` to `'M12'` */
+    _monthCode(context: SqlBuildContext, valueSource: ToSql): string {
+        return "to_char(" + this._appendSqlForDatePartArgument(valueSource, context) + ", '\"M\"MM')"
+    }
+    /** The month of the year of a date, kept in the date of its reference day (see _temporalReference) */
+    _toPlainYearMonth(context: SqlBuildContext, valueSource: ToSql): string {
+        const year = this._integerPart(this._year(context, valueSource))
+        const month = this._integerPart(this._month(context, valueSource))
+        return this._makeDate(context, year, month, String(this._temporalReference().day))
+    }
+    /** The day of the month of a date, kept in the date of its reference year (see _temporalReference) */
+    _toPlainMonthDay(context: SqlBuildContext, valueSource: ToSql): string {
+        const month = this._integerPart(this._month(context, valueSource))
+        const day = this._integerPart(this._day(context, valueSource))
+        return this._makeDate(context, String(this._temporalReference().year), month, day)
+    }
+    /**
+     * The reference of a month of a year (its day) and of a day of a month (its year), the date they are kept in: the
+     * temporalReferenceDate of the connection, Temporal's 1972-01-01 by default
+     */
+    _temporalReference(): TemporalReference {
+        return temporalReferenceOf(this._connectionConfiguration.temporalReferenceDate)
+    }
     _toPlainTime(context: SqlBuildContext, valueSource: ToSql): string {
         return 'cast(' + this._appendSql(valueSource, context, false) + ' as time)'
     }
@@ -5235,6 +5259,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     /** Rejects, for each query executed, a configuration of the connection this database can't honor */
     _checkConnectionConfiguration(): void {
+        temporalReferenceOf(this._connectionConfiguration.temporalReferenceDate)
         if (!this._isDatabaseOutsideUtc()) {
             return
         }

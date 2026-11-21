@@ -23,6 +23,7 @@ BEGIN EXECUTE IMMEDIATE 'DROP TABLE issue_worklog CASCADE CONSTRAINTS'; EXCEPTIO
 BEGIN EXECUTE IMMEDIATE 'DROP TABLE col_matrix CASCADE CONSTRAINTS'; EXCEPTION WHEN OTHERS THEN NULL; END;
 BEGIN EXECUTE IMMEDIATE 'DROP TABLE temporal_precision CASCADE CONSTRAINTS'; EXCEPTION WHEN OTHERS THEN NULL; END;
 BEGIN EXECUTE IMMEDIATE 'DROP TABLE duration_value CASCADE CONSTRAINTS'; EXCEPTION WHEN OTHERS THEN NULL; END;
+BEGIN EXECUTE IMMEDIATE 'DROP TABLE calendar_value CASCADE CONSTRAINTS'; EXCEPTION WHEN OTHERS THEN NULL; END;
 BEGIN EXECUTE IMMEDIATE 'DROP TABLE instant_value CASCADE CONSTRAINTS'; EXCEPTION WHEN OTHERS THEN NULL; END;
 BEGIN EXECUTE IMMEDIATE 'DROP TABLE zoned_value CASCADE CONSTRAINTS'; EXCEPTION WHEN OTHERS THEN NULL; END;
 BEGIN EXECUTE IMMEDIATE 'DROP TABLE country CASCADE CONSTRAINTS'; EXCEPTION WHEN OTHERS THEN NULL; END;
@@ -382,6 +383,15 @@ CREATE TABLE duration_value (
     span INTERVAL DAY(9) TO SECOND(9) NOT NULL,
     span_calendar INTERVAL YEAR(9) TO MONTH,
     span_text VARCHAR2(64)
+);
+
+-- calendar_value: a month of a year (plainYearMonth) and a day of a month (plainMonthDay) in the date of their reference
+-- (the 1st of the month, the year 1972), and a date (plainDate) they are taken from: born_on.
+CREATE TABLE calendar_value (
+    id NUMBER PRIMARY KEY,
+    month_of DATE NOT NULL,
+    day_of DATE NOT NULL,
+    born_on DATE NOT NULL
 );
 
 -- instant_value: exact moments (Temporal.Instant) in the columns a database has for them: instant_at in the one

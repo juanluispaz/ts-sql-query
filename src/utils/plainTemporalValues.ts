@@ -1,9 +1,10 @@
-// What the query runners do with the Temporal values without zone (plainDate, plainTime, plainDateTime): the text they
+// What the query runners do with the Temporal values without zone (plainDate, plainTime, plainDateTime, plainYearMonth,
+// plainMonthDay): the text they
 // give their drivers, and the result columns they read as text, so no digit of the fraction of a second is lost.
 
 import type { DataTypeClass } from '../TypeAdapter.js'
 import { existingQueryContextOf } from '../internal/QueryContextImpl.js'
-import { __isDurationClass, __isInstantClass, __isPlainDateClass, __isPlainDateTimeClass, __isPlainTimeClass, __isZonedDateTimeClass } from '../typeSystem/dataTypeQuestions.js'
+import { __isDurationClass, __isInstantClass, __isPlainDateClass, __isPlainDateTimeClass, __isPlainMonthDayClass, __isPlainTimeClass, __isPlainYearMonthClass, __isZonedDateTimeClass } from '../typeSystem/dataTypeQuestions.js'
 import { __temporalIfAvailable, type TemporalPlainDateTime } from '../typeSystem/temporal.js'
 import { plainDateText, plainTimeText } from './plainDateTimeText.js'
 
@@ -45,9 +46,20 @@ export function isPlainTemporalValue(value: unknown): boolean {
     return !!temporal && (value instanceof temporal.PlainDate || value instanceof temporal.PlainTime || value instanceof temporal.PlainDateTime)
 }
 
-/** Whether the class is one of a Temporal value without zone: a plainDate, a plainTime, a plainDateTime, or one of their families */
+/**
+ * Whether the class is one of a Temporal value without zone: a plainDate, a plainTime, a plainDateTime, a
+ * plainYearMonth, a plainMonthDay, or one of their families
+ */
 export function isPlainTemporalClass(typeClass: DataTypeClass | undefined): boolean {
-    return typeClass !== undefined && (__isPlainDateClass(typeClass) || __isPlainTimeClass(typeClass) || __isPlainDateTimeClass(typeClass))
+    return typeClass !== undefined && (isKeptInADateClass(typeClass) || __isPlainTimeClass(typeClass) || __isPlainDateTimeClass(typeClass))
+}
+
+/**
+ * Whether the class is one of a Temporal value kept in a date: a plainDate, a plainYearMonth or a plainMonthDay (in the
+ * date of its reference), or one of their families
+ */
+export function isKeptInADateClass(typeClass: DataTypeClass | undefined): boolean {
+    return typeClass !== undefined && (__isPlainDateClass(typeClass) || __isPlainYearMonthClass(typeClass) || __isPlainMonthDayClass(typeClass))
 }
 
 /**

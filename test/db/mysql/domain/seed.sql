@@ -82,6 +82,12 @@ INSERT INTO duration_value (id, span, span_calendar, span_text) VALUES
     (1, 'P3DT4H5M6.789S', 'P1Y2M', 'P1Y2M3DT4H5M6.789S'),
     (2, '-P1DT2H', NULL, '-PT26H'),
     (3, 'PT1H30M', NULL, 'PT90M');
+-- calendar_value: 1 is 2024-02 and 02-29 (from 2024-02-29), 2 is 1999-12 and 12-31; 3 is kept out of the reference, on
+-- 2025-01-15 and in the year 2000, read as 2025-01 and 03-15.
+INSERT INTO calendar_value (id, month_of, day_of, born_on) VALUES
+    (1, '2024-02-01', '1972-02-29', '2024-02-29'),
+    (2, '1999-12-01', '1972-12-31', '1999-12-31'),
+    (3, '2025-01-15', '2000-03-15', '2023-07-04');
 -- instant_value: 1 is 2024-01-14T09:15:30.123456Z, written with the offset +09:00 where the column keeps one;
 -- 2 is 1969-07-20T20:17:40Z, without session_at (a MySQL and MariaDB TIMESTAMP starts in 1970).
 INSERT INTO instant_value (id, instant_at, wall_at, session_at) VALUES

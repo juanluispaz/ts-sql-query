@@ -1227,6 +1227,16 @@ export const tDurationValue = new class TDurationValue extends Table<DBConnectio
     constructor() { super('duration_value') }
 }()
 
+// calendar_value: a month of a year (month_of, a plainYearMonth) and a day of a month (day_of, a plainMonthDay), kept in
+// the date of their reference, and the date they are taken from (born_on, a plainDate)
+export const tCalendarValue = new class TCalendarValue extends Table<DBConnection, 'TCalendarValue'> {
+    id      = this.primaryKey('id', 'int')
+    monthOf = this.column('month_of', 'plainYearMonth')
+    dayOf   = this.column('day_of', 'plainMonthDay')
+    bornOn  = this.column('born_on', 'plainDate')
+    constructor() { super('calendar_value') }
+}()
+
 // instant_value: exact moments (Temporal.Instant) in the column recommended for an instant (instant_at), in a column
 // without zone (wall_at) and in one converted with the zone of the session where the database has it (session_at)
 export const tInstantValue = new class TInstantValue extends Table<DBConnection, 'TInstantValue'> {

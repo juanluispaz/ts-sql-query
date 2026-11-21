@@ -25,6 +25,7 @@ TRUNCATE TABLE issue_worklog;
 TRUNCATE TABLE col_matrix;
 TRUNCATE TABLE temporal_precision;
 TRUNCATE TABLE duration_value;
+TRUNCATE TABLE calendar_value;
 TRUNCATE TABLE instant_value;
 TRUNCATE TABLE country;
 TRUNCATE TABLE issue;

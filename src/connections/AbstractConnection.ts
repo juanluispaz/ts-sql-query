@@ -29,7 +29,7 @@ import type { NAggregate, NDB, NNoTableOrViewRequired, NNotNestedAggregate, NSou
 import type { DataToProject, GetDataToProjectSource } from '../complexProjections/dataToProject.js'
 import type { ResultObjectValuesForAggregatedArray } from '../complexProjections/resultWithOptionalsAsUndefined.js'
 import type { ResultObjectValuesProjectedAsNullableForAggregatedArray } from '../complexProjections/resultWithOptionalsAsNull.js'
-import { __isAggregatedArrayClass, __isBigintClass, __isBooleanClass, __isDoubleClass, __isExactDecimalClass, __isIntClass, __isLocalDateClass, __isLocalDateTimeClass, __isLocalTimeClass, __isPlainDateClass, __isPlainDateTimeClass, __isPlainTimeClass, __isStringClass, __isDurationClass, __isInstantClass, __isUuidClass, __isZonedDateTimeClass } from '../typeSystem/dataTypeQuestions.js'
+import { __isAggregatedArrayClass, __isBigintClass, __isBooleanClass, __isDoubleClass, __isExactDecimalClass, __isIntClass, __isLocalDateClass, __isLocalDateTimeClass, __isLocalTimeClass, __isPlainDateClass, __isPlainMonthDayClass, __isPlainYearMonthClass, __isPlainDateTimeClass, __isPlainTimeClass, __isStringClass, __isDurationClass, __isInstantClass, __isUuidClass, __isZonedDateTimeClass } from '../typeSystem/dataTypeQuestions.js'
 import { __durationSqlDataTypeOf } from '../typeSystem/dataTypes.js'
 import { parseUtcDateTimeText } from '../utils/utcDateTimeText.js'
 import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, ValueSourceOf, TypedValueSource } from '../typeSystem/valueSource.js'
@@ -49,6 +49,7 @@ import { PlainDateTimeType, PlainDateType, PlainTimeType } from '../typeSystem/p
 import { InstantType, __instantFromEpoch } from '../typeSystem/instants.js'
 import { parseInstantText, parsePlainDateTimeText, parseZonedDateTimeText, plainDateTimeOfUtcDate } from '../utils/plainDateTimeText.js'
 import { durationIsoText, durationOfReceivedValue, isDurationValue } from '../utils/durationValues.js'
+import { temporalReferenceOf } from '../utils/temporalReference.js'
 import type { NumberType } from '../typeSystem/number.js'
 import type { BigintType } from '../typeSystem/bigint.js'
 import type { StringDecimalType } from '../typeSystem/decimals.js'
@@ -139,6 +140,13 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
      * database
      */
     protected localTimeReferenceDate: string = '1970-01-01'
+    /**
+     * The date a month of a year (plainYearMonth) and a day of a month (plainMonthDay) are kept in, a date
+     * `'YYYY-MM-DD'`: its day for a month of a year (1 to 28, a day every month has), its year for a day of a month (a
+     * leap year, that has February 29). `'1972-01-01'` by default, the reference of Temporal: the 1st of the month, the
+     * year 1972. A value read is accepted on any day or year, and is given with the reference of Temporal
+     */
+    protected temporalReferenceDate: string = '1972-01-01'
     /** Whether the databaseTimeZone isn't UTC */
     protected isDatabaseOutsideUtc(): boolean {
         return !isUtcTimeZoneName(this.databaseTimeZone)
@@ -1263,6 +1271,20 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             }
             return received.toPlainDate()
         }
+        if (__isPlainYearMonthClass(context.requestedType) || __isPlainMonthDayClass(context.requestedType)) {
+            // Kept in a date: the month of its year, or the day of its month, on any day or year, with the reference of
+            // Temporal (as Temporal's from takes a date)
+            const temporal = __temporal(type)
+            const yearMonth = __isPlainYearMonthClass(context.requestedType)
+            if (value instanceof (yearMonth ? temporal.PlainYearMonth : temporal.PlainMonthDay)) {
+                return value
+            }
+            const date = value instanceof temporal.PlainDate ? value : value instanceof temporal.PlainDateTime ? value.toPlainDate() : this.__receivedPlainDateTime(value, type)?.toPlainDate()
+            if (!date) {
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid ' + type + ' value received from the db: ' + String(value))
+            }
+            return yearMonth ? date.toPlainYearMonth() : date.toPlainMonthDay()
+        }
         if (__isPlainTimeClass(context.requestedType)) {
             // The time of a PlainDateTime or of a text with a date (Oracle's TIMESTAMP inside a JSON aggregate is
             // "1970-01-01T09:15:00"), as the time of a localTime
@@ -1448,6 +1470,19 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 return value
             }
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid plainDate value to send to the db: ' + String(value))
+        }
+        if (__isPlainYearMonthClass(context.requestedType) || __isPlainMonthDayClass(context.requestedType)) {
+            // Kept in the date of its reference (temporalReferenceDate): its day for a month of a year, its year for a
+            // day of a month. A Temporal.PlainDate, which each query runner gives its driver as a date
+            const temporal = __temporal(type)
+            const reference = temporalReferenceOf(this.temporalReferenceDate)
+            if (__isPlainYearMonthClass(context.requestedType) && value instanceof temporal.PlainYearMonth) {
+                return value.toPlainDate({ day: reference.day })
+            }
+            if (__isPlainMonthDayClass(context.requestedType) && value instanceof temporal.PlainMonthDay) {
+                return value.toPlainDate({ year: reference.year })
+            }
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid ' + type + ' value to send to the db: ' + String(value))
         }
         if (__isPlainTimeClass(context.requestedType)) {
             if (value instanceof __temporal(type).PlainTime) {

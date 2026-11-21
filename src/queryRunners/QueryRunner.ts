@@ -213,6 +213,11 @@ export interface ConnectionConfiguration {
     readonly sqliteRunsInApplicationTimeZone?: boolean
     /** The zone of the database, an IANA name (`databaseTimeZone`); `'UTC'` by default */
     readonly databaseTimeZone?: string
+    /**
+     * The date a month of a year and a day of a month are kept in (`temporalReferenceDate`, `'1972-01-01'` by default,
+     * Temporal's): its day for a plainYearMonth, its year for a plainMonthDay
+     */
+    readonly temporalReferenceDate?: string
     /** With a databaseTimeZone other than UTC, the day a localTime is completed with (`localTimeReferenceDate`) */
     readonly localTimeReferenceDate?: string
     /** SQLite: an integer read where a date or time with another format was expected is a Julian day */

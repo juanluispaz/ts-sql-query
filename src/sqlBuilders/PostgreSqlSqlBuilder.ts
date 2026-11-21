@@ -808,6 +808,11 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         }
         return '(extract(epoch from ' + this._appendSqlParenthesis(d.two, context, false) + ' - ' + this._appendSqlParenthesis(d.one, context, false) + ') * 1000000)::bigint'
     }
+    override _toPlainYearMonth(context: SqlBuildContext, valueSource: ToSql): string {
+        // The first day of its month, and the days to the reference day
+        const day = this._temporalReference().day
+        return "date_trunc('month', " + this._appendSqlForDatePartArgument(valueSource, context) + ')::date' + (day === 1 ? '' : ' + ' + (day - 1))
+    }
     /** A time and a timestamp keep microseconds */
     override _temporalTick(): bigint {
         return 1000n

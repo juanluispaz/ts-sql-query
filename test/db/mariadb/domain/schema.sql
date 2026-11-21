@@ -17,6 +17,7 @@ DROP TABLE IF EXISTS issue_worklog;
 DROP TABLE IF EXISTS col_matrix;
 DROP TABLE IF EXISTS temporal_precision;
 DROP TABLE IF EXISTS duration_value;
+DROP TABLE IF EXISTS calendar_value;
 DROP TABLE IF EXISTS instant_value;
 DROP TABLE IF EXISTS country;
 DROP TABLE IF EXISTS issue;
@@ -345,6 +346,15 @@ CREATE TABLE duration_value (
     span VARCHAR(64) NOT NULL,
     span_calendar VARCHAR(64),
     span_text VARCHAR(64)
+);
+
+-- calendar_value: a month of a year (plainYearMonth) and a day of a month (plainMonthDay) in the date of their reference
+-- (the 1st of the month, the year 1972), and a date (plainDate) they are taken from: born_on.
+CREATE TABLE calendar_value (
+    id INT PRIMARY KEY,
+    month_of DATE NOT NULL,
+    day_of DATE NOT NULL,
+    born_on DATE NOT NULL
 );
 
 -- instant_value: exact moments (Temporal.Instant) in the columns a database has for them: instant_at in the one

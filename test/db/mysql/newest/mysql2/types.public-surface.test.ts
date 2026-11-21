@@ -131,7 +131,7 @@ describe(ctx.label, () => {
             'ForceTypeCast', 'InstantType', 'InstantsType', 'IntType', 'IntegersType', 'InterceptorQueryRunner', 'LocalDateTimeType',
             'LocalDateTimesType', 'LocalDateType', 'LocalDatesType', 'LocalTimeType', 'LocalTimesType',
             'LoggingQueryRunner', 'MockQueryRunner', 'MultipliableType', 'NoExecutionQueryRunner', 'NoopQueryRunner',
-            'PlainDateTimeType', 'PlainDateTimesType', 'PlainDateType', 'PlainDatesType', 'PlainTimeType', 'PlainTimesType',
+            'PlainDateTimeType', 'PlainDateTimesType', 'PlainDateType', 'PlainDatesType', 'PlainMonthDayType', 'PlainMonthDaysType', 'PlainTimeType', 'PlainTimesType', 'PlainYearMonthType', 'PlainYearMonthsType',
             'QueryExecutionSource', 'RealsType', 'StringDecimalType', 'StringType', 'Table', 'TsSqlError',
             'TsSqlProcessingError', 'TsSqlQueryExecutionError', 'UuidType', 'UuidsType', 'Values', 'View', 'ZonedDateTimeType', 'ZonedDateTimesType', 'deepOmit',
             'deepPick', 'dynamicPick', 'dynamicPickPaths', 'expandTypeFromDynamicPickPaths',

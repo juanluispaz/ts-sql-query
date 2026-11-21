@@ -60,11 +60,9 @@ describe(ctx.label, () => {
                 wholeMinute: time.with({ second: 0, millisecond: 0, microsecond: 0, nanosecond: 0 }),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select maketime(23, minute(?), second(?) + (microsecond(?)) * 0.000001) as lastHour, maketime(hour(?), 0, second(?) + (microsecond(?)) * 0.000001) as minuteZero, maketime(hour(?), minute(?), second(?) + (5 * 1000 + microsecond(?) % 1000) * 0.000001) as millisecond, maketime(hour(?), minute(?), 0) as wholeMinute"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select addtime(?, sec_to_time((23 - cast(hour(?) as signed)) * 3600)) as lastHour, addtime(?, sec_to_time((0 - cast(minute(?) as signed)) * 60)) as minuteZero, maketime(hour(?), minute(?), second(?) + (5 * 1000 + microsecond(?) % 1000) * 0.000001) as millisecond, maketime(hour(?), minute(?), 0) as wholeMinute"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
-            "10:20:30.123",
-            "10:20:30.123",
             "10:20:30.123",
             "10:20:30.123",
             "10:20:30.123",
@@ -118,7 +116,7 @@ describe(ctx.label, () => {
                 endOfFebruary: tColMatrixPlain.mDatetime.with({ month: 2, day: 31 }),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date_add(date_add(makedate(year(m_date), 1), interval month(m_date) - 1 month), interval 1 - 1 day) as firstDay, maketime(hour(m_time), 0, second(m_time) + (microsecond(m_time)) * 0.000001) as oClock, timestamp(date_add(date_add(makedate(year(m_datetime), 1), interval 2 - 1 month), interval least(31, day(last_day(date_add(makedate(year(m_datetime), 1), interval 2 - 1 month)))) - 1 day), maketime(hour(m_datetime), minute(m_datetime), second(m_datetime) + (microsecond(m_datetime)) * 0.000001)) as endOfFebruary from col_matrix where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date_add(date_add(makedate(year(m_date), 1), interval month(m_date) - 1 month), interval 1 - 1 day) as firstDay, addtime(m_time, sec_to_time((0 - cast(minute(m_time) as signed)) * 60)) as oClock, timestamp(date_add(date_add(makedate(year(m_datetime), 1), interval 2 - 1 month), interval least(31, day(last_day(date_add(makedate(year(m_datetime), 1), interval 2 - 1 month)))) - 1 day), maketime(hour(m_datetime), minute(m_datetime), second(m_datetime) + (microsecond(m_datetime)) * 0.000001)) as endOfFebruary from col_matrix where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

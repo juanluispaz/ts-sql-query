@@ -1,3 +1,4 @@
+import type { PlainTemporalFields } from '../utils/plainTemporalFields.js'
 import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import type { ToSql, SelectData, InsertData, UpdateData, FlatQueryColumns, OrderByEntry, PlainSelectData, CompoundSelectData } from './SqlBuilder.js'
 import { flattenQueryColumns, getQueryColumn, hasToSql } from './SqlBuilder.js'
@@ -1426,6 +1427,10 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         // The date functions keep milliseconds
         const argument = this._dateFunctionArgument(context, valueSource)
         return 'cast(round((julianday(' + argument + ') - julianday(date(' + argument + '))) * 86400000) as integer) * 1000000'
+    }
+    override _withWholeTime(context: SqlBuildContext, valueSource: ToSql, given: PlainTemporalFields, fields: 'time' | 'timestamp'): string {
+        const value = this._dateFunctionArgument(context, valueSource)
+        return this._sqliteTemporalIn(fields === 'time' ? 'time' : 'dateTime', value + ', (' + this._withSeconds(context, valueSource, given) + ") || ' seconds'")
     }
     override _dateOfValue(context: SqlBuildContext, valueSource: ToSql): string {
         return 'date(' + this._dateFunctionArgument(context, valueSource) + ')'

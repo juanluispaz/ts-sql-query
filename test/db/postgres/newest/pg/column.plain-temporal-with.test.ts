@@ -55,11 +55,9 @@ describe(ctx.label, () => {
                 wholeMinute: time.with({ second: 0, millisecond: 0, microsecond: 0, nanosecond: 0 }),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select make_time(23, cast(extract(minute from $1::time) as integer), cast(trunc(extract(second from $2::time))::integer as integer) + (trunc(extract(microseconds from $3::time))::integer % 1000000 * 1000) / 1000000000.0) as "lastHour", make_time(cast(extract(hour from $4::time) as integer), 0, cast(trunc(extract(second from $5::time))::integer as integer) + (trunc(extract(microseconds from $6::time))::integer % 1000000 * 1000) / 1000000000.0) as "minuteZero", make_time(cast(extract(hour from $7::time) as integer), cast(extract(minute from $8::time) as integer), cast(trunc(extract(second from $9::time))::integer as integer) + (5 * 1000000 + ((trunc(extract(microseconds from $10::time))::integer % 1000000 * 1000) / 1000) % 1000 * 1000 + (trunc(extract(microseconds from $10::time))::integer % 1000000 * 1000) % 1000) / 1000000000.0) as millisecond, make_time(cast(extract(hour from $11::time) as integer), cast(extract(minute from $12::time) as integer), 0) as "wholeMinute""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::time + make_interval(secs => (23 - cast(extract(hour from $2::time) as integer)) * 3600) as "lastHour", $3::time + make_interval(secs => (0 - cast(extract(minute from $4::time) as integer)) * 60) as "minuteZero", make_time(cast(extract(hour from $5::time) as integer), cast(extract(minute from $6::time) as integer), cast(trunc(extract(second from $7::time))::integer as integer) + (5 * 1000000 + ((trunc(extract(microseconds from $8::time))::integer % 1000000 * 1000) / 1000) % 1000 * 1000 + (trunc(extract(microseconds from $8::time))::integer % 1000000 * 1000) % 1000) / 1000000000.0) as millisecond, make_time(cast(extract(hour from $9::time) as integer), cast(extract(minute from $10::time) as integer), 0) as "wholeMinute""`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
-            "10:20:30.123",
-            "10:20:30.123",
             "10:20:30.123",
             "10:20:30.123",
             "10:20:30.123",
@@ -112,7 +110,7 @@ describe(ctx.label, () => {
                 endOfFebruary: tColMatrixPlain.mDatetime.with({ month: 2, day: 31 }),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select make_date(cast(extract(year from m_date) as integer), cast(extract(month from m_date) as integer), 1) as "firstDay", make_time(cast(extract(hour from m_time) as integer), 0, cast(trunc(extract(second from m_time))::integer as integer) + (trunc(extract(microseconds from m_time))::integer % 1000000 * 1000) / 1000000000.0) as "oClock", make_timestamp(cast(extract(year from m_datetime) as integer), 2, least(31, extract(day from make_date(cast(extract(year from m_datetime) as integer), 2, 1) + interval '1 month - 1 day')::integer), cast(extract(hour from m_datetime) as integer), cast(extract(minute from m_datetime) as integer), cast(trunc(extract(second from m_datetime))::integer as integer) + (trunc(extract(microseconds from m_datetime))::integer % 1000000 * 1000) / 1000000000.0) as "endOfFebruary" from col_matrix where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select make_date(cast(extract(year from m_date) as integer), cast(extract(month from m_date) as integer), 1) as "firstDay", m_time + make_interval(secs => (0 - cast(extract(minute from m_time) as integer)) * 60) as "oClock", make_timestamp(cast(extract(year from m_datetime) as integer), 2, least(31, extract(day from make_date(cast(extract(year from m_datetime) as integer), 2, 1) + interval '1 month - 1 day')::integer), cast(extract(hour from m_datetime) as integer), cast(extract(minute from m_datetime) as integer), cast(trunc(extract(second from m_datetime))::integer as integer) + (trunc(extract(microseconds from m_datetime))::integer % 1000000 * 1000) / 1000000000.0) as "endOfFebruary" from col_matrix where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

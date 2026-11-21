@@ -55,11 +55,9 @@ describe(ctx.label, () => {
                 wholeMinute: time.with({ second: 0, millisecond: 0, microsecond: 0, nanosecond: 0 }),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select timefromparts(23, datepart(minute, @0), datepart(second, @1), datepart(nanosecond, @2) / 100, 7) as lastHour, timefromparts(datepart(hour, @3), 0, datepart(second, @4), datepart(nanosecond, @5) / 100, 7) as minuteZero, timefromparts(datepart(hour, @6), datepart(minute, @7), datepart(second, @8), (5 * 1000000 + datepart(nanosecond, @9) / 1000 % 1000 * 1000 + datepart(nanosecond, @9) % 1000) / 100, 7) as millisecond, timefromparts(datepart(hour, @10), datepart(minute, @11), 0, 0 / 100, 7) as wholeMinute"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select dateadd(second, (23 - datepart(hour, @0)) * 3600, @1) as lastHour, dateadd(second, (0 - datepart(minute, @2)) * 60, @3) as minuteZero, timefromparts(datepart(hour, @4), datepart(minute, @5), datepart(second, @6), (5 * 1000000 + datepart(nanosecond, @7) / 1000 % 1000 * 1000 + datepart(nanosecond, @7) % 1000) / 100, 7) as millisecond, timefromparts(datepart(hour, @8), datepart(minute, @9), 0, 0 / 100, 7) as wholeMinute"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
-            "10:20:30.123",
-            "10:20:30.123",
             "10:20:30.123",
             "10:20:30.123",
             "10:20:30.123",
@@ -112,7 +110,7 @@ describe(ctx.label, () => {
                 endOfFebruary: tColMatrixPlain.mDatetime.with({ month: 2, day: 31 }),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datefromparts(datepart(year, m_date), datepart(month, m_date), 1) as firstDay, timefromparts(datepart(hour, m_time), 0, datepart(second, m_time), datepart(nanosecond, m_time) / 100, 7) as oClock, datetime2fromparts(datepart(year, switchoffset(m_datetime, '+00:00')), 2, case when 31 < day(eomonth(datefromparts(datepart(year, switchoffset(m_datetime, '+00:00')), 2, 1))) then 31 else day(eomonth(datefromparts(datepart(year, switchoffset(m_datetime, '+00:00')), 2, 1))) end, datepart(hour, switchoffset(m_datetime, '+00:00')), datepart(minute, switchoffset(m_datetime, '+00:00')), datepart(second, m_datetime), datepart(nanosecond, m_datetime) / 100, 7) as endOfFebruary from col_matrix where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datefromparts(datepart(year, m_date), datepart(month, m_date), 1) as firstDay, dateadd(second, (0 - datepart(minute, m_time)) * 60, m_time) as oClock, datetime2fromparts(datepart(year, switchoffset(m_datetime, '+00:00')), 2, case when 31 < day(eomonth(datefromparts(datepart(year, switchoffset(m_datetime, '+00:00')), 2, 1))) then 31 else day(eomonth(datefromparts(datepart(year, switchoffset(m_datetime, '+00:00')), 2, 1))) end, datepart(hour, switchoffset(m_datetime, '+00:00')), datepart(minute, switchoffset(m_datetime, '+00:00')), datepart(second, m_datetime), datepart(nanosecond, m_datetime) / 100, 7) as endOfFebruary from col_matrix where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

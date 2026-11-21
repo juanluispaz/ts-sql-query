@@ -1,3 +1,4 @@
+import type { PlainTemporalFields } from '../utils/plainTemporalFields.js'
 import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import { oracleOperationsThatNeedParenthesis } from '../utils/oracle/oracleOperationsThatNeedParenthesis.js'
 import type { ToSql, InsertData, CompoundOperator, SelectData, QueryColumns, FlatQueryColumns, WithSelectData, WithValuesData, OrderByEntry, SqlOperation, HasOperation } from './SqlBuilder.js'
@@ -1938,6 +1939,9 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     override _nanosecondsSinceMidnight(context: SqlBuildContext, valueSource: ToSql): string {
         // The seconds since midnight followed by the nine digits of the fraction: the nanoseconds, a number of digits
         return "to_number(to_char(" + this._appendTimestampForTimeGetter(context, valueSource) + ", 'SSSSSFF9'))"
+    }
+    override _withWholeTime(context: SqlBuildContext, valueSource: ToSql, given: PlainTemporalFields, _fields: 'time' | 'timestamp'): string {
+        return this._appendSqlParenthesis(valueSource, context, false) + ' + numtodsinterval(' + this._withSeconds(context, valueSource, given) + ", 'second')"
     }
     override _dateOfValue(context: SqlBuildContext, valueSource: ToSql): string {
         return 'trunc(' + this._appendSql(valueSource, context, false) + ')'

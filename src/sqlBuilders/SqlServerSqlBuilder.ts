@@ -1,3 +1,4 @@
+import type { PlainTemporalFields } from '../utils/plainTemporalFields.js'
 import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import { sqlServerOperationsThatNeedParenthesis } from '../utils/sqlServer/sqlServerOperationsThatNeedParenthesis.js'
 import type { ToSql, SelectData, InsertData, DeleteData, UpdateData, FlatQueryColumns, QueryColumns, WithValuesData, OrderByEntry, HasOperation } from './SqlBuilder.js'
@@ -1222,6 +1223,9 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     /** Of dates and times, in decimals: the nanoseconds of more than 292 years overflow a bigint, an error */
     override _nanosecondsOfDifference(ticks: string, d: PlainTemporalDifferenceSql): string {
         return d.fields === 'timestamp' ? 'cast(' + ticks + ' as decimal(38)) * ' + d.tick : super._nanosecondsOfDifference(ticks, d)
+    }
+    override _withWholeTime(context: SqlBuildContext, valueSource: ToSql, given: PlainTemporalFields, _fields: 'time' | 'timestamp'): string {
+        return 'dateadd(second, ' + this._withSeconds(context, valueSource, given) + ', ' + this._appendSql(valueSource, context, false) + ')'
     }
     override _durationTextFunctionName(): string {
         // A function of the user is called with its schema

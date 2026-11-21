@@ -27,7 +27,7 @@ import { type DurationTotalDate, type DurationTotalUnit } from '../utils/duratio
 import type { SqlOperation0ValueSource, SqlOperation2ValueSource } from '../nodes/operations.js'
 import type { TemporalDuration } from '../typeSystem/temporal.js'
 import { durationOfArgument, durationOfParts, durationPartsFor, isZeroDuration, type DurationParts, type DurationPartsSql } from '../utils/durationValues.js'
-import { plainTemporalFieldsOf } from '../utils/plainTemporalFields.js'
+import { plainTemporalFieldsOf, type PlainTemporalFields } from '../utils/plainTemporalFields.js'
 import { plainTemporalRoundingOf, type PlainTemporalRounding } from '../utils/plainTemporalRounding.js'
 import type { ZonedInterpretation } from '../utils/zonedOptions.js'
 import { plainTemporalDifferenceOf, type PlainTemporalDifference } from '../utils/plainTemporalDifference.js'
@@ -4469,6 +4469,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (!given) {
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: typeClass.type }, 'Invalid fields to put in a ' + typeClass.type + ': ' + JSON.stringify(value))
         }
+        if (fields !== 'date' && __withChangesOnlyWholeTime(given)) {
+            return this._withWholeTime(context, valueSource, given, fields)
+        }
         let year = ''
         let month = ''
         let day = ''
@@ -4506,6 +4509,24 @@ export class AbstractSqlBuilder implements SqlBuilder {
             return this._makeTime(context, hour, minute, second, nanoseconds)
         }
         return this._makeTimestamp(context, year, month, day, hour, minute, second, nanoseconds)
+    }
+    /**
+     * with of a time or a date and time that changes only its hour, its minute or its second: the value plus the
+     * seconds from each of its fields to the one given, a time of the same day (the fields given are valid)
+     */
+    _withWholeTime(context: SqlBuildContext, valueSource: ToSql, given: PlainTemporalFields, _fields: 'time' | 'timestamp'): string {
+        return this._appendSqlParenthesis(valueSource, context, false) + ' + make_interval(secs => ' + this._withSeconds(context, valueSource, given) + ')'
+    }
+    /** The seconds from the hour, the minute and the second of the value to the ones given (see _withWholeTime) */
+    _withSeconds(context: SqlBuildContext, valueSource: ToSql, given: PlainTemporalFields): string {
+        let result = given.hour === undefined ? '' : '(' + given.hour + ' - ' + this._integerPart(this._hour(context, valueSource)) + ') * 3600'
+        if (given.minute !== undefined) {
+            result += (result ? ' + ' : '') + '(' + given.minute + ' - ' + this._integerPart(this._minute(context, valueSource)) + ') * 60'
+        }
+        if (given.second !== undefined) {
+            result += (result ? ' + ' : '') + '(' + given.second + ' - ' + this._integerPart(this._second(context, valueSource)) + ')'
+        }
+        return result
     }
     /**
      * A time or a date and time rounded, as Temporal's `round` (see plainTemporalRoundingOf): the nanoseconds since
@@ -6036,6 +6057,12 @@ function largestFieldOf(duration: TemporalDuration): number {
     const fields = [duration.years, duration.months, duration.weeks, duration.days, duration.hours, duration.minutes, duration.seconds, duration.milliseconds, duration.microseconds, duration.nanoseconds]
     const index = fields.findIndex(field => field !== 0)
     return index < 0 ? 10 : index
+}
+
+/** Whether the fields of a with are only an hour, a minute or a second, at least one (see _withWholeTime) */
+export function __withChangesOnlyWholeTime(given: PlainTemporalFields): boolean {
+    return given.year === undefined && given.month === undefined && given.day === undefined && given.millisecond === undefined && given.microsecond === undefined && given.nanosecond === undefined
+        && (given.hour !== undefined || given.minute !== undefined || given.second !== undefined)
 }
 
 /** The SQL negated with a minus; between parentheses when it starts with one, since `--` starts a comment */

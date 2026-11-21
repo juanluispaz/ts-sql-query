@@ -3,7 +3,7 @@ import { mySqlMariaDBOperationsThatNeedParenthesis } from '../utils/mySqlMariaDB
 import type { ToSql, SqlOperation, SelectData, InsertData, UpdateData, DeleteData, FlatQueryColumns, OrderByEntry, PlainSelectData } from './SqlBuilder.js'
 import { getQueryColumn, flattenQueryColumns } from './SqlBuilder.js'
 import type { DataTypeClass } from '../TypeAdapter.js'
-import { AbstractSqlBuilder, type PlainTemporalDifferenceSql, type SelectColumnSql } from './AbstractSqlBuilder.js'
+import { AbstractSqlBuilder, __withChangesOnlyWholeTime, type PlainTemporalDifferenceSql, type SelectColumnSql } from './AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import { __getColumnOfObject } from '../utils/Column.js'
 import { __columnPathsOf } from '../utils/columnPaths.js'
@@ -1062,6 +1062,9 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         if (!given) {
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: typeClass.type }, 'Invalid fields to put in a ' + typeClass.type + ': ' + JSON.stringify(value))
         }
+        if (fields !== 'date' && __withChangesOnlyWholeTime(given)) {
+            return this._withWholeTime(context, valueSource, given, fields)
+        }
         if (fields === 'time') {
             return this._mySqlTimeWith(context, valueSource, given)
         }
@@ -1091,6 +1094,15 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     /** Of dates and times, in decimals: the nanoseconds of more than 292 years overflow a bigint, an error */
     override _nanosecondsOfDifference(ticks: string, d: PlainTemporalDifferenceSql): string {
         return d.fields === 'timestamp' ? 'cast(' + ticks + ' as decimal(65)) * ' + d.tick : super._nanosecondsOfDifference(ticks, d)
+    }
+    override _withWholeTime(context: SqlBuildContext, valueSource: ToSql, given: PlainTemporalFields, fields: 'time' | 'timestamp'): string {
+        // The value goes first, as its parameters in the text. addtime reads a text as a time, where date_add reads it
+        // as a date and time (null for a time given as a value)
+        const value = this._appendSql(valueSource, context, false)
+        if (fields === 'time') {
+            return 'addtime(' + value + ', sec_to_time(' + this._withSeconds(context, valueSource, given) + '))'
+        }
+        return 'date_add(' + value + ', interval ' + this._withSeconds(context, valueSource, given) + ' second)'
     }
     override _temporalOperand(operand: ToSql): ToSql {
         // The parameters are positional: a const is a parameter each time it is written

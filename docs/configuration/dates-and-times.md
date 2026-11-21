@@ -1483,7 +1483,7 @@ The executed query is:
         version as version, 
         tsq_duration_text(0, 0, 0, datediff(date(published_at), released_on), 0, 'day') as toPublication, 
         tsq_duration_text(0, 0, 0, 0, cast(-timestampdiff(microsecond, published_at, timestamp(released_on)) as decimal(65)) * 1000, 'hour') as publishedAfter, 
-        tsq_duration_round(cast(year(released_on) as signed), cast(month(released_on) as signed), cast(dayofmonth(released_on) as signed), 0, cast(year(?) as signed), cast(month(?) as signed), cast(dayofmonth(?) as signed), 0, 'month', 'day', 1, 'trunc', 1) as untilEndOfJune 
+        tsq_duration_round(cast(year(released_on) as signed), cast(month(released_on) as signed), cast(dayofmonth(released_on) as signed), 0, ?, ?, ?, 0, 'month', 'day', 1, 'trunc', 1) as untilEndOfJune 
     from project_release 
     order by version
     ```
@@ -1493,7 +1493,7 @@ The executed query is:
         version as version, 
         tsq_duration_text(0, 0, 0, datediff(date(published_at), released_on), 0, 'day') as toPublication, 
         tsq_duration_text(0, 0, 0, 0, cast(-timestampdiff(microsecond, published_at, timestamp(released_on)) as decimal(65)) * 1000, 'hour') as publishedAfter, 
-        tsq_duration_round(cast(year(released_on) as signed), cast(month(released_on) as signed), cast(dayofmonth(released_on) as signed), 0, cast(year(?) as signed), cast(month(?) as signed), cast(dayofmonth(?) as signed), 0, 'month', 'day', 1, 'trunc', 1) as untilEndOfJune 
+        tsq_duration_round(cast(year(released_on) as signed), cast(month(released_on) as signed), cast(dayofmonth(released_on) as signed), 0, ?, ?, ?, 0, 'month', 'day', 1, 'trunc', 1) as untilEndOfJune 
     from project_release 
     order by version
     ```
@@ -1503,7 +1503,7 @@ The executed query is:
         version as "version", 
         tsq_duration_text(0, 0, 0, (trunc(published_at) - released_on), 0, 'day') as "toPublication", 
         tsq_duration_text(0, 0, 0, 0, -((trunc(cast(released_on as timestamp(9))) - trunc(published_at)) * 86400000000000 + (to_number(to_char(cast(released_on as timestamp(9)), 'SSSSSFF9')) - to_number(to_char(published_at, 'SSSSSFF9')))), 'hour') as "publishedAfter", 
-        tsq_duration_round(extract(year from released_on), extract(month from released_on), extract(day from released_on), 0, extract(year from to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(month from to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(day from to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), 0, 'month', 'day', 1, 'trunc', 1) as "untilEndOfJune" 
+        tsq_duration_round(extract(year from released_on), extract(month from released_on), extract(day from released_on), 0, :0, :1, :2, 0, 'month', 'day', 1, 'trunc', 1) as "untilEndOfJune" 
     from project_release 
     order by "version"
     ```
@@ -1513,7 +1513,7 @@ The executed query is:
         version as version, 
         make_interval(days => (cast(published_at as date) - released_on)) as "toPublication", 
         (extract(epoch from published_at - cast(released_on as timestamp)) || ' seconds')::interval as "publishedAfter", 
-        tsq_duration_round(cast(extract(year from released_on) as integer), cast(extract(month from released_on) as integer), cast(extract(day from released_on) as integer), 0, cast(extract(year from $1::date) as integer), cast(extract(month from $1::date) as integer), cast(extract(day from $1::date) as integer), 0, 'month', 'day', 1, 'trunc', 1) as "untilEndOfJune" 
+        tsq_duration_round(cast(extract(year from released_on) as integer), cast(extract(month from released_on) as integer), cast(extract(day from released_on) as integer), 0, $1, $2, $3, 0, 'month', 'day', 1, 'trunc', 1) as "untilEndOfJune" 
     from project_release 
     order by version
     ```
@@ -1523,7 +1523,7 @@ The executed query is:
         version as version, 
         tsq_duration_text(0, 0, 0, cast(julianday(date(date(published_at))) - julianday(date(released_on)) as integer), 0, 'day') as toPublication, 
         tsq_duration_text(0, 0, 0, 0, cast(-cast(round((julianday(strftime('%Y-%m-%dT%H:%M:%fZ', released_on)) - julianday(published_at)) * 86400000) as integer) * 1000000 as text), 'hour') as publishedAfter, 
-        tsq_duration_round(cast(strftime('%Y', released_on) as integer), cast(strftime('%m', released_on) as integer), cast(strftime('%d', released_on) as integer), 0, cast(strftime('%Y', ?1) as integer), cast(strftime('%m', ?1) as integer), cast(strftime('%d', ?1) as integer), 0, 'month', 'day', 1, 'trunc', 1) as untilEndOfJune 
+        tsq_duration_round(cast(strftime('%Y', released_on) as integer), cast(strftime('%m', released_on) as integer), cast(strftime('%d', released_on) as integer), 0, ?1, ?2, ?3, 0, 'month', 'day', 1, 'trunc', 1) as untilEndOfJune 
     from project_release 
     order by version
     ```
@@ -1533,12 +1533,12 @@ The executed query is:
         version as version, 
         dbo.tsq_duration_text(0, 0, 0, datediff(day, released_on, cast(switchoffset(published_at, '+00:00') as date)), 0, 'day') as toPublication, 
         dbo.tsq_duration_text(0, 0, 0, 0, cast(-(datediff(day, cast(published_at as date), cast(cast(released_on as datetime2) as date)) * cast(864000000000 as bigint) + (datediff_big(nanosecond, cast(published_at as time), cast(cast(released_on as datetime2) as time)) / 100)) as decimal(38)) * 100, 'hour') as publishedAfter, 
-        dbo.tsq_duration_round(datepart(year, released_on), datepart(month, released_on), datepart(day, released_on), 0, datepart(year, @0), datepart(month, @0), datepart(day, @0), 0, 'month', 'day', 1, 'trunc', 1) as untilEndOfJune 
+        dbo.tsq_duration_round(datepart(year, released_on), datepart(month, released_on), datepart(day, released_on), 0, @0, @1, @2, 0, 'month', 'day', 1, 'trunc', 1) as untilEndOfJune 
     from project_release 
     order by version
     ```
 
-The parameters are: `[ PlainDate 2024-06-30 ]` (on MariaDB and MySQL: `[ PlainDate 2024-06-30, PlainDate 2024-06-30, PlainDate 2024-06-30 ]`; on SQLite: `[ '2024-06-30' ]`)
+The parameters are: `[ 2024, 6, 30 ]`
 
 | version | toPublication | publishedAfter | untilEndOfJune |
 |---|---|---|---|
@@ -2074,7 +2074,7 @@ The executed query is:
         version as version, 
         tsq_duration_text(0, (cast(year(?) as signed) * 12 + cast(month(?) as signed) - (cast(year(cast(date_format(released_on, '%Y-%m-01') as date)) as signed) * 12 + cast(month(cast(date_format(released_on, '%Y-%m-01') as date)) as signed))), 0, 0, 0, 'year') as untilJune, 
         tsq_duration_text(0, (cast(year(?) as signed) * 12 + cast(month(?) as signed) - (cast(year(cast(date_format(released_on, '%Y-%m-01') as date)) as signed) * 12 + cast(month(cast(date_format(released_on, '%Y-%m-01') as date)) as signed))), 0, 0, 0, 'month') as inMonths, 
-        tsq_duration_round(cast(year(cast(date_format(released_on, '%Y-%m-01') as date)) as signed), cast(month(cast(date_format(released_on, '%Y-%m-01') as date)) as signed), 1, 0, cast(year(?) as signed), cast(month(?) as signed), 1, 0, 'year', 'year', 1, 'halfExpand', 1) as inYears 
+        tsq_duration_round(cast(year(cast(date_format(released_on, '%Y-%m-01') as date)) as signed), cast(month(cast(date_format(released_on, '%Y-%m-01') as date)) as signed), 1, 0, ?, ?, 1, 0, 'year', 'year', 1, 'halfExpand', 1) as inYears 
     from project_release 
     order by version
     ```
@@ -2084,7 +2084,7 @@ The executed query is:
         version as version, 
         tsq_duration_text(0, (cast(year(?) as signed) * 12 + cast(month(?) as signed) - (cast(year(cast(date_format(released_on, '%Y-%m-01') as date)) as signed) * 12 + cast(month(cast(date_format(released_on, '%Y-%m-01') as date)) as signed))), 0, 0, 0, 'year') as untilJune, 
         tsq_duration_text(0, (cast(year(?) as signed) * 12 + cast(month(?) as signed) - (cast(year(cast(date_format(released_on, '%Y-%m-01') as date)) as signed) * 12 + cast(month(cast(date_format(released_on, '%Y-%m-01') as date)) as signed))), 0, 0, 0, 'month') as inMonths, 
-        tsq_duration_round(cast(year(cast(date_format(released_on, '%Y-%m-01') as date)) as signed), cast(month(cast(date_format(released_on, '%Y-%m-01') as date)) as signed), 1, 0, cast(year(?) as signed), cast(month(?) as signed), 1, 0, 'year', 'year', 1, 'halfExpand', 1) as inYears 
+        tsq_duration_round(cast(year(cast(date_format(released_on, '%Y-%m-01') as date)) as signed), cast(month(cast(date_format(released_on, '%Y-%m-01') as date)) as signed), 1, 0, ?, ?, 1, 0, 'year', 'year', 1, 'halfExpand', 1) as inYears 
     from project_release 
     order by version
     ```
@@ -2094,7 +2094,7 @@ The executed query is:
         version as "version", 
         tsq_duration_text(0, (extract(year from to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')) * 12 + extract(month from to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')) - (extract(year from trunc(released_on, 'MM')) * 12 + extract(month from trunc(released_on, 'MM')))), 0, 0, 0, 'year') as "untilJune", 
         tsq_duration_text(0, (extract(year from to_date(:1, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')) * 12 + extract(month from to_date(:1, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')) - (extract(year from trunc(released_on, 'MM')) * 12 + extract(month from trunc(released_on, 'MM')))), 0, 0, 0, 'month') as "inMonths", 
-        tsq_duration_round(extract(year from trunc(released_on, 'MM')), extract(month from trunc(released_on, 'MM')), 1, 0, extract(year from to_date(:2, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(month from to_date(:2, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), 1, 0, 'year', 'year', 1, 'halfExpand', 1) as "inYears" 
+        tsq_duration_round(extract(year from trunc(released_on, 'MM')), extract(month from trunc(released_on, 'MM')), 1, 0, :2, :3, 1, 0, 'year', 'year', 1, 'halfExpand', 1) as "inYears" 
     from project_release 
     order by "version"
     ```
@@ -2104,7 +2104,7 @@ The executed query is:
         version as version, 
         make_interval(months => (cast(extract(year from $1::date) as integer) * 12 + cast(extract(month from $1::date) as integer) - (cast(extract(year from date_trunc('month', released_on)::date) as integer) * 12 + cast(extract(month from date_trunc('month', released_on)::date) as integer)))) as "untilJune", 
         make_interval(months => (cast(extract(year from $2::date) as integer) * 12 + cast(extract(month from $2::date) as integer) - (cast(extract(year from date_trunc('month', released_on)::date) as integer) * 12 + cast(extract(month from date_trunc('month', released_on)::date) as integer)))) as "inMonths", 
-        tsq_duration_round(cast(extract(year from date_trunc('month', released_on)::date) as integer), cast(extract(month from date_trunc('month', released_on)::date) as integer), 1, 0, cast(extract(year from $3::date) as integer), cast(extract(month from $3::date) as integer), 1, 0, 'year', 'year', 1, 'halfExpand', 1) as "inYears" 
+        tsq_duration_round(cast(extract(year from date_trunc('month', released_on)::date) as integer), cast(extract(month from date_trunc('month', released_on)::date) as integer), 1, 0, $3, $4, 1, 0, 'year', 'year', 1, 'halfExpand', 1) as "inYears" 
     from project_release 
     order by version
     ```
@@ -2114,7 +2114,7 @@ The executed query is:
         version as version, 
         tsq_duration_text(0, (cast(strftime('%Y', ?1) as integer) * 12 + cast(strftime('%m', ?1) as integer) - (cast(strftime('%Y', date(released_on, 'start of month')) as integer) * 12 + cast(strftime('%m', date(released_on, 'start of month')) as integer))), 0, 0, 0, 'year') as untilJune, 
         tsq_duration_text(0, (cast(strftime('%Y', ?2) as integer) * 12 + cast(strftime('%m', ?2) as integer) - (cast(strftime('%Y', date(released_on, 'start of month')) as integer) * 12 + cast(strftime('%m', date(released_on, 'start of month')) as integer))), 0, 0, 0, 'month') as inMonths, 
-        tsq_duration_round(cast(strftime('%Y', date(released_on, 'start of month')) as integer), cast(strftime('%m', date(released_on, 'start of month')) as integer), 1, 0, cast(strftime('%Y', ?3) as integer), cast(strftime('%m', ?3) as integer), 1, 0, 'year', 'year', 1, 'halfExpand', 1) as inYears 
+        tsq_duration_round(cast(strftime('%Y', date(released_on, 'start of month')) as integer), cast(strftime('%m', date(released_on, 'start of month')) as integer), 1, 0, ?3, ?4, 1, 0, 'year', 'year', 1, 'halfExpand', 1) as inYears 
     from project_release 
     order by version
     ```
@@ -2124,12 +2124,12 @@ The executed query is:
         version as version, 
         dbo.tsq_duration_text(0, (datepart(year, @0) * 12 + datepart(month, @0) - (datepart(year, datefromparts(datepart(year, released_on), datepart(month, released_on), 1)) * 12 + datepart(month, datefromparts(datepart(year, released_on), datepart(month, released_on), 1)))), 0, 0, 0, 'year') as untilJune, 
         dbo.tsq_duration_text(0, (datepart(year, @1) * 12 + datepart(month, @1) - (datepart(year, datefromparts(datepart(year, released_on), datepart(month, released_on), 1)) * 12 + datepart(month, datefromparts(datepart(year, released_on), datepart(month, released_on), 1)))), 0, 0, 0, 'month') as inMonths, 
-        dbo.tsq_duration_round(datepart(year, datefromparts(datepart(year, released_on), datepart(month, released_on), 1)), datepart(month, datefromparts(datepart(year, released_on), datepart(month, released_on), 1)), 1, 0, datepart(year, @2), datepart(month, @2), 1, 0, 'year', 'year', 1, 'halfExpand', 1) as inYears 
+        dbo.tsq_duration_round(datepart(year, datefromparts(datepart(year, released_on), datepart(month, released_on), 1)), datepart(month, datefromparts(datepart(year, released_on), datepart(month, released_on), 1)), 1, 0, @2, @3, 1, 0, 'year', 'year', 1, 'halfExpand', 1) as inYears 
     from project_release 
     order by version
     ```
 
-The parameters are: `[ PlainDate 2025-06-01, PlainDate 2025-06-01, PlainDate 2025-06-01 ]` (on MariaDB and MySQL: `[ PlainDate 2025-06-01, PlainDate 2025-06-01, PlainDate 2025-06-01, PlainDate 2025-06-01, PlainDate 2025-06-01, PlainDate 2025-06-01 ]`; on SQLite: `[ '2025-06-01', '2025-06-01', '2025-06-01' ]`)
+The parameters are: `[ PlainDate 2025-06-01, PlainDate 2025-06-01, 2025, 6 ]` (on MariaDB and MySQL: `[ PlainDate 2025-06-01, PlainDate 2025-06-01, PlainDate 2025-06-01, PlainDate 2025-06-01, 2025, 6 ]`; on SQLite: `[ '2025-06-01', '2025-06-01', 2025, 6 ]`)
 
 | version | untilJune | inMonths | inYears |
 |---|---|---|---|

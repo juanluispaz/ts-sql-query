@@ -1167,3 +1167,31 @@ $$;
 CREATE OR REPLACE FUNCTION tsq_day_in_month_or_error(value timestamp, months integer) RETURNS integer LANGUAGE sql IMMUTABLE AS $$
     SELECT extract(day FROM make_date((extract(year FROM value)::integer * 12 + extract(month FROM value)::integer - 1 + months) / 12, (extract(year FROM value)::integer * 12 + extract(month FROM value)::integer - 1 + months) % 12 + 1, extract(day FROM value)::integer))::integer - extract(day FROM value)::integer
 $$;
+
+-- tsq_utc_of_epoch: the date and time in UTC of an instant given as a number of units since 1970-01-01T00:00Z, of the
+-- nanoseconds given each (1000000 for milliseconds, 1 for nanoseconds), as Temporal's Instant.fromEpochMilliseconds and
+-- fromEpochNanoseconds: the whole days rounded down and the rest of the day; the function of the library that writes the
+-- number once (libraryFunctions installed).
+CREATE OR REPLACE FUNCTION tsq_utc_of_epoch(value numeric, unit_nanoseconds bigint) RETURNS timestamp LANGUAGE plpgsql IMMUTABLE STRICT AS $$
+DECLARE
+    total numeric := value * unit_nanoseconds;
+    rest numeric := mod(mod(total, 86400000000000) + 86400000000000, 86400000000000);
+BEGIN
+    RETURN (date '1970-01-01' + ((total - rest) / 86400000000000)::integer) + make_interval(secs => rest / 1000000000.0);
+END $$;
+
+-- tsq_date_with: a date with the year, the month and the day given in place of its own (null keeps its own), as
+-- Temporal's with: a day the month hasn't is its last day, or an error with reject (1); the function of the library that
+-- writes the date once (libraryFunctions installed).
+CREATE OR REPLACE FUNCTION tsq_date_with(value date, y integer, m integer, d integer, reject integer) RETURNS date LANGUAGE plpgsql IMMUTABLE AS $$
+DECLARE
+    v_year integer := coalesce(y, extract(year FROM value)::integer);
+    v_month integer := coalesce(m, extract(month FROM value)::integer);
+    v_day integer := coalesce(d, extract(day FROM value)::integer);
+    v_last integer;
+BEGIN
+    IF value IS NULL THEN RETURN NULL; END IF;
+    v_last := extract(day FROM make_date(v_year, v_month, 1) + interval '1 month - 1 day')::integer;
+    IF v_day > v_last AND reject = 0 THEN v_day := v_last; END IF;
+    RETURN make_date(v_year, v_month, v_day);
+END $$;

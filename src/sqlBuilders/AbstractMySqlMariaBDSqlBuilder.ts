@@ -1139,6 +1139,10 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         if (fields === 'time') {
             return this._mySqlTimeWith(context, valueSource, given)
         }
+        if (fields === 'date' && this._libraryFunctionsInstalled()) {
+            // The function of the library, the value written once: a field not given (null) is the one of the value
+            return this._dateWithFunction(context, valueSource, this._integerOrNull(given.year) + ', ' + this._integerOrNull(given.month) + ', ' + this._integerOrNull(given.day) + ', ' + (reject ? '1' : '0'))
+        }
         const mayNotFit = given.day === undefined ? given.year !== undefined || given.month !== undefined : given.day > 28
         // The first day of the month, then the days after it, up to the last day of the month; rejecting a day the month
         // hasn't with an error of the query (MariaDB and MySQL have no date that fails): a subquery of two rows

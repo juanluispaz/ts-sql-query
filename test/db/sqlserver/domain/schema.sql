@@ -923,3 +923,28 @@ BEGIN
     RETURN DAY(DATEFROMPARTS(@index / 12, @index % 12 + 1, DAY(@value))) - DAY(@value);
 END
 GO
+
+-- tsq_utc_of_epoch: the date and time in UTC of an instant given as a number of units since 1970-01-01T00:00Z, of the
+-- nanoseconds given each (1000000 for milliseconds, 1 for nanoseconds), as Temporal's Instant.fromEpochMilliseconds and
+-- fromEpochNanoseconds: the whole days rounded down and the rest of the day; the function of the library that writes the
+-- number once (libraryFunctions installed).
+CREATE OR ALTER FUNCTION dbo.tsq_utc_of_epoch(@value DECIMAL(38, 0), @unit_nanoseconds BIGINT) RETURNS DATETIME2(7) WITH SCHEMABINDING AS
+BEGIN
+    DECLARE @total DECIMAL(38, 0) = @value * @unit_nanoseconds;
+    DECLARE @rest DECIMAL(38, 0) = (@total % 86400000000000 + 86400000000000) % 86400000000000;
+    RETURN DATEADD(NANOSECOND, @rest % 1000000000, DATEADD(SECOND, FLOOR(@rest / 1000000000), CAST(DATEADD(DAY, (@total - @rest) / 86400000000000, CAST('1970-01-01' AS DATE)) AS DATETIME2(7))));
+END
+GO
+
+-- tsq_date_with: a date with the year, the month and the day given in place of its own (null keeps its own), as
+-- Temporal's with: a day the month hasn't is its last day, or an error with reject (1); the function of the library that
+-- writes the date once (libraryFunctions installed).
+CREATE OR ALTER FUNCTION dbo.tsq_date_with(@value DATE, @year INT, @month INT, @day INT, @reject INT) RETURNS DATE WITH SCHEMABINDING AS
+BEGIN
+    IF @value IS NULL RETURN NULL;
+    DECLARE @y INT = ISNULL(@year, YEAR(@value)), @m INT = ISNULL(@month, MONTH(@value)), @d INT = ISNULL(@day, DAY(@value));
+    DECLARE @last INT = DAY(EOMONTH(DATEFROMPARTS(@y, @m, 1)));
+    IF @d > @last AND @reject = 0 SET @d = @last;
+    RETURN DATEFROMPARTS(@y, @m, @d);
+END
+GO

@@ -360,6 +360,26 @@ BEGIN
 END
 GO
 
+-- ===== tsq_utc_of_epoch =====
+CREATE OR ALTER FUNCTION dbo.tsq_utc_of_epoch(@value DECIMAL(38, 0), @unit_nanoseconds BIGINT) RETURNS DATETIME2(7) WITH SCHEMABINDING AS
+BEGIN
+    DECLARE @total DECIMAL(38, 0) = @value * @unit_nanoseconds;
+    DECLARE @rest DECIMAL(38, 0) = (@total % 86400000000000 + 86400000000000) % 86400000000000;
+    RETURN DATEADD(NANOSECOND, @rest % 1000000000, DATEADD(SECOND, FLOOR(@rest / 1000000000), CAST(DATEADD(DAY, (@total - @rest) / 86400000000000, CAST('1970-01-01' AS DATE)) AS DATETIME2(7))));
+END
+GO
+
+-- ===== tsq_date_with =====
+CREATE OR ALTER FUNCTION dbo.tsq_date_with(@value DATE, @year INT, @month INT, @day INT, @reject INT) RETURNS DATE WITH SCHEMABINDING AS
+BEGIN
+    IF @value IS NULL RETURN NULL;
+    DECLARE @y INT = ISNULL(@year, YEAR(@value)), @m INT = ISNULL(@month, MONTH(@value)), @d INT = ISNULL(@day, DAY(@value));
+    DECLARE @last INT = DAY(EOMONTH(DATEFROMPARTS(@y, @m, 1)));
+    IF @d > @last AND @reject = 0 SET @d = @last;
+    RETURN DATEFROMPARTS(@y, @m, @d);
+END
+GO
+
 -- ===== tsq_greatest_strict and tsq_least_strict =====
 CREATE OR ALTER FUNCTION dbo.tsq_greatest_strict(@a FLOAT, @b FLOAT) RETURNS FLOAT AS
 BEGIN

@@ -1313,6 +1313,12 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _dayInMonthOrErrorSql(context: SqlBuildContext, valueSource: ToSql, months: string): string {
         return 'dbo.tsq_day_in_month_or_error(' + this._appendSql(valueSource, context, this._isConstOperand(valueSource)) + ', ' + months + ')'
     }
+    override _utcOfEpochFunctionName(): string | undefined {
+        return 'dbo.tsq_utc_of_epoch'
+    }
+    override _dateWithFunction(context: SqlBuildContext, valueSource: ToSql, fields: string): string {
+        return 'dbo.tsq_date_with(' + this._appendSql(valueSource, context, this._isConstOperand(valueSource)) + ', ' + fields + ')'
+    }
     override _durationNegatedFunctionName(): string {
         return 'dbo.tsq_duration_negated'
     }

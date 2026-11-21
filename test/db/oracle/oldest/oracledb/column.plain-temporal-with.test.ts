@@ -3,7 +3,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tColMatrixPlain } from '../../domain/connection.js'
+import { tCalendarValue, tColMatrixPlain, tRelease } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -118,5 +118,62 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{ firstDay: Temporal.PlainDate; oClock: Temporal.PlainTime; endOfFebruary: Temporal.PlainDateTime }>>>()
         expect(rows.map(row => [row.firstDay, row.oClock, row.endOfFebruary].map(String))).toEqual([['2024-03-01', '09:00:00', '2024-02-29T12:30:00']])
+    })
+
+    test('dates-with-fields-and-instants-of-epochs-with-the-functions-of-the-library', async () => {
+        // With the functions of the library installed with of a date, toPlainDate of a month of a year and of a day of a
+        // month, and an instant of its milliseconds or nanoseconds write the value once: the values are the ones of
+        // Temporal for the values read, with and without the functions, and a day the month hasn't fails with reject
+        // (the mock answers no rows: there it is the SQL that is checked)
+        const query = (conn: typeof ctx.conn) => conn.selectFrom(tCalendarValue)
+            .select({
+                id: tCalendarValue.id,
+                monthOf: tCalendarValue.monthOf,
+                dayOf: tCalendarValue.dayOf,
+                bornOn: tCalendarValue.bornOn,
+                lastOfMonth: tCalendarValue.bornOn.with({ day: 31 }),
+                inFebruary: tCalendarValue.bornOn.with({ month: 2 }),
+                in2023: tCalendarValue.dayOf.toPlainDate({ year: 2023 }),
+                day30: tCalendarValue.monthOf.toPlainDate({ day: 30 }),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        const epochs = (conn: typeof ctx.conn) => conn.selectFrom(tRelease)
+            .where(tRelease.deployedAt.isNotNull())
+            .select({
+                version: tRelease.version,
+                deployedAt: tRelease.deployedAt,
+                ofMilliseconds: conn.instantFromEpochMilliseconds(tRelease.deployedAt.epochMilliseconds()),
+                ofNanoseconds: conn.instantFromEpochNanoseconds(tRelease.deployedAt.epochNanoseconds()),
+            })
+            .orderBy('version')
+            .executeSelectMany()
+        ctx.mockNext([])
+        const withFunctions = await query(ctx.withLibraryFunctions())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", to_char(month_of, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "monthOf", to_char(day_of, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "dayOf", to_char(born_on, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "bornOn", to_char(tsq_date_with(born_on, null, null, 31, 0), 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "lastOfMonth", to_char(tsq_date_with(born_on, null, 2, null, 0), 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "inFebruary", to_char(tsq_date_with(day_of, 2023, null, null, 0), 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "in2023", to_char(tsq_date_with(month_of, null, null, 30, 0), 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "day30" from calendar_value order by "id""`)
+        ctx.mockNext([])
+        const withoutFunctions = await query(ctx.conn)
+        expect(withFunctions.length).toBe(ctx.realDbEnabled ? 3 : 0)
+        type Row = (typeof withFunctions)[number]
+        const read = (row: Row) => [row.id, row.lastOfMonth.toString(), row.inFebruary.toString(), row.in2023.toString(), row.day30.toString()]
+        const ofTemporal = (row: Row) => [row.id, row.bornOn.with({ day: 31 }).toString(), row.bornOn.with({ month: 2 }).toString(), row.dayOf.toPlainDate({ year: 2023 }).toString(), row.monthOf.toPlainDate({ day: 30 }).toString()]
+        expect(withFunctions.map(read)).toEqual(withFunctions.map(ofTemporal))
+        expect(withoutFunctions.map(read)).toEqual(withoutFunctions.map(ofTemporal))
+        ctx.mockNext([])
+        const epochsWithFunctions = await epochs(ctx.withLibraryFunctions())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as "version", to_char(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "deployedAt", to_char(sys_extract_utc(cast(from_tz(tsq_utc_of_epoch((trunc(timestamp '1970-01-01 00:00:00' + (deployed_at - timestamp '1970-01-01 00:00:00')) - date '1970-01-01') * 86400000 + to_number(to_char(timestamp '1970-01-01 00:00:00' + (deployed_at - timestamp '1970-01-01 00:00:00'), 'SSSSSFF3')), 1000000), '+00:00') as timestamp(9) with time zone)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "ofMilliseconds", to_char(sys_extract_utc(cast(from_tz(tsq_utc_of_epoch(((trunc(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone))) - date '1970-01-01') * 86400000000000 + to_number(to_char(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)), 'SSSSSFF9'))), 1), '+00:00') as timestamp(9) with time zone)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "ofNanoseconds" from project_release where deployed_at is not null order by "version""`)
+        ctx.mockNext([])
+        const epochsWithoutFunctions = await epochs(ctx.conn)
+        expect(epochsWithFunctions.length).toBe(ctx.realDbEnabled ? 2 : 0)
+        type EpochRow = (typeof epochsWithFunctions)[number]
+        const readEpochs = (row: EpochRow) => [row.version, row.ofMilliseconds?.toString(), row.ofNanoseconds?.toString()]
+        const epochsOfTemporal = (row: EpochRow) => [row.version, row.deployedAt && Temporal.Instant.fromEpochMilliseconds(row.deployedAt.epochMilliseconds).toString(), row.deployedAt?.toString()]
+        expect(epochsWithFunctions.map(readEpochs)).toEqual(epochsWithFunctions.map(epochsOfTemporal))
+        expect(epochsWithoutFunctions.map(readEpochs)).toEqual(epochsWithoutFunctions.map(epochsOfTemporal))
+        ctx.mockNext([])
+        const failsWithFunctions = await ctx.withLibraryFunctions().selectFrom(tCalendarValue).where(tCalendarValue.id.equals(1)).select({ v: tCalendarValue.bornOn.with({ year: 2023 }, { overflow: 'reject' }) }).executeSelectMany().then(() => false, () => true)
+        ctx.mockNext([])
+        const failsWithoutFunctions = await ctx.conn.selectFrom(tCalendarValue).where(tCalendarValue.id.equals(1)).select({ v: tCalendarValue.bornOn.with({ year: 2023 }, { overflow: 'reject' }) }).executeSelectMany().then(() => false, () => true)
+        expect([failsWithFunctions, failsWithoutFunctions]).toEqual([ctx.realDbEnabled, ctx.realDbEnabled])
     })
 })

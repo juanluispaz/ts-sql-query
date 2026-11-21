@@ -16,6 +16,8 @@
  *   uuid_str and uuid_blob. uuid() generates a version 7 UUID (the extension generates a version 4), whose text and
  *   whose blob sort by the time they were generated.
  * - tsq_ci_replace, a case-insensitive replace, for replaceAllInsensitive with libraryFunctions 'installed'.
+ * - tsq_utc_of_epoch, the date and time in UTC of a number of units since the epoch, with libraryFunctions 'installed'.
+ * - tsq_date_with, a date with some of its fields given, with libraryFunctions 'installed'.
  * - tsq_day_in_month_or_error, for Temporal's overflow 'reject', with libraryFunctions 'installed'.
  * - tsq_duration_negated, the ISO 8601 text of a duration negated, with libraryFunctions 'installed'.
  * - tsq_date_plus_duration, tsq_datetime_plus_duration and tsq_instant_plus_duration, a value plus a duration of the
@@ -945,6 +947,47 @@ function durationAdd(largest1: unknown, days1: unknown, seconds1: unknown, nanos
 }
 
 /**
+ * tsq_utc_of_epoch: the date and time in UTC (YYYY-MM-DD HH:MM:SS.SSS, to the millisecond, as the date functions keep
+ * it) of a number of units since 1970-01-01T00:00Z, given as its text, of the nanoseconds given each
+ */
+function utcOfEpoch(value: unknown, unitNanoseconds: unknown): string | null {
+    if (value === null || value === undefined || unitNanoseconds === null || unitNanoseconds === undefined) {
+        return null
+    }
+    // An integer, or a real without fraction (the date functions compute the milliseconds as one)
+    const text = String(value)
+    const units = /^-?\d+$/.test(text) ? BigInt(text) : BigInt(Math.trunc(Number(text)))
+    const nanoseconds = units * BigInt(String(unitNanoseconds))
+    // To the nearest millisecond, half up, as the date functions of SQLite add the seconds of the rest of the day
+    const shifted = nanoseconds + 500000n
+    const milliseconds = shifted / 1000000n - (shifted % 1000000n < 0n ? 1n : 0n)
+    return textOfTime(Number(milliseconds), false)
+}
+
+/**
+ * tsq_date_with: a date (its text, YYYY-MM-DD) with the year, the month and the day given in place of its own (null
+ * keeps its own), as Temporal's with: a day the month hasn't is its last day, or an error with reject (1)
+ */
+function dateWith(value: unknown, year: unknown, month: unknown, day: unknown, reject: unknown): string | null {
+    const parts = dateTimeParts(value)
+    if (!parts) {
+        return null
+    }
+    const y = year === null || year === undefined ? parts.year : Number(year)
+    const m = month === null || month === undefined ? parts.month : Number(month)
+    let d = day === null || day === undefined ? parts.day : Number(day)
+    const last = new Date(0)
+    last.setUTCFullYear(y, m, 0)
+    if (d > last.getUTCDate()) {
+        if (Number(reject) === 1) {
+            throw new Error('tsq_date_with: the month ' + m + ' of ' + y + ' has no day ' + d)
+        }
+        d = last.getUTCDate()
+    }
+    return String(y).padStart(4, '0') + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0')
+}
+
+/**
  * tsq_day_in_month_or_error: 0, or an error when the day of a date (its text, YYYY-MM-DD, as the date functions write
  * it) isn't in the month that the months given reach from it, as Temporal's overflow 'reject' fails
  */
@@ -1109,6 +1152,8 @@ export const sqliteScalarFunctions: readonly SqliteScalarFunction[] = [
     { name: 'tsq_duration_round', arity: 13, deterministic: pure, fn: durationRound as SqliteScalarFunction['fn'] },
     { name: 'tsq_duration_total', arity: 9, deterministic: pure, fn: durationTotal as SqliteScalarFunction['fn'] },
     { name: 'tsq_duration_add', arity: 9, deterministic: pure, fn: durationAdd as SqliteScalarFunction['fn'] },
+    { name: 'tsq_utc_of_epoch', arity: 2, deterministic: pure, fn: utcOfEpoch as SqliteScalarFunction['fn'] },
+    { name: 'tsq_date_with', arity: 5, deterministic: pure, fn: dateWith as SqliteScalarFunction['fn'] },
     { name: 'tsq_day_in_month_or_error', arity: 2, deterministic: pure, fn: dayInMonthOrError as SqliteScalarFunction['fn'] },
     { name: 'tsq_duration_negated', arity: 1, deterministic: pure, fn: durationNegated as SqliteScalarFunction['fn'] },
     { name: 'tsq_date_plus_duration', arity: 3, deterministic: pure, fn: datePlusDuration as SqliteScalarFunction['fn'] },

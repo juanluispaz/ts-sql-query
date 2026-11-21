@@ -4214,11 +4214,32 @@ export class AbstractSqlBuilder implements SqlBuilder {
      */
     _appendInstantOfEpoch(context: SqlBuildContext, valueSource: ToSql, perDay: bigint, nanoseconds: bigint): string {
         const operand = this._temporalOperand(valueSource)
+        const name = this._libraryFunctionsInstalled() ? this._utcOfEpochFunctionName() : undefined
+        if (name !== undefined) {
+            // Its wall clock in UTC by the function of the library, the number written once
+            return this._instantOfUtc(context, this._utcOfEpochSql(name, this._epochOperand(context, operand), this._bigintLiteral(nanoseconds)))
+        }
         const day = this._bigintLiteral(perDay)
         const days = this._truncatedDivision('(' + this._epochOperand(context, operand) + ' - ' + this._epochRemainder(context, operand, day) + ')', day)
         const date = this._addDaysToDate(context, this._epochDate(), this._integerOfBigint(days))
         const rest = this._epochRemainder(context, operand, day)
         return this._instantOfUtc(context, this._dateTimeOfNanoseconds(context, date, nanoseconds === 1n ? rest : rest + ' * ' + this._bigintLiteral(nanoseconds)))
+    }
+    /** An integer given, or null */
+    _integerOrNull(value: number | undefined): string {
+        return value === undefined ? 'null' : String(value)
+    }
+    /** A date with some fields (year, month, day, reject) by the function of the library tsq_date_with */
+    _dateWithFunction(context: SqlBuildContext, valueSource: ToSql, fields: string): string {
+        return 'tsq_date_with(' + this._appendSql(valueSource, context, this._isConstOperand(valueSource)) + ', ' + fields + ')'
+    }
+    /** The call of the function of the library that gives the wall clock in UTC of a number of units since the epoch */
+    _utcOfEpochSql(name: string, value: string, unitNanoseconds: string): string {
+        return name + '(' + value + ', ' + unitNanoseconds + ')'
+    }
+    /** The function of the library that gives the wall clock in UTC of a number of units since the epoch; undefined where the SQL is short */
+    _utcOfEpochFunctionName(): string | undefined {
+        return 'tsq_utc_of_epoch'
     }
     /** The rest of a number of units since the epoch after its whole days, from 0 */
     _epochRemainder(context: SqlBuildContext, valueSource: ToSql, day: string): string {
@@ -4737,6 +4758,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         if (fields !== 'date' && __withChangesOnlyWholeTime(given)) {
             return this._withWholeTime(context, valueSource, given, fields)
+        }
+        if (fields === 'date' && this._libraryFunctionsInstalled()) {
+            // The function of the library, the value written once: a field not given (null) is the one of the value
+            return this._dateWithFunction(context, valueSource, this._integerOrNull(given.year) + ', ' + this._integerOrNull(given.month) + ', ' + this._integerOrNull(given.day) + ', ' + (reject ? '1' : '0'))
         }
         let year = ''
         let month = ''

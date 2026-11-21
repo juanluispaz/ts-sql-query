@@ -447,3 +447,39 @@ BEGIN
 END
 //
 DELIMITER ;
+
+-- ===== tsq_utc_of_epoch =====
+DROP FUNCTION IF EXISTS tsq_utc_of_epoch;
+DELIMITER //
+CREATE FUNCTION tsq_utc_of_epoch(value DECIMAL(65, 0), unit_nanoseconds BIGINT) RETURNS DATETIME(6) DETERMINISTIC NO SQL
+BEGIN
+    DECLARE v_total DECIMAL(65, 0) DEFAULT value * unit_nanoseconds;
+    DECLARE v_rest DECIMAL(65, 0) DEFAULT MOD(MOD(v_total, 86400000000000) + 86400000000000, 86400000000000);
+    RETURN DATE_ADD(DATE_ADD(DATE '1970-01-01', INTERVAL (v_total - v_rest) DIV 86400000000000 DAY), INTERVAL v_rest DIV 1000 MICROSECOND);
+END
+//
+DELIMITER ;
+
+-- ===== tsq_date_with =====
+DROP FUNCTION IF EXISTS tsq_date_with;
+DELIMITER //
+CREATE FUNCTION tsq_date_with(value DATE, y INT, m INT, d INT, reject INT) RETURNS DATE DETERMINISTIC NO SQL
+BEGIN
+    DECLARE v_year INT DEFAULT IFNULL(y, YEAR(value));
+    DECLARE v_month INT DEFAULT IFNULL(m, MONTH(value));
+    DECLARE v_day INT DEFAULT IFNULL(d, DAYOFMONTH(value));
+    DECLARE v_first DATE;
+    DECLARE v_last INT;
+    IF value IS NULL THEN RETURN NULL; END IF;
+    SET v_first = DATE_ADD(MAKEDATE(v_year, 1), INTERVAL v_month - 1 MONTH);
+    SET v_last = DAY(LAST_DAY(v_first));
+    IF v_day > v_last THEN
+        IF reject = 1 THEN
+            SIGNAL SQLSTATE '22023' SET MESSAGE_TEXT = 'tsq_date_with: the month has not that day';
+        END IF;
+        SET v_day = v_last;
+    END IF;
+    RETURN DATE_ADD(v_first, INTERVAL v_day - 1 DAY);
+END
+//
+DELIMITER ;

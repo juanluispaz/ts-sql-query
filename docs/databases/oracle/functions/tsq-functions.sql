@@ -743,6 +743,37 @@ BEGIN
 END;
 /
 
+-- ===== tsq_utc_of_epoch =====
+CREATE OR REPLACE FUNCTION tsq_utc_of_epoch(value IN NUMBER, unit_nanoseconds IN NUMBER) RETURN TIMESTAMP_UNCONSTRAINED DETERMINISTIC IS
+    v_total NUMBER := value * unit_nanoseconds;
+    v_rest NUMBER := MOD(MOD(v_total, 86400000000000) + 86400000000000, 86400000000000);
+BEGIN
+    IF value IS NULL OR unit_nanoseconds IS NULL THEN RETURN NULL; END IF;
+    RETURN CAST(DATE '1970-01-01' + (v_total - v_rest) / 86400000000000 AS TIMESTAMP_UNCONSTRAINED) + NUMTODSINTERVAL(v_rest / 1000000000, 'second');
+END;
+/
+
+-- ===== tsq_date_with =====
+CREATE OR REPLACE FUNCTION tsq_date_with(value IN DATE, y IN NUMBER, m IN NUMBER, d IN NUMBER, reject IN NUMBER) RETURN DATE DETERMINISTIC IS
+    v_year NUMBER := NVL(y, EXTRACT(YEAR FROM value));
+    v_month NUMBER := NVL(m, EXTRACT(MONTH FROM value));
+    v_day NUMBER := NVL(d, EXTRACT(DAY FROM value));
+    v_first DATE;
+    v_last NUMBER;
+BEGIN
+    IF value IS NULL THEN RETURN NULL; END IF;
+    v_first := ADD_MONTHS(DATE '0001-01-01', (v_year - 1) * 12 + v_month - 1);
+    v_last := EXTRACT(DAY FROM LAST_DAY(v_first));
+    IF v_day > v_last THEN
+        IF reject = 1 THEN
+            RETURN TO_DATE(v_year || '-' || v_month || '-' || v_day, 'YYYY-MM-DD');
+        END IF;
+        v_day := v_last;
+    END IF;
+    RETURN v_first + v_day - 1;
+END;
+/
+
 -- ===== tsq_string_util.concat_strict =====
 CREATE OR REPLACE PACKAGE tsq_string_util AS
     FUNCTION concat_strict(a IN VARCHAR2, b IN VARCHAR2) RETURN VARCHAR2;

@@ -1368,6 +1368,15 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
      * days and the seconds. A time goes round at midnight. The digits below the millisecond are the ones the date
      * functions keep
      */
+    override _utcOfEpochSql(name: string, value: string, unitNanoseconds: string): string {
+        // The number as its text (a function would read an integer of more than 53 bits as a rounded number); the text of
+        // the result in the format of the dates of the connection
+        return this._sqliteTemporalIn('dateTime', name + '(cast(' + value + ' as text), ' + unitNanoseconds + ')')
+    }
+    override _dateWithFunction(context: SqlBuildContext, valueSource: ToSql, fields: string): string {
+        // Its text, as the date functions read it; the text of the result in the format of the dates of the connection
+        return this._sqliteTemporalIn('date', "tsq_date_with(strftime('%Y-%m-%d', " + this._dateFunctionArgument(context, valueSource) + '), ' + fields + ')')
+    }
     override _plusDurationFunction(fields: 'date' | 'time' | 'timestamp' | 'instant', duration: ToSql): string | undefined {
         // A duration kept as its text, added to a date, a date and time or an instant: its parts read once by the function
         if (!this._isDurationKeptAsText(duration) || fields === 'time') {

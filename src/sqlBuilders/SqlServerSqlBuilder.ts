@@ -1310,6 +1310,9 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         // A function of the user is called with its schema
         return 'dbo.tsq_round_to(' + value + ', ' + step + ", '" + mode + "')"
     }
+    override _dayInMonthOrErrorSql(context: SqlBuildContext, valueSource: ToSql, months: string): string {
+        return 'dbo.tsq_day_in_month_or_error(' + this._appendSql(valueSource, context, this._isConstOperand(valueSource)) + ', ' + months + ')'
+    }
     override _durationNegatedFunctionName(): string {
         return 'dbo.tsq_duration_negated'
     }

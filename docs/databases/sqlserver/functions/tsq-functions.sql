@@ -352,6 +352,14 @@ BEGIN
 END
 GO
 
+-- ===== tsq_day_in_month_or_error =====
+CREATE OR ALTER FUNCTION dbo.tsq_day_in_month_or_error(@value DATETIME2(7), @months INT) RETURNS INT WITH SCHEMABINDING AS
+BEGIN
+    DECLARE @index INT = YEAR(@value) * 12 + MONTH(@value) - 1 + @months;
+    RETURN DAY(DATEFROMPARTS(@index / 12, @index % 12 + 1, DAY(@value))) - DAY(@value);
+END
+GO
+
 -- ===== tsq_greatest_strict and tsq_least_strict =====
 CREATE OR ALTER FUNCTION dbo.tsq_greatest_strict(@a FLOAT, @b FLOAT) RETURNS FLOAT AS
 BEGIN

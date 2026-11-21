@@ -624,6 +624,11 @@ CREATE OR REPLACE FUNCTION tsq_duration_negated(d text) RETURNS text LANGUAGE sq
     SELECT CASE WHEN substr(d, 1, 1) = '-' THEN substr(d, 2) WHEN tsq_duration_part(d, 'sign') = 0 THEN d WHEN substr(d, 1, 1) = '+' THEN '-' || substr(d, 2) ELSE '-' || d END
 $$;
 
+-- ===== tsq_day_in_month_or_error =====
+CREATE OR REPLACE FUNCTION tsq_day_in_month_or_error(value timestamp, months integer) RETURNS integer LANGUAGE sql IMMUTABLE AS $$
+    SELECT extract(day FROM make_date((extract(year FROM value)::integer * 12 + extract(month FROM value)::integer - 1 + months) / 12, (extract(year FROM value)::integer * 12 + extract(month FROM value)::integer - 1 + months) % 12 + 1, extract(day FROM value)::integer))::integer - extract(day FROM value)::integer
+$$;
+
 -- ===== tsq_greatest_strict and tsq_least_strict =====
 CREATE OR REPLACE FUNCTION tsq_greatest_strict(a anycompatible, b anycompatible) RETURNS anycompatible
 LANGUAGE sql IMMUTABLE AS $$ SELECT CASE WHEN a IS NULL OR b IS NULL THEN NULL ELSE greatest(a, b) END $$;

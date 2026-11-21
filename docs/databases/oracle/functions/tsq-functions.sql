@@ -734,6 +734,15 @@ BEGIN
 END;
 /
 
+-- ===== tsq_day_in_month_or_error =====
+CREATE OR REPLACE FUNCTION tsq_day_in_month_or_error(value IN TIMESTAMP_UNCONSTRAINED, months IN NUMBER) RETURN NUMBER DETERMINISTIC IS
+    v_index NUMBER := EXTRACT(YEAR FROM value) * 12 + EXTRACT(MONTH FROM value) - 1 + months;
+BEGIN
+    IF value IS NULL OR months IS NULL THEN RETURN NULL; END IF;
+    RETURN EXTRACT(DAY FROM TO_DATE(TRUNC(v_index / 12) || '-' || (MOD(v_index, 12) + 1) || '-' || EXTRACT(DAY FROM value), 'YYYY-MM-DD')) - EXTRACT(DAY FROM value);
+END;
+/
+
 -- ===== tsq_string_util.concat_strict =====
 CREATE OR REPLACE PACKAGE tsq_string_util AS
     FUNCTION concat_strict(a IN VARCHAR2, b IN VARCHAR2) RETURN VARCHAR2;

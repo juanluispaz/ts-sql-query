@@ -1238,11 +1238,11 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     override _appendWithDurationRejecting(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass, sign: 1 | -1): string {
         const fields = this._temporalFieldsOfDurationOperation(typeClass)
         if (fields === 'time' || !this._hasDurationMonths(value, typeClass, fields, sign)) {
-            return this._appendWithDuration(context, valueSource, value, typeClass, sign)
+            return (this._appendPlusDuration(context, valueSource, value, fields, sign) ?? this._appendWithDuration(context, valueSource, value, typeClass, sign))
         }
         let result = 'case when day(' + this._appendSql(valueSource, context, false) + ') > day(last_day(date_add(' + this._appendSql(valueSource, context, false)
         result += ', interval ' + this._durationMonthsSql(context, value, typeClass, fields, sign) + ' month))) then (select 1 union all select 1) else '
-        return result + this._appendWithDuration(context, valueSource, value, typeClass, sign) + ' end'
+        return result + (this._appendPlusDuration(context, valueSource, value, fields, sign) ?? this._appendWithDuration(context, valueSource, value, typeClass, sign)) + ' end'
     }
     /** The first day of the month of the value with the year and the month given */
     _mySqlFirstOfMonthWith(context: SqlBuildContext, valueSource: ToSql, given: PlainTemporalFields): string {

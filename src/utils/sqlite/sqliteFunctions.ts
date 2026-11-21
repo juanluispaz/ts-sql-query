@@ -16,6 +16,7 @@
  *   uuid_str and uuid_blob. uuid() generates a version 7 UUID (the extension generates a version 4), whose text and
  *   whose blob sort by the time they were generated.
  * - tsq_ci_replace, a case-insensitive replace, for replaceAllInsensitive with libraryFunctions 'installed'.
+ * - tsq_day_in_month_or_error, for Temporal's overflow 'reject', with libraryFunctions 'installed'.
  * - tsq_duration_negated, the ISO 8601 text of a duration negated, with libraryFunctions 'installed'.
  * - tsq_date_plus_duration, tsq_datetime_plus_duration and tsq_instant_plus_duration, a value plus a duration of the
  *   query given whole, as their text, with libraryFunctions 'installed'.
@@ -943,6 +944,26 @@ function durationAdd(largest1: unknown, days1: unknown, seconds1: unknown, nanos
     return durationText(0n, 0n, 0n, days, total - days * day, largest <= 4 ? 'hour' : largest === 5 ? 'minute' : 'second')
 }
 
+/**
+ * tsq_day_in_month_or_error: 0, or an error when the day of a date (its text, YYYY-MM-DD, as the date functions write
+ * it) isn't in the month that the months given reach from it, as Temporal's overflow 'reject' fails
+ */
+function dayInMonthOrError(value: unknown, months: unknown): number | null {
+    const parts = dateTimeParts(value)
+    if (!parts || months === null || months === undefined) {
+        return null
+    }
+    const index = parts.year * 12 + parts.month - 1 + Number(months)
+    const year = Math.trunc(index / 12)
+    const month = index % 12
+    const lastDay = new Date(0)
+    lastDay.setUTCFullYear(year, month + 1, 0)
+    if (parts.day > lastDay.getUTCDate()) {
+        throw new Error('tsq_day_in_month_or_error: the month ' + (month + 1) + ' of ' + year + ' has no day ' + parts.day)
+    }
+    return 0
+}
+
 /** tsq_duration_negated: the ISO 8601 text of a duration negated; a duration of zero as it is */
 function durationNegated(value: unknown): string | null {
     if (value === null || value === undefined) {
@@ -1088,6 +1109,7 @@ export const sqliteScalarFunctions: readonly SqliteScalarFunction[] = [
     { name: 'tsq_duration_round', arity: 13, deterministic: pure, fn: durationRound as SqliteScalarFunction['fn'] },
     { name: 'tsq_duration_total', arity: 9, deterministic: pure, fn: durationTotal as SqliteScalarFunction['fn'] },
     { name: 'tsq_duration_add', arity: 9, deterministic: pure, fn: durationAdd as SqliteScalarFunction['fn'] },
+    { name: 'tsq_day_in_month_or_error', arity: 2, deterministic: pure, fn: dayInMonthOrError as SqliteScalarFunction['fn'] },
     { name: 'tsq_duration_negated', arity: 1, deterministic: pure, fn: durationNegated as SqliteScalarFunction['fn'] },
     { name: 'tsq_date_plus_duration', arity: 3, deterministic: pure, fn: datePlusDuration as SqliteScalarFunction['fn'] },
     { name: 'tsq_datetime_plus_duration', arity: 3, deterministic: pure, fn: dateTimePlusDuration as SqliteScalarFunction['fn'] },

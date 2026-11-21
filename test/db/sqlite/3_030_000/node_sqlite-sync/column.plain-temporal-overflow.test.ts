@@ -5,7 +5,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { TsSqlError } from '../../../../../src/exports/v2/index.js'
-import { tColMatrixPlain } from '../../domain/connection.js'
+import { tColMatrixPlain, tRelease } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import { sync } from '../../../../../src/extras/sync.js'
 
@@ -94,5 +94,43 @@ describe(ctx.label, () => {
             .executeSelectMany())
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select date(printf('%04d-%02d-%02d', cast(strftime('%Y', m_date) as integer), 2, case when 30 > cast(strftime('%d', printf('%04d-%02d-01', cast(strftime('%Y', m_date) as integer), 2), '+1 months', '-1 days') as integer) then abs(-9223372036854775807 - 1) else 30 end)) as day from col_matrix where id = ?1"`)
         expect(changed).toBe(ctx.realDbEnabled)
+    })
+
+    test('reject-with-the-functions-of-the-library', async () => {
+        // With the functions of the library installed the day of the value is checked in the month reached writing the
+        // value once more: the values are the ones of Temporal for the values read, and a day the month hasn't fails, with
+        // and without the functions (the mock answers no rows: there it is the SQL that is checked)
+        const query = (conn: typeof ctx.conn) => conn.selectFrom(tRelease)
+            .select({
+                version: tRelease.version,
+                releasedOn: tRelease.releasedOn,
+                publishedAt: tRelease.publishedAt,
+                nextMonth: tRelease.releasedOn.add({ months: 1 }, { overflow: 'reject' }),
+                monthBefore: tRelease.publishedAt.subtract({ years: 1, months: 1 }, { overflow: 'reject' }),
+            })
+            .orderBy('version')
+            .executeSelectMany()
+        const lastOfJanuary = (conn: typeof ctx.conn, months: number) => conn.selectFromNoTable()
+            .select({ reached: conn.const(Temporal.PlainDate.from('2024-01-31'), 'plainDate').add({ months }, { overflow: 'reject' }) })
+            .executeSelectMany()
+        ctx.mockNext([])
+        const withFunctions = sync(query(ctx.withLibraryFunctions()))
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as version, released_on as releasedOn, published_at as publishedAt, case when tsq_day_in_month_or_error(strftime('%Y-%m-%d %H:%M:%f', released_on), ?2) = 0 then date(date(released_on, 'start of month', ?1), (min(cast(strftime('%d', released_on) as integer), cast(strftime('%d', date(released_on, 'start of month', ?1), '+1 months', '-1 days') as integer)) - 1) || ' days') end as nextMonth, case when tsq_day_in_month_or_error(strftime('%Y-%m-%d %H:%M:%f', published_at), ?4) = 0 then strftime('%Y-%m-%d %H:%M:%f', date(date(published_at, 'start of month', ?3), (min(cast(strftime('%d', published_at) as integer), cast(strftime('%d', date(published_at, 'start of month', ?3), '+1 months', '-1 days') as integer)) - 1) || ' days') || ' ' || strftime('%H:%M:%f', published_at)) end as monthBefore from project_release order by version"`)
+        ctx.mockNext([])
+        const withoutFunctions = sync(query(ctx.conn))
+        expect(withFunctions.length).toBe(ctx.realDbEnabled ? 3 : 0)
+        type Row = (typeof withFunctions)[number]
+        const read = (row: Row) => [row.version, row.nextMonth.toString(), row.monthBefore.toString()]
+        const ofTemporal = (row: Row) => [row.version, row.releasedOn.add({ months: 1 }, { overflow: 'reject' }).toString(), row.publishedAt.subtract({ years: 1, months: 1 }, { overflow: 'reject' }).toString()]
+        expect(withFunctions.map(read)).toEqual(withFunctions.map(ofTemporal))
+        expect(withoutFunctions.map(read)).toEqual(withoutFunctions.map(ofTemporal))
+        ctx.mockNext([{ reached: '2024-03-31' }])
+        const twoMonths = sync(lastOfJanuary(ctx.withLibraryFunctions(), 2))
+        expect(twoMonths.map(row => row.reached.toString())).toEqual(['2024-03-31'])
+        ctx.mockNext([])
+        const failsWithFunctions = (() => { try { sync(lastOfJanuary(ctx.withLibraryFunctions(), 1)); return false } catch { return true } })()
+        ctx.mockNext([])
+        const failsWithoutFunctions = (() => { try { sync(lastOfJanuary(ctx.conn, 1)); return false } catch { return true } })()
+        expect([failsWithFunctions, failsWithoutFunctions]).toEqual([ctx.realDbEnabled, ctx.realDbEnabled])
     })
 })

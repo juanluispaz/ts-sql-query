@@ -94,4 +94,45 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select date(printf('%04d-%02d-%02d', cast(strftime('%Y', m_date) as integer), 2, case when 30 > cast(strftime('%d', printf('%04d-%02d-01', cast(strftime('%Y', m_date) as integer), 2), '+1 months', '-1 days') as integer) then abs(-9223372036854775807 - 1) else 30 end)) as day from col_matrix where id = ?1"`)
         expect(changed).toBe(ctx.realDbEnabled)
     })
+
+    // NOT-SUPPORTED: Bun SQL's sqlite adapter exposes neither a user-defined-function API nor its bun:sqlite `Database`, so the functions of the library can't be registered
+    /*
+    test('reject-with-the-functions-of-the-library', async () => {
+        // With the functions of the library installed the day of the value is checked in the month reached writing the
+        // value once more: the values are the ones of Temporal for the values read, and a day the month hasn't fails, with
+        // and without the functions (the mock answers no rows: there it is the SQL that is checked)
+        const query = (conn: typeof ctx.conn) => conn.selectFrom(tRelease)
+            .select({
+                version: tRelease.version,
+                releasedOn: tRelease.releasedOn,
+                publishedAt: tRelease.publishedAt,
+                nextMonth: tRelease.releasedOn.add({ months: 1 }, { overflow: 'reject' }),
+                monthBefore: tRelease.publishedAt.subtract({ years: 1, months: 1 }, { overflow: 'reject' }),
+            })
+            .orderBy('version')
+            .executeSelectMany()
+        const lastOfJanuary = (conn: typeof ctx.conn, months: number) => conn.selectFromNoTable()
+            .select({ reached: conn.const(Temporal.PlainDate.from('2024-01-31'), 'plainDate').add({ months }, { overflow: 'reject' }) })
+            .executeSelectMany()
+        ctx.mockNext([])
+        const withFunctions = await query(ctx.withLibraryFunctions())
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        ctx.mockNext([])
+        const withoutFunctions = await query(ctx.conn)
+        expect(withFunctions.length).toBe(ctx.realDbEnabled ? 3 : 0)
+        type Row = (typeof withFunctions)[number]
+        const read = (row: Row) => [row.version, row.nextMonth.toString(), row.monthBefore.toString()]
+        const ofTemporal = (row: Row) => [row.version, row.releasedOn.add({ months: 1 }, { overflow: 'reject' }).toString(), row.publishedAt.subtract({ years: 1, months: 1 }, { overflow: 'reject' }).toString()]
+        expect(withFunctions.map(read)).toEqual(withFunctions.map(ofTemporal))
+        expect(withoutFunctions.map(read)).toEqual(withoutFunctions.map(ofTemporal))
+        ctx.mockNext([{ reached: '2024-03-31' }])
+        const twoMonths = await lastOfJanuary(ctx.withLibraryFunctions(), 2)
+        expect(twoMonths.map(row => row.reached.toString())).toEqual(['2024-03-31'])
+        ctx.mockNext([])
+        const failsWithFunctions = await lastOfJanuary(ctx.withLibraryFunctions(), 1).then(() => false, () => true)
+        ctx.mockNext([])
+        const failsWithoutFunctions = await lastOfJanuary(ctx.conn, 1).then(() => false, () => true)
+        expect([failsWithFunctions, failsWithoutFunctions]).toEqual([ctx.realDbEnabled, ctx.realDbEnabled])
+    })
+    */
 })

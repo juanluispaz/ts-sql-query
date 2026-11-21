@@ -913,3 +913,13 @@ BEGIN
     RETURN CASE WHEN SUBSTRING(@d, 1, 1) = N'-' THEN SUBSTRING(@d, 2, 100) WHEN dbo.tsq_duration_part(@d, 'sign') = 0 THEN @d WHEN SUBSTRING(@d, 1, 1) = N'+' THEN N'-' + SUBSTRING(@d, 2, 100) ELSE N'-' + @d END;
 END
 GO
+
+-- tsq_day_in_month_or_error: 0, or an error when the day of a date (or a date and time) isn't in the month that the
+-- months given reach from it, as Temporal's overflow 'reject' fails; the function of the library that writes the value
+-- once (libraryFunctions installed).
+CREATE OR ALTER FUNCTION dbo.tsq_day_in_month_or_error(@value DATETIME2(7), @months INT) RETURNS INT WITH SCHEMABINDING AS
+BEGIN
+    DECLARE @index INT = YEAR(@value) * 12 + MONTH(@value) - 1 + @months;
+    RETURN DAY(DATEFROMPARTS(@index / 12, @index % 12 + 1, DAY(@value))) - DAY(@value);
+END
+GO

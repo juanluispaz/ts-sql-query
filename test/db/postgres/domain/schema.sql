@@ -1160,3 +1160,10 @@ END $$;
 CREATE OR REPLACE FUNCTION tsq_duration_negated(d text) RETURNS text LANGUAGE sql IMMUTABLE AS $$
     SELECT CASE WHEN substr(d, 1, 1) = '-' THEN substr(d, 2) WHEN tsq_duration_part(d, 'sign') = 0 THEN d WHEN substr(d, 1, 1) = '+' THEN '-' || substr(d, 2) ELSE '-' || d END
 $$;
+
+-- tsq_day_in_month_or_error: 0, or an error when the day of a date (or a date and time) isn't in the month that the
+-- months given reach from it, as Temporal's overflow 'reject' fails; the function of the library that writes the value
+-- once (libraryFunctions installed).
+CREATE OR REPLACE FUNCTION tsq_day_in_month_or_error(value timestamp, months integer) RETURNS integer LANGUAGE sql IMMUTABLE AS $$
+    SELECT extract(day FROM make_date((extract(year FROM value)::integer * 12 + extract(month FROM value)::integer - 1 + months) / 12, (extract(year FROM value)::integer * 12 + extract(month FROM value)::integer - 1 + months) % 12 + 1, extract(day FROM value)::integer))::integer - extract(day FROM value)::integer
+$$;

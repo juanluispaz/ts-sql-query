@@ -4951,13 +4951,24 @@ export class AbstractSqlBuilder implements SqlBuilder {
      */
     _appendWithDurationRejecting(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass, sign: 1 | -1): string {
         const fields = this._temporalFieldsOfDurationOperation(typeClass)
-        const result = this._appendWithDuration(context, valueSource, value, typeClass, sign)
+        const result = (this._appendPlusDuration(context, valueSource, value, fields, sign) ?? this._appendWithDuration(context, valueSource, value, typeClass, sign))
         if (fields === 'time' || !this._hasDurationMonths(value, typeClass, fields, sign)) {
             return result
+        }
+        if (this._libraryFunctionsInstalled()) {
+            // The day of the value checked in the month reached by the function of the library, the value written once more
+            return this._shiftDays(context, result, this._dayInMonthOrErrorSql(context, valueSource, this._durationMonthsSql(context, value, typeClass, fields, sign)), fields)
         }
         const monthIndex = '(' + this._integerPart(this._year(context, valueSource)) + ' * 12 + ' + this._integerPart(this._month(context, valueSource)) + ' - 1 + ' + this._durationMonthsSql(context, value, typeClass, fields, sign) + ')'
         const checkedDay = this._validDayOrError(context, this._truncatedDivision(monthIndex, '12'), this._integerRemainder(monthIndex, '12') + ' + 1', this._integerPart(this._day(context, valueSource)))
         return this._shiftDays(context, result, '(' + checkedDay + ' - ' + this._integerPart(this._day(context, valueSource)) + ')', fields)
+    }
+    /**
+     * 0, or an error of the query when the day of the value isn't in the month the months given reach (Temporal's overflow
+     * 'reject'), with the function of the library
+     */
+    _dayInMonthOrErrorSql(context: SqlBuildContext, valueSource: ToSql, months: string): string {
+        return 'tsq_day_in_month_or_error(' + this._appendSql(valueSource, context, this._isConstOperand(valueSource)) + ', ' + months + ')'
     }
     /** Whether the duration may have months: a constant with them, or a value source (an interval of days to seconds of Oracle has none) */
     _hasDurationMonths(value: unknown, typeClass: DataTypeClass, fields: 'date' | 'time' | 'timestamp', sign: 1 | -1): boolean {

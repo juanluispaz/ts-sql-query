@@ -1568,9 +1568,14 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     /** The result, or an error of the query when the day of the value isn't in the month the duration reaches */
     override _appendWithDurationRejecting(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass, sign: 1 | -1): string {
         const fields = this._temporalFieldsOfDurationOperation(typeClass)
-        const result = this._appendWithDuration(context, valueSource, value, typeClass, sign)
+        const result = (this._appendPlusDuration(context, valueSource, value, fields, sign) ?? this._appendWithDuration(context, valueSource, value, typeClass, sign))
         if (fields === 'time' || !this._hasDurationMonths(value, typeClass, fields, sign)) {
             return result
+        }
+        if (this._libraryFunctionsInstalled()) {
+            // The function fails for a day the month reached hasn't, and gives 0 otherwise
+            const text = "strftime('%Y-%m-%d %H:%M:%f', " + this._dateFunctionArgument(context, valueSource) + ')'
+            return 'case when tsq_day_in_month_or_error(' + text + ', ' + this._durationMonthsSql(context, value, typeClass, fields, sign) + ') = 0 then ' + result + ' end'
         }
         const monthIndex = '(' + this._year(context, valueSource) + ' * 12 + ' + this._month(context, valueSource) + ' - 1 + ' + this._durationMonthsSql(context, value, typeClass, fields, sign) + ')'
         const days = this._daysInMonth(context, this._truncatedDivision(monthIndex, '12'), '(' + this._integerRemainder(monthIndex, '12') + ' + 1)')

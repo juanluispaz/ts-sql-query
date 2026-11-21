@@ -1239,6 +1239,16 @@ BEGIN
     RETURN CASE WHEN SUBSTR(d, 1, 1) = '-' THEN SUBSTR(d, 2) WHEN tsq_duration_part(d, 'sign') = 0 THEN d WHEN SUBSTR(d, 1, 1) = '+' THEN '-' || SUBSTR(d, 2) ELSE '-' || d END;
 END;
 
+-- tsq_day_in_month_or_error: 0, or an error when the day of a date (or a date and time) isn't in the month that the
+-- months given reach from it, as Temporal's overflow 'reject' fails; the function of the library that writes the value
+-- once (libraryFunctions installed).
+CREATE OR REPLACE FUNCTION tsq_day_in_month_or_error(value IN TIMESTAMP_UNCONSTRAINED, months IN NUMBER) RETURN NUMBER DETERMINISTIC IS
+    v_index NUMBER := EXTRACT(YEAR FROM value) * 12 + EXTRACT(MONTH FROM value) - 1 + months;
+BEGIN
+    IF value IS NULL OR months IS NULL THEN RETURN NULL; END IF;
+    RETURN EXTRACT(DAY FROM TO_DATE(TRUNC(v_index / 12) || '-' || (MOD(v_index, 12) + 1) || '-' || EXTRACT(DAY FROM value), 'YYYY-MM-DD')) - EXTRACT(DAY FROM value);
+END;
+
 -- tsq_uuid_to_raw and tsq_raw_to_uuid: a uuid and its RAW(16), the 16 bytes as they are (any version of uuid, any
 -- Oracle), the functions of the library that uuidStrategy 'custom-functions' calls; the text read is in lower case.
 CREATE OR REPLACE FUNCTION tsq_uuid_to_raw(uuid IN VARCHAR2) RETURN RAW DETERMINISTIC IS

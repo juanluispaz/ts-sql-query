@@ -88,6 +88,13 @@ GO
 CREATE OR ALTER FUNCTION dbo.tsq_duration_text(@y BIGINT, @mo BIGINT, @w BIGINT, @d BIGINT, @ns DECIMAL(38, 0), @unit VARCHAR(6)) RETURNS VARCHAR(100) WITH SCHEMABINDING AS
 BEGIN
     IF @y IS NULL OR @mo IS NULL OR @w IS NULL OR @d IS NULL OR @ns IS NULL RETURN NULL;
+    IF @unit = 'week' OR @unit = 'day'
+    BEGIN
+        SET @d = @d + CAST(ROUND(@ns / 86400000000000, 0, 1) AS BIGINT);
+        SET @ns = @ns % 86400000000000;
+        IF @unit = 'week' BEGIN SET @w = @w + @d / 7; SET @d = @d % 7; END
+        SET @unit = 'hour';
+    END
     DECLARE @neg BIT = CASE WHEN @y < 0 OR @mo < 0 OR @w < 0 OR @d < 0 OR @ns < 0 THEN 1 ELSE 0 END, @r VARCHAR(100) = '', @t VARCHAR(100) = '';
     DECLARE @hour BIGINT = 3600000000000, @minute BIGINT = 60000000000, @second BIGINT = 1000000000, @f BIGINT, @frac VARCHAR(9);
     IF @y <> 0 SET @r = @r + CAST(ABS(@y) AS VARCHAR(20)) + 'Y';

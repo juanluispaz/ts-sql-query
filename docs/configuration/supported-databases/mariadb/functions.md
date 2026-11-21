@@ -93,6 +93,11 @@ BEGIN
     DECLARE neg BOOLEAN;
     DECLARE f BIGINT;
     IF y IS NULL OR mo IS NULL OR w IS NULL OR d IS NULL OR ns IS NULL THEN RETURN NULL; END IF;
+    IF unit = 'week' OR unit = 'day' THEN
+        SET d = d + ns DIV 86400000000000, ns = ns MOD 86400000000000;
+        IF unit = 'week' THEN SET w = w + d DIV 7, d = d MOD 7; END IF;
+        SET unit = 'hour';
+    END IF;
     SET neg = y < 0 OR mo < 0 OR w < 0 OR d < 0 OR ns < 0;
     IF y <> 0 THEN SET r = CONCAT(r, ABS(y), 'Y'); END IF;
     IF mo <> 0 THEN SET r = CONCAT(r, ABS(mo), 'M'); END IF;

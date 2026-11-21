@@ -91,16 +91,24 @@ END;
 CREATE OR REPLACE FUNCTION tsq_duration_text(y IN NUMBER, mo IN NUMBER, w IN NUMBER, d IN NUMBER, ns IN NUMBER, unit IN VARCHAR2) RETURN VARCHAR2 DETERMINISTIC IS
     r VARCHAR2(100);
     t VARCHAR2(100);
+    v_w NUMBER := w;
+    v_d NUMBER := d;
+    v_ns NUMBER := ns;
     rest NUMBER;
     f NUMBER;
 BEGIN
     IF y IS NULL OR mo IS NULL OR w IS NULL OR d IS NULL OR ns IS NULL THEN RETURN NULL; END IF;
+    IF unit IN ('week', 'day') THEN
+        v_d := v_d + TRUNC(v_ns / 86400000000000);
+        v_ns := MOD(v_ns, 86400000000000);
+        IF unit = 'week' THEN v_w := v_w + TRUNC(v_d / 7); v_d := MOD(v_d, 7); END IF;
+    END IF;
     IF y <> 0 THEN r := r || TO_CHAR(ABS(y)) || 'Y'; END IF;
     IF mo <> 0 THEN r := r || TO_CHAR(ABS(mo)) || 'M'; END IF;
-    IF w <> 0 THEN r := r || TO_CHAR(ABS(w)) || 'W'; END IF;
-    IF d <> 0 THEN r := r || TO_CHAR(ABS(d)) || 'D'; END IF;
-    rest := ABS(ns);
-    IF unit = 'hour' AND rest >= 3600000000000 THEN t := t || TO_CHAR(TRUNC(rest / 3600000000000)) || 'H'; rest := MOD(rest, 3600000000000); END IF;
+    IF v_w <> 0 THEN r := r || TO_CHAR(ABS(v_w)) || 'W'; END IF;
+    IF v_d <> 0 THEN r := r || TO_CHAR(ABS(v_d)) || 'D'; END IF;
+    rest := ABS(v_ns);
+    IF unit IN ('week', 'day', 'hour') AND rest >= 3600000000000 THEN t := t || TO_CHAR(TRUNC(rest / 3600000000000)) || 'H'; rest := MOD(rest, 3600000000000); END IF;
     IF unit <> 'second' AND rest >= 60000000000 THEN t := t || TO_CHAR(TRUNC(rest / 60000000000)) || 'M'; rest := MOD(rest, 60000000000); END IF;
     IF rest > 0 THEN
         f := MOD(rest, 1000000000);
@@ -109,7 +117,7 @@ BEGIN
         t := t || 'S';
     END IF;
     IF r IS NULL AND t IS NULL THEN RETURN 'PT0S'; END IF;
-    RETURN CASE WHEN y < 0 OR mo < 0 OR w < 0 OR d < 0 OR ns < 0 THEN '-' END || 'P' || r || CASE WHEN t IS NOT NULL THEN 'T' || t END;
+    RETURN CASE WHEN y < 0 OR mo < 0 OR v_w < 0 OR v_d < 0 OR v_ns < 0 THEN '-' END || 'P' || r || CASE WHEN t IS NOT NULL THEN 'T' || t END;
 END;
 ```
 

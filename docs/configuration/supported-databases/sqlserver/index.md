@@ -40,6 +40,7 @@ What isn't offered doesn't compile on this connection. On a version older than t
 | [Sequences](../../mapping.md#using-a-sequence) | Yes |
 | [Stored procedures](../../mapping.md#calling-a-stored-procedure) and [functions](../../mapping.md#calling-a-function-of-the-database) | Yes |
 | [Isolation levels](../../../queries/transaction.md#what-each-database-offers) | `read uncommitted`, `read committed`, `repeatable read`, `snapshot` (needs a database option), `serializable` |
+| [Zoned dates and times](../../dates-and-times.md#zoned-dates-and-times) | Kept as their text, with their parts and compared by their instant. What computes with the rules of the zones isn't offered: [Computing with the zones on the other databases](../../dates-and-times.md#computing-with-the-zones-on-the-other-databases) |
 
 ## Compatibility version
 

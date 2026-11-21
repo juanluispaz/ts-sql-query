@@ -468,21 +468,26 @@ A `zonedDateTime` (a `Temporal.ZonedDateTime`) is computed with the rules of its
 `TIMESTAMP WITH TIME ZONE` keeps its region with each value. PostgreSQL computes with the IANA zones but its
 `timestamptz` keeps one normalized instant, so a zoned date and time is computed in the query (its instant and the zone
 the query gives it), and a column keeps it as its RFC 9557 text. MariaDB, MySQL, SQL Server and SQLite keep it as that
-text too, which gives its parts and its instant without the rules; for the rules, MariaDB and MySQL convert only with
-time zone tables loaded and leave a value before 1970 unconverted, SQL Server's `AT TIME ZONE` knows only Windows names,
-and SQLite has no zones: on them a query that computes with the rules of the zones fails when it is built
-(`UNSUPPORTED_QUERY`). MySQL before 8.0.19 and MariaDB take a text with an offset as its wall clock, so the library
+text too, which gives its parts and its instant without the rules. Their rules differ from Temporal's (measured
+2026-11-21 against Temporal, Europe/Madrid): MariaDB and MySQL `convert_tz`, with the time zone tables loaded (the docker
+images have them), leave 1969 and 1900 unconverted, lose the summer time in 2050 (MySQL 8.0 and 26.10, MariaDB 13 give
++01:00) or leave it unconverted (MySQL 5.7, MariaDB 10.3), take the skipped 02:30 of 2024-03-31 to 01:00Z (Temporal
+01:30Z) and give null for an unknown zone; SQL Server's `AT TIME ZONE` (2019, 2022, 2025) knows only Windows names, is
+right in 2050 and 2110 and for the skipped hour, but applies today's rules to the past (1969 +02:00, Temporal +01:00;
+1900 +01:00, Temporal -00:15) and merges zones (Romance Standard Time gives Paris the history of Madrid); SQLite has no
+zones. So what computes with the rules of the zones isn't typed on them, and a query written anyway fails when it is
+built (`UNSUPPORTED_QUERY`). MySQL before 8.0.19 and MariaDB take a text with an offset as its wall clock, so the library
 computes the instant (the wall clock minus the offset). Bun SQL delivers a wall clock or an instant computed from a
 zoned date and time on MariaDB, MySQL and PostgreSQL as a `Date`, without the digits below the millisecond (its zoned
 value itself is read as text, with every digit).
 
 **Tests:** `column.zoned-date-time.test.ts` — outside the `oracle/*` and `postgres/*` cells every test is commented out
-with `// NOT-SUPPORTED:` but `a-zoned-date-and-time-kept-and-read`, `the-parts-of-a-zoned-date-and-time`,
-`zoned-date-and-times-compared-by-their-instant` and `a-zoned-date-and-time-needs-a-database-with-zones`;
-`the-parts-of-a-zoned-date-and-time` is commented out in the `bun_sql_mysql` and `postgres/*/bun_sql_postgres` cells;
-`a-zoned-date-and-time-kept-and-computed-with-the-zones` runs on the `oracle/*` and `postgres/*` cells only;
-`docs.configuration.dates-and-times.test.ts` — `docs:dates-and-times/zoned-dates-and-times` and
-`docs:dates-and-times/the-arithmetic-of-a-zoned-date-and-time` outside the `oracle/*` and `postgres/*` cells.
+with `// NOT-APPLICABLE:` but `a-zoned-date-and-time-kept-and-read`, `the-parts-of-a-zoned-date-and-time` and
+`zoned-date-and-times-compared-by-their-instant` (the `types.negative` cells reject what needs the rules);
+`the-parts-of-a-zoned-date-and-time` is commented out with `// NOT-SUPPORTED:` in the `bun_sql_mysql` and
+`postgres/*/bun_sql_postgres` cells; `docs.configuration.dates-and-times.test.ts` —
+`docs:dates-and-times/zoned-dates-and-times` and `docs:dates-and-times/the-arithmetic-of-a-zoned-date-and-time` are
+`NOT-APPLICABLE` outside the `oracle/*` and `postgres/*` cells.
 
 ### SQL Server's date and time types start at the year 1
 

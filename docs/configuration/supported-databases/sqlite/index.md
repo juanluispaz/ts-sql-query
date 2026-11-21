@@ -40,6 +40,7 @@ What isn't offered doesn't compile on this connection. On a version older than t
 | [Sequences](../../mapping.md#using-a-sequence) | Not offered: SQLite doesn't have them |
 | [Stored procedures](../../mapping.md#calling-a-stored-procedure) and [functions](../../mapping.md#calling-a-function-of-the-database) | SQLite has no stored procedures, and rejects the statement. A function exists only if you register it in the driver |
 | [Isolation levels](../../../queries/transaction.md#what-each-database-offers) | You can't choose one: transactions are always serializable |
+| [Zoned dates and times](../../dates-and-times.md#zoned-dates-and-times) | Kept as their text, with their parts and compared by their instant. What computes with the rules of the zones isn't offered: [Computing with the zones on the other databases](../../dates-and-times.md#computing-with-the-zones-on-the-other-databases) |
 
 ## Working with Date and Time
 

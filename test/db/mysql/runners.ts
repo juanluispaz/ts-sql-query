@@ -339,6 +339,15 @@ async function bootstrapWorkerDbSchemaAndSeed(host: string, port: number, needsU
             [workerDb],
         )
         if (Number(ready[0]?.n) > 0) {
+            if (needsUuidCompat) {
+                // A worker DB made ready by a bootstrap that didn't need them (single RETURN functions, which don't make
+                // a prepared statement fail while they are created)
+                const [compat] = await conn.query<Array<{ n: number }> & import('mysql2').RowDataPacket[]>(
+                    `SELECT COUNT(*) AS n FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = ? AND ROUTINE_NAME IN ('UUID_TO_BIN', 'BIN_TO_UUID')`,
+                    [workerDb],
+                )
+                if (Number(compat[0]?.n) < 2) await applyUuidCompatFunctions(conn)
+            }
             await applyResetAndSeedOnConnection(conn)
         } else {
             if (needsUuidCompat) await applyUuidCompatFunctions(conn)
@@ -550,7 +559,7 @@ export async function acquireRunnerTestDatabase(failure?: RunnerConnectionFailur
     const container = await containers.getFor(image).acquire()
     const host = container.getHost()
     const port = container.getMappedPort(3306)
-    const database = await bootstrapWorkerDbSchemaAndSeed(host, port, false)
+    const database = await bootstrapWorkerDbSchemaAndSeed(host, port, image.startsWith('mysql:5'))
     if (failure && failure !== 'client timeout') {
         await containers.getFor(image).release()
         return {

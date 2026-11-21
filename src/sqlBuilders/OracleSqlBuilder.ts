@@ -1323,6 +1323,11 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     override _currentDate(_context: SqlBuildContext): string {
         return 'trunc(current_timestamp)'
     }
+    override _currentPlainDateTime(_context: SqlBuildContext): string {
+        // A TIMESTAMP, the wall clock of the session (the zone of the database), as a plainDateTime is: compared with a
+        // TIMESTAMP column without converting the column to a timestamp with time zone
+        return 'localtimestamp'
+    }
     override _currentInstant(_context: SqlBuildContext): string {
         // A timestamp with time zone, its instant whatever the zone of the session
         return 'systimestamp'

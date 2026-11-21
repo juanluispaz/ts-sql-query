@@ -668,7 +668,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
      */
     currentPlainDateTime(): ValueSource<NNoTableOrViewRequired<DB>, PlainDateTimeType, 'required'>
     currentPlainDateTime(): any {
-        return __createStatic0('_currentTimestamp', PlainDateTimeType, 'required')
+        return __createStatic0('_currentPlainDateTime', PlainDateTimeType, 'required')
     }
     /**
      * The instant of now in the database, as a Temporal.Instant: Temporal's `Temporal.Now.instant()`, with the digits of

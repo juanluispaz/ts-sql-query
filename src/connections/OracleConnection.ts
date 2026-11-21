@@ -76,6 +76,17 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
      */
     protected ignoreNullInConcat: boolean = false
     /**
+     * Whether the functions of the library that compute a date and time in a time zone as Temporal does
+     * (`tsq_zoned_of_wall`) are in the database: `'installed'` or `'not installed'` (the default).
+     *
+     * Without them, a wall clock taken to its zone (`toZonedDateTime`, and the arithmetic of a zoned date and time) is
+     * the instant Oracle itself gives it: the later one of a wall clock the zone repeats, where Temporal's default
+     * `'compatible'` takes the earlier one, and a wall clock the zone skips makes the query fail (ORA-01878); a
+     * disambiguation `'earlier'` or `'reject'` is rejected when the query is built. With them, every disambiguation is
+     * Temporal's.
+     */
+    protected temporalFunctions: 'installed' | 'not installed' = 'not installed'
+    /**
      * The scale of `roundn` is a whole number of decimals, and Oracle truncates a fractional one (`roundn(1.6)` rounds to
      * 1 decimal), while the other databases round it. ts-sql-query rounds it on every database: a number is sent
      * rounded, ties away from zero, and an expression that isn't an integer is written rounded (`round(<scale>)`), so

@@ -28,8 +28,8 @@ import type { SqlOperation0ValueSource, SqlOperation2ValueSource } from '../node
 import type { TemporalDuration } from '../typeSystem/temporal.js'
 import { durationOfArgument, durationOfParts, durationPartsFor, isZeroDuration, type DurationParts, type DurationPartsSql } from '../utils/durationValues.js'
 import { plainTemporalFieldsOf } from '../utils/plainTemporalFields.js'
-import { plainTemporalRoundingOf, type PlainTemporalRounding, type PlainTemporalRoundingMode } from '../utils/plainTemporalRounding.js'
-import type { ZonedDisambiguation, ZonedInterpretation } from '../utils/zonedOptions.js'
+import { plainTemporalRoundingOf, type PlainTemporalRounding } from '../utils/plainTemporalRounding.js'
+import type { ZonedInterpretation } from '../utils/zonedOptions.js'
 import { plainTemporalDifferenceOf, type PlainTemporalDifference } from '../utils/plainTemporalDifference.js'
 import { __reusedConstOf } from '../nodes/constants.js'
 import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
@@ -4176,10 +4176,6 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _zonedOfUtc(_utc: string, _zone: string): string {
         return this._zonedDateTimeUnsupported()
     }
-    /** An interval of a day */
-    _zonedDayInterval(): string {
-        return this._zonedDateTimeUnsupported()
-    }
     /** An interval of a number of seconds (with their fraction) */
     _zonedSecondsInterval(_seconds: string): string {
         return this._zonedDateTimeUnsupported()
@@ -4212,10 +4208,6 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _zonedIsWallClockOf(instant: string, zone: string, wall: string): string {
         return this._zonedWallOfUtc(instant, zone) + ' = ' + wall
     }
-    /** The offset of the zone at an instant (its wall clock in UTC), an interval of days to seconds */
-    _zonedOffsetAt(instant: string, zone: string): string {
-        return '(' + this._zonedWallOfUtc(instant, zone) + ' - ' + instant + ')'
-    }
     /**
      * A timestamp, or an error of the query: the timestamp plus no day, the day 28 of February 2001 checked (or the 29,
      * which it hasn't, when the day given is 29) minus 28
@@ -4223,46 +4215,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _zonedOrError(context: SqlBuildContext, value: string, day: string): string {
         return this._shiftDays(context, value, '(' + this._validDayOrError(context, '2001', '2', day) + ' - 28)', 'timestamp')
     }
-    /**
-     * The instant (its wall clock in UTC) of a wall clock in a zone, with Temporal's disambiguation, as Temporal finds
-     * its instants: the wall clock minus the offset of the zone a day before and a day after it, each one an instant of
-     * that wall clock when the zone gives it back (two for a wall clock the zone repeats, none for one it skips).
-     * 'compatible' takes the earlier one of two and, of none, the one of the offset before (the wall clock moved forward
-     * by the gap); 'earlier' the first one or the one of the offset after; 'later' the second one or the one of the
-     * offset before; 'reject' fails the query unless there is exactly one
-     */
-    _zonedUtcOfWallClock(context: SqlBuildContext, wall: string, zone: string, disambiguation: ZonedDisambiguation): string {
-        const day = this._zonedDayInterval()
-        const before = '(' + wall + ' - ' + this._zonedOffsetAt('(' + wall + ' - ' + day + ')', zone) + ')'
-        const after = '(' + wall + ' - ' + this._zonedOffsetAt('(' + wall + ' + ' + day + ')', zone) + ')'
-        const isBefore = this._zonedIsWallClockOf(before, zone, wall)
-        const isAfter = this._zonedIsWallClockOf(after, zone, wall)
-        switch (disambiguation) {
-            case 'earlier':
-                return 'case when ' + isBefore + ' then ' + before + ' else ' + after + ' end'
-            case 'later':
-                return 'case when ' + isAfter + ' then ' + after + ' else ' + before + ' end'
-            case 'reject': {
-                const chosen = 'case when ' + isBefore + ' then ' + before + ' else ' + after + ' end'
-                const fails = 'case when ' + isBefore + ' and ' + isAfter + ' and ' + before + ' <> ' + after + ' or not (' + isBefore + ') and not (' + isAfter + ') then 29 else 28 end'
-                return this._zonedOrError(context, '(' + chosen + ')', fails)
-            }
-            default:
-                return 'case when not (' + isBefore + ') and ' + isAfter + ' then ' + after + ' else ' + before + ' end'
-        }
-    }
-    /** The instant of the start of the day of a wall clock in a zone: its midnight, as Temporal's 'compatible' disambiguates it */
-    _zonedStartOfDayIn(context: SqlBuildContext, wall: string, zone: string, nextDay: boolean): string {
-        return this._zonedUtcOfWallClock(context, this._zonedMidnightOf(wall, nextDay), zone, 'compatible')
-    }
-    /** A wall clock in a zone, with Temporal's disambiguation (see _zonedUtcOfWallClock) */
-    _plainDateTimeToZoned(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, _typeClass: DataTypeClass): string {
-        if (!this._supportZonedDateTimes()) {
-            return this._zonedDateTimeUnsupported()
-        }
-        const wall = this._zonedWallClockOfPlain(this._zonedOperandSql(context, valueSource, 'w'))
-        const zone = this._isZonedOperandWrittenInPlace(value) ? this._zonedTimeZoneSql(context, value) : 'tsq_z.z'
-        return this._zonedComputedOnce(context, this._zonedOfUtc(this._zonedUtcOfWallClock(context, wall, zone, value2 as ZonedDisambiguation), zone), valueSource, 'w', value, 'z')
+    /** A wall clock in a zone, with Temporal's disambiguation */
+    _plainDateTimeToZoned(_context: SqlBuildContext, _valueSource: ToSql, _value: any, _value2: any, _typeClass: DataTypeClass): string {
+        return this._zonedDateTimeUnsupported()
     }
     /**
      * The zoned date and time a wall clock computed from it refers to (see _zonedOfWallClockIn): the value, or its name
@@ -4275,80 +4230,34 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return this._zonedOperandSql(context, valueSource, 'x')
     }
     /** The hours from the start of its day to the start of the next one, in its zone: Temporal's `hoursInDay` */
-    _zonedHoursInDay(context: SqlBuildContext, valueSource: ToSql): string {
-        if (!this._supportZonedDateTimes()) {
-            return this._zonedDateTimeUnsupported()
-        }
-        const zoned = this._zonedOperandSql(context, valueSource, 'x')
-        const zone = this._zonedZoneOf(context, valueSource, zoned)
-        const wall = this._zonedWallOf(zoned, zone)
-        const length = '(' + this._zonedStartOfDayIn(context, wall, zone, true) + ' - ' + this._zonedStartOfDayIn(context, wall, zone, false) + ')'
-        return this._zonedComputedOnce(context, this._zonedHoursOf(length), valueSource, 'x')
+    _zonedHoursInDay(_context: SqlBuildContext, _valueSource: ToSql): string {
+        return this._zonedDateTimeUnsupported()
+    }
+    /** Rounded to a day, as Temporal's `round('day')`: the start of its day or of the next one in its zone */
+    _zonedRoundToDay(_context: SqlBuildContext, _valueSource: ToSql, _value: any, _typeClass: DataTypeClass): string {
+        return this._zonedDateTimeUnsupported()
     }
     /**
-     * Rounded to a day, as Temporal's `round('day')`: the start of its day or of the next one in its zone (the length of
-     * the day, 23 or 25 hours where the zone changes its offset, decides which one is nearer), as if it were positive
-     */
-    _zonedRoundToDay(context: SqlBuildContext, valueSource: ToSql, value: any, _typeClass: DataTypeClass): string {
-        if (!this._supportZonedDateTimes()) {
-            return this._zonedDateTimeUnsupported()
-        }
-        const zoned = this._zonedOperandSql(context, valueSource, 'x')
-        const zone = this._zonedZoneOf(context, valueSource, zoned)
-        const wall = this._zonedWallOf(zoned, zone)
-        const start = this._zonedStartOfDayIn(context, wall, zone, false)
-        let rounded: string
-        switch (value as PlainTemporalRoundingMode) {
-            case 'trunc':
-                rounded = start
-                break
-            case 'ceil':
-                rounded = 'case when ' + this._zonedUtcOf(zoned) + ' = ' + start + ' then ' + start + ' else ' + this._zonedStartOfDayIn(context, wall, zone, true) + ' end'
-                break
-            default: {
-                // halfTrunc, and halfEven, whose even multiple is the start of the day (no day from it), take the start at the half
-                const end = this._zonedStartOfDayIn(context, wall, zone, true)
-                const comparison = value === 'halfExpand' ? ' >= ' : ' > '
-                rounded = 'case when (' + this._zonedUtcOf(zoned) + ' - ' + start + ') * 2' + comparison + end + ' - ' + start + ' then ' + end + ' else ' + start + ' end'
-            }
-        }
-        return this._zonedComputedOnce(context, this._zonedOfUtc(rounded, zone), valueSource, 'x')
-    }
-    /**
-     * A wall clock (the receiver) in the zone of a zoned date and time (the value), as Temporal interprets it (the
-     * value2, see ZonedInterpretation): the wall clock minus the offset, of the value or the one given, used as it is
-     * ('use'), or when the zone gives the wall clock back with it ('prefer', or 'reject', which fails the query when it
-     * doesn't), or the wall clock disambiguated ('ignore', and 'prefer' when the offset isn't one of the zone). The wall
-     * clock is computed from the value by its reference (see _zonedOperandReference), so it is written in each place it is
-     * used, inside the scalar subquery that computes the value once
+     * A wall clock (the receiver) in the zone of a zoned date and time (the value) with an offset, as Temporal's option
+     * `offset` 'use' (the wall clock minus the offset, of the value or the one given) or 'reject' (the same, failing the
+     * query when the zone hasn't that offset for that wall clock). With 'prefer' and 'ignore' the wall clock is taken to
+     * its zone, as each database does it. The wall clock is computed from the value by its reference (see
+     * _zonedOperandReference), so it is written in each place it is used, inside the scalar subquery that computes the
+     * value once
      */
     _zonedOfWallClockIn(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, _typeClass: DataTypeClass): string {
-        if (!this._supportZonedDateTimes()) {
+        const interpretation = value2 as ZonedInterpretation
+        if (!this._supportZonedDateTimes() || (interpretation.offset !== 'use' && interpretation.offset !== 'reject')) {
             return this._zonedDateTimeUnsupported()
         }
-        const interpretation = value2 as ZonedInterpretation
         const zoned = this._zonedOperandSql(context, value as ToSql, 'x')
         const zone = this._zonedZoneOf(context, value as ToSql, zoned)
         const wall = this._zonedWallClockOfPlain(this._appendSql(valueSource, context, false))
-        let utc: string
-        if (interpretation.offset === 'ignore') {
-            utc = this._zonedUtcOfWallClock(context, wall, zone, interpretation.disambiguation)
-        } else {
-            const offset = interpretation.offsetNanoseconds === undefined
-                ? '(' + this._zonedWallOf(zoned, zone) + ' - ' + this._zonedUtcOf(zoned) + ')'
-                : this._zonedSecondsInterval(secondsOfNanosecondsText(interpretation.offsetNanoseconds))
-            const withOffset = '(' + wall + ' - ' + offset + ')'
-            switch (interpretation.offset) {
-                case 'use':
-                    utc = withOffset
-                    break
-                case 'reject':
-                    utc = this._zonedOrError(context, withOffset, 'case when ' + this._zonedIsWallClockOf(withOffset, zone, wall) + ' then 28 else 29 end')
-                    break
-                default:
-                    utc = 'case when ' + this._zonedIsWallClockOf(withOffset, zone, wall) + ' then ' + withOffset + ' else ' + this._zonedUtcOfWallClock(context, wall, zone, interpretation.disambiguation) + ' end'
-            }
-        }
+        const offset = interpretation.offsetNanoseconds === undefined
+            ? '(' + this._zonedWallOf(zoned, zone) + ' - ' + this._zonedUtcOf(zoned) + ')'
+            : this._zonedSecondsInterval(secondsOfNanosecondsText(interpretation.offsetNanoseconds))
+        const withOffset = '(' + wall + ' - ' + offset + ')'
+        const utc = interpretation.offset === 'use' ? withOffset : this._zonedOrError(context, withOffset, 'case when ' + this._zonedIsWallClockOf(withOffset, zone, wall) + ' then 28 else 29 end')
         return this._zonedComputedOnce(context, this._zonedOfUtc(utc, zone), value, 'x')
     }
     _zonedAddDuration(context: SqlBuildContext, valueSource: ToSql, value: any, _typeClass: DataTypeClass): string {
@@ -4363,35 +4272,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _zonedSubtractDurationRejecting(context: SqlBuildContext, valueSource: ToSql, value: any, _typeClass: DataTypeClass): string {
         return this._appendZonedWithDuration(context, valueSource, value, -1, true)
     }
-    /**
-     * A zoned date and time plus a duration (multiplied by sign), as Temporal adds it: its years, months, weeks and days
-     * to its wall clock (the day kept in the month, or the query failing when the month hasn't it, with reject), taken
-     * back to its zone as 'compatible' disambiguates it; then its time to that instant. A duration without days or more
-     * adds only the time to the instant, the offset of the value kept in an hour the zone repeats. A computed duration
-     * is named d (see _zonedComputedOnce)
-     */
-    _appendZonedWithDuration(context: SqlBuildContext, valueSource: ToSql, value: unknown, sign: 1 | -1, reject: boolean): string {
-        if (!this._supportZonedDateTimes()) {
-            return this._zonedDateTimeUnsupported()
-        }
-        const parts = this._zonedDurationParts(context, value, sign)
-        if (!parts) {
-            return this._appendSql(valueSource, context, this._typesTemporalConsts())
-        }
-        const zoned = this._zonedOperandSql(context, valueSource, 'x')
-        const zone = this._zonedZoneOf(context, valueSource, zoned)
-        let utc: string
-        if (parts.months === undefined && parts.days === undefined) {
-            utc = this._zonedUtcOf(zoned)
-        } else {
-            const added = this._zonedWallPlusDate(context, this._zonedWallOf(zoned, zone), parts.months, parts.days, reject)
-            const rezoned = this._zonedUtcOfWallClock(context, added, zone, 'compatible')
-            utc = parts.hasDate === undefined ? rezoned : 'case when ' + parts.hasDate + ' then ' + rezoned + ' else ' + this._zonedUtcOf(zoned) + ' end'
-        }
-        if (parts.seconds !== undefined) {
-            utc = utc + ' + ' + parts.seconds
-        }
-        return this._zonedComputedOnce(context, this._zonedOfUtc(utc, zone), valueSource, 'x', value, 'd')
+    /** A zoned date and time plus a duration (multiplied by sign), as Temporal adds it */
+    _appendZonedWithDuration(_context: SqlBuildContext, _valueSource: ToSql, _value: unknown, _sign: 1 | -1, _reject: boolean): string {
+        return this._zonedDateTimeUnsupported()
     }
     _zonedUntil(_context: SqlBuildContext, _valueSource: ToSql, _value: any, _value2: any, _typeClass: DataTypeClass): string {
         return this._zonedDateTimeUnsupported()

@@ -963,9 +963,6 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         }
         return this._zonedComputedOnce(context, rounded, valueSource, 'x')
     }
-    override _zonedDayInterval(): string {
-        return "interval '1 day'"
-    }
     override _zonedSecondsInterval(seconds: string): string {
         return 'make_interval(secs => ' + seconds + ')'
     }

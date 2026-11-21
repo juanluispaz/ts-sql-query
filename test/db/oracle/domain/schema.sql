@@ -671,11 +671,58 @@ BEGIN
     RETURN tsq_duration_text(v_years * negation, v_months * negation, v_weeks * negation, v_days * negation, v_t * negation, 'hour');
 END;
 
+-- tsq_zoned_of_wall: the instant of a wall clock in a zone (a region or an offset like '+05:30'), a TIMESTAMP WITH TIME
+-- ZONE in it, as Temporal disambiguates it ('compatible', 'earlier', 'later', or 'reject', an error for a wall clock the
+-- zone repeats or skips); with a preferred offset (like '+02:00'), the wall clock with it when the zone gives it back with
+-- it (Temporal's offset 'prefer').
+CREATE OR REPLACE FUNCTION tsq_zoned_of_wall(wall IN TIMESTAMP_UNCONSTRAINED, zone IN VARCHAR2, disambiguation IN VARCHAR2, preferred_offset IN VARCHAR2 DEFAULT NULL) RETURN TIMESTAMP_TZ_UNCONSTRAINED DETERMINISTIC IS
+    v_candidate TIMESTAMP_TZ_UNCONSTRAINED;
+    v_before TIMESTAMP_UNCONSTRAINED;
+    v_after TIMESTAMP_UNCONSTRAINED;
+    v_is_before BOOLEAN;
+    v_is_after BOOLEAN;
+    -- The wall clock in the zone of an instant (its wall clock in UTC)
+    FUNCTION wall_of(u IN TIMESTAMP_UNCONSTRAINED) RETURN TIMESTAMP_UNCONSTRAINED IS
+        v_z TIMESTAMP_TZ_UNCONSTRAINED;
+        v_w TIMESTAMP_UNCONSTRAINED;
+    BEGIN
+        v_z := FROM_TZ(u, '+00:00') AT TIME ZONE zone;
+        v_w := v_z;
+        RETURN v_w;
+    END;
+BEGIN
+    IF wall IS NULL OR zone IS NULL OR disambiguation IS NULL THEN
+        RETURN NULL;
+    END IF;
+    IF preferred_offset IS NOT NULL THEN
+        v_candidate := FROM_TZ(wall, preferred_offset) AT TIME ZONE zone;
+        IF wall_of(SYS_EXTRACT_UTC(v_candidate)) = wall THEN
+            RETURN v_candidate;
+        END IF;
+    END IF;
+    -- The wall clock minus the offset of the zone a day before and a day after it: an instant of it when the zone gives
+    -- it back (two for a wall clock it repeats, none for one it skips)
+    v_before := wall - (wall_of(wall - INTERVAL '1' DAY) - (wall - INTERVAL '1' DAY));
+    v_after := wall - (wall_of(wall + INTERVAL '1' DAY) - (wall + INTERVAL '1' DAY));
+    v_is_before := wall_of(v_before) = wall;
+    v_is_after := wall_of(v_after) = wall;
+    IF disambiguation = 'reject' AND v_is_before = v_is_after AND (NOT v_is_before OR v_before <> v_after) THEN
+        RAISE_APPLICATION_ERROR(-20001, 'tsq_zoned_of_wall: the wall clock is not one instant in ' || zone);
+    END IF;
+    IF disambiguation = 'later' THEN
+        RETURN FROM_TZ(CASE WHEN v_is_after THEN v_after ELSE v_before END, '+00:00') AT TIME ZONE zone;
+    ELSIF disambiguation = 'compatible' THEN
+        RETURN FROM_TZ(CASE WHEN v_is_before OR NOT v_is_after THEN v_before ELSE v_after END, '+00:00') AT TIME ZONE zone;
+    END IF;
+    RETURN FROM_TZ(CASE WHEN v_is_before THEN v_before ELSE v_after END, '+00:00') AT TIME ZONE zone;
+END;
+
 -- tsq_zoned_until: the duration from one zoned date and time to another (two TIMESTAMP WITH TIME ZONE in the same time
 -- zone) as Temporal's until with a largest unit of days or larger ('day', 'week', 'month', 'year'), rounded to the
 -- smallest unit, increment and mode given, the function of the library that counts the days of the calendar in the
 -- zone, each one with its length there (23 or 25 hours where the zone changes its offset); since passes its mode
--- negated and -1 to negate the result. Two zones that aren't the same are an error, as in Temporal.
+-- negated and -1 to negate the result. Two zones that aren't the same are an error, as in Temporal. It uses
+-- tsq_zoned_of_wall.
 CREATE OR REPLACE FUNCTION tsq_zoned_until(one IN TIMESTAMP_TZ_UNCONSTRAINED, two IN TIMESTAMP_TZ_UNCONSTRAINED, largest_unit IN VARCHAR2, smallest_unit IN VARCHAR2, increment IN NUMBER, rounding_mode IN VARCHAR2, negation IN NUMBER) RETURN VARCHAR2 DETERMINISTIC IS
     v_zone VARCHAR2(100);
     v_u1 TIMESTAMP_UNCONSTRAINED;
@@ -727,15 +774,8 @@ CREATE OR REPLACE FUNCTION tsq_zoned_until(one IN TIMESTAMP_TZ_UNCONSTRAINED, tw
     END;
     -- The instant (its wall clock in UTC) of a wall clock in the zone, as Temporal's 'compatible' disambiguates it
     FUNCTION utc_of(w IN TIMESTAMP_UNCONSTRAINED) RETURN TIMESTAMP_UNCONSTRAINED IS
-        v_before TIMESTAMP_UNCONSTRAINED;
-        v_after TIMESTAMP_UNCONSTRAINED;
     BEGIN
-        v_before := w - (wall_of(w - INTERVAL '1' DAY) - (w - INTERVAL '1' DAY));
-        v_after := w - (wall_of(w + INTERVAL '1' DAY) - (w + INTERVAL '1' DAY));
-        IF wall_of(v_before) <> w AND wall_of(v_after) = w THEN
-            RETURN v_after;
-        END IF;
-        RETURN v_before;
+        RETURN SYS_EXTRACT_UTC(tsq_zoned_of_wall(w, v_zone, 'compatible'));
     END;
     -- A date plus years and months (the day kept in the month), weeks and days
     FUNCTION plus(d IN DATE, y IN NUMBER, mo IN NUMBER, w IN NUMBER, dd IN NUMBER) RETURN DATE IS

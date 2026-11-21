@@ -6,6 +6,8 @@ import type { DataTypeClass } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter, OracleDateAsTimestampTypeAdapter } from '../TypeAdapter.js'
 import { DefaultImpl } from '../expressions/Default.js'
 import { AbstractSqlBuilder, __durationComputedFrom, type DurationField, type PlainTemporalDifferenceSql, type SelectColumnSql, type ZonedDurationPartsSql } from './AbstractSqlBuilder.js'
+import type { ZonedDisambiguation, ZonedInterpretation } from '../utils/zonedOptions.js'
+import type { PlainTemporalRoundingMode } from '../utils/plainTemporalRounding.js'
 import type { DBColumn } from '../utils/Column.js'
 import { __columnPathsOf } from '../utils/columnPaths.js'
 import { __getColumnOfObject } from '../utils/Column.js'
@@ -1444,17 +1446,11 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     override _zonedOfUtc(utc: string, zone: string): string {
         return 'from_tz(' + utc + ", '+00:00') at time zone " + zone
     }
-    override _zonedDayInterval(): string {
-        return "interval '1' day"
-    }
     override _zonedSecondsInterval(seconds: string): string {
         return 'numtodsinterval(' + seconds + ", 'second')"
     }
     override _zonedMidnightOf(wall: string, nextDay: boolean): string {
         return 'cast(trunc(' + wall + ')' + (nextDay ? ' + 1' : '') + ' as timestamp(9))'
-    }
-    override _zonedHoursOf(interval: string): string {
-        return '(extract(day from ' + interval + ') * 24 + extract(hour from ' + interval + ') + extract(minute from ' + interval + ') / 60 + extract(second from ' + interval + ') / 3600)'
     }
     /** A time zone where Oracle takes it, after `at time zone`, which accepts no bind (see _oracleTimeZoneSql) */
     override _zonedTimeZoneSql(context: SqlBuildContext, value: unknown): string {
@@ -1524,6 +1520,115 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         const days = negative + 'extract(day from ' + interval + ')'
         const seconds = '(' + interval + " - numtodsinterval(extract(day from " + interval + "), 'day'))" + (sign < 0 ? ' * -1' : '')
         return { months: undefined, days, seconds, hasDate: 'extract(day from ' + interval + ') <> 0' }
+    }
+    /*
+     * A wall clock taken to its zone: Oracle's own from_tz, which takes the later instant of a wall clock the zone repeats,
+     * as Temporal's 'later' (Temporal's 'compatible' takes the earlier one), and fails for one it skips (ORA-01878); with
+     * the functions of the library (temporalFunctions), tsq_zoned_of_wall, as Temporal disambiguates it. The SQL is the
+     * TIMESTAMP WITH TIME ZONE in its zone
+     */
+    /** Whether the functions of the library that compute as Temporal are in the database (`temporalFunctions`) */
+    _oracleTemporalFunctions(): boolean {
+        return this._connectionConfiguration.temporalFunctions === 'installed'
+    }
+    /**
+     * The instant of a wall clock (a TIMESTAMP) in a zone (as `at time zone` takes it), with Temporal's disambiguation, or
+     * Oracle's without the functions of the library; with a preferred offset (its text, like '+02:00'), the wall clock with
+     * it when the zone gives it back with it ('prefer' of Temporal's option offset)
+     */
+    _oracleInstantOfWall(wall: string, zone: string, disambiguation: ZonedDisambiguation, preferredOffset: string | undefined): string {
+        if (this._oracleTemporalFunctions()) {
+            return 'tsq_zoned_of_wall(' + wall + ', ' + zone + ", '" + disambiguation + "'" + (preferredOffset === undefined ? '' : ', ' + preferredOffset) + ')'
+        }
+        if (disambiguation === 'earlier' || disambiguation === 'reject') {
+            throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_QUERY' }, "Oracle takes a wall clock its zone repeats as the later instant, and fails for one it skips: the disambiguation '" + disambiguation + "' needs the functions of the library (temporalFunctions: 'installed')")
+        }
+        if (preferredOffset === undefined) {
+            return 'from_tz(' + wall + ', ' + zone + ')'
+        }
+        // The wall clock is used three times: computed once unless it is a name
+        const simple = /^[\w."]+$/.test(wall)
+        const w = simple ? wall : 'tsq_w.w'
+        const withOffset = '(from_tz(' + w + ', ' + preferredOffset + ') at time zone ' + zone + ')'
+        const sql = 'case when cast(' + withOffset + ' as timestamp(9)) = ' + w + ' then ' + withOffset + ' else from_tz(' + w + ', ' + zone + ') end'
+        return simple ? sql : '(select ' + sql + ' from (select ' + wall + ' as w from dual' + this._zonedComputedOnceFence() + ') tsq_w)'
+    }
+    /** The instant of the start of the day of a zoned date and time in its zone, or of the next day: its midnight, as 'compatible' takes it */
+    _oracleStartOfDay(zoned: string, zone: string, nextDay: boolean): string {
+        return this._oracleInstantOfWall(this._zonedMidnightOf(this._zonedWallOf(zoned, zone), nextDay), zone, 'compatible', undefined)
+    }
+    override _plainDateTimeToZoned(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, _typeClass: DataTypeClass): string {
+        const wall = this._zonedWallClockOfPlain(this._appendSql(valueSource, context, false))
+        const zone = this._isZonedOperandWrittenInPlace(value) ? this._zonedTimeZoneSql(context, value) : 'tsq_z.z'
+        return this._zonedComputedOnce(context, this._oracleInstantOfWall(wall, zone, value2 as ZonedDisambiguation, undefined), undefined, 'w', value, 'z')
+    }
+    override _zonedOfWallClockIn(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, typeClass: DataTypeClass): string {
+        const interpretation = value2 as ZonedInterpretation
+        if (interpretation.offset === 'use' || interpretation.offset === 'reject') {
+            // The wall clock with the offset, without a disambiguation
+            return super._zonedOfWallClockIn(context, valueSource, value, value2, typeClass)
+        }
+        const zoned = this._zonedOperandSql(context, value as ToSql, 'x')
+        const zone = this._zonedZoneOf(context, value as ToSql, zoned)
+        const wall = this._zonedWallClockOfPlain(this._appendSql(valueSource, context, false))
+        let offset: string | undefined
+        if (interpretation.offset === 'prefer') {
+            offset = interpretation.offsetNanoseconds === undefined ? 'to_char(' + zoned + ", 'TZH:TZM')" : "'" + oracleOffsetText(interpretation.offsetNanoseconds) + "'"
+        }
+        return this._zonedComputedOnce(context, this._oracleInstantOfWall(wall, zone, interpretation.disambiguation, offset), value, 'x')
+    }
+    /**
+     * A zoned date and time plus a duration (multiplied by sign), as Temporal adds it: its years, months, weeks and days
+     * to its wall clock (the day kept in the month, or the query failing when the month hasn't it, with reject), taken
+     * back to its zone; then its time to that instant
+     */
+    override _appendZonedWithDuration(context: SqlBuildContext, valueSource: ToSql, value: unknown, sign: 1 | -1, reject: boolean): string {
+        const parts = this._zonedDurationParts(context, value, sign)
+        if (!parts) {
+            return this._appendSql(valueSource, context, this._typesTemporalConsts())
+        }
+        const zoned = this._zonedOperandSql(context, valueSource, 'x')
+        const zone = this._zonedZoneOf(context, valueSource, zoned)
+        let result = zoned
+        if (parts.months !== undefined || parts.days !== undefined) {
+            const added = this._zonedWallPlusDate(context, this._zonedWallOf(zoned, zone), parts.months, parts.days, reject)
+            const rezoned = this._oracleInstantOfWall(added, zone, 'compatible', undefined)
+            result = parts.hasDate === undefined ? rezoned : '(case when ' + parts.hasDate + ' then ' + rezoned + ' else ' + zoned + ' end)'
+        }
+        if (parts.seconds !== undefined) {
+            result = '(' + result + ' + ' + parts.seconds + ')'
+        }
+        return this._zonedComputedOnce(context, result, valueSource, 'x', value, 'd')
+    }
+    /** The hours from the start of its day to the start of the next one, in its zone: Temporal's `hoursInDay` */
+    override _zonedHoursInDay(context: SqlBuildContext, valueSource: ToSql): string {
+        const zoned = this._zonedOperandSql(context, valueSource, 'x')
+        const zone = this._zonedZoneOf(context, valueSource, zoned)
+        // The instants in UTC as DATEs: their difference is in days (a day is whole seconds long)
+        const hours = '(cast(sys_extract_utc(' + this._oracleStartOfDay(zoned, zone, true) + ') as date) - cast(sys_extract_utc(' + this._oracleStartOfDay(zoned, zone, false) + ') as date)) * 24'
+        return this._zonedComputedOnce(context, hours, valueSource, 'x')
+    }
+    /** Rounded to a day, as Temporal's `round('day')`: the start of its day or of the next one in its zone, the nearer one by the length of the day */
+    override _zonedRoundToDay(context: SqlBuildContext, valueSource: ToSql, value: any, _typeClass: DataTypeClass): string {
+        const zoned = this._zonedOperandSql(context, valueSource, 'x')
+        const zone = this._zonedZoneOf(context, valueSource, zoned)
+        const start = this._oracleStartOfDay(zoned, zone, false)
+        let rounded: string
+        switch (value as PlainTemporalRoundingMode) {
+            case 'trunc':
+                rounded = start
+                break
+            case 'ceil':
+                rounded = '(case when ' + zoned + ' = ' + start + ' then ' + start + ' else ' + this._oracleStartOfDay(zoned, zone, true) + ' end)'
+                break
+            default: {
+                // halfTrunc, and halfEven, whose even multiple is the start of the day (no day from it), take the start at the half
+                const end = this._oracleStartOfDay(zoned, zone, true)
+                const comparison = value === 'halfExpand' ? ' >= ' : ' > '
+                rounded = '(case when (' + zoned + ' - ' + start + ') * 2' + comparison + '(' + end + ' - ' + start + ') then ' + end + ' else ' + start + ' end)'
+            }
+        }
+        return this._zonedComputedOnce(context, rounded, valueSource, 'x')
     }
     /**
      * The duration from one zoned date and time to another in days or larger units, as Temporal's `until` (or `since`),
@@ -2055,4 +2160,10 @@ function isDifference(valueSource: ToSql): boolean {
     }
     const operation = (__asNodeValueSource(valueSource) as Partial<HasOperation>).__operation
     return operation === '_until' || operation === '_since' || operation === '_zonedUntil' || operation === '_zonedSince'
+}
+
+/** An offset of nanoseconds as Oracle writes it: its sign, its hours and its minutes (`+05:30`) */
+function oracleOffsetText(nanoseconds: bigint): string {
+    const minutes = (nanoseconds < 0n ? -nanoseconds : nanoseconds) / 60000000000n
+    return (nanoseconds < 0n ? '-' : '+') + String(minutes / 60n).padStart(2, '0') + ':' + String(minutes % 60n).padStart(2, '0')
 }

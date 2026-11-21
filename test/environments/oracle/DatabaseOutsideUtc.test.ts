@@ -74,7 +74,7 @@ for (const { version, compatibilityVersion, label } of await environmentVersions
                 expect(out.instant.repeated).toBe('2024-10-27T01:30:00Z')
                 // Its epoch, its date and time in Madrid, and a wall clock of Madrid as an instant
                 expect(out.instant.methods).toEqual({ milliseconds: 1705223730123, nanoseconds: '1705223730123000000', wall: '2024-01-14T10:15:30.123', zonedWall: '2024-01-14T10:15:30.123', hour: 10, instant: '2024-01-14T09:15:30.123Z', plainHour: 10, plainDay: '2024-01-14', plusAnHour: '2024-01-14T10:15:30.123Z', hourOf: '2024-01-14T09:00:00Z', ofItsEpoch: '2024-01-14T09:15:30.123Z' })
-                // The arithmetic of a zoned date and time in New York, by the rules of New York
+                // The arithmetic of a zoned date and time in New York, by the rules of New York, with the functions of the library
                 const newYork = Temporal.ZonedDateTime.from('2024-11-02T01:30:00-04:00[America/New_York]')
                 expect(out.zoned).toEqual({
                     nextDay: newYork.add({ days: 1 }).toString(), dayAfter: newYork.add({ hours: 24 }).toString(), rounded: newYork.add({ days: 1, hours: 11 }).round('day').toString(),
@@ -82,6 +82,8 @@ for (const { version, compatibilityVersion, label } of await environmentVersions
                     with: newYork.add({ days: 1 }).with({ minute: 45 }, { offset: 'ignore', disambiguation: 'later' }).toString(),
                     days: newYork.until(newYork.add({ days: 2 }), { largestUnit: 'day' }).toString(),
                 })
+                // Without the functions of the library, the 01:30 New York repeats that day is Oracle's later one
+                expect(out.nativeNextDay).toBe(newYork.toPlainDateTime().add({ days: 1 }).toZonedDateTime('America/New_York', { disambiguation: 'later' }).toString())
                 expect(out.whereSql).toEqual({
                     ts: 'select id as "id" from rt_ora_madrid where ts = cast(:0 as timestamp)',
                     dx: 'select id as "id" from rt_ora_madrid where dx = cast(:0 as date)',

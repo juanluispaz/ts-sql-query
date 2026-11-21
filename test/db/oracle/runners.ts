@@ -72,6 +72,8 @@ export interface OracleTestContext extends TestContext<DBConnection> {
     withReplaceInsensitiveCollation(collation: string): DBConnection
     /** A `DBConnection` whose `uuidStrategy` is pinned to `strategy`. */
     withUuidStrategy(strategy: 'string' | 'string as sent' | 'custom-functions' | 'built-in'): DBConnection
+    /** A `DBConnection` with `temporalFunctions: 'installed'` (a wall clock taken to its zone as Temporal disambiguates it). */
+    withTemporalFunctions(): DBConnection
     /** A `DBConnection` with `allowEmptyString` enabled (empty strings kept, not mapped to null). */
     withAllowEmptyString(): DBConnection
     /** A `DBConnection` whose `replaceCollation` is pinned to `collation` (`''` opts out to a bare `replace(...)`). */
@@ -95,6 +97,12 @@ function decorateOracleContext(base: TestContext<DBConnection>): OracleTestConte
         withInsensitiveCollation(collation: string | undefined): DBConnection {
             class C extends DBConnection {
                 protected override insensitiveCollation: string | undefined = collation
+            }
+            return base.withConnection(C)
+        },
+        withTemporalFunctions(): DBConnection {
+            class C extends DBConnection {
+                protected override temporalFunctions = 'installed' as const
             }
             return base.withConnection(C)
         },

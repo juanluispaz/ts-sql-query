@@ -200,7 +200,8 @@ export interface ConnectionConfiguration {
      */
     readonly useSimultaneousAssignment?: boolean
     /**
-     * PostgreSQL: the functions of the library that compute dates and times with zones as Temporal are in the database
+     * PostgreSQL and Oracle: the functions of the library that compute dates and times with zones as Temporal are in the
+     * database
      * (`temporalFunctions`, `'installed'`)
      */
     readonly temporalFunctions?: string

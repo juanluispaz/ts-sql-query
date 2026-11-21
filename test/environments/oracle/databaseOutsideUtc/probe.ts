@@ -31,6 +31,10 @@ class MadridSummerConnection extends OracleConnection<'MadridConnection'> {
     protected override compatibilityVersion = config.options.compatibilityVersion ?? Number.POSITIVE_INFINITY
     protected override localTimeReferenceDate = '2024-07-14'
 }
+/** The same connection with the functions of the library that take a wall clock to its zone as Temporal */
+class MadridConnectionWithFunctions extends MadridConnection {
+    protected override temporalFunctions = 'installed' as const
+}
 class MadridTodayConnection extends OracleConnection<'MadridTodayConnection'> {
     protected override databaseTimeZone = 'Europe/Madrid'
     protected override compatibilityVersion = config.options.compatibilityVersion ?? Number.POSITIVE_INFINITY
@@ -110,6 +114,7 @@ export interface ScenarioResult {
     timeAfterMidnight?: { stored: unknown[], where: number[] }
     instant?: { sql: string[], stored: unknown[], read: unknown[], where: number[], whereDx: number[], returning: unknown, aggregated: unknown[], currentDrift: number, repeated: unknown, methods: unknown }
     zoned?: unknown
+    nativeNextDay?: string
 }
 
 async function scenario(): Promise<ScenarioResult> {
@@ -224,12 +229,15 @@ async function scenario(): Promise<ScenarioResult> {
         }
         // The arithmetic of a zoned date and time follows the rules of its zone (New York goes back an hour on
         // 2024-11-03), whatever the zone of the session
-        const newYork = conn.const(Temporal.ZonedDateTime.from('2024-11-02T01:30:00-04:00[America/New_York]'), 'zonedDateTime')
-        out.zoned = await conn.selectFromNoTable().select({
+        const exact = new MadridConnectionWithFunctions(created.runner)
+        const newYork = exact.const(Temporal.ZonedDateTime.from('2024-11-02T01:30:00-04:00[America/New_York]'), 'zonedDateTime')
+        out.zoned = await exact.selectFromNoTable().select({
             nextDay: newYork.add({ days: 1 }), dayAfter: newYork.add({ hours: 24 }), rounded: newYork.add({ days: 1, hours: 11 }).round('day'),
             start: newYork.add({ days: 1, hours: 3 }).startOfDay(), hours: newYork.add({ days: 1 }).hoursInDay(), with: newYork.add({ days: 1 }).with({ minute: 45 }, { offset: 'ignore', disambiguation: 'later' }),
             days: newYork.until(newYork.add({ days: 2 }), { largestUnit: 'day' }),
         }).executeSelectOne().then(row => ({ ...row, nextDay: String(row.nextDay), dayAfter: String(row.dayAfter), rounded: String(row.rounded), start: String(row.start), with: String(row.with), days: String(row.days) }))
+        // Without them, the 01:30 New York repeats that day is Oracle's later one
+        out.nativeNextDay = String(await conn.selectFromNoTable().selectOneColumn(conn.const(Temporal.ZonedDateTime.from('2024-11-02T01:30:00-04:00[America/New_York]'), 'zonedDateTime').add({ days: 1 })).executeSelectOne())
         // A wall clock that Madrid skips when it changes to summer time can't be read: ORA-01878
         await raw(`insert into ${tableName} (id, ts) values (4, timestamp '2024-03-31 02:30:00')`)
         out.skipped = await outcomeOf(() => conn.selectFrom(tMoment).where(tMoment.id.equals(4)).selectOneColumn(tMoment.ts).executeSelectOne())

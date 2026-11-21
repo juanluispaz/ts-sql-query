@@ -1102,7 +1102,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
                 return 'zonedDateTime'
             }
             const zone = this._pgZoneText(this._pgZoneOf(context, value as unknown as ToSql))
-            const instant = /^(?:[\w."]+|\$\d+(?:::timestamptz)?)$/.test(sql) ? sql : '(' + sql + ')'
+            const instant = /^(?:[\w."]+|\$\d+(?:::timestamptz)?)$/.test(sql) || isWholeBetweenParentheses(sql) ? sql : '(' + sql + ')'
             const bracketed = zone.startsWith("'") ? "'[" + zone.slice(1, -1) + "]'" : "'[' || " + zone + " || ']'"
             return "to_char(" + instant + " at time zone 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\" BC') || " + bracketed
         }
@@ -1176,4 +1176,31 @@ function pgIntervalOfMicroseconds(microseconds: bigint): string {
 /** The bin of the stride from the origin of a timestamp moved forward by a number of microseconds */
 function pgBin(stride: string, timestamp: string, moved: string, origin: string): string {
     return 'date_bin(' + stride + ', ' + timestamp + (moved === '' ? '' : ' + ' + moved) + ', ' + origin + ')'
+}
+
+/** Whether the SQL is all between one pair of parentheses, the first and the last characters (outside quotes) */
+function isWholeBetweenParentheses(sql: string): boolean {
+    if (sql[0] !== '(' || sql[sql.length - 1] !== ')') {
+        return false
+    }
+    let depth = 0
+    let quote = ''
+    for (let i = 0; i < sql.length; i++) {
+        const character = sql[i]!
+        if (quote !== '') {
+            if (character === quote) {
+                quote = ''
+            }
+        } else if (character === "'" || character === '"') {
+            quote = character
+        } else if (character === '(') {
+            depth++
+        } else if (character === ')') {
+            depth--
+            if (depth === 0) {
+                return i === sql.length - 1
+            }
+        }
+    }
+    return false
 }

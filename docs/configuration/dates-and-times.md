@@ -2,6 +2,7 @@
 search:
   boost: 0.55
 ---
+<!-- doc-code-library-functions -->
 # Dates and times
 
 A date, a time of the day or both reach your code in one of two ways: as a [Temporal](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal) value of JavaScript, or as a `Date`. This page says what each one is, why Temporal is the one we recommend, what you need to use it, and what a query can do with these values: compare them, take their parts, and turn a date into a date and time. It also covers [instants](#instants), an exact moment like the one a release was deployed, as a `Temporal.Instant`, and [durations](#durations), a length of time like the 45 minutes a task took, as a `Temporal.Duration`. Where the zone of each value comes from, and how to set up the zones of your database and your application, is in [Time zones](time-zones.md).
@@ -45,6 +46,17 @@ The `local…` types stay fully supported: choose them when your code already wo
 
 - A runtime with `Temporal`. Node 26 and Bun 1.4 have it. In another runtime, install a polyfill in the global object (`globalThis.Temporal`) before the first query; the library reads `Temporal` from there when it converts a value. Without it, converting a value of these types is rejected with `TEMPORAL_NOT_AVAILABLE`, and the rest of the library works as usual.
 - The types of `Temporal` in TypeScript: `"lib": ["esnext"]`, or `"esnext.temporal"` added to your `lib`. Without them your code still compiles, but the values of these types have the type `never`.
+- The functions of the library in the database, for the operations that the database doesn't have: some a query always needs (the ones of durations), and the rest are optional. Create them with the file of SQL of [your database](../databases/postgresql/functions.md) and set `libraryFunctions = 'installed'` on the connection: then a query calls them where the SQL of the database alone would write a value several times.
+
+    ```ts
+    class DBConnection extends PostgreSqlConnection<'DBConnection'> {
+        protected override libraryFunctions = 'installed' as const
+    }
+    ```
+
+!!! info "The SQL of this page is the one with the functions of the library"
+
+    Every query of this page shows the SQL it sends with `libraryFunctions = 'installed'`. Without it, the result is the same, and the SQL of some operations is longer: it writes inline what the function computes.
 
 ## Temporal values in a query
 
@@ -705,8 +717,8 @@ The executed query is:
     select 
         version as version, 
         tsq_duration_text(0, 0, 0, 0, cast(-timestampdiff(microsecond, deployed_at, published_at) as decimal(65)) * 1000, 'hour') as afterPublishing, 
-        date_add(date(deployed_at), interval (floor(time_to_sec(deployed_at)) * 1000000 + microsecond(deployed_at)) div 3600000000 * 3600000000 microsecond) as hour, 
-        date_add(date_add(date(deployed_at), interval ((floor(time_to_sec(deployed_at)) * 1000000 + microsecond(deployed_at)) + 3599999999) div 3600000000 * 3600000000 microsecond), interval ? microsecond) as reviewBy 
+        date_add(date(deployed_at), interval tsq_round_to((floor(time_to_sec(deployed_at)) * 1000000 + microsecond(deployed_at)), 3600000000, 'trunc') microsecond) as hour, 
+        date_add(date_add(date(deployed_at), interval tsq_round_to((floor(time_to_sec(deployed_at)) * 1000000 + microsecond(deployed_at)), 3600000000, 'ceil') microsecond), interval ? microsecond) as reviewBy 
     from project_release 
     where deployed_at is not null 
     order by version
@@ -716,8 +728,8 @@ The executed query is:
     select 
         version as version, 
         tsq_duration_text(0, 0, 0, 0, cast(-timestampdiff(microsecond, deployed_at, published_at) as decimal(65)) * 1000, 'hour') as afterPublishing, 
-        date_add(date(deployed_at), interval (floor(time_to_sec(deployed_at)) * 1000000 + microsecond(deployed_at)) div 3600000000 * 3600000000 microsecond) as hour, 
-        date_add(date_add(date(deployed_at), interval ((floor(time_to_sec(deployed_at)) * 1000000 + microsecond(deployed_at)) + 3599999999) div 3600000000 * 3600000000 microsecond), interval ? microsecond) as reviewBy 
+        date_add(date(deployed_at), interval tsq_round_to((floor(time_to_sec(deployed_at)) * 1000000 + microsecond(deployed_at)), 3600000000, 'trunc') microsecond) as hour, 
+        date_add(date_add(date(deployed_at), interval tsq_round_to((floor(time_to_sec(deployed_at)) * 1000000 + microsecond(deployed_at)), 3600000000, 'ceil') microsecond), interval ? microsecond) as reviewBy 
     from project_release 
     where deployed_at is not null 
     order by version
@@ -726,9 +738,9 @@ The executed query is:
     ```oracle
     select 
         version as "version", 
-        tsq_duration_text(0, 0, 0, 0, -((trunc(sys_extract_utc(cast(published_at as timestamp(9) with time zone))) - trunc(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)))) * 86400000000000 + (to_number(to_char(sys_extract_utc(cast(published_at as timestamp(9) with time zone)), 'SSSSSFF9')) - to_number(to_char(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)), 'SSSSSFF9')))), 'hour') as "afterPublishing", 
-        to_char(sys_extract_utc(cast(from_tz(cast(trunc(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone))) as timestamp(9)) + numtodsinterval((trunc(to_number(to_char(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)), 'SSSSSFF9')) / 3600000000000) * 3600000000000) / 1000000000, 'second'), '+00:00') as timestamp(9) with time zone)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "hour", 
-        to_char(sys_extract_utc(cast(from_tz(sys_extract_utc(cast(from_tz(cast(trunc(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone))) as timestamp(9)) + numtodsinterval((trunc((to_number(to_char(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)), 'SSSSSFF9')) + 3599999999999) / 3600000000000) * 3600000000000) / 1000000000, 'second'), '+00:00') as timestamp(9) with time zone)) + numtodsinterval(:0, 'second'), '+00:00') as timestamp(9) with time zone)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "reviewBy" 
+        tsq_duration_text(0, 0, 0, 0, -tsq_nanoseconds_between(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)), sys_extract_utc(cast(published_at as timestamp(9) with time zone))), 'hour') as "afterPublishing", 
+        to_char(sys_extract_utc(cast(from_tz(cast(trunc(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone))) as timestamp(9)) + numtodsinterval((tsq_round_to(to_number(to_char(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)), 'SSSSSFF9')), 3600000000000, 'trunc')) / 1000000000, 'second'), '+00:00') as timestamp(9) with time zone)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "hour", 
+        to_char(sys_extract_utc(cast(from_tz(sys_extract_utc(cast(from_tz(cast(trunc(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone))) as timestamp(9)) + numtodsinterval((tsq_round_to(to_number(to_char(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)), 'SSSSSFF9')), 3600000000000, 'ceil')) / 1000000000, 'second'), '+00:00') as timestamp(9) with time zone)) + numtodsinterval(:0, 'second'), '+00:00') as timestamp(9) with time zone)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "reviewBy" 
     from project_release 
     where deployed_at is not null 
     order by "version"
@@ -749,8 +761,8 @@ The executed query is:
     select 
         version as version, 
         tsq_duration_text(0, 0, 0, 0, cast(-cast(round((julianday(published_at) - julianday(deployed_at)) * 86400000) as integer) * 1000000 as text), 'hour') as afterPublishing, 
-        strftime('%Y-%m-%dT%H:%M:%fZ', date(deployed_at), ((cast(cast(round((julianday(deployed_at) - julianday(date(deployed_at))) * 86400000) as integer) / 3600000 as integer) * 3600000) / 1000.0) || ' seconds') as hour, 
-        strftime('%Y-%m-%dT%H:%M:%fZ', strftime('%Y-%m-%dT%H:%M:%fZ', date(deployed_at), ((cast((cast(round((julianday(deployed_at) - julianday(date(deployed_at))) * 86400000) as integer) + 3599999) / 3600000 as integer) * 3600000) / 1000.0) || ' seconds'), ?1) as reviewBy 
+        strftime('%Y-%m-%dT%H:%M:%fZ', date(deployed_at), ((cast(tsq_round_to(cast(cast(round((julianday(deployed_at) - julianday(date(deployed_at))) * 86400000) as integer) as text), 3600000, 'trunc') as integer)) / 1000.0) || ' seconds') as hour, 
+        strftime('%Y-%m-%dT%H:%M:%fZ', strftime('%Y-%m-%dT%H:%M:%fZ', date(deployed_at), ((cast(tsq_round_to(cast(cast(round((julianday(deployed_at) - julianday(date(deployed_at))) * 86400000) as integer) as text), 3600000, 'ceil') as integer)) / 1000.0) || ' seconds'), ?1) as reviewBy 
     from project_release 
     where deployed_at is not null 
     order by version
@@ -759,9 +771,9 @@ The executed query is:
     ```sqlserver
     select 
         version as version, 
-        dbo.tsq_duration_text(0, 0, 0, 0, cast(-(datediff(day, cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as date), cast(cast(switchoffset(published_at, '+00:00') as datetime2) as date)) * cast(864000000000 as bigint) + (datediff_big(nanosecond, cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as time), cast(cast(switchoffset(published_at, '+00:00') as datetime2) as time)) / 100)) as decimal(38)) * 100, 'hour') as afterPublishing, 
-        dateadd(nanosecond, ((datediff_big(nanosecond, cast('00:00' as time), cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as time)) / 100) / cast(36000000000 as bigint) * cast(36000000000 as bigint)) % 10000000 * 100, dateadd(second, ((datediff_big(nanosecond, cast('00:00' as time), cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as time)) / 100) / cast(36000000000 as bigint) * cast(36000000000 as bigint)) / 10000000, cast(cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as date) as datetime2))) as hour, 
-        dateadd(day, @0, cast(switchoffset(dateadd(nanosecond, (((datediff_big(nanosecond, cast('00:00' as time), cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as time)) / 100) + cast(35999999999 as bigint)) / cast(36000000000 as bigint) * cast(36000000000 as bigint)) % 10000000 * 100, dateadd(second, (((datediff_big(nanosecond, cast('00:00' as time), cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as time)) / 100) + cast(35999999999 as bigint)) / cast(36000000000 as bigint) * cast(36000000000 as bigint)) / 10000000, cast(cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as date) as datetime2))), '+00:00') as datetime2)) as reviewBy 
+        dbo.tsq_duration_text(0, 0, 0, 0, cast(-dbo.tsq_ticks_between(cast(switchoffset(deployed_at, '+00:00') as datetime2), cast(switchoffset(published_at, '+00:00') as datetime2)) as decimal(38)) * 100, 'hour') as afterPublishing, 
+        dbo.tsq_datetime_of_ticks(cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as date), dbo.tsq_round_to((datediff_big(nanosecond, cast('00:00' as time), cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as time)) / 100), cast(36000000000 as bigint), 'trunc')) as hour, 
+        dateadd(day, @0, cast(switchoffset(dbo.tsq_datetime_of_ticks(cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as date), dbo.tsq_round_to((datediff_big(nanosecond, cast('00:00' as time), cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as time)) / 100), cast(36000000000 as bigint), 'ceil')), '+00:00') as datetime2)) as reviewBy 
     from project_release 
     where deployed_at is not null 
     order by version
@@ -850,8 +862,8 @@ The executed query is:
     select 
         version as "version", 
         to_char(from_tz(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)), '+00:00') at time zone 'Europe/Madrid', 'YYYY-MM-DD"T"HH24:MI:SS.FF9TZH:TZM BC"["TZR"]"', 'NLS_DATE_LANGUAGE=AMERICAN') as "deployedInMadrid", 
-        to_char(from_tz(cast(published_at as timestamp(9)), 'Europe/Madrid'), 'YYYY-MM-DD"T"HH24:MI:SS.FF9TZH:TZM BC"["TZR"]"', 'NLS_DATE_LANGUAGE=AMERICAN') as "publishedInMadrid", 
-        to_char(sys_extract_utc(cast((from_tz(cast(published_at as timestamp(9)), 'Europe/Madrid')) as timestamp(9) with time zone)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "publishedInstant" 
+        to_char(tsq_zoned_of_wall(cast(published_at as timestamp(9)), 'Europe/Madrid', 'compatible'), 'YYYY-MM-DD"T"HH24:MI:SS.FF9TZH:TZM BC"["TZR"]"', 'NLS_DATE_LANGUAGE=AMERICAN') as "publishedInMadrid", 
+        to_char(sys_extract_utc(cast((tsq_zoned_of_wall(cast(published_at as timestamp(9)), 'Europe/Madrid', 'compatible')) as timestamp(9) with time zone)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "publishedInstant" 
     from project_release 
     order by "version"
     ```
@@ -860,8 +872,8 @@ The executed query is:
     select 
         version as version, 
         to_char((deployed_at::timestamptz) at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z" BC') || '[Europe/Madrid]' as "deployedInMadrid", 
-        to_char((published_at at time zone 'Europe/Madrid') at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z" BC') || '[Europe/Madrid]' as "publishedInMadrid", 
-        ((published_at at time zone 'Europe/Madrid')) as "publishedInstant" 
+        to_char((tsq_zoned_of_wall(published_at, 'Europe/Madrid', 'compatible')) at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z" BC') || '[Europe/Madrid]' as "publishedInMadrid", 
+        (tsq_zoned_of_wall(published_at, 'Europe/Madrid', 'compatible')) as "publishedInstant" 
     from project_release 
     order by version
     ```
@@ -972,10 +984,10 @@ The executed query is:
     ```oracle
     select 
         version as "version", 
-        to_char((select from_tz((cast(tsq_z.x as timestamp(9)) + numtodsinterval(:0, 'day')), to_char(tsq_z.x, 'TZR')) from (select from_tz(cast(published_at as timestamp(9)), 'Europe/Madrid') as x from dual where rownum = 1) tsq_z), 'YYYY-MM-DD"T"HH24:MI:SS.FF9TZH:TZM BC"["TZR"]"', 'NLS_DATE_LANGUAGE=AMERICAN') as "followUp", 
-        tsq_zoned_until(from_tz(cast(published_at as timestamp(9)), 'Europe/Madrid'), (select from_tz((cast(tsq_z.x as timestamp(9)) + numtodsinterval(:1, 'day')), to_char(tsq_z.x, 'TZR')) from (select from_tz(cast(published_at as timestamp(9)), 'Europe/Madrid') as x from dual where rownum = 1) tsq_z), 'day', 'nanosecond', 1, 'trunc', 1) as "daysToFollowUp", 
-        tsq_duration_text(0, 0, 0, 0, ((trunc(sys_extract_utc((select from_tz((cast(tsq_z.x as timestamp(9)) + numtodsinterval(:2, 'day')), to_char(tsq_z.x, 'TZR')) from (select from_tz(cast(published_at as timestamp(9)), 'Europe/Madrid') as x from dual where rownum = 1) tsq_z))) - trunc(sys_extract_utc(from_tz(cast(published_at as timestamp(9)), 'Europe/Madrid')))) * 86400000000000 + (to_number(to_char(sys_extract_utc((select from_tz((cast(tsq_z.x as timestamp(9)) + numtodsinterval(:3, 'day')), to_char(tsq_z.x, 'TZR')) from (select from_tz(cast(published_at as timestamp(9)), 'Europe/Madrid') as x from dual where rownum = 1) tsq_z)), 'SSSSSFF9')) - to_number(to_char(sys_extract_utc(from_tz(cast(published_at as timestamp(9)), 'Europe/Madrid')), 'SSSSSFF9')))), 'hour') as "hoursToFollowUp", 
-        (select (cast(sys_extract_utc(from_tz(cast(trunc(cast(tsq_z.x as timestamp(9))) + 1 as timestamp(9)), to_char(tsq_z.x, 'TZR'))) as date) - cast(sys_extract_utc(from_tz(cast(trunc(cast(tsq_z.x as timestamp(9))) as timestamp(9)), to_char(tsq_z.x, 'TZR'))) as date)) * 24 from (select (select from_tz((cast(tsq_z.x as timestamp(9)) + numtodsinterval(:4, 'day')), to_char(tsq_z.x, 'TZR')) from (select from_tz(cast(published_at as timestamp(9)), 'Europe/Madrid') as x from dual where rownum = 1) tsq_z) as x from dual where rownum = 1) tsq_z) as "hoursInThatDay" 
+        to_char((select tsq_zoned_of_wall((cast(tsq_z.x as timestamp(9)) + numtodsinterval(:0, 'day')), to_char(tsq_z.x, 'TZR'), 'compatible') from (select tsq_zoned_of_wall(cast(published_at as timestamp(9)), 'Europe/Madrid', 'compatible') as x from dual where rownum = 1) tsq_z), 'YYYY-MM-DD"T"HH24:MI:SS.FF9TZH:TZM BC"["TZR"]"', 'NLS_DATE_LANGUAGE=AMERICAN') as "followUp", 
+        tsq_zoned_until(tsq_zoned_of_wall(cast(published_at as timestamp(9)), 'Europe/Madrid', 'compatible'), (select tsq_zoned_of_wall((cast(tsq_z.x as timestamp(9)) + numtodsinterval(:1, 'day')), to_char(tsq_z.x, 'TZR'), 'compatible') from (select tsq_zoned_of_wall(cast(published_at as timestamp(9)), 'Europe/Madrid', 'compatible') as x from dual where rownum = 1) tsq_z), 'day', 'nanosecond', 1, 'trunc', 1) as "daysToFollowUp", 
+        tsq_duration_text(0, 0, 0, 0, tsq_nanoseconds_between(sys_extract_utc(tsq_zoned_of_wall(cast(published_at as timestamp(9)), 'Europe/Madrid', 'compatible')), sys_extract_utc((select tsq_zoned_of_wall((cast(tsq_z.x as timestamp(9)) + numtodsinterval(:2, 'day')), to_char(tsq_z.x, 'TZR'), 'compatible') from (select tsq_zoned_of_wall(cast(published_at as timestamp(9)), 'Europe/Madrid', 'compatible') as x from dual where rownum = 1) tsq_z))), 'hour') as "hoursToFollowUp", 
+        tsq_zoned_hours_in_day((select tsq_zoned_of_wall((cast(tsq_z.x as timestamp(9)) + numtodsinterval(:3, 'day')), to_char(tsq_z.x, 'TZR'), 'compatible') from (select tsq_zoned_of_wall(cast(published_at as timestamp(9)), 'Europe/Madrid', 'compatible') as x from dual where rownum = 1) tsq_z)) as "hoursInThatDay" 
     from project_release 
     order by "version"
     ```
@@ -983,10 +995,10 @@ The executed query is:
     ```postgresql
     select 
         version as version, 
-        to_char((((((published_at at time zone 'Europe/Madrid')) at time zone 'Europe/Madrid') + make_interval(days => $1)) at time zone 'Europe/Madrid') at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z" BC') || '[Europe/Madrid]' as "followUp", 
-        tsq_zoned_until(((published_at at time zone 'Europe/Madrid')), 'Europe/Madrid', ((((((published_at at time zone 'Europe/Madrid')) at time zone 'Europe/Madrid') + make_interval(days => $2)) at time zone 'Europe/Madrid')), 'Europe/Madrid', 'day', 'nanosecond', 1, 'trunc', 1) as "daysToFollowUp", 
-        (extract(epoch from (((((((published_at at time zone 'Europe/Madrid')) at time zone 'Europe/Madrid') + make_interval(days => $3)) at time zone 'Europe/Madrid')) at time zone 'UTC') - (((published_at at time zone 'Europe/Madrid')) at time zone 'UTC')) || ' seconds')::interval as "hoursToFollowUp", 
-        (select (extract(epoch from ((date_trunc('day', (tsq_z.x at time zone 'Europe/Madrid')) + interval '1 day') at time zone 'Europe/Madrid') - ((date_trunc('day', (tsq_z.x at time zone 'Europe/Madrid'))) at time zone 'Europe/Madrid')) / 3600)::float8 from (select (((((published_at at time zone 'Europe/Madrid')) at time zone 'Europe/Madrid') + make_interval(days => $4)) at time zone 'Europe/Madrid') as x offset 0) tsq_z) as "hoursInThatDay" 
+        to_char((tsq_zoned_of_wall((((tsq_zoned_of_wall(published_at, 'Europe/Madrid', 'compatible')) at time zone 'Europe/Madrid') + make_interval(days => $1)), 'Europe/Madrid', 'compatible')) at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z" BC') || '[Europe/Madrid]' as "followUp", 
+        tsq_zoned_until((tsq_zoned_of_wall(published_at, 'Europe/Madrid', 'compatible')), 'Europe/Madrid', (tsq_zoned_of_wall((((tsq_zoned_of_wall(published_at, 'Europe/Madrid', 'compatible')) at time zone 'Europe/Madrid') + make_interval(days => $2)), 'Europe/Madrid', 'compatible')), 'Europe/Madrid', 'day', 'nanosecond', 1, 'trunc', 1) as "daysToFollowUp", 
+        (extract(epoch from ((tsq_zoned_of_wall((((tsq_zoned_of_wall(published_at, 'Europe/Madrid', 'compatible')) at time zone 'Europe/Madrid') + make_interval(days => $3)), 'Europe/Madrid', 'compatible')) at time zone 'UTC') - ((tsq_zoned_of_wall(published_at, 'Europe/Madrid', 'compatible')) at time zone 'UTC')) || ' seconds')::interval as "hoursToFollowUp", 
+        tsq_zoned_hours_in_day((tsq_zoned_of_wall((((tsq_zoned_of_wall(published_at, 'Europe/Madrid', 'compatible')) at time zone 'Europe/Madrid') + make_interval(days => $4)), 'Europe/Madrid', 'compatible')), 'Europe/Madrid') as "hoursInThatDay" 
     from project_release 
     order by version
     ```
@@ -999,7 +1011,7 @@ The executed query is:
     -- Not available on SQL Server
     ```
 
-The parameters are: `[ 29, 29, 29, 29 ]` (on Oracle: `[ 29, 29, 29, 29, 29 ]`)
+The parameters are: `[ 29, 29, 29, 29 ]`
 
 | version | followUp | daysToFollowUp | hoursToFollowUp | hoursInThatDay |
 |---|---|---|---|---|
@@ -1270,7 +1282,7 @@ The executed query is:
         tsq_duration_part(rollout_time, 'hours') as hours, 
         tsq_duration_part(rollout_time, 'minutes') as minutes, 
         tsq_duration_part(rollout_time, 'sign') as sign, 
-        case when substr(rollout_time, 1, 1) = '-' then substr(rollout_time, 2) when tsq_duration_part(rollout_time, 'sign') = 0 then rollout_time when substr(rollout_time, 1, 1) = '+' then concat('-', substr(rollout_time, 2)) else concat('-', rollout_time) end as back 
+        tsq_duration_negated(rollout_time) as back 
     from project_release 
     order by version
     ```
@@ -1282,7 +1294,7 @@ The executed query is:
         tsq_duration_part(rollout_time, 'hours') as hours, 
         tsq_duration_part(rollout_time, 'minutes') as minutes, 
         tsq_duration_part(rollout_time, 'sign') as sign, 
-        case when substr(rollout_time, 1, 1) = '-' then substr(rollout_time, 2) when tsq_duration_part(rollout_time, 'sign') = 0 then rollout_time when substr(rollout_time, 1, 1) = '+' then concat('-', substr(rollout_time, 2)) else concat('-', rollout_time) end as back 
+        tsq_duration_negated(rollout_time) as back 
     from project_release 
     order by version
     ```
@@ -1318,7 +1330,7 @@ The executed query is:
         tsq_duration_part(rollout_time, 'hours') as hours, 
         tsq_duration_part(rollout_time, 'minutes') as minutes, 
         tsq_duration_part(rollout_time, 'sign') as sign, 
-        case when substr(rollout_time, 1, 1) = '-' then substr(rollout_time, 2) when tsq_duration_part(rollout_time, 'sign') = 0 then rollout_time when substr(rollout_time, 1, 1) = '+' then '-' || substr(rollout_time, 2) else '-' || rollout_time end as back 
+        tsq_duration_negated(rollout_time) as back 
     from project_release 
     order by version
     ```
@@ -1330,7 +1342,7 @@ The executed query is:
         dbo.tsq_duration_part(rollout_time, 'hours') as hours, 
         dbo.tsq_duration_part(rollout_time, 'minutes') as minutes, 
         dbo.tsq_duration_part(rollout_time, 'sign') as sign, 
-        case when substring(rollout_time, 1, 1) = '-' then substring(rollout_time, 2, 100) when dbo.tsq_duration_part(rollout_time, 'sign') = 0 then rollout_time when substring(rollout_time, 1, 1) = '+' then '-' + substring(rollout_time, 2, 100) else '-' + rollout_time end as back 
+        dbo.tsq_duration_negated(rollout_time) as back 
     from project_release 
     order by version
     ```
@@ -1367,7 +1379,7 @@ The executed query is:
     select 
         version as version, 
         date_add(released_on, interval ? month) as supportEndsOn, 
-        date_add(date_add(date_add(published_at, interval tsq_duration_part(rollout_time, 'M') month), interval tsq_duration_part(rollout_time, 'D') day), interval (tsq_duration_part(rollout_time, 'S') * 1000000 + tsq_duration_part(rollout_time, 'N') div 1000) microsecond) as rolloutEndedAt 
+        tsq_datetime_plus_duration(published_at, rollout_time, 1) as rolloutEndedAt 
     from project_release 
     order by version
     ```
@@ -1376,7 +1388,7 @@ The executed query is:
     select 
         version as version, 
         date_add(released_on, interval ? month) as supportEndsOn, 
-        date_add(date_add(date_add(published_at, interval tsq_duration_part(rollout_time, 'M') month), interval tsq_duration_part(rollout_time, 'D') day), interval (tsq_duration_part(rollout_time, 'S') * 1000000 + tsq_duration_part(rollout_time, 'N') div 1000) microsecond) as rolloutEndedAt 
+        tsq_datetime_plus_duration(published_at, rollout_time, 1) as rolloutEndedAt 
     from project_release 
     order by version
     ```
@@ -1403,7 +1415,7 @@ The executed query is:
     select 
         version as version, 
         date(date(released_on, 'start of month', ?1), (min(cast(strftime('%d', released_on) as integer), cast(strftime('%d', date(released_on, 'start of month', ?1), '+1 months', '-1 days') as integer)) - 1) || ' days') as supportEndsOn, 
-        strftime('%Y-%m-%dT%H:%M:%fZ', date(date(published_at, 'start of month', (tsq_duration_part(rollout_time, 'M')) || ' months'), (min(cast(strftime('%d', published_at) as integer), cast(strftime('%d', date(published_at, 'start of month', (tsq_duration_part(rollout_time, 'M')) || ' months'), '+1 months', '-1 days') as integer)) - 1) || ' days') || ' ' || strftime('%H:%M:%f', published_at), (tsq_duration_part(rollout_time, 'D')) || ' days', (tsq_duration_part(rollout_time, 'S') + tsq_duration_part(rollout_time, 'N') / 1000000000.0) || ' seconds') as rolloutEndedAt 
+        strftime('%Y-%m-%dT%H:%M:%fZ', tsq_datetime_plus_duration(strftime('%Y-%m-%d %H:%M:%f', published_at), rollout_time, 1)) as rolloutEndedAt 
     from project_release 
     order by version
     ```
@@ -1412,7 +1424,7 @@ The executed query is:
     select 
         version as version, 
         dateadd(month, @0, released_on) as supportEndsOn, 
-        dateadd(nanosecond, dbo.tsq_duration_part(rollout_time, 'N'), cast(dateadd(second, dbo.tsq_duration_part(rollout_time, 'S') % 86400, dateadd(day, (dbo.tsq_duration_part(rollout_time, 'D') + dbo.tsq_duration_part(rollout_time, 'S') / 86400), dateadd(month, dbo.tsq_duration_part(rollout_time, 'M'), published_at))) as datetime2)) as rolloutEndedAt 
+        dbo.tsq_datetime_plus_duration(published_at, rollout_time, 1) as rolloutEndedAt 
     from project_release 
     order by version
     ```
@@ -1487,7 +1499,7 @@ The executed query is:
         version as version, 
         tsq_duration_text(0, 0, 0, datediff(date(published_at), released_on), 0, 'day') as toPublication, 
         tsq_duration_text(0, 0, 0, 0, cast(-timestampdiff(microsecond, published_at, timestamp(released_on)) as decimal(65)) * 1000, 'hour') as publishedAfter, 
-        tsq_duration_round(cast(year(released_on) as signed), cast(month(released_on) as signed), cast(dayofmonth(released_on) as signed), 0, ?, ?, ?, 0, 'month', 'day', 1, 'trunc', 1) as untilEndOfJune 
+        tsq_duration_round_of(released_on, ?, 'month', 'day', 1, 'trunc', 1) as untilEndOfJune 
     from project_release 
     order by version
     ```
@@ -1497,7 +1509,7 @@ The executed query is:
         version as version, 
         tsq_duration_text(0, 0, 0, datediff(date(published_at), released_on), 0, 'day') as toPublication, 
         tsq_duration_text(0, 0, 0, 0, cast(-timestampdiff(microsecond, published_at, timestamp(released_on)) as decimal(65)) * 1000, 'hour') as publishedAfter, 
-        tsq_duration_round(cast(year(released_on) as signed), cast(month(released_on) as signed), cast(dayofmonth(released_on) as signed), 0, ?, ?, ?, 0, 'month', 'day', 1, 'trunc', 1) as untilEndOfJune 
+        tsq_duration_round_of(released_on, ?, 'month', 'day', 1, 'trunc', 1) as untilEndOfJune 
     from project_release 
     order by version
     ```
@@ -1506,8 +1518,8 @@ The executed query is:
     select 
         version as "version", 
         tsq_duration_text(0, 0, 0, (trunc(published_at) - released_on), 0, 'day') as "toPublication", 
-        tsq_duration_text(0, 0, 0, 0, -((trunc(cast(released_on as timestamp(9))) - trunc(published_at)) * 86400000000000 + (to_number(to_char(cast(released_on as timestamp(9)), 'SSSSSFF9')) - to_number(to_char(published_at, 'SSSSSFF9')))), 'hour') as "publishedAfter", 
-        tsq_duration_round(extract(year from released_on), extract(month from released_on), extract(day from released_on), 0, :0, :1, :2, 0, 'month', 'day', 1, 'trunc', 1) as "untilEndOfJune" 
+        tsq_duration_text(0, 0, 0, 0, -tsq_nanoseconds_between(published_at, cast(released_on as timestamp(9))), 'hour') as "publishedAfter", 
+        tsq_duration_round_of(released_on, to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN'), 'month', 'day', 1, 'trunc', 1) as "untilEndOfJune" 
     from project_release 
     order by "version"
     ```
@@ -1517,7 +1529,7 @@ The executed query is:
         version as version, 
         make_interval(days => (cast(published_at as date) - released_on)) as "toPublication", 
         (extract(epoch from published_at - cast(released_on as timestamp)) || ' seconds')::interval as "publishedAfter", 
-        tsq_duration_round(cast(extract(year from released_on) as integer), cast(extract(month from released_on) as integer), cast(extract(day from released_on) as integer), 0, $1, $2, $3, 0, 'month', 'day', 1, 'trunc', 1) as "untilEndOfJune" 
+        tsq_duration_round_of(released_on, $1::date, 'month', 'day', 1, 'trunc', 1) as "untilEndOfJune" 
     from project_release 
     order by version
     ```
@@ -1527,7 +1539,7 @@ The executed query is:
         version as version, 
         tsq_duration_text(0, 0, 0, cast(julianday(date(date(published_at))) - julianday(date(released_on)) as integer), 0, 'day') as toPublication, 
         tsq_duration_text(0, 0, 0, 0, cast(-cast(round((julianday(strftime('%Y-%m-%dT%H:%M:%fZ', released_on)) - julianday(published_at)) * 86400000) as integer) * 1000000 as text), 'hour') as publishedAfter, 
-        tsq_duration_round(cast(strftime('%Y', released_on) as integer), cast(strftime('%m', released_on) as integer), cast(strftime('%d', released_on) as integer), 0, ?1, ?2, ?3, 0, 'month', 'day', 1, 'trunc', 1) as untilEndOfJune 
+        tsq_duration_round_of(strftime('%Y-%m-%d %H:%M:%f', released_on), strftime('%Y-%m-%d %H:%M:%f', ?1), 'month', 'day', 1, 'trunc', 1) as untilEndOfJune 
     from project_release 
     order by version
     ```
@@ -1536,13 +1548,13 @@ The executed query is:
     select 
         version as version, 
         dbo.tsq_duration_text(0, 0, 0, datediff(day, released_on, cast(switchoffset(published_at, '+00:00') as date)), 0, 'day') as toPublication, 
-        dbo.tsq_duration_text(0, 0, 0, 0, cast(-(datediff(day, cast(published_at as date), cast(cast(released_on as datetime2) as date)) * cast(864000000000 as bigint) + (datediff_big(nanosecond, cast(published_at as time), cast(cast(released_on as datetime2) as time)) / 100)) as decimal(38)) * 100, 'hour') as publishedAfter, 
-        dbo.tsq_duration_round(datepart(year, released_on), datepart(month, released_on), datepart(day, released_on), 0, @0, @1, @2, 0, 'month', 'day', 1, 'trunc', 1) as untilEndOfJune 
+        dbo.tsq_duration_text(0, 0, 0, 0, cast(-dbo.tsq_ticks_between(published_at, cast(released_on as datetime2)) as decimal(38)) * 100, 'hour') as publishedAfter, 
+        dbo.tsq_duration_round_of(switchoffset(released_on, '+00:00'), switchoffset(@0, '+00:00'), 'month', 'day', 1, 'trunc', 1) as untilEndOfJune 
     from project_release 
     order by version
     ```
 
-The parameters are: `[ 2024, 6, 30 ]`
+The parameters are: `[ PlainDate 2024-06-30 ]` (on SQLite: `[ '2024-06-30' ]`)
 
 | version | toPublication | publishedAfter | untilEndOfJune |
 |---|---|---|---|
@@ -1625,8 +1637,8 @@ The executed query is:
     ```mariadb
     select 
         version as version, 
-        tsq_duration_total(tsq_duration_part(rollout_time, 'M'), tsq_duration_part(rollout_time, 'weeks'), tsq_duration_part(rollout_time, 'days'), tsq_duration_part(rollout_time, 'S'), tsq_duration_part(rollout_time, 'N'), 0, 0, 0, 'hour') as hours, 
-        tsq_duration_total(tsq_duration_part(rollout_time, 'M'), tsq_duration_part(rollout_time, 'weeks'), tsq_duration_part(rollout_time, 'days'), tsq_duration_part(rollout_time, 'S'), tsq_duration_part(rollout_time, 'N'), cast(year(released_on) as signed), cast(month(released_on) as signed), cast(dayofmonth(released_on) as signed), 'month') as months, 
+        tsq_duration_total_of(rollout_time, 0, 0, 0, 'hour') as hours, 
+        tsq_duration_total_of(rollout_time, cast(year(released_on) as signed), cast(month(released_on) as signed), cast(dayofmonth(released_on) as signed), 'month') as months, 
         tsq_duration_total(0, 0, 0, -timestampdiff(microsecond, published_at, timestamp(released_on)) div 1000000, (-timestampdiff(microsecond, published_at, timestamp(released_on)) % 1000000) * 1000, 0, 0, 0, 'day') as daysToPublication 
     from project_release 
     order by version
@@ -1635,8 +1647,8 @@ The executed query is:
     ```mysql
     select 
         version as version, 
-        tsq_duration_total(tsq_duration_part(rollout_time, 'M'), tsq_duration_part(rollout_time, 'weeks'), tsq_duration_part(rollout_time, 'days'), tsq_duration_part(rollout_time, 'S'), tsq_duration_part(rollout_time, 'N'), 0, 0, 0, 'hour') as hours, 
-        tsq_duration_total(tsq_duration_part(rollout_time, 'M'), tsq_duration_part(rollout_time, 'weeks'), tsq_duration_part(rollout_time, 'days'), tsq_duration_part(rollout_time, 'S'), tsq_duration_part(rollout_time, 'N'), cast(year(released_on) as signed), cast(month(released_on) as signed), cast(dayofmonth(released_on) as signed), 'month') as months, 
+        tsq_duration_total_of(rollout_time, 0, 0, 0, 'hour') as hours, 
+        tsq_duration_total_of(rollout_time, cast(year(released_on) as signed), cast(month(released_on) as signed), cast(dayofmonth(released_on) as signed), 'month') as months, 
         tsq_duration_total(0, 0, 0, -timestampdiff(microsecond, published_at, timestamp(released_on)) div 1000000, (-timestampdiff(microsecond, published_at, timestamp(released_on)) % 1000000) * 1000, 0, 0, 0, 'day') as daysToPublication 
     from project_release 
     order by version
@@ -1645,9 +1657,9 @@ The executed query is:
     ```oracle
     select 
         version as "version", 
-        tsq_duration_total(0, 0, extract(day from rollout_time), extract(hour from rollout_time) * 3600 + extract(minute from rollout_time) * 60 + trunc(extract(second from rollout_time)), mod(extract(second from rollout_time) * 1000000000, 1000000000), 0, 0, 0, 'hour') as "hours", 
-        tsq_duration_total(0, 0, extract(day from rollout_time), extract(hour from rollout_time) * 3600 + extract(minute from rollout_time) * 60 + trunc(extract(second from rollout_time)), mod(extract(second from rollout_time) * 1000000000, 1000000000), extract(year from released_on), extract(month from released_on), extract(day from released_on), 'month') as "months", 
-        tsq_duration_total(0, 0, 0, trunc(-((trunc(cast(released_on as timestamp(9))) - trunc(published_at)) * 86400000000000 + (to_number(to_char(cast(released_on as timestamp(9)), 'SSSSSFF9')) - to_number(to_char(published_at, 'SSSSSFF9')))) / 1000000000), (mod(-((trunc(cast(released_on as timestamp(9))) - trunc(published_at)) * 86400000000000 + (to_number(to_char(cast(released_on as timestamp(9)), 'SSSSSFF9')) - to_number(to_char(published_at, 'SSSSSFF9')))), 1000000000)), 0, 0, 0, 'day') as "daysToPublication" 
+        tsq_duration_total_of(tsq_ds_interval_text(rollout_time), 0, 0, 0, 'hour') as "hours", 
+        tsq_duration_total_of(tsq_ds_interval_text(rollout_time), extract(year from released_on), extract(month from released_on), extract(day from released_on), 'month') as "months", 
+        tsq_duration_total(0, 0, 0, trunc(-tsq_nanoseconds_between(published_at, cast(released_on as timestamp(9))) / 1000000000), (mod(-tsq_nanoseconds_between(published_at, cast(released_on as timestamp(9))), 1000000000)), 0, 0, 0, 'day') as "daysToPublication" 
     from project_release 
     order by "version"
     ```
@@ -1655,8 +1667,8 @@ The executed query is:
     ```postgresql
     select 
         version as version, 
-        tsq_duration_total(cast(extract(year from rollout_time) * 12 + extract(month from rollout_time) as bigint), 0, cast(extract(day from rollout_time) as bigint), cast(extract(hour from rollout_time) * 3600 + extract(minute from rollout_time) * 60 + trunc(extract(second from rollout_time)) as bigint), cast(extract(microseconds from rollout_time) as bigint) % 1000000 * 1000, 0, 0, 0, 'hour') as hours, 
-        tsq_duration_total(cast(extract(year from rollout_time) * 12 + extract(month from rollout_time) as bigint), 0, cast(extract(day from rollout_time) as bigint), cast(extract(hour from rollout_time) * 3600 + extract(minute from rollout_time) * 60 + trunc(extract(second from rollout_time)) as bigint), cast(extract(microseconds from rollout_time) as bigint) % 1000000 * 1000, cast(extract(year from released_on) as integer), cast(extract(month from released_on) as integer), cast(extract(day from released_on) as integer), 'month') as months, 
+        tsq_duration_total_of(rollout_time, 0, 0, 0, 'hour') as hours, 
+        tsq_duration_total_of(rollout_time, cast(extract(year from released_on) as integer), cast(extract(month from released_on) as integer), cast(extract(day from released_on) as integer), 'month') as months, 
         tsq_duration_total(0, 0, 0, (-(extract(epoch from cast(released_on as timestamp) - published_at) * 1000000)::bigint / 1000000), (-(extract(epoch from cast(released_on as timestamp) - published_at) * 1000000)::bigint % 1000000) * 1000, 0, 0, 0, 'day') as "daysToPublication" 
     from project_release 
     order by version
@@ -1665,8 +1677,8 @@ The executed query is:
     ```sqlite
     select 
         version as version, 
-        tsq_duration_total(tsq_duration_part(rollout_time, 'M'), tsq_duration_part(rollout_time, 'weeks'), tsq_duration_part(rollout_time, 'days'), tsq_duration_part(rollout_time, 'S'), tsq_duration_part(rollout_time, 'N'), 0, 0, 0, 'hour') as hours, 
-        tsq_duration_total(tsq_duration_part(rollout_time, 'M'), tsq_duration_part(rollout_time, 'weeks'), tsq_duration_part(rollout_time, 'days'), tsq_duration_part(rollout_time, 'S'), tsq_duration_part(rollout_time, 'N'), cast(strftime('%Y', released_on) as integer), cast(strftime('%m', released_on) as integer), cast(strftime('%d', released_on) as integer), 'month') as months, 
+        tsq_duration_total_of(rollout_time, 0, 0, 0, 'hour') as hours, 
+        tsq_duration_total_of(rollout_time, cast(strftime('%Y', released_on) as integer), cast(strftime('%m', released_on) as integer), cast(strftime('%d', released_on) as integer), 'month') as months, 
         tsq_duration_total(0, 0, 0, 0, cast(-cast(round((julianday(strftime('%Y-%m-%dT%H:%M:%fZ', released_on)) - julianday(published_at)) * 86400000) as integer) * 1000000 as text), 0, 0, 0, 'day') as daysToPublication 
     from project_release 
     order by version
@@ -1675,9 +1687,9 @@ The executed query is:
     ```sqlserver
     select 
         version as version, 
-        dbo.tsq_duration_total(dbo.tsq_duration_part(rollout_time, 'M'), dbo.tsq_duration_part(rollout_time, 'weeks'), dbo.tsq_duration_part(rollout_time, 'days'), dbo.tsq_duration_part(rollout_time, 'S'), dbo.tsq_duration_part(rollout_time, 'N'), 0, 0, 0, 'hour') as hours, 
-        dbo.tsq_duration_total(dbo.tsq_duration_part(rollout_time, 'M'), dbo.tsq_duration_part(rollout_time, 'weeks'), dbo.tsq_duration_part(rollout_time, 'days'), dbo.tsq_duration_part(rollout_time, 'S'), dbo.tsq_duration_part(rollout_time, 'N'), datepart(year, released_on), datepart(month, released_on), datepart(day, released_on), 'month') as months, 
-        dbo.tsq_duration_total(0, 0, 0, -(datediff(day, cast(published_at as date), cast(cast(released_on as datetime2) as date)) * cast(864000000000 as bigint) + (datediff_big(nanosecond, cast(published_at as time), cast(cast(released_on as datetime2) as time)) / 100)) / 10000000, (-(datediff(day, cast(published_at as date), cast(cast(released_on as datetime2) as date)) * cast(864000000000 as bigint) + (datediff_big(nanosecond, cast(published_at as time), cast(cast(released_on as datetime2) as time)) / 100)) % 10000000) * 100, 0, 0, 0, 'day') as daysToPublication 
+        dbo.tsq_duration_total_of(rollout_time, 0, 0, 0, 'hour') as hours, 
+        dbo.tsq_duration_total_of(rollout_time, datepart(year, released_on), datepart(month, released_on), datepart(day, released_on), 'month') as months, 
+        dbo.tsq_duration_total(0, 0, 0, -dbo.tsq_ticks_between(published_at, cast(released_on as datetime2)) / 10000000, (-dbo.tsq_ticks_between(published_at, cast(released_on as datetime2)) % 10000000) * 100, 0, 0, 0, 'day') as daysToPublication 
     from project_release 
     order by version
     ```
@@ -1739,8 +1751,8 @@ The executed query is:
     ```mariadb
     select 
         version as version, 
-        tsq_duration_add(tsq_duration_part(rollout_time, 'largest'), tsq_duration_part(rollout_time, 'days'), tsq_duration_part(rollout_time, 'S'), tsq_duration_part(rollout_time, 'N'), 4, 0, 43200, 0, 1) as withMargin, 
-        tsq_duration_add(tsq_duration_part(rollout_time, 'largest'), tsq_duration_part(rollout_time, 'days'), tsq_duration_part(rollout_time, 'S'), tsq_duration_part(rollout_time, 'N'), 5, 0, 900, 0, -1) as shorter 
+        tsq_duration_sum(rollout_time, 'PT12H', 1) as withMargin, 
+        tsq_duration_sum(rollout_time, 'PT15M', -1) as shorter 
     from project_release 
     order by version
     ```
@@ -1748,8 +1760,8 @@ The executed query is:
     ```mysql
     select 
         version as version, 
-        tsq_duration_add(tsq_duration_part(rollout_time, 'largest'), tsq_duration_part(rollout_time, 'days'), tsq_duration_part(rollout_time, 'S'), tsq_duration_part(rollout_time, 'N'), 4, 0, 43200, 0, 1) as withMargin, 
-        tsq_duration_add(tsq_duration_part(rollout_time, 'largest'), tsq_duration_part(rollout_time, 'days'), tsq_duration_part(rollout_time, 'S'), tsq_duration_part(rollout_time, 'N'), 5, 0, 900, 0, -1) as shorter 
+        tsq_duration_sum(rollout_time, 'PT12H', 1) as withMargin, 
+        tsq_duration_sum(rollout_time, 'PT15M', -1) as shorter 
     from project_release 
     order by version
     ```
@@ -1757,8 +1769,8 @@ The executed query is:
     ```oracle
     select 
         version as "version", 
-        tsq_duration_add(case when extract(day from rollout_time) <> 0 then 3 when extract(hour from rollout_time) <> 0 then 4 when extract(minute from rollout_time) <> 0 then 5 when trunc(extract(second from rollout_time)) <> 0 then 6 when mod(abs(extract(second from rollout_time)) * 1000000000, 1000000000) >= 1000000 then 7 when mod(abs(extract(second from rollout_time)) * 1000000000, 1000000000) >= 1000 then 8 when mod(abs(extract(second from rollout_time)) * 1000000000, 1000000000) <> 0 then 9 else 10 end, extract(day from rollout_time), extract(hour from rollout_time) * 3600 + extract(minute from rollout_time) * 60 + trunc(extract(second from rollout_time)), mod(extract(second from rollout_time) * 1000000000, 1000000000), 4, 0, 43200, 0, 1) as "withMargin", 
-        tsq_duration_add(case when extract(day from rollout_time) <> 0 then 3 when extract(hour from rollout_time) <> 0 then 4 when extract(minute from rollout_time) <> 0 then 5 when trunc(extract(second from rollout_time)) <> 0 then 6 when mod(abs(extract(second from rollout_time)) * 1000000000, 1000000000) >= 1000000 then 7 when mod(abs(extract(second from rollout_time)) * 1000000000, 1000000000) >= 1000 then 8 when mod(abs(extract(second from rollout_time)) * 1000000000, 1000000000) <> 0 then 9 else 10 end, extract(day from rollout_time), extract(hour from rollout_time) * 3600 + extract(minute from rollout_time) * 60 + trunc(extract(second from rollout_time)), mod(extract(second from rollout_time) * 1000000000, 1000000000), 5, 0, 900, 0, -1) as "shorter" 
+        tsq_duration_sum(tsq_ds_interval_text(rollout_time), 'PT12H', 1) as "withMargin", 
+        tsq_duration_sum(tsq_ds_interval_text(rollout_time), 'PT15M', -1) as "shorter" 
     from project_release 
     order by "version"
     ```
@@ -1766,8 +1778,8 @@ The executed query is:
     ```postgresql
     select 
         version as version, 
-        tsq_duration_add(case when extract(year from rollout_time) <> 0 or extract(month from rollout_time) <> 0 then 1 when extract(day from rollout_time) <> 0 then 3 else 4 end, cast(extract(day from rollout_time) as bigint), cast(extract(hour from rollout_time) * 3600 + extract(minute from rollout_time) * 60 + trunc(extract(second from rollout_time)) as bigint), cast(extract(microseconds from rollout_time) as bigint) % 1000000 * 1000, 4, 0, 43200, 0, 1) as "withMargin", 
-        tsq_duration_add(case when extract(year from rollout_time) <> 0 or extract(month from rollout_time) <> 0 then 1 when extract(day from rollout_time) <> 0 then 3 else 4 end, cast(extract(day from rollout_time) as bigint), cast(extract(hour from rollout_time) * 3600 + extract(minute from rollout_time) * 60 + trunc(extract(second from rollout_time)) as bigint), cast(extract(microseconds from rollout_time) as bigint) % 1000000 * 1000, 5, 0, 900, 0, -1) as shorter 
+        tsq_duration_sum(rollout_time, 'PT12H'::text, 1) as "withMargin", 
+        tsq_duration_sum(rollout_time, 'PT15M'::text, -1) as shorter 
     from project_release 
     order by version
     ```
@@ -1775,8 +1787,8 @@ The executed query is:
     ```sqlite
     select 
         version as version, 
-        tsq_duration_add(tsq_duration_part(rollout_time, 'largest'), tsq_duration_part(rollout_time, 'days'), tsq_duration_part(rollout_time, 'S'), tsq_duration_part(rollout_time, 'N'), 4, 0, 43200, 0, 1) as withMargin, 
-        tsq_duration_add(tsq_duration_part(rollout_time, 'largest'), tsq_duration_part(rollout_time, 'days'), tsq_duration_part(rollout_time, 'S'), tsq_duration_part(rollout_time, 'N'), 5, 0, 900, 0, -1) as shorter 
+        tsq_duration_sum(rollout_time, 'PT12H', 1) as withMargin, 
+        tsq_duration_sum(rollout_time, 'PT15M', -1) as shorter 
     from project_release 
     order by version
     ```
@@ -1784,8 +1796,8 @@ The executed query is:
     ```sqlserver
     select 
         version as version, 
-        dbo.tsq_duration_add(dbo.tsq_duration_part(rollout_time, 'largest'), dbo.tsq_duration_part(rollout_time, 'days'), dbo.tsq_duration_part(rollout_time, 'S'), dbo.tsq_duration_part(rollout_time, 'N'), 4, 0, 43200, 0, 1) as withMargin, 
-        dbo.tsq_duration_add(dbo.tsq_duration_part(rollout_time, 'largest'), dbo.tsq_duration_part(rollout_time, 'days'), dbo.tsq_duration_part(rollout_time, 'S'), dbo.tsq_duration_part(rollout_time, 'N'), 5, 0, 900, 0, -1) as shorter 
+        dbo.tsq_duration_sum(rollout_time, 'PT12H', 1) as withMargin, 
+        dbo.tsq_duration_sum(rollout_time, 'PT15M', -1) as shorter 
     from project_release 
     order by version
     ```
@@ -1841,7 +1853,7 @@ The executed query is:
     select 
         version as version, 
         date_add(date_add(makedate(year(released_on), 1), interval month(released_on) - 1 month), interval 1 - 1 day) as monthOfRelease, 
-        sec_to_time(mod((2 * (floor(time_to_sec(cutoff_time)) * 1000000 + microsecond(cutoff_time)) + 21600000000) div 43200000000 * 21600000000, 86400000000) * 0.000001) as cutoffSlot 
+        sec_to_time(mod(tsq_round_to((floor(time_to_sec(cutoff_time)) * 1000000 + microsecond(cutoff_time)), 21600000000, 'halfExpand'), 86400000000) * 0.000001) as cutoffSlot 
     from project_release 
     order by version
     ```
@@ -1850,7 +1862,7 @@ The executed query is:
     select 
         version as version, 
         date_add(date_add(makedate(year(released_on), 1), interval month(released_on) - 1 month), interval 1 - 1 day) as monthOfRelease, 
-        sec_to_time(mod((2 * (floor(time_to_sec(cutoff_time)) * 1000000 + microsecond(cutoff_time)) + 21600000000) div 43200000000 * 21600000000, 86400000000) * 0.000001) as cutoffSlot 
+        sec_to_time(mod(tsq_round_to((floor(time_to_sec(cutoff_time)) * 1000000 + microsecond(cutoff_time)), 21600000000, 'halfExpand'), 86400000000) * 0.000001) as cutoffSlot 
     from project_release 
     order by version
     ```
@@ -1859,7 +1871,7 @@ The executed query is:
     select 
         version as "version", 
         to_char((add_months(date '0001-01-01', (extract(year from released_on) - 1) * 12 + extract(month from released_on) - 1) + 1 - 1), 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "monthOfRelease", 
-        to_char(cast(timestamp '1972-01-01 00:00:00' + numtodsinterval(mod(trunc((2 * to_number(to_char(cutoff_time, 'SSSSSFF9')) + 21600000000000) / 43200000000000) * 21600000000000, 86400000000000) / 1000000000, 'second') as timestamp(9)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "cutoffSlot" 
+        to_char(cast(timestamp '1972-01-01 00:00:00' + numtodsinterval(mod(tsq_round_to(to_number(to_char(cutoff_time, 'SSSSSFF9')), 21600000000000, 'halfExpand'), 86400000000000) / 1000000000, 'second') as timestamp(9)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "cutoffSlot" 
     from project_release 
     order by "version"
     ```
@@ -1877,7 +1889,7 @@ The executed query is:
     select 
         version as version, 
         date(printf('%04d-%02d-%02d', cast(strftime('%Y', released_on) as integer), cast(strftime('%m', released_on) as integer), 1)) as monthOfRelease, 
-        strftime('%H:%M:%fZ', '00:00:00', ((cast((2 * cast(round((julianday(cutoff_time) - julianday(date(cutoff_time))) * 86400000) as integer) + 21600000) / 43200000 as integer) * 21600000) / 1000.0) || ' seconds') as cutoffSlot 
+        strftime('%H:%M:%fZ', '00:00:00', ((cast(tsq_round_to(cast(cast(round((julianday(cutoff_time) - julianday(date(cutoff_time))) * 86400000) as integer) as text), 21600000, 'halfExpand') as integer)) / 1000.0) || ' seconds') as cutoffSlot 
     from project_release 
     order by version
     ```
@@ -1886,7 +1898,7 @@ The executed query is:
     select 
         version as version, 
         datefromparts(datepart(year, released_on), datepart(month, released_on), 1) as monthOfRelease, 
-        dateadd(nanosecond, ((2 * (datediff_big(nanosecond, cast('00:00' as time), cast(cutoff_time as time)) / 100) + cast(216000000000 as bigint)) / cast(432000000000 as bigint) * cast(216000000000 as bigint)) % 10000000 * 100, dateadd(second, ((2 * (datediff_big(nanosecond, cast('00:00' as time), cast(cutoff_time as time)) / 100) + cast(216000000000 as bigint)) / cast(432000000000 as bigint) * cast(216000000000 as bigint)) / 10000000 % 86400, cast('00:00' as time(7)))) as cutoffSlot 
+        dbo.tsq_time_of_ticks(dbo.tsq_round_to((datediff_big(nanosecond, cast('00:00' as time), cast(cutoff_time as time)) / 100), cast(216000000000 as bigint), 'halfExpand')) as cutoffSlot 
     from project_release 
     order by version
     ```

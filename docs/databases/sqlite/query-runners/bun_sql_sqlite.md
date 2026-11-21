@@ -13,7 +13,7 @@ This page explains how to use `ts-sql-query` with the [Bun SQL](https://bun.com/
 
     - The exact decimals ([`stringDecimal` and the `DecimalsType` of yours](../../../configuration/data-types.md#exact-decimals)) have no arithmetic, sums nor roundings: the [decimal strategies](../index.md#exact-decimals-the-decimal-strategies) with functions, the default included, need functions it can't register.
     - The [uuid strategy](../index.md#uuid-strategies) `uuid-extension`, the default, works only where the SQLite that Bun uses has the uuid extension built in, like the one of macOS (measured with SQLite 3.51.0).
-    - `libraryFunctions = 'installed'` can't be used (`tsq_ci_replace`).
+    - `libraryFunctions = 'installed'` can't be used (`tsq_ci_replace`, `tsq_zoned_wall`).
     - A [duration](../../../configuration/dates-and-times.md#durations) of a column can't be added to a date or a time, nor its fields read, and `until`, `since`, `total` and the `add` and `subtract` of two durations can't be used: they need the functions of the library `tsq_duration_part`, `tsq_duration_text`, `tsq_duration_round`, `tsq_duration_total` and `tsq_duration_add`. A duration given as a value is added without them.
 
     [bun:sqlite](bun_sqlite.md) (`BunSqliteQueryRunner`) has none of these limits: one call of `registerSqliteFunctions` registers every function the library writes. If you stay with Bun SQL, set the decimal strategy to `canonical text`: it compares, orders and groups an exact decimal exactly, and rejects its arithmetic when the query is built (`UNSUPPORTED_QUERY`), so nothing gives a number that has lost digits. On a system whose SQLite lacks the uuid extension, set the uuid strategy to `string`.

@@ -85,6 +85,8 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
      *   time) as Temporal disambiguates it. Without it, a wall clock the zone repeats is the later instant Oracle gives,
      *   where Temporal's default `'compatible'` takes the earlier one, a wall clock the zone skips makes the query fail
      *   (ORA-01878), and a disambiguation `'earlier'` or `'reject'` is rejected when the query is built.
+     * - `tsq_zoned_of_text`, the TIMESTAMP WITH TIME ZONE of the text of a zoned date and time kept as its text, which
+     *   a query writes once; without it, the query reads the text inline, writing it five times.
      * - `tsq_string_util.concat_strict`, for a concatenation (`concat` and the patterns of `startsWith`, `endsWith` and
      *   `contains`) that gives null for a null operand writing each operand once; without it, a `CASE` repeats them.
      */

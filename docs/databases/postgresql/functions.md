@@ -9,7 +9,7 @@ Some queries call a function that PostgreSQL doesn't have built in. This page sa
 They are of these kinds, and all of them are in [one file](#creating-them):
 
 - **The ones a query always needs**, the ones of durations and of differences of zoned dates and times in days: a query that uses one calls it (see [Dates and times](../../configuration/dates-and-times.md)).
-- **The optional ones**, `tsq_zoned_of_wall`, `tsq_greatest_strict` and `tsq_least_strict`: a query calls them only with `libraryFunctions = 'installed'` on the connection; without it, the SQL of PostgreSQL does the same with less (see each one).
+- **The optional ones**, `tsq_zoned_of_wall`, `tsq_zone`, `tsq_zoned_offset`, `tsq_greatest_strict` and `tsq_least_strict`: a query calls them only with `libraryFunctions = 'installed'` on the connection; without it, the SQL of PostgreSQL does the same with less (see each one).
 
 ## Which function each query needs
 
@@ -21,6 +21,8 @@ They are of these kinds, and all of them are in [one file](#creating-them):
 | [`tsq_duration_add`](#tsq_duration_add) | `add` or `subtract` of two durations | — |
 | [`tsq_zoned_of_wall`](#tsq_zoned_of_wall) | a wall clock is taken to its zone, with `libraryFunctions = 'installed'` | — |
 | [`tsq_zoned_until`](#tsq_zoned_until) | `until` or `since` of two zoned dates and times, in days or larger units | `tsq_zoned_of_wall` |
+| [`tsq_zone`](#tsq_zone) | a zoned date and time whose zone is a value of the query, like the text of a column, is seen in its zone, with `libraryFunctions = 'installed'` | — |
+| [`tsq_zoned_offset`](#tsq_zoned_offset) | `offset()` of a zoned date and time, with `libraryFunctions = 'installed'` | `tsq_zone` |
 | [`tsq_greatest_strict` and `tsq_least_strict`](#tsq_greatest_strict-and-tsq_least_strict) | `minValue` or `maxValue` is written, with `libraryFunctions = 'installed'` | — |
 
 ## Creating them
@@ -60,6 +62,18 @@ Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 ## `tsq_zoned_until`
 
 `tsq_zoned_until` gives the duration from one zoned date and time to another as Temporal's `until` with a largest unit of days or larger: it counts the days of the calendar in their zone, each one with its length there (23 or 25 hours where the zone changes its offset), and rounds as Temporal rounds. A query calls it for `until` and `since` of two zoned dates and times in days or larger units (see [The functions `tsq_zoned_until` and `tsq_zoned_of_wall`](../../configuration/dates-and-times.md#the-functions-tsq_zoned_until-and-tsq_zoned_of_wall)). Two zoned dates and times in different zones make it fail, as in Temporal. It calls `tsq_zoned_of_wall`: create it after that one.
+
+Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
+
+## `tsq_zone`
+
+`tsq_zone` gives a zone of Temporal, a name or an offset like `+05:30`, as `at time zone` takes it: PostgreSQL reads a text like `+05:30` as a POSIX zone, west of UTC, so the sign of an offset is inverted. A query sees a zoned date and time in its zone, to read its date and time, its parts or its arithmetic; when the zone is a value of the query, like the zone in brackets of a column that keeps a zoned date and time as its text (see [How each database keeps a zoned date and time](../../configuration/dates-and-times.md#how-each-database-keeps-a-zoned-date-and-time)), it calls it with `libraryFunctions = 'installed'` and writes the zone once; without it, the query writes a `case` with the zone three times, in every place the zone is used. A zone given as a value is written in the query as PostgreSQL takes it, without the function.
+
+Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
+
+## `tsq_zoned_offset`
+
+`tsq_zoned_offset` gives the offset of an instant in a zone of Temporal as Temporal writes it: `+01:00`, with its seconds when it has them (`-00:14:44`). A query calls it for `offset()` of a zoned date and time with `libraryFunctions = 'installed'`; without it, the query writes the same computation inline. It calls `tsq_zone`: create it first.
 
 Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 

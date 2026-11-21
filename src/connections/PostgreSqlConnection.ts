@@ -130,6 +130,9 @@ export abstract class PostgreSqlConnection<NAME extends string> extends Abstract
      *   time) as Temporal disambiguates it. Without it, a wall clock the zone repeats is the later instant PostgreSQL
      *   gives, where Temporal's default `'compatible'` takes the earlier one, and a disambiguation `'earlier'` or
      *   `'reject'` is rejected when the query is built.
+     * - `tsq_zone`, a zone of a value of the query (like the zone of a zoned date and time kept as its text) as
+     *   `at time zone` takes it, and `tsq_zoned_offset`, for `offset()`, which write the zone once; without them, a
+     *   `CASE` repeats it.
      * - `tsq_greatest_strict` and `tsq_least_strict`, for `minValue` and `maxValue`, which give null for a null operand
      *   writing each operand once; without them, a `CASE` repeats them.
      */

@@ -1301,11 +1301,13 @@ interface MariaDBConnectionConfiguration {
     uuidStrategy: 'string' | 'string as sent' | 'uuid' // Default: 'uuid'
     usePlatformDependentRound: boolean // Default: false
     useSimultaneousAssignment: boolean // Default: false
+    libraryFunctions: 'installed' | 'not installed' // Default: 'not installed'
 }
 
 interface MySqlConnectionConfiguration {
     uuidStrategy: 'string' | 'string as sent' | 'binary' // Default: 'binary'
     usePlatformDependentRound: boolean // Default: false
+    libraryFunctions: 'installed' | 'not installed' // Default: 'not installed'
 }
 
 interface OracleConnectionConfiguration {

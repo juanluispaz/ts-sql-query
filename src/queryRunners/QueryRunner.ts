@@ -199,7 +199,7 @@ export interface ConnectionConfiguration {
      * its `sql_mode`), declared with `useSimultaneousAssignment`
      */
     readonly useSimultaneousAssignment?: boolean
-    /** Oracle, PostgreSQL, SQL Server and SQLite: the functions of the library are in the database (`libraryFunctions`): `'installed'` or `'not installed'` */
+    /** The functions of the library are in the database (`libraryFunctions`): `'installed'` or `'not installed'` */
     readonly libraryFunctions?: string
     /** PostgreSQL: write the insensitive comparisons with `like` instead of `ilike` (`useLikeInsteadOfIlike`) */
     readonly useLikeInsteadOfIlike?: boolean

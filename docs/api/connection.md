@@ -358,11 +358,13 @@ Each connection adds protected configuration properties of its own. The page of 
 interface MariaDBConnectionConfiguration {
     uuidStrategy: 'string' | 'uuid' // Default: 'uuid'
     usePlatformDependentRound: boolean // Default: false
+    libraryFunctions: 'installed' | 'not installed' // Default: 'not installed'
 }
 
 interface MySqlConnectionConfiguration {
     uuidStrategy: 'string' | 'binary' // Default: 'binary'
     usePlatformDependentRound: boolean // Default: false
+    libraryFunctions: 'installed' | 'not installed' // Default: 'not installed'
 }
 
 interface OracleConnectionConfiguration {

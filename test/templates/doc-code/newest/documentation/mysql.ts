@@ -162,6 +162,9 @@ const tRecord = new class TRecord extends Table<DBConnection, 'TRecord'> {
 
 const docCodeMock = new DocCodeMockRunner()
 const connection = new DBConnection(docCodeMock)
+// The connection of the pages that show the SQL with the functions of the library (<!-- doc-code-library-functions -->)
+const connectionWithLibraryFunctions = new (class extends DBConnection { protected override libraryFunctions = 'installed' as const })(docCodeMock)
+void connectionWithLibraryFunctions
 
 // A decimal number kept exact as its text (docs/configuration/data-types.md, Exact decimals)
 const tExactAmount = new class TExactAmount extends Table<DBConnection, 'TExactAmount'> {

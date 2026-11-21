@@ -170,6 +170,9 @@ Invisible HTML comments (render to nothing in Markdown):
 
 - `<!-- doc-code-template: NAME -->` — anywhere on a page, pins the **whole page**
   to template `NAME`.
+- `<!-- doc-code-library-functions -->` — anywhere on a page: its SQL tests run against the template's
+  `connectionWithLibraryFunctions` (`libraryFunctions = 'installed'`), so the page shows the SQL with the functions of
+  the library. `docs:sql-tabs` writes the tabs of such a page with that SQL.
 - `<!-- doc-code-snippet-template: NAME -->` — on the line **immediately before**
   a fence, re-routes a snippet **WITHOUT SQL** (a compile-only ```ts, or a
   ```typescript). Accepts a **comma-separated list** (`mariadb, mysql, oracle`) to

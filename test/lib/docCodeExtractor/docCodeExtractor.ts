@@ -71,6 +71,11 @@
 // simplifiedDefinition) to ADD its snippets to that template rather than replace
 // it.
 //
+// ── Per-file SQL with the functions of the library ────────────────────────────
+// A doc page may show the SQL with the functions of the library installed (libraryFunctions = 'installed'):
+//     <!-- doc-code-library-functions -->
+// Its SQL tests run against the template's `connectionWithLibraryFunctions` instead of `connection`.
+//
 // ── Per-snippet template directive (for snippets WITHOUT SQL) ────────────────
 // On the line IMMEDIATELY before a fence, re-routes a compile-only ```ts or a
 // ```typescript to the named template(s). Accepts a COMMA-SEPARATED list to emit
@@ -132,6 +137,11 @@ const SIMPLIFIED_TEMPLATE = 'simplifiedDefinition' // default target for typescr
 // Invisible (post-render) per-file directive pinning a whole doc page to one
 // template: `<!-- doc-code-template: my-template -->`. See header comment.
 const TEMPLATE_DIRECTIVE = /<!--\s*doc-code-template:\s*([A-Za-z0-9_.-]+)\s*-->/
+
+// Invisible per-file directive: `<!-- doc-code-library-functions -->` makes the SQL tests of the page run against the
+// template's `connectionWithLibraryFunctions` (libraryFunctions = 'installed'): the page shows the SQL with the
+// functions of the library. See header comment.
+const LIBRARY_FUNCTIONS_DIRECTIVE = /<!--\s*doc-code-library-functions\s*-->/
 
 // Invisible per-SNIPPET directive: placed on the line IMMEDIATELY before a fence,
 // it routes a snippet WITHOUT SQL (a compile-only ```ts, or a ```typescript) to
@@ -497,7 +507,7 @@ function declaredTypeRefs(code: string): string[] {
 // used for the comment and the generated identifier, so they point back to the
 // exact fence). `endLine` is the CLOSING fence's line, so [line, endLine] brackets
 // the whole snippet in the markdown — BEGIN carries `line`, END carries `endLine`.
-interface Snippet { code: string; page: string; line: number; endLine: number }
+interface Snippet { code: string; page: string; line: number; endLine: number; libraryFunctions?: boolean }
 
 // The statements that mark a snippet's FIRST-LEVEL declarations as used, so
 // noUnusedLocals stays happy — used by BOTH emission paths (inside the function
@@ -572,6 +582,8 @@ function emitTest(s: Snippet, expectedSqls: string[], resultExprs: string[], res
     const out: string[] = []
     out.push(`test(${JSON.stringify(s.page + ':' + s.line)}, async () => {`)
     out.push('    docCodeMock.reset();')
+    // A page that shows the SQL with the functions of the library (doc-code-library-functions)
+    if (s.libraryFunctions) out.push('    const connection = connectionWithLibraryFunctions;')
     for (const seed of seeds) out.push(`    docCodeMock.next(${seed});`)
     out.push(beginMark(s))
     out.push(body)
@@ -655,6 +667,7 @@ export function extractDocCode(): DocCodeResult {
     for (const f of walkFiles('docs', '.md')) {
         const text = readFileSync(f, 'utf8')
         const override = TEMPLATE_DIRECTIVE.exec(text)?.[1] ?? null
+        const libraryFunctions = LIBRARY_FUNCTIONS_DIRECTIVE.test(text)
         // Drop ```ts blocks that are only `//` comments (a "no query for this db"
         // tab): they must not become tests/functions NOR absorb the SQL fences that
         // follow. Removing them here also stops them acting as a lookahead boundary.
@@ -664,7 +677,7 @@ export function extractDocCode(): DocCodeResult {
             if (b.lang === 'tsx') { tsx++; continue }
             if (b.lang === 'typescriptreact') { tsr++; continue }
             // endLine = closing-fence line: startLine (open fence) + body lines + 1.
-            const snippet: Snippet = { code: b.body.join('\n'), page: f, line: b.startLine, endLine: b.startLine + b.body.length + 1 }
+            const snippet: Snippet = { code: b.body.join('\n'), page: f, line: b.startLine, endLine: b.startLine + b.body.length + 1, libraryFunctions }
             if (b.lang === 'typescript') {
                 const targets = b.snippetTemplates.length ? b.snippetTemplates : [override ?? SIMPLIFIED_TEMPLATE]
                 for (const t of targets) add(t, { kind: 'typescript', snippet })

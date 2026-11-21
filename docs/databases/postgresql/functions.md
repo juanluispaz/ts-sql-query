@@ -9,7 +9,7 @@ Some queries call a function that PostgreSQL doesn't have built in. This page sa
 They are of these kinds, and all of them are in [one file](#creating-them):
 
 - **The ones a query always needs**, the ones of durations and of differences of zoned dates and times in days: a query that uses one calls it (see [Dates and times](../../configuration/dates-and-times.md)).
-- **The optional ones**, `tsq_zoned_of_wall`, `tsq_zone`, `tsq_zoned_offset`, `tsq_greatest_strict` and `tsq_least_strict`: a query calls them only with `libraryFunctions = 'installed'` on the connection; without it, the SQL of PostgreSQL does the same with less (see each one).
+- **The optional ones**, `tsq_zoned_of_wall`, `tsq_zone`, `tsq_zoned_offset`, `tsq_zoned_hours_in_day`, `tsq_zoned_round_day`, `tsq_round_to`, `tsq_greatest_strict` and `tsq_least_strict`: a query calls them only with `libraryFunctions = 'installed'` on the connection; without it, the SQL of PostgreSQL does the same with less (see each one).
 
 ## Which function each query needs
 
@@ -23,6 +23,9 @@ They are of these kinds, and all of them are in [one file](#creating-them):
 | [`tsq_zoned_until`](#tsq_zoned_until) | `until` or `since` of two zoned dates and times, in days or larger units | `tsq_zoned_of_wall` |
 | [`tsq_zone`](#tsq_zone) | a zoned date and time whose zone is a value of the query, like the text of a column, is seen in its zone, with `libraryFunctions = 'installed'` | — |
 | [`tsq_zoned_offset`](#tsq_zoned_offset) | `offset()` of a zoned date and time, with `libraryFunctions = 'installed'` | `tsq_zone` |
+| [`tsq_zoned_hours_in_day`](#tsq_zoned_hours_in_day) | `hoursInDay()` of a zoned date and time, with `libraryFunctions = 'installed'` | `tsq_zone`, `tsq_zoned_of_wall` |
+| [`tsq_zoned_round_day`](#tsq_zoned_round_day) | `round` of a zoned date and time to a day, with `libraryFunctions = 'installed'` | `tsq_zone`, `tsq_zoned_of_wall` |
+| [`tsq_round_to`](#tsq_round_to) | `round` in `'halfEven'` of a time, a date and time or an instant, or `until` or `since` with a rounding, with `libraryFunctions = 'installed'` | — |
 | [`tsq_greatest_strict` and `tsq_least_strict`](#tsq_greatest_strict-and-tsq_least_strict) | `minValue` or `maxValue` is written, with `libraryFunctions = 'installed'` | — |
 
 ## Creating them
@@ -74,6 +77,24 @@ Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 ## `tsq_zoned_offset`
 
 `tsq_zoned_offset` gives the offset of an instant in a zone of Temporal as Temporal writes it: `+01:00`, with its seconds when it has them (`-00:14:44`). A query calls it for `offset()` of a zoned date and time with `libraryFunctions = 'installed'`; without it, the query writes the same computation inline. It calls `tsq_zone`: create it first.
+
+Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
+
+## `tsq_zoned_hours_in_day`
+
+`tsq_zoned_hours_in_day` gives `hoursInDay()` of a zoned date and time, as Temporal: the hours from the start of its day to the start of the next one in its zone, 23 or 25 where the zone changes its offset that day. With `libraryFunctions = 'installed'` the query calls it and writes the value once; without it, the query writes the start of both days inline. It calls `tsq_zone` and `tsq_zoned_of_wall`: create them first.
+
+Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
+
+## `tsq_zoned_round_day`
+
+`tsq_zoned_round_day` gives `round` of a zoned date and time to a day, as Temporal: the start of its day or of the next one in its zone, the nearer one by the length of its day, in the mode given. With `libraryFunctions = 'installed'` the query calls it and writes the value once; without it, the query writes the start of both days inline, each one twice. It calls `tsq_zone` and `tsq_zoned_of_wall`: create them first.
+
+Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
+
+## `tsq_round_to`
+
+`tsq_round_to` rounds an integer to a multiple of a step in a rounding mode of Temporal (`'ceil'`, `'floor'`, `'expand'`, `'trunc'`, `'halfCeil'`, `'halfFloor'`, `'halfExpand'`, `'halfTrunc'`, `'halfEven'`), as Temporal rounds: `-90` to a step of `60` in `'halfEven'` is `-120`. A query rounds with it the time since midnight of `round` in `'halfEven'` of a time, a date and time or an instant, which PostgreSQL's `date_bin` doesn't round that way (see [Changing a field and rounding](../../configuration/dates-and-times.md#changing-a-field-and-rounding)), and the difference of `until` and `since` with a `smallestUnit`, a `roundingIncrement` or a `roundingMode` (see [The options of `until` and `since`](../../configuration/dates-and-times.md#the-options-of-until-and-since)). With `libraryFunctions = 'installed'` the query calls it and writes the value once; without it, the query writes the rounding inline, with the value three times for `round` and twice for `until` and `since`.
 
 Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 

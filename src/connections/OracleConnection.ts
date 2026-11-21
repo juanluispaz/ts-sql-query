@@ -87,6 +87,8 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
      *   (ORA-01878), and a disambiguation `'earlier'` or `'reject'` is rejected when the query is built.
      * - `tsq_zoned_of_text`, the TIMESTAMP WITH TIME ZONE of the text of a zoned date and time kept as its text, which
      *   a query writes once; without it, the query reads the text inline, writing it five times.
+     * - `tsq_round_to`, `tsq_nanoseconds_between`, `tsq_zoned_hours_in_day` and `tsq_zoned_round_day`, for a rounding,
+     *   the difference of two dates and times and the day of a zoned date and time, writing each value once.
      * - `tsq_string_util.concat_strict`, for a concatenation (`concat` and the patterns of `startsWith`, `endsWith` and
      *   `contains`) that gives null for a null operand writing each operand once; without it, a `CASE` repeats them.
      */

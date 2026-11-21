@@ -9,7 +9,7 @@ Some queries call a function that Oracle doesn't have built in. This page says w
 They are of these kinds:
 
 - **The ones a query always needs**, the ones of durations and of differences of zoned dates and times in days: a query that uses one calls it (see [Dates and times](../../configuration/dates-and-times.md)).
-- **The optional ones**, `tsq_zoned_of_wall`, `tsq_zoned_of_text` and `tsq_string_util.concat_strict`: a query calls them only with `libraryFunctions = 'installed'` on the connection; without it, the SQL of Oracle does the same with less (see each one).
+- **The optional ones**, `tsq_zoned_of_wall`, `tsq_zoned_of_text`, `tsq_zoned_hours_in_day`, `tsq_zoned_round_day`, `tsq_round_to`, `tsq_nanoseconds_between` and `tsq_string_util.concat_strict`: a query calls them only with `libraryFunctions = 'installed'` on the connection; without it, the SQL of Oracle does the same with less (see each one).
 - **The ones of the uuid strategy** `'custom-functions'`, `tsq_uuid_to_raw` and `tsq_raw_to_uuid`, in two forms to choose, in files of their own.
 
 ## Which function each query needs
@@ -24,6 +24,10 @@ They are of these kinds:
 | [`tsq_zoned_of_wall`](#tsq_zoned_of_wall) | a wall clock is taken to its zone, with `libraryFunctions = 'installed'` | — |
 | [`tsq_zoned_until`](#tsq_zoned_until) | `until` or `since` of two zoned dates and times, in days or larger units | `tsq_duration_text`, `tsq_zoned_of_wall` |
 | [`tsq_zoned_of_text`](#tsq_zoned_of_text) | a zoned date and time kept as its text is compared, ordered, read or computed with, with `libraryFunctions = 'installed'` | — |
+| [`tsq_zoned_hours_in_day`](#tsq_zoned_hours_in_day) | `hoursInDay()` of a zoned date and time, with `libraryFunctions = 'installed'` | `tsq_zoned_of_wall` |
+| [`tsq_zoned_round_day`](#tsq_zoned_round_day) | `round` of a zoned date and time to a day, with `libraryFunctions = 'installed'` | `tsq_zoned_of_wall` |
+| [`tsq_round_to`](#tsq_round_to) | `round` of a time, a date and time or an instant, or `until` or `since` with a rounding, with `libraryFunctions = 'installed'` | — |
+| [`tsq_nanoseconds_between`](#tsq_nanoseconds_between) | `until` or `since` of two dates and times or two instants, with `libraryFunctions = 'installed'` | — |
 | [`tsq_string_util.concat_strict`](#tsq_string_utilconcat_strict) | `concat` or an affix pattern is written, with `libraryFunctions = 'installed'` | — |
 | [`tsq_uuid_to_raw` and `tsq_raw_to_uuid`](#tsq_uuid_to_raw-and-tsq_raw_to_uuid) | a uuid is read or written with the `'custom-functions'` uuid strategy | — |
 
@@ -76,6 +80,30 @@ Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 ## `tsq_zoned_of_text`
 
 `tsq_zoned_of_text` gives the `TIMESTAMP WITH TIME ZONE` of the RFC 9557 text of a zoned date and time: its date and time with its offset, a `Z` being `+00:00`, in the zone in brackets, `2024-03-02T12:05:00+01:00[Europe/Madrid]` in `Europe/Madrid`. A column declared to keep a zoned date and time as its text (see [How each database keeps a zoned date and time](../../configuration/dates-and-times.md#how-each-database-keeps-a-zoned-date-and-time)) is that value in every query that uses it: compared, ordered, read, its parts, its instant, its arithmetic. With `libraryFunctions = 'installed'` a query calls it and writes the column once; without it, the query writes the same computation inline, with the column five times, in every place the column is used.
+
+Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
+
+## `tsq_zoned_hours_in_day`
+
+`tsq_zoned_hours_in_day` gives `hoursInDay()` of a zoned date and time, as Temporal: the hours from the start of its day to the start of the next one in its zone, 23 or 25 where the zone changes its offset that day. With `libraryFunctions = 'installed'` the query calls it and writes the value once; without it, the query writes the start of both days inline. It calls `tsq_zoned_of_wall`: create it first.
+
+Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
+
+## `tsq_zoned_round_day`
+
+`tsq_zoned_round_day` gives `round` of a zoned date and time to a day, as Temporal: the start of its day or of the next one in its zone, the nearer one by the length of its day, in the mode given. With `libraryFunctions = 'installed'` the query calls it and writes the value once; without it, the query writes the start of both days inline, each one twice. It calls `tsq_zoned_of_wall`: create it first.
+
+Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
+
+## `tsq_round_to`
+
+`tsq_round_to` rounds an integer to a multiple of a step in a rounding mode of Temporal (`'ceil'`, `'floor'`, `'expand'`, `'trunc'`, `'halfCeil'`, `'halfFloor'`, `'halfExpand'`, `'halfTrunc'`, `'halfEven'`), as Temporal rounds: `-90` to a step of `60` in `'halfEven'` is `-120`. A query rounds with it the time since midnight of `round` of a time, a date and time or an instant (see [Changing a field and rounding](../../configuration/dates-and-times.md#changing-a-field-and-rounding)), and the difference of `until` and `since` with a `smallestUnit`, a `roundingIncrement` or a `roundingMode` (see [The options of `until` and `since`](../../configuration/dates-and-times.md#the-options-of-until-and-since)). With `libraryFunctions = 'installed'` the query calls it and writes the value once; without it, the query writes the rounding inline, with the value two to four times.
+
+Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
+
+## `tsq_nanoseconds_between`
+
+`tsq_nanoseconds_between` gives the nanoseconds from one date and time (a `TIMESTAMP` or a `DATE`) to another: the days of their dates and the nanoseconds of their times of the day. A query computes with it the difference of `until` and `since` of two dates and times, and of two instants, in their wall clocks in UTC. With `libraryFunctions = 'installed'` the query calls it and writes each value once; without it, the query writes each value twice.
 
 Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 

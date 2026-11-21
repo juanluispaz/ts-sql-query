@@ -9,7 +9,7 @@ Some queries call a function that MariaDB doesn't have built in. This page says 
 They are the functions of the library, whose names start with `tsq_`, of two kinds, all of them in [one file](#creating-them):
 
 - **The ones a query always needs**, the ones of durations: a query that uses one calls it (see [Dates and times](../../configuration/dates-and-times.md)).
-- **The optional ones**, `tsq_zoned_wall` and `tsq_zoned_utc`: a query calls them only with `libraryFunctions = 'installed'` on the connection; without it, the SQL of MariaDB does the same, writing the text of the value more times (see each one).
+- **The optional ones**, `tsq_zoned_wall`, `tsq_zoned_utc` and `tsq_round_to`: a query calls them only with `libraryFunctions = 'installed'` on the connection; without it, the SQL of MariaDB does the same, writing the text of the value more times (see each one).
 
 ## Which function each query needs
 
@@ -22,6 +22,7 @@ They are the functions of the library, whose names start with `tsq_`, of two kin
 | [`tsq_duration_add`](#tsq_duration_add) | `add` or `subtract` of two durations | `tsq_duration_text` |
 | [`tsq_zoned_wall`](#tsq_zoned_wall) | the date and time or a part of a zoned date and time kept as its text is read, with `libraryFunctions = 'installed'` | — |
 | [`tsq_zoned_utc`](#tsq_zoned_utc) | the instant of a zoned date and time kept as its text is compared, ordered or read, with `libraryFunctions = 'installed'` | `tsq_zoned_wall` |
+| [`tsq_round_to`](#tsq_round_to) | `round` of a time, a date and time or an instant, or `until` or `since` with a rounding, with `libraryFunctions = 'installed'` | — |
 
 ## Creating them
 
@@ -66,5 +67,11 @@ Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 ## `tsq_zoned_utc`
 
 `tsq_zoned_utc` gives the instant of the RFC 9557 text of a zoned date and time as its date and time in UTC: its date and time minus its offset, a `Z` being `+00:00`. A query compares, orders and reads the instant of a zoned date and time with it (`equals`, `lessThan`, `orderBy`, `toInstant()`, `epochMilliseconds()`, …). With `libraryFunctions = 'installed'` a query calls it and writes the column once; without it, the query writes the same computation inline, with the column seven times.
+
+Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
+
+## `tsq_round_to`
+
+`tsq_round_to` rounds an integer to a multiple of a step in a rounding mode of Temporal (`'ceil'`, `'floor'`, `'expand'`, `'trunc'`, `'halfCeil'`, `'halfFloor'`, `'halfExpand'`, `'halfTrunc'`, `'halfEven'`), as Temporal rounds: `-90` to a step of `60` in `'halfEven'` is `-120`. A query rounds with it the time since midnight of `round` of a time, a date and time or an instant (see [Changing a field and rounding](../../configuration/dates-and-times.md#changing-a-field-and-rounding)), and the difference of `until` and `since` with a `smallestUnit`, a `roundingIncrement` or a `roundingMode` (see [The options of `until` and `since`](../../configuration/dates-and-times.md#the-options-of-until-and-since)). With `libraryFunctions = 'installed'` the query calls it and writes the value once; without it, the query writes the rounding inline, with the value two to four times.
 
 Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).

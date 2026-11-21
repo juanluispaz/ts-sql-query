@@ -133,6 +133,8 @@ export abstract class PostgreSqlConnection<NAME extends string> extends Abstract
      * - `tsq_zone`, a zone of a value of the query (like the zone of a zoned date and time kept as its text) as
      *   `at time zone` takes it, and `tsq_zoned_offset`, for `offset()`, which write the zone once; without them, a
      *   `CASE` repeats it.
+     * - `tsq_round_to`, `tsq_zoned_hours_in_day` and `tsq_zoned_round_day`, for a rounding and the day of a zoned date
+     *   and time, writing each value once.
      * - `tsq_greatest_strict` and `tsq_least_strict`, for `minValue` and `maxValue`, which give null for a null operand
      *   writing each operand once; without them, a `CASE` repeats them.
      */

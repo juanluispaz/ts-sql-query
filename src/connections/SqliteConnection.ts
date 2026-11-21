@@ -113,8 +113,9 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
      * `'installed'` or `'not installed'` (the default). The ones a setting of the connection needs (of its decimal
      * strategy, of its uuid strategy) and the ones of durations are called anyway. With them registered the library also
      * calls `tsq_ci_replace` for `replaceAllInsensitive`, which ignores the case of the text; without it, SQLite's
-     * `replace` distinguishes the case (SQLite has no `replace` that ignores it), and `tsq_zoned_wall` for the date and
-     * time and the parts of a zoned date and time kept as its text, which write the text once. The connectors without functions
+     * `replace` distinguishes the case (SQLite has no `replace` that ignores it), `tsq_round_to` for a rounding, and
+     * `tsq_zoned_wall` for the date and time and the parts of a zoned date and time kept as its text, which write the
+     * value once. The connectors without functions
      * written in JavaScript (`bun:sql`) can't register it.
      */
     protected libraryFunctions: 'installed' | 'not installed' = 'not installed'

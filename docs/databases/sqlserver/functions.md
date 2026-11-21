@@ -9,7 +9,7 @@ Some queries call a function that SQL Server doesn't have built in. This page sa
 They are of these kinds, and all of them are in [one file](#creating-them):
 
 - **The ones a query always needs**, the ones of durations: a query that uses one calls it (see [Dates and times](../../configuration/dates-and-times.md)).
-- **The optional ones**, `tsq_greatest_strict` and `tsq_least_strict`: a query calls them only with `libraryFunctions = 'installed'` on the connection; without it, the SQL of SQL Server does the same with less (see each one).
+- **The optional ones**, `tsq_round_to`, `tsq_ticks_between`, `tsq_time_of_ticks`, `tsq_datetime_of_ticks`, `tsq_greatest_strict` and `tsq_least_strict`: a query calls them only with `libraryFunctions = 'installed'` on the connection; without it, the SQL of SQL Server does the same with less (see each one).
 
 ## Which function each query needs
 
@@ -20,6 +20,10 @@ They are of these kinds, and all of them are in [one file](#creating-them):
 | [`tsq_duration_round`](#tsq_duration_round) | `until` or `since` in months or years, or rounded to a week, a month or a year | `tsq_duration_text` |
 | [`tsq_duration_total`](#tsq_duration_total) | `total` of a duration | — |
 | [`tsq_duration_add`](#tsq_duration_add) | `add` or `subtract` of two durations | `tsq_duration_text` |
+| [`tsq_round_to`](#tsq_round_to) | `round` of a time, a date and time or an instant, or `until` or `since` with a rounding, with `libraryFunctions = 'installed'` | — |
+| [`tsq_ticks_between`](#tsq_ticks_between) | `until` or `since` of two dates and times or two instants, with `libraryFunctions = 'installed'` | — |
+| [`tsq_time_of_ticks`](#tsq_time_of_ticks) | `round` of a time, with `libraryFunctions = 'installed'` | — |
+| [`tsq_datetime_of_ticks`](#tsq_datetime_of_ticks) | `round` of a date and time or an instant, with `libraryFunctions = 'installed'` | — |
 | [`tsq_greatest_strict` and `tsq_least_strict`](#tsq_greatest_strict-and-tsq_least_strict) | `minValue` or `maxValue` is written, with `libraryFunctions = 'installed'` | — |
 
 ## Creating them
@@ -55,6 +59,30 @@ Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 ## `tsq_duration_add`
 
 `tsq_duration_add` adds or subtracts two durations, as Temporal's `add` and `subtract` of a `Temporal.Duration`: a day is 24 hours, the sum is written up to the largest field of the two, and a duration with years, months or weeks makes it fail. A query calls it for `add` and `subtract` of a duration to another one (see [Durations added and subtracted together](../../configuration/dates-and-times.md#durations-added-and-subtracted-together)). It takes, of each duration, its largest field that isn't zero, which `tsq_duration_part` gives with `'largest'`. It calls `tsq_duration_text`.
+
+Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
+
+## `tsq_round_to`
+
+`dbo.tsq_round_to` rounds an integer to a multiple of a step in a rounding mode of Temporal (`'ceil'`, `'floor'`, `'expand'`, `'trunc'`, `'halfCeil'`, `'halfFloor'`, `'halfExpand'`, `'halfTrunc'`, `'halfEven'`), as Temporal rounds: `-90` to a step of `60` in `'halfEven'` is `-120`. A query rounds with it the time since midnight of `round` of a time, a date and time or an instant (see [Changing a field and rounding](../../configuration/dates-and-times.md#changing-a-field-and-rounding)), and the difference of `until` and `since` with a `smallestUnit`, a `roundingIncrement` or a `roundingMode` (see [The options of `until` and `since`](../../configuration/dates-and-times.md#the-options-of-until-and-since)). With `libraryFunctions = 'installed'` the query calls it and writes the value once; without it, the query writes the rounding inline, with the value two to four times.
+
+Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
+
+## `tsq_ticks_between`
+
+`dbo.tsq_ticks_between` gives the hundreds of nanoseconds, the unit a `datetime2(7)` keeps, from one date and time to another: the days of their dates and the time of their times of the day. A query computes with it the difference of `until` and `since` of two dates and times, and of two instants, in their dates and times in UTC. With `libraryFunctions = 'installed'` the query calls it and writes each value once; without it, the query writes each value twice.
+
+Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
+
+## `tsq_time_of_ticks`
+
+`dbo.tsq_time_of_ticks` gives the time of the day of a number of hundreds of nanoseconds since midnight, going round at midnight: `round` of a time builds its result with it. With `libraryFunctions = 'installed'` the query calls it and writes the number once; without it, the query writes it twice, in two `dateadd`.
+
+Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
+
+## `tsq_datetime_of_ticks`
+
+`dbo.tsq_datetime_of_ticks` gives a date plus a number of hundreds of nanoseconds, a `datetime2(7)`: `round` of a date and time or an instant builds its result with it. With `libraryFunctions = 'installed'` the query calls it and writes the number once; without it, the query writes it twice, in two `dateadd`.
 
 Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 

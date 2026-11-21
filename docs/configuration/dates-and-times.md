@@ -1926,6 +1926,8 @@ As in Temporal, a month or a day below 1, a month code of another month, or an o
 
 Options Temporal rejects are rejected with `INVALID_VALUE_TO_SEND_TO_DATABASE` before the query is sent. A unit below the digits the database keeps changes nothing: SQLite keeps milliseconds, PostgreSQL, MariaDB and MySQL microseconds.
 
+The query writes the rounding inline, with the value two to four times. With the functions of the library in the database and `libraryFunctions = 'installed'` on the connection, it calls `tsq_round_to`, which writes it once (see the functions of [your database](../databases/postgresql/functions.md#tsq_round_to)); the result is the same.
+
 ## A month of a year and a day of a month
 
 A `plainYearMonth` is a month of a year without a day, like the month of an invoice (`2024-03`), a `Temporal.PlainYearMonth`; a `plainMonthDay` is a day of a month without a year, like a birthday that repeats every year (`03-15`), a `Temporal.PlainMonthDay`. No database has a type for them: each is stored in a date, the one Temporal keeps inside it, its reference: the 1st of the month for a month of a year (`2024-03-01`), the year 1972, a leap year that has February 29, for a day of a month (`1972-03-15`). So the database compares, orders and computes them with its own dates, and an index of the column is used.

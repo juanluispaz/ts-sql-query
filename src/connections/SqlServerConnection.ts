@@ -134,7 +134,9 @@ export abstract class SqlServerConnection<NAME extends string> extends AbstractA
      * Whether the functions of the library are in the database (its file of SQL, tsq-functions.sql): `'installed'` or
      * `'not installed'` (the default). The ones a query always needs, of durations, are called anyway. With them
      * installed the library also calls `dbo.tsq_greatest_strict` and `dbo.tsq_least_strict`, for `minValue` and
-     * `maxValue`, which give null for a null operand writing each operand once; without them, a `CASE` repeats them.
+     * `maxValue`, which give null for a null operand writing each operand once; without them, a `CASE` repeats them; and
+     * `dbo.tsq_round_to`, `dbo.tsq_ticks_between`, `dbo.tsq_time_of_ticks` and `dbo.tsq_datetime_of_ticks`, for a rounding
+     * and the difference of two dates and times, writing each value once.
      */
     protected libraryFunctions: 'installed' | 'not installed' = 'not installed'
 

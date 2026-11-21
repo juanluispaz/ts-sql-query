@@ -485,6 +485,10 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         }
         return "to_char(" + this._appendSql(value as unknown as ToSql, context, false) + ", 'YYYY-MM-DD\"T\"HH24:MI:SS.FF9TZH:TZM\"[\"TZR\"]\"', 'NLS_DATE_LANGUAGE=AMERICAN')"
     }
+    /** The total of a difference is long here: halfEven writes it once (see AbstractSqlBuilder) */
+    override _differenceHalfEvenOverTotalOnce(): boolean {
+        return true
+    }
     override _appendColumnName(column: DBColumn, context: SqlBuildContext): string {
         if (this._isOracleZonedTextColumn(column)) {
             // In the query, the TIMESTAMP WITH TIME ZONE of its text in its zone (a Z is the offset +00:00)

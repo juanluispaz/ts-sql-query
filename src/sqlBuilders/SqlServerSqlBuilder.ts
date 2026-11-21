@@ -1209,6 +1209,10 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
      * A zoned date and time is kept as its RFC 9557 text (see _zonedKeptAsText): the text before its zone is a
      * datetimeoffset (style 127, with an offset or a Z; its fraction kept to 7 digits)
      */
+    /** The total of a difference is long here: halfEven writes it once (see AbstractSqlBuilder) */
+    override _differenceHalfEvenOverTotalOnce(): boolean {
+        return true
+    }
     override _zonedKeptAsText(): boolean {
         return true
     }

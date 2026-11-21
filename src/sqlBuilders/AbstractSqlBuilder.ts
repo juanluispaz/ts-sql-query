@@ -5131,6 +5131,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
             case 'halfEven': {
                 // On the magnitude: halfExpand of 2 * magnitude + step, less one where that is four steps times something
                 // plus two (half way to an odd multiple); with the sign of the value
+                if (this._differenceHalfEvenOverTotalOnce()) {
+                    // The total is written once, named in a scalar subquery, where it is long (see _differenceHalfEvenOverTotalOnce)
+                    const t = 'tsq_r.t'
+                    const formula = this._signOf(t) + ' * (' + this._differenceDivision(d, '(2 * abs(' + t + ') + ' + step + ')', twoSteps) + ' - case when ' + this._integerRemainder('(2 * abs(' + t + ') + ' + step + ')', this._bigintLiteral(stepValue * 4n)) + ' = ' + twoSteps + ' then 1 else 0 end) * ' + step
+                    return '(select ' + formula + ' from (select ' + this._differenceTotalInTicks(context, d) + ' as t' + this._fromNoTable() + ') tsq_r)'
+                }
                 const sign = this._signOf(this._differenceTotalInTicks(context, d))
                 const moved = '(2 * abs(' + this._differenceTotalInTicks(context, d) + ') + ' + step + ')'
                 const movedAgain = '(2 * abs(' + this._differenceTotalInTicks(context, d) + ') + ' + step + ')'
@@ -5138,6 +5144,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
         }
         return '(' + quotient + ' * ' + step + ')'
+    }
+    /**
+     * Whether halfEven, which writes the total of a difference four times, writes it once, named in a scalar subquery: on a
+     * database whose total is long and whose derived table sees the columns of the query around it (Oracle, SQL Server)
+     */
+    _differenceHalfEvenOverTotalOnce(): boolean {
+        return false
     }
     /** The sign of a number: -1, 0 or 1 */
     _signOf(value: string): string {

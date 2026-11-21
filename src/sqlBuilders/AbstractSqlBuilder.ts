@@ -26,7 +26,7 @@ import { __durationSqlDataTypeOf, __isIntegerSql, __isJsonDocumentSql, __sqlFami
 import { type DurationTotalDate, type DurationTotalUnit } from '../utils/durationTotal.js'
 import type { SqlOperation0ValueSource, SqlOperation2ValueSource } from '../nodes/operations.js'
 import { __temporalIfAvailable, type TemporalDuration } from '../typeSystem/temporal.js'
-import { durationOfArgument, durationOfParts, durationPartsFor, isZeroDuration, type DurationParts, type DurationPartsSql } from '../utils/durationValues.js'
+import { durationIsoText, durationOfArgument, durationOfParts, durationPartsFor, isZeroDuration, type DurationParts, type DurationPartsSql } from '../utils/durationValues.js'
 import { plainTemporalFieldsOf, type PlainTemporalFields } from '../utils/plainTemporalFields.js'
 import { dateOfStoredTimesOf, dayOfStoredYearMonthsOf, yearOfStoredMonthDaysOf } from '../utils/temporalReference.js'
 import { plainTemporalRoundingOf, type PlainTemporalRounding } from '../utils/plainTemporalRounding.js'
@@ -5079,10 +5079,15 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * the mode of until (since negates it) and the sign of the result (-1 for since)
      */
     _durationRoundedToTheCalendar(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
+        const difference = d.difference
+        if (this._libraryFunctionsInstalled() && d.fields !== 'yearMonth') {
+            // The function of the library that takes each date or date and time whole, writing it once
+            const ofValues = this._durationRoundOfFunctionName() + '(' + this._durationRoundOfOperand(context, d.one) + ', ' + this._durationRoundOfOperand(context, d.two) + ', '
+            return ofValues + "'" + difference.largestUnit + "', '" + difference.smallestUnit + "', " + difference.increment + ", '" + difference.mode + "', " + (difference.negated ? '-1' : '1') + ')'
+        }
         let result = this._durationRoundFunctionName() + '('
         result += this._differencePartsForFunction(context, d, d.one) + ', '
         result += this._differencePartsForFunction(context, d, d.two) + ', '
-        const difference = d.difference
         return result + "'" + difference.largestUnit + "', '" + difference.smallestUnit + "', " + difference.increment + ", '" + difference.mode + "', " + (difference.negated ? '-1' : '1') + ')'
     }
     /** The year, the month, the day and the nanoseconds of the day of a value, as arguments of a function */
@@ -5123,6 +5128,14 @@ export class AbstractSqlBuilder implements SqlBuilder {
             return undefined
         }
         return { year: value.year, month: value.month, day: value instanceof temporal.PlainYearMonth ? 1 : value.day, nanoseconds }
+    }
+    /** A date or a date and time as tsq_duration_round_of takes it: the value */
+    _durationRoundOfOperand(context: SqlBuildContext, valueSource: ToSql): string {
+        return this._appendSql(valueSource, context, this._isConstOperand(valueSource))
+    }
+    /** The name of the function of the library that rounds a difference of two values given whole to the calendar */
+    _durationRoundOfFunctionName(): string {
+        return 'tsq_duration_round_of'
     }
     /** The name of the function of the library that rounds a difference to the calendar */
     _durationRoundFunctionName(): string {
@@ -5396,7 +5409,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
      */
     _durationTotal(context: SqlBuildContext, operand: ToSql, value: any, value2: any, _typeClass: DataTypeClass): string {
         const total = { unit: value2 as DurationTotalUnit, relativeTo: value as DurationTotalDate | ToSql | undefined }
-        let result = this._durationTotalFunctionName() + '(' + this._durationPartsForTotal(context, this._temporalOperand(operand)) + ', '
+        const duration = this._temporalOperand(operand)
+        let result = this._libraryFunctionsInstalled() && !this._differenceGivingItsFields(duration)
+            ? this._durationTotalOfFunctionName() + '(' + this._durationOperandForFunction(context, duration) + ', '
+            : this._durationTotalFunctionName() + '(' + this._durationPartsForTotal(context, duration) + ', '
         const relativeTo = total.relativeTo
         if (relativeTo === undefined) {
             result += '0, 0, 0'
@@ -5415,22 +5431,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * tsq_duration_total: of its ISO 8601 text, with tsq_duration_part; of an interval of PostgreSQL, its fields
      */
     _durationPartsForTotal(context: SqlBuildContext, valueSource: ToSql): string {
-        const operation = isValueSource(valueSource) ? (__asNodeValueSource(valueSource) as Partial<SqlOperation2ValueSource>) : undefined
-        if (operation && (operation.__operation === '_until' || operation.__operation === '_since')) {
-            const d = this._differenceSqlOf(operation.__valueSource as unknown as ToSql, operation.__value, operation.__value2, operation.__operation === '_since')
-            if (!this._differenceIsRoundedToTheCalendar(d)) {
-                // A difference gives its fields, not the duration made of them: its weeks when they are its largest
-                // unit (a duration with weeks needs a date of reference), and the rest as days (of a date) or as its time
-                if (d.fields === 'yearMonth') {
-                    return this._differenceWhole(context, d) + ', 0, 0, 0, 0'
-                }
-                if (d.difference.largestUnit !== 'week') {
-                    return d.fields === 'date' ? '0, 0, ' + this._differenceWhole(context, d) + ', 0, 0' : '0, 0, 0, ' + this._differenceTimeForTotal(context, d, false)
-                }
-                const week = this._bigintLiteral(7n * nanosecondsOfUnit['day']! / d.tick)
-                const weeks = this._differenceDivision(d, this._differenceWhole(context, d), week)
-                return '0, ' + weeks + ', ' + (d.fields === 'date' ? '(' + this._integerRemainder(this._differenceWhole(context, d), week) + '), 0, 0' : '0, ' + this._differenceTimeForTotal(context, d, true))
-            }
+        const difference = this._differenceGivingItsFields(valueSource)
+        if (difference) {
+            return this._differencePartsForTotal(context, difference)
         }
         if (this._isDurationKeptAsText(valueSource)) {
             return this._durationTextPart(context, valueSource, 'M') + ', ' + this._durationTextPart(context, valueSource, 'weeks') + ', ' + this._durationTextPart(context, valueSource, 'days') + ', '
@@ -5440,6 +5443,33 @@ export class AbstractSqlBuilder implements SqlBuilder {
         let result = 'cast(extract(year from ' + interval + ') * 12 + extract(month from ' + interval + ') as bigint), 0, cast(extract(day from ' + interval + ') as bigint), '
         result += 'cast(extract(hour from ' + interval + ') * 3600 + extract(minute from ' + interval + ') * 60 + trunc(extract(second from ' + interval + ')) as bigint), '
         return result + 'cast(extract(microseconds from ' + interval + ') as bigint) % 1000000 * 1000'
+    }
+    /**
+     * The difference (until, since) not rounded to the calendar a duration is, or undefined: tsq_duration_total takes its
+     * fields as the difference computes them, not the duration made of them
+     */
+    _differenceGivingItsFields(valueSource: ToSql): PlainTemporalDifferenceSql | undefined {
+        const operation = isValueSource(valueSource) ? (__asNodeValueSource(valueSource) as Partial<SqlOperation2ValueSource>) : undefined
+        if (!operation || (operation.__operation !== '_until' && operation.__operation !== '_since')) {
+            return undefined
+        }
+        const d = this._differenceSqlOf(operation.__valueSource as unknown as ToSql, operation.__value, operation.__value2, operation.__operation === '_since')
+        return this._differenceIsRoundedToTheCalendar(d) ? undefined : d
+    }
+    /**
+     * The parts of a difference not rounded to the calendar as tsq_duration_total takes them: its weeks when they are its
+     * largest unit (a duration with weeks needs a date of reference), and the rest as days (of a date) or as its time
+     */
+    _differencePartsForTotal(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
+        if (d.fields === 'yearMonth') {
+            return this._differenceWhole(context, d) + ', 0, 0, 0, 0'
+        }
+        if (d.difference.largestUnit !== 'week') {
+            return d.fields === 'date' ? '0, 0, ' + this._differenceWhole(context, d) + ', 0, 0' : '0, 0, 0, ' + this._differenceTimeForTotal(context, d, false)
+        }
+        const week = this._bigintLiteral(7n * nanosecondsOfUnit['day']! / d.tick)
+        const weeks = this._differenceDivision(d, this._differenceWhole(context, d), week)
+        return '0, ' + weeks + ', ' + (d.fields === 'date' ? '(' + this._integerRemainder(this._differenceWhole(context, d), week) + '), 0, 0' : '0, ' + this._differenceTimeForTotal(context, d, true))
     }
     /**
      * The time of a difference as the whole seconds and the nanoseconds tsq_duration_total takes: of a time, its
@@ -5476,6 +5506,20 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return this._appendDurationSum(context, operand, value, -1)
     }
     _appendDurationSum(context: SqlBuildContext, operand: ToSql, value: any, sign: 1 | -1): string {
+        if (this._libraryFunctionsInstalled()) {
+            // The functions of the library take each duration whole, writing it once
+            let sum = this._durationSumFunctionName() + '(' + this._durationOperandForFunction(context, this._temporalOperand(operand)) + ', '
+            if (isValueSource(value)) {
+                sum += this._durationOperandForFunction(context, this._temporalOperand(value as unknown as ToSql))
+            } else {
+                const duration = durationOfArgument(value, 'duration')
+                if (!duration) {
+                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: 'duration' }, 'Invalid duration to add or subtract: ' + String(value))
+                }
+                sum += this._durationTextLiteral(durationIsoText(duration))
+            }
+            return sum + ', ' + sign + ')'
+        }
         let result = this._durationAddFunctionName() + '(' + this._durationPartsForSum(context, this._temporalOperand(operand)) + ', '
         if (isValueSource(value)) {
             result += this._durationPartsForSum(context, this._temporalOperand(value as unknown as ToSql))
@@ -5509,6 +5553,25 @@ export class AbstractSqlBuilder implements SqlBuilder {
     /** Whether a duration plus or minus another one is the ISO 8601 text of the sum, where the database has intervals */
     _isDurationSumKeptAsText(): boolean {
         return false
+    }
+    /**
+     * A duration as the functions of the library that take it whole receive it (tsq_duration_sum, tsq_duration_total_of):
+     * its ISO 8601 text, or its interval where the function takes one (PostgreSQL)
+     */
+    _durationOperandForFunction(context: SqlBuildContext, valueSource: ToSql): string {
+        return this._appendSql(valueSource, context, false)
+    }
+    /** The ISO 8601 text of a duration given as a value, written in the query: a text of the library, of digits and letters */
+    _durationTextLiteral(text: string): string {
+        return "'" + text + "'"
+    }
+    /** The name of the function of the library that adds and subtracts two durations given whole */
+    _durationSumFunctionName(): string {
+        return 'tsq_duration_sum'
+    }
+    /** The name of the function of the library that gives the total of a duration given whole */
+    _durationTotalOfFunctionName(): string {
+        return 'tsq_duration_total_of'
     }
     /** The name of the function of the library that adds and subtracts durations */
     _durationAddFunctionName(): string {

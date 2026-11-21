@@ -1094,3 +1094,46 @@ BEGIN
     END IF;
     RETURN CASE WHEN (instant - start_of_day) * 2 > next_day - start_of_day THEN next_day ELSE start_of_day END;
 END $$;
+
+-- tsq_duration_sum: the sum of two durations (Temporal.Duration), the second times sign (1 to add it, -1 to subtract
+-- it), each given whole: tsq_duration_add of their parts; the function of the library that writes each one once
+-- (libraryFunctions installed).
+CREATE OR REPLACE FUNCTION tsq_duration_sum(a text, b text, sgn integer) RETURNS interval LANGUAGE sql IMMUTABLE AS $$
+    SELECT tsq_duration_add(tsq_duration_part(a, 'largest'), tsq_duration_part(a, 'days'), tsq_duration_part(a, 'S'), tsq_duration_part(a, 'N'),
+        tsq_duration_part(b, 'largest'), tsq_duration_part(b, 'days'), tsq_duration_part(b, 'S'), tsq_duration_part(b, 'N'), sgn)
+$$;
+
+CREATE OR REPLACE FUNCTION tsq_duration_sum(a text, b interval, sgn integer) RETURNS interval LANGUAGE sql IMMUTABLE AS $$
+    SELECT tsq_duration_add(tsq_duration_part(a, 'largest'), tsq_duration_part(a, 'days'), tsq_duration_part(a, 'S'), tsq_duration_part(a, 'N'),
+        CASE WHEN extract(year FROM b) <> 0 OR extract(month FROM b) <> 0 THEN 1 WHEN extract(day FROM b) <> 0 THEN 3 ELSE 4 END, extract(day FROM b)::bigint, (extract(hour FROM b) * 3600 + extract(minute FROM b) * 60 + trunc(extract(second FROM b)))::bigint, extract(microseconds FROM b)::bigint % 1000000 * 1000, sgn)
+$$;
+
+CREATE OR REPLACE FUNCTION tsq_duration_sum(a interval, b text, sgn integer) RETURNS interval LANGUAGE sql IMMUTABLE AS $$
+    SELECT tsq_duration_add(CASE WHEN extract(year FROM a) <> 0 OR extract(month FROM a) <> 0 THEN 1 WHEN extract(day FROM a) <> 0 THEN 3 ELSE 4 END, extract(day FROM a)::bigint, (extract(hour FROM a) * 3600 + extract(minute FROM a) * 60 + trunc(extract(second FROM a)))::bigint, extract(microseconds FROM a)::bigint % 1000000 * 1000,
+        tsq_duration_part(b, 'largest'), tsq_duration_part(b, 'days'), tsq_duration_part(b, 'S'), tsq_duration_part(b, 'N'), sgn)
+$$;
+
+CREATE OR REPLACE FUNCTION tsq_duration_sum(a interval, b interval, sgn integer) RETURNS interval LANGUAGE sql IMMUTABLE AS $$
+    SELECT tsq_duration_add(CASE WHEN extract(year FROM a) <> 0 OR extract(month FROM a) <> 0 THEN 1 WHEN extract(day FROM a) <> 0 THEN 3 ELSE 4 END, extract(day FROM a)::bigint, (extract(hour FROM a) * 3600 + extract(minute FROM a) * 60 + trunc(extract(second FROM a)))::bigint, extract(microseconds FROM a)::bigint % 1000000 * 1000,
+        CASE WHEN extract(year FROM b) <> 0 OR extract(month FROM b) <> 0 THEN 1 WHEN extract(day FROM b) <> 0 THEN 3 ELSE 4 END, extract(day FROM b)::bigint, (extract(hour FROM b) * 3600 + extract(minute FROM b) * 60 + trunc(extract(second FROM b)))::bigint, extract(microseconds FROM b)::bigint % 1000000 * 1000, sgn)
+$$;
+
+-- tsq_duration_total_of: a duration (Temporal.Duration) given whole in one unit, as Temporal's total, with the year,
+-- the month and the day of the date of reference (0, 0, 0 without one): tsq_duration_total of its parts; the function
+-- of the library that writes it once (libraryFunctions installed).
+CREATE OR REPLACE FUNCTION tsq_duration_total_of(d text, y integer, m integer, dd integer, unit text) RETURNS double precision LANGUAGE sql IMMUTABLE AS $$
+    SELECT tsq_duration_total(tsq_duration_part(d, 'M'), tsq_duration_part(d, 'weeks'), tsq_duration_part(d, 'days'), tsq_duration_part(d, 'S'), tsq_duration_part(d, 'N'), y, m, dd, unit)
+$$;
+
+CREATE OR REPLACE FUNCTION tsq_duration_total_of(d interval, y integer, m integer, dd integer, unit text) RETURNS double precision LANGUAGE sql IMMUTABLE AS $$
+    SELECT tsq_duration_total((extract(year FROM d) * 12 + extract(month FROM d))::bigint, 0, extract(day FROM d)::bigint, (extract(hour FROM d) * 3600 + extract(minute FROM d) * 60 + trunc(extract(second FROM d)))::bigint, extract(microseconds FROM d)::bigint % 1000000 * 1000, y, m, dd, unit)
+$$;
+
+-- tsq_duration_round_of: the duration from one date or date and time to another rounded to the calendar, as
+-- Temporal's until: tsq_duration_round of the year, the month, the day and the nanoseconds of the day of each one;
+-- the function of the library that writes each one once (libraryFunctions installed).
+CREATE OR REPLACE FUNCTION tsq_duration_round_of(one timestamp, two timestamp, largest_unit text, smallest_unit text, increment bigint, rounding_mode text, negation integer) RETURNS interval LANGUAGE sql IMMUTABLE AS $$
+    SELECT tsq_duration_round(extract(year FROM one)::integer, extract(month FROM one)::integer, extract(day FROM one)::integer, round(extract(epoch FROM one::time) * 1000000)::bigint * 1000,
+        extract(year FROM two)::integer, extract(month FROM two)::integer, extract(day FROM two)::integer, round(extract(epoch FROM two::time) * 1000000)::bigint * 1000,
+        largest_unit, smallest_unit, increment, rounding_mode, negation)
+$$;

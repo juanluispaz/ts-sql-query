@@ -2,6 +2,12 @@
 -- See https://ts-sql-query.readthedocs.io/en/latest/databases/sqlserver/functions/
 -- Run it with: sqlcmd -d <database> -i tsq-functions.sql
 
+-- The functions that take others with schema binding are dropped first, so the others can be created again
+DROP FUNCTION IF EXISTS dbo.tsq_duration_sum;
+DROP FUNCTION IF EXISTS dbo.tsq_duration_total_of;
+DROP FUNCTION IF EXISTS dbo.tsq_duration_round_of;
+GO
+
 -- ===== tsq_duration_part =====
 CREATE OR ALTER FUNCTION dbo.tsq_duration_part(@d NVARCHAR(100), @part VARCHAR(10)) RETURNS BIGINT WITH SCHEMABINDING AS
 BEGIN
@@ -298,13 +304,37 @@ BEGIN
 END
 GO
 
+-- ===== tsq_duration_sum =====
+CREATE OR ALTER FUNCTION dbo.tsq_duration_sum(@a NVARCHAR(100), @b NVARCHAR(100), @sign INT) RETURNS VARCHAR(100) WITH SCHEMABINDING AS
+BEGIN
+    RETURN dbo.tsq_duration_add(dbo.tsq_duration_part(@a, 'largest'), dbo.tsq_duration_part(@a, 'days'), dbo.tsq_duration_part(@a, 'S'), dbo.tsq_duration_part(@a, 'N'),
+        dbo.tsq_duration_part(@b, 'largest'), dbo.tsq_duration_part(@b, 'days'), dbo.tsq_duration_part(@b, 'S'), dbo.tsq_duration_part(@b, 'N'), @sign);
+END
+GO
+
+-- ===== tsq_duration_total_of =====
+CREATE OR ALTER FUNCTION dbo.tsq_duration_total_of(@d NVARCHAR(100), @y INT, @m INT, @dd INT, @unit VARCHAR(11)) RETURNS FLOAT WITH SCHEMABINDING AS
+BEGIN
+    RETURN dbo.tsq_duration_total(dbo.tsq_duration_part(@d, 'M'), dbo.tsq_duration_part(@d, 'weeks'), dbo.tsq_duration_part(@d, 'days'), dbo.tsq_duration_part(@d, 'S'), dbo.tsq_duration_part(@d, 'N'), @y, @m, @dd, @unit);
+END
+GO
+
+-- ===== tsq_duration_round_of =====
+CREATE OR ALTER FUNCTION dbo.tsq_duration_round_of(@one DATETIME2(7), @two DATETIME2(7), @largest VARCHAR(5), @smallest VARCHAR(11), @increment BIGINT, @mode VARCHAR(10), @negation INT) RETURNS VARCHAR(100) WITH SCHEMABINDING AS
+BEGIN
+    RETURN dbo.tsq_duration_round(YEAR(@one), MONTH(@one), DAY(@one), DATEDIFF_BIG(NANOSECOND, CAST('00:00' AS TIME), CAST(@one AS TIME)),
+        YEAR(@two), MONTH(@two), DAY(@two), DATEDIFF_BIG(NANOSECOND, CAST('00:00' AS TIME), CAST(@two AS TIME)),
+        @largest, @smallest, @increment, @mode, @negation);
+END
+GO
+
 -- ===== tsq_greatest_strict and tsq_least_strict =====
-CREATE FUNCTION dbo.tsq_greatest_strict(@a FLOAT, @b FLOAT) RETURNS FLOAT AS
+CREATE OR ALTER FUNCTION dbo.tsq_greatest_strict(@a FLOAT, @b FLOAT) RETURNS FLOAT AS
 BEGIN
     RETURN CASE WHEN @a IS NULL OR @b IS NULL THEN NULL WHEN @a >= @b THEN @a ELSE @b END
 END;
 GO
-CREATE FUNCTION dbo.tsq_least_strict(@a FLOAT, @b FLOAT) RETURNS FLOAT AS
+CREATE OR ALTER FUNCTION dbo.tsq_least_strict(@a FLOAT, @b FLOAT) RETURNS FLOAT AS
 BEGIN
     RETURN CASE WHEN @a IS NULL OR @b IS NULL THEN NULL WHEN @a <= @b THEN @a ELSE @b END
 END;

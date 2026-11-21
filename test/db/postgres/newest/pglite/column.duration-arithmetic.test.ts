@@ -134,4 +134,56 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { later: Temporal.Duration }>>()
         expect(row.later.toString()).toBe('P59DT12H')
     })
+
+    test('durations-added-their-totals-and-differences-in-months-with-the-functions-of-the-library', async () => {
+        // With the functions of the library installed a duration and the values of a difference in months are given whole
+        // to the function, written once: the values are the ones of Temporal for the values read, with and without the
+        // functions (the mock answers no rows: there it is the SQL that is checked)
+        const lastDay = Temporal.PlainDate.from('2024-06-30')
+        const nextYear = Temporal.PlainDateTime.from('2025-05-17T00:00:00')
+        const query = (conn: typeof ctx.conn) => conn.selectFrom(tRelease)
+            .where(tRelease.rolloutTime.isNotNull())
+            .select({
+                version: tRelease.version,
+                releasedOn: tRelease.releasedOn,
+                publishedAt: tRelease.publishedAt,
+                rolloutTime: tRelease.rolloutTime,
+                twice: tRelease.rolloutTime.add(tRelease.rolloutTime),
+                lessHalfADay: tRelease.rolloutTime.subtract({ hours: 12 }),
+                hours: tRelease.rolloutTime.total('hours'),
+                daysFromRelease: tRelease.rolloutTime.total({ unit: 'days', relativeTo: tRelease.releasedOn }),
+                toLastDay: tRelease.releasedOn.until(lastDay, { largestUnit: 'month' }),
+                toNextYear: tRelease.publishedAt.until(nextYear, { largestUnit: 'year', smallestUnit: 'month', roundingMode: 'halfExpand' }),
+            })
+            .orderBy('version')
+            .executeSelectMany()
+        ctx.mockNext([])
+        const withFunctions = await query(ctx.withLibraryFunctions())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as version, released_on as "releasedOn", published_at as "publishedAt", rollout_time as "rolloutTime", tsq_duration_sum(rollout_time, rollout_time, 1) as twice, tsq_duration_sum(rollout_time, 'PT12H'::text, -1) as "lessHalfADay", tsq_duration_total_of(rollout_time, 0, 0, 0, 'hour') as hours, tsq_duration_total_of(rollout_time, cast(extract(year from released_on) as integer), cast(extract(month from released_on) as integer), cast(extract(day from released_on) as integer), 'day') as "daysFromRelease", tsq_duration_round_of(released_on, $1, 'month', 'day', 1, 'trunc', 1) as "toLastDay", tsq_duration_round_of(published_at, $2, 'year', 'month', 1, 'halfExpand', 1) as "toNextYear" from project_release where rollout_time is not null order by version"`)
+        ctx.mockNext([])
+        const withoutFunctions = await query(ctx.conn)
+        expect(withFunctions.length).toBe(ctx.realDbEnabled ? 3 : 0)
+        type Row = (typeof withFunctions)[number]
+        const months = (d: Temporal.Duration | undefined) => d === undefined ? undefined : [d.years * 12 + d.months, d.weeks * 7 + d.days]
+        const read = (row: Row) => ({
+            version: row.version,
+            twice: row.twice?.total('second'),
+            lessHalfADay: row.lessHalfADay?.total('second'),
+            hours: row.hours,
+            daysFromRelease: row.daysFromRelease,
+            toLastDay: months(row.toLastDay),
+            toNextYear: months(row.toNextYear),
+        })
+        const ofTemporal = (row: Row) => ({
+            version: row.version,
+            twice: row.rolloutTime?.add(row.rolloutTime).total('second'),
+            lessHalfADay: row.rolloutTime?.subtract({ hours: 12 }).total('second'),
+            hours: row.rolloutTime?.total('hours'),
+            daysFromRelease: row.rolloutTime?.total({ unit: 'days', relativeTo: row.releasedOn }),
+            toLastDay: months(row.releasedOn.until(lastDay, { largestUnit: 'month' })),
+            toNextYear: months(row.publishedAt.until(nextYear, { largestUnit: 'year', smallestUnit: 'month', roundingMode: 'halfExpand' })),
+        })
+        expect(withFunctions.map(read)).toEqual(withFunctions.map(ofTemporal))
+        expect(withoutFunctions.map(read)).toEqual(withoutFunctions.map(ofTemporal))
+    })
 })

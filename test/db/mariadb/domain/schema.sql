@@ -804,3 +804,42 @@ BEGIN
 END
 //
 DELIMITER ;
+
+-- tsq_duration_sum: the sum of two durations (Temporal.Duration), the second times sign (1 to add it, -1 to subtract
+-- it), each given whole: tsq_duration_add of their parts; the function of the library that writes each one once
+-- (libraryFunctions installed).
+DROP FUNCTION IF EXISTS tsq_duration_sum;
+DELIMITER //
+CREATE FUNCTION tsq_duration_sum(a VARCHAR(100), b VARCHAR(100), sgn INT) RETURNS VARCHAR(100) CHARACTER SET ascii DETERMINISTIC NO SQL
+BEGIN
+    RETURN tsq_duration_add(tsq_duration_part(a, 'largest'), tsq_duration_part(a, 'days'), tsq_duration_part(a, 'S'), tsq_duration_part(a, 'N'),
+        tsq_duration_part(b, 'largest'), tsq_duration_part(b, 'days'), tsq_duration_part(b, 'S'), tsq_duration_part(b, 'N'), sgn);
+END
+//
+DELIMITER ;
+
+-- tsq_duration_total_of: a duration (Temporal.Duration) given whole in one unit, as Temporal's total, with the year,
+-- the month and the day of the date of reference (0, 0, 0 without one): tsq_duration_total of its parts; the function
+-- of the library that writes it once (libraryFunctions installed).
+DROP FUNCTION IF EXISTS tsq_duration_total_of;
+DELIMITER //
+CREATE FUNCTION tsq_duration_total_of(d VARCHAR(100), y INT, m INT, dd INT, unit VARCHAR(11)) RETURNS DOUBLE DETERMINISTIC NO SQL
+BEGIN
+    RETURN tsq_duration_total(tsq_duration_part(d, 'M'), tsq_duration_part(d, 'weeks'), tsq_duration_part(d, 'days'), tsq_duration_part(d, 'S'), tsq_duration_part(d, 'N'), y, m, dd, unit);
+END
+//
+DELIMITER ;
+
+-- tsq_duration_round_of: the duration from one date or date and time to another rounded to the calendar, as
+-- Temporal's until: tsq_duration_round of the year, the month, the day and the nanoseconds of the day of each one;
+-- the function of the library that writes each one once (libraryFunctions installed).
+DROP FUNCTION IF EXISTS tsq_duration_round_of;
+DELIMITER //
+CREATE FUNCTION tsq_duration_round_of(one DATETIME(6), two DATETIME(6), largest_unit VARCHAR(5), smallest_unit VARCHAR(11), increment BIGINT, rounding_mode VARCHAR(10), negation INT) RETURNS VARCHAR(100) CHARACTER SET ascii DETERMINISTIC NO SQL
+BEGIN
+    RETURN tsq_duration_round(YEAR(one), MONTH(one), DAYOFMONTH(one), (FLOOR(TIME_TO_SEC(one)) * 1000000 + MICROSECOND(one)) * 1000,
+        YEAR(two), MONTH(two), DAYOFMONTH(two), (FLOOR(TIME_TO_SEC(two)) * 1000000 + MICROSECOND(two)) * 1000,
+        largest_unit, smallest_unit, increment, rounding_mode, negation);
+END
+//
+DELIMITER ;

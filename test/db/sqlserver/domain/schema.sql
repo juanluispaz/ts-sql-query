@@ -520,6 +520,12 @@ CREATE TABLE service_plan (
 ) WITH (SYSTEM_VERSIONING = ON (HISTORY_TABLE = dbo.service_plan_history));
 GO
 
+-- The functions that take others with schema binding are dropped first, so the others can be created again
+DROP FUNCTION IF EXISTS dbo.tsq_duration_sum;
+DROP FUNCTION IF EXISTS dbo.tsq_duration_total_of;
+DROP FUNCTION IF EXISTS dbo.tsq_duration_round_of;
+GO
+
 -- tsq_duration_part: a part of the ISO 8601 text of a duration (Temporal.Duration), the function of the library that
 -- reads a duration kept as text: 'M' the months (its years too), 'D' the days (its weeks too), 'S' the whole seconds of
 -- its time, 'N' the nanoseconds of the second, to add or subtract it; 'years', 'months', 'weeks', 'days', 'hours',
@@ -846,5 +852,35 @@ GO
 CREATE OR ALTER FUNCTION dbo.tsq_datetime_of_ticks(@date DATE, @ticks BIGINT) RETURNS DATETIME2(7) WITH SCHEMABINDING AS
 BEGIN
     RETURN DATEADD(NANOSECOND, @ticks % 10000000 * 100, DATEADD(SECOND, @ticks / 10000000, CAST(@date AS DATETIME2(7))));
+END
+GO
+
+-- tsq_duration_sum: the sum of two durations (Temporal.Duration), the second times sign (1 to add it, -1 to subtract
+-- it), each given whole: tsq_duration_add of their parts; the function of the library that writes each one once
+-- (libraryFunctions installed).
+CREATE OR ALTER FUNCTION dbo.tsq_duration_sum(@a NVARCHAR(100), @b NVARCHAR(100), @sign INT) RETURNS VARCHAR(100) WITH SCHEMABINDING AS
+BEGIN
+    RETURN dbo.tsq_duration_add(dbo.tsq_duration_part(@a, 'largest'), dbo.tsq_duration_part(@a, 'days'), dbo.tsq_duration_part(@a, 'S'), dbo.tsq_duration_part(@a, 'N'),
+        dbo.tsq_duration_part(@b, 'largest'), dbo.tsq_duration_part(@b, 'days'), dbo.tsq_duration_part(@b, 'S'), dbo.tsq_duration_part(@b, 'N'), @sign);
+END
+GO
+
+-- tsq_duration_total_of: a duration (Temporal.Duration) given whole in one unit, as Temporal's total, with the year,
+-- the month and the day of the date of reference (0, 0, 0 without one): tsq_duration_total of its parts; the function
+-- of the library that writes it once (libraryFunctions installed).
+CREATE OR ALTER FUNCTION dbo.tsq_duration_total_of(@d NVARCHAR(100), @y INT, @m INT, @dd INT, @unit VARCHAR(11)) RETURNS FLOAT WITH SCHEMABINDING AS
+BEGIN
+    RETURN dbo.tsq_duration_total(dbo.tsq_duration_part(@d, 'M'), dbo.tsq_duration_part(@d, 'weeks'), dbo.tsq_duration_part(@d, 'days'), dbo.tsq_duration_part(@d, 'S'), dbo.tsq_duration_part(@d, 'N'), @y, @m, @dd, @unit);
+END
+GO
+
+-- tsq_duration_round_of: the duration from one date or date and time to another rounded to the calendar, as
+-- Temporal's until: tsq_duration_round of the year, the month, the day and the nanoseconds of the day of each one;
+-- the function of the library that writes each one once (libraryFunctions installed).
+CREATE OR ALTER FUNCTION dbo.tsq_duration_round_of(@one DATETIME2(7), @two DATETIME2(7), @largest VARCHAR(5), @smallest VARCHAR(11), @increment BIGINT, @mode VARCHAR(10), @negation INT) RETURNS VARCHAR(100) WITH SCHEMABINDING AS
+BEGIN
+    RETURN dbo.tsq_duration_round(YEAR(@one), MONTH(@one), DAY(@one), DATEDIFF_BIG(NANOSECOND, CAST('00:00' AS TIME), CAST(@one AS TIME)),
+        YEAR(@two), MONTH(@two), DAY(@two), DATEDIFF_BIG(NANOSECOND, CAST('00:00' AS TIME), CAST(@two AS TIME)),
+        @largest, @smallest, @increment, @mode, @negation);
 END
 GO

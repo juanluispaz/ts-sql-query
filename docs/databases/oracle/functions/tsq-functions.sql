@@ -666,6 +666,50 @@ BEGIN
 END;
 /
 
+-- ===== tsq_duration_sum =====
+CREATE OR REPLACE FUNCTION tsq_duration_sum(a IN VARCHAR2, b IN VARCHAR2, sgn IN NUMBER) RETURN VARCHAR2 DETERMINISTIC IS
+BEGIN
+    RETURN tsq_duration_add(tsq_duration_part(a, 'largest'), tsq_duration_part(a, 'days'), tsq_duration_part(a, 'S'), tsq_duration_part(a, 'N'),
+        tsq_duration_part(b, 'largest'), tsq_duration_part(b, 'days'), tsq_duration_part(b, 'S'), tsq_duration_part(b, 'N'), sgn);
+END;
+/
+
+-- ===== tsq_duration_total_of =====
+CREATE OR REPLACE FUNCTION tsq_duration_total_of(d IN VARCHAR2, y IN NUMBER, m IN NUMBER, dd IN NUMBER, unit IN VARCHAR2) RETURN BINARY_DOUBLE DETERMINISTIC IS
+BEGIN
+    RETURN tsq_duration_total(tsq_duration_part(d, 'M'), tsq_duration_part(d, 'weeks'), tsq_duration_part(d, 'days'), tsq_duration_part(d, 'S'), tsq_duration_part(d, 'N'), y, m, dd, unit);
+END;
+/
+
+-- ===== tsq_ds_interval_text and tsq_ym_interval_text =====
+CREATE OR REPLACE FUNCTION tsq_ds_interval_text(value IN DSINTERVAL_UNCONSTRAINED) RETURN VARCHAR2 DETERMINISTIC IS
+    v_negative BOOLEAN := value < INTERVAL '0' SECOND;
+    v_value DSINTERVAL_UNCONSTRAINED := CASE WHEN value < INTERVAL '0' SECOND THEN value * -1 ELSE value END;
+    v_seconds NUMBER := EXTRACT(SECOND FROM v_value);
+BEGIN
+    IF value IS NULL THEN RETURN NULL; END IF;
+    RETURN CASE WHEN v_negative THEN '-' END || 'P' || EXTRACT(DAY FROM v_value) || 'DT' || EXTRACT(HOUR FROM v_value) || 'H' || EXTRACT(MINUTE FROM v_value) || 'M'
+        || TRUNC(v_seconds) || '.' || LPAD(TO_CHAR(MOD(v_seconds, 1) * 1000000000), 9, '0') || 'S';
+END;
+/
+
+CREATE OR REPLACE FUNCTION tsq_ym_interval_text(value IN YMINTERVAL_UNCONSTRAINED) RETURN VARCHAR2 DETERMINISTIC IS
+    v_value YMINTERVAL_UNCONSTRAINED := CASE WHEN value < INTERVAL '0' MONTH THEN value * -1 ELSE value END;
+BEGIN
+    IF value IS NULL THEN RETURN NULL; END IF;
+    RETURN CASE WHEN value < INTERVAL '0' MONTH THEN '-' END || 'P' || EXTRACT(YEAR FROM v_value) || 'Y' || EXTRACT(MONTH FROM v_value) || 'M';
+END;
+/
+
+-- ===== tsq_duration_round_of =====
+CREATE OR REPLACE FUNCTION tsq_duration_round_of(one IN TIMESTAMP_UNCONSTRAINED, two IN TIMESTAMP_UNCONSTRAINED, largest_unit IN VARCHAR2, smallest_unit IN VARCHAR2, increment IN NUMBER, rounding_mode IN VARCHAR2, negation IN NUMBER) RETURN VARCHAR2 DETERMINISTIC IS
+BEGIN
+    RETURN tsq_duration_round(EXTRACT(YEAR FROM one), EXTRACT(MONTH FROM one), EXTRACT(DAY FROM one), TO_NUMBER(TO_CHAR(one, 'SSSSSFF9')),
+        EXTRACT(YEAR FROM two), EXTRACT(MONTH FROM two), EXTRACT(DAY FROM two), TO_NUMBER(TO_CHAR(two, 'SSSSSFF9')),
+        largest_unit, smallest_unit, increment, rounding_mode, negation);
+END;
+/
+
 -- ===== tsq_string_util.concat_strict =====
 CREATE OR REPLACE PACKAGE tsq_string_util AS
     FUNCTION concat_strict(a IN VARCHAR2, b IN VARCHAR2) RETURN VARCHAR2;

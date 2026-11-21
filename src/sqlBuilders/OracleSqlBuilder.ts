@@ -1975,6 +1975,13 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         // As a difference, the text Temporal writes: an interval of days to seconds would write PT25H as 1 day 1 hour
         return true
     }
+    override _durationOperandForFunction(context: SqlBuildContext, valueSource: ToSql): string {
+        if (this._isDurationKeptAsText(valueSource)) {
+            return super._durationOperandForFunction(context, valueSource)
+        }
+        // An interval as its ISO 8601 text
+        return (this._isYearToMonthDuration(valueSource) ? 'tsq_ym_interval_text(' : 'tsq_ds_interval_text(') + this._appendSql(valueSource, context, false) + ')'
+    }
     override _durationPartsForSum(context: SqlBuildContext, valueSource: ToSql): string {
         if (this._isDurationKeptAsText(valueSource)) {
             return super._durationPartsForSum(context, valueSource)

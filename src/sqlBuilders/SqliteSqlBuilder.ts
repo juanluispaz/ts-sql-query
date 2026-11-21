@@ -1348,6 +1348,10 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     override _supportNativeDurations(): boolean {
         return false
     }
+    override _durationRoundOfOperand(context: SqlBuildContext, valueSource: ToSql): string {
+        // Its text, as the date functions read it, with its milliseconds
+        return "strftime('%Y-%m-%d %H:%M:%f', " + this._dateFunctionArgument(context, valueSource) + ')'
+    }
     override _roundToFunction(value: string, step: string, mode: string): string {
         // The integer goes to the function and comes back as its text: a function written in JavaScript would read an
         // integer of more than 53 bits as a number, rounded

@@ -1293,9 +1293,22 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _durationTotalFunctionName(): string {
         return 'dbo.tsq_duration_total'
     }
+    override _durationSumFunctionName(): string {
+        return 'dbo.tsq_duration_sum'
+    }
+    override _durationTotalOfFunctionName(): string {
+        return 'dbo.tsq_duration_total_of'
+    }
     override _roundToFunction(value: string, step: string, mode: string): string {
         // A function of the user is called with its schema
         return 'dbo.tsq_round_to(' + value + ', ' + step + ", '" + mode + "')"
+    }
+    override _durationRoundOfFunctionName(): string {
+        return 'dbo.tsq_duration_round_of'
+    }
+    override _durationRoundOfOperand(context: SqlBuildContext, valueSource: ToSql): string {
+        // Its date and time in UTC, as its parts are given
+        return 'switchoffset(' + super._durationRoundOfOperand(context, valueSource) + ", '+00:00')"
     }
     override _durationRoundFunctionName(): string {
         return 'dbo.tsq_duration_round'

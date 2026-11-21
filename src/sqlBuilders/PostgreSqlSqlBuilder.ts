@@ -1155,6 +1155,10 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
      * The parts of an interval for tsq_duration_add: the function of PostgreSQL returns an interval, so of the largest
      * field it only tells the years and months (rejected), the days and the time apart
      */
+    override _durationTextLiteral(text: string): string {
+        // A text, not an interval: tsq_duration_sum and tsq_duration_total_of take either
+        return "'" + text + "'::text"
+    }
     override _durationPartsForSum(context: SqlBuildContext, valueSource: ToSql): string {
         if (this._isDurationKeptAsText(valueSource)) {
             return super._durationPartsForSum(context, valueSource)

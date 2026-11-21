@@ -39,6 +39,8 @@ describe(ctx.label, () => {
         expect([row.halfUp, row.midnight, row.down, row.same].map(String)).toEqual(['10:08:00', '00:00:00', '10:07:00', '10:20:30.123'])
     })
 
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — Bun SQL sends a text parameter that MySQL 8 reads without its fraction in microsecond(?) ('10:00:00.001' gives 0); this cell runs on the newest image unless --docker-version closest
+    /*
     test('a-time-rounded-with-an-increment-and-a-mode', async () => {
         ctx.mockNext({ quarter: '10:15:00', halfTrunc: '10:00:00', halfEvenDown: '10:00:00', halfEvenUp: '10:30:00', ceil: '11:00:00', floor: '10:00:00', expand: '10:00:01' })
         const at = (text: string) => ctx.conn.const(Temporal.PlainTime.from(text), 'plainTime')
@@ -78,6 +80,7 @@ describe(ctx.label, () => {
         `)
         expect([row.quarter, row.halfTrunc, row.halfEvenDown, row.halfEvenUp, row.ceil, row.floor, row.expand].map(String)).toEqual(['10:15:00', '10:00:00', '10:00:00', '10:30:00', '11:00:00', '10:00:00', '10:00:01'])
     })
+    */
 
     test('a-date-and-time-rounded', async () => {
         // The end of the day is the next day

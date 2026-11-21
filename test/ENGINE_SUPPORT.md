@@ -223,6 +223,26 @@ constant used inside an expression that takes its time, as `round` does, is anot
 `column.plain-temporal-round.test.ts` (`a-time-rounded-to-a-unit`, `a-time-rounded-with-an-increment-and-a-mode`) is
 `NOT-SUPPORTED` on the `bun_sql_mysql` cells of MySQL 8. A column is read right.
 
+The `oldest` cell writes the time of the day with `time_to_sec(?)` and `microsecond(?)`: through Bun SQL, MySQL 8 reads
+`microsecond('10:00:00.001')` as `0` (MySQL 8.0.46 and 26.10; MySQL 5.7.44 gives `1000`), and that cell runs on the
+newest image unless `--docker-version closest`, so its `a-time-rounded-with-an-increment-and-a-mode` is `NOT-SUPPORTED`
+too (`a-time-rounded-to-a-unit` rounds times without a fraction and passes).
+
+### MySQL 5.7: a prepared statement calling a function of the library fails while functions are created
+
+MySQL 5.7 fails a server-side prepared statement that calls a stored function with a compound body (`DECLARE`, `SET`,
+`IF`), like the `tsq_*` functions of the library, with `ER_NEED_REPREPARE` (1615, `Prepared statement needs to be
+re-prepared`) when routines are created or dropped in any database of the server while it runs. Measured with 8 to 15
+seconds of queries while another session creates and drops functions in another database: Bun SQL 11 of 17503 and 2
+of 40759, mysql2's `execute` 3 of 12665; mysql2's `query` (no server-side prepare, the one of `MySql2QueryRunner`) 0 of
+13177, a function with a single `RETURN` 0, and MySQL 8.0 and 26.10 0 of over 100000. Bun SQL always prepares on the
+server and rejects `prepare: false` on MySQL.
+
+In the tests it shows only on `mysql/oldest/bun_sql_mysql` with `--docker-version closest` (MySQL 5.7): each worker
+creates its functions (`schema.sql`) while the other workers run queries, so one or two of the tests that call a `tsq_*`
+function fail at random. They pass alone and on the newest image, where the cell runs by default, so they stay live:
+a 1615 of that cell under `closest` is this, and is rerun.
+
 ### A duration kept as text needs a function on SQLite
 
 A duration (`Temporal.Duration`) is kept as its ISO 8601 text on SQLite; adding one of a column to a date or a time

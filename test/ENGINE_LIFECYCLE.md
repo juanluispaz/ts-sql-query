@@ -478,8 +478,12 @@ There is **no obligation** to stop the reused containers between runs — that
 is the whole point. They consume some RAM in the background while you
 iterate, and the next `bun run tests --docker` (or `tests <coord> --docker`)
 invocation attaches to them in ~1 s instead of paying the full container
-start-up. Agents in particular should not bother calling `tests:stop-containers`
-as a clean-up step.
+start-up. `tests:stop-containers` isn't a clean-up step: the maintainer runs it
+whenever no tests are running, and an agent only when it changes the kind of run
+(after a round of `--docker-version closest` or `--all-versions`, whose
+older-version engines would take the memory of the newest ones in a whole
+`--docker` run), so the engines aren't started over and over. A subagent never
+runs it.
 
 Stop them explicitly only when you actually want to start clean — to free
 RAM at the end of a long session, recover from a wedged container, or rebuild

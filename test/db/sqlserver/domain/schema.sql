@@ -601,7 +601,7 @@ BEGIN
     IF @y1 IS NULL OR @m1 IS NULL OR @d1 IS NULL OR @ns1 IS NULL OR @y2 IS NULL OR @m2 IS NULL OR @d2 IS NULL OR @ns2 IS NULL OR @largest IS NULL OR @smallest IS NULL OR @increment IS NULL OR @mode IS NULL OR @negation IS NULL RETURN NULL;
     DECLARE @day BIGINT = 86400000000000, @one DATE = DATEFROMPARTS(@y1, @m1, @d1), @two DATE = DATEFROMPARTS(@y2, @m2, @d2);
     DECLARE @adjusted DATE = @two, @t BIGINT = @ns2 - @ns1, @k INT, @years BIGINT = 0, @months BIGINT = 0, @weeks BIGINT = 0, @days BIGINT;
-    DECLARE @sign BIGINT, @um VARCHAR(12), @r1 BIGINT, @start DATE, @end DATE, @num BIGINT, @den BIGINT, @whole BIGINT, @rest BIGINT, @steps BIGINT, @step BIGINT, @toRound BIGINT, @rounded BIGINT;
+    DECLARE @sign BIGINT, @um VARCHAR(12), @r1 BIGINT, @start DATE, @end DATE, @num DECIMAL(38), @den DECIMAL(38), @whole DECIMAL(38), @rest DECIMAL(38), @steps BIGINT, @step BIGINT, @toRound BIGINT, @rounded BIGINT;
     IF @t > 0 AND @two < @one BEGIN SET @adjusted = DATEADD(day, 1, @two); SET @t = @t - @day; END
     ELSE IF @t < 0 AND @two > @one BEGIN SET @adjusted = DATEADD(day, -1, @two); SET @t = @t + @day; END
     IF @largest = 'week'
@@ -616,7 +616,7 @@ BEGIN
         SET @months = @k - @years * 12;
         SET @days = DATEDIFF(day, DATEADD(month, @k, @one), @adjusted);
     END
-    SET @sign = CASE WHEN CAST(DATEDIFF(day, @one, @two) AS BIGINT) * @day + @ns2 - @ns1 < 0 THEN -1 ELSE 1 END;
+    SET @sign = CASE WHEN @two < @one OR @two = @one AND @ns2 < @ns1 THEN -1 ELSE 1 END;
     SET @um = CASE @mode
         WHEN 'ceil' THEN CASE WHEN @sign < 0 THEN 'zero' ELSE 'infinity' END
         WHEN 'floor' THEN CASE WHEN @sign < 0 THEN 'infinity' ELSE 'zero' END
@@ -644,9 +644,9 @@ BEGIN
             SET @start = DATEADD(day, @r1 * 7, DATEADD(month, @years * 12 + @months, @one));
             SET @end = DATEADD(day, (@r1 + @increment * @sign) * 7, DATEADD(month, @years * 12 + @months, @one));
         END
-        SET @num = ABS(CAST(DATEDIFF(day, @start, @two) AS BIGINT) * @day + @ns2 - @ns1);
-        SET @den = ABS(CAST(DATEDIFF(day, @start, @end) AS BIGINT) * @day);
-        SET @whole = @num / @den;
+        SET @num = ABS(CAST(DATEDIFF(day, @start, @two) AS DECIMAL(38)) * @day + @ns2 - @ns1);
+        SET @den = ABS(CAST(DATEDIFF(day, @start, @end) AS DECIMAL(38)) * @day);
+        SET @whole = ROUND(@num / @den, 0, 1);
         SET @rest = @num - @whole * @den;
         SET @steps = @whole + CASE WHEN @rest <> 0 AND (@um = 'infinity' OR @um LIKE 'half%' AND (2 * @rest > @den OR 2 * @rest = @den AND (@um = 'halfInfinity' OR @um = 'halfEven' AND (ABS(@r1) / @increment + @whole) % 2 <> 0))) THEN 1 ELSE 0 END;
         SET @days = 0;

@@ -559,10 +559,10 @@ DECLARE
     r1 bigint;
     start_day date;
     end_day date;
-    num bigint;
-    den bigint;
-    whole bigint;
-    rest bigint;
+    num numeric;
+    den numeric;
+    whole numeric;
+    rest numeric;
     steps bigint;
     step bigint;
     to_round bigint;
@@ -586,7 +586,7 @@ BEGIN
         months := k - years * 12;
         days := adjusted - (one + make_interval(months => k))::date;
     END IF;
-    sgn := CASE WHEN (two - one)::bigint * day_ns + ns2 - ns1 < 0 THEN -1 ELSE 1 END;
+    sgn := CASE WHEN two < one OR two = one AND ns2 < ns1 THEN -1 ELSE 1 END;
     um := CASE rounding_mode
         WHEN 'ceil' THEN CASE WHEN sgn < 0 THEN 'zero' ELSE 'infinity' END
         WHEN 'floor' THEN CASE WHEN sgn < 0 THEN 'infinity' ELSE 'zero' END
@@ -608,9 +608,9 @@ BEGIN
             start_day := (one + make_interval(months => (years * 12 + months)::integer))::date + (r1 * 7)::integer;
             end_day := (one + make_interval(months => (years * 12 + months)::integer))::date + ((r1 + increment * sgn) * 7)::integer;
         END IF;
-        num := abs((two - start_day)::bigint * day_ns + ns2 - ns1);
-        den := abs((end_day - start_day)::bigint * day_ns);
-        whole := num / den;
+        num := abs((two - start_day)::numeric * day_ns + ns2 - ns1);
+        den := abs((end_day - start_day)::numeric * day_ns);
+        whole := div(num, den);
         rest := num - whole * den;
         steps := whole + CASE WHEN rest <> 0 AND (um = 'infinity' OR um LIKE 'half%' AND (2 * rest > den OR 2 * rest = den AND (um = 'halfInfinity' OR um = 'halfEven' AND (abs(r1) / increment + whole) % 2 <> 0))) THEN 1 ELSE 0 END;
         days := 0;

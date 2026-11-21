@@ -497,7 +497,7 @@ DROP FUNCTION IF EXISTS tsq_duration_round;
 DELIMITER //
 CREATE FUNCTION tsq_duration_round(y1 INT, m1 INT, d1 INT, ns1 BIGINT, y2 INT, m2 INT, d2 INT, ns2 BIGINT, largest_unit VARCHAR(5), smallest_unit VARCHAR(11), increment BIGINT, rounding_mode VARCHAR(10), negation INT) RETURNS VARCHAR(100) CHARACTER SET ascii DETERMINISTIC NO SQL
 BEGIN
-    DECLARE v_day BIGINT DEFAULT 86400000000000;
+    DECLARE v_day DECIMAL(65) DEFAULT 86400000000000;
     DECLARE v_one DATE;
     DECLARE v_two DATE;
     DECLARE v_adjusted DATE;
@@ -515,10 +515,10 @@ BEGIN
     DECLARE v_r1 BIGINT;
     DECLARE v_start DATE;
     DECLARE v_end DATE;
-    DECLARE v_num BIGINT;
-    DECLARE v_den BIGINT;
-    DECLARE v_whole BIGINT;
-    DECLARE v_rest BIGINT;
+    DECLARE v_num DECIMAL(65);
+    DECLARE v_den DECIMAL(65);
+    DECLARE v_whole DECIMAL(65);
+    DECLARE v_rest DECIMAL(65);
     DECLARE v_steps BIGINT;
     DECLARE v_step BIGINT;
     DECLARE v_to_round BIGINT;
@@ -542,7 +542,7 @@ BEGIN
         SET v_months = v_k - v_years * 12;
         SET v_days = DATEDIFF(v_adjusted, DATE_ADD(v_one, INTERVAL v_k MONTH));
     END IF;
-    SET v_sign = IF(DATEDIFF(v_two, v_one) * v_day + ns2 - ns1 < 0, -1, 1);
+    SET v_sign = IF(v_two < v_one OR v_two = v_one AND ns2 < ns1, -1, 1);
     SET v_mode = CASE rounding_mode
         WHEN 'ceil' THEN IF(v_sign < 0, 'zero', 'infinity')
         WHEN 'floor' THEN IF(v_sign < 0, 'infinity', 'zero')

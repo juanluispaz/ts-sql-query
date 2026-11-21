@@ -257,10 +257,11 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
      * inside the JSON of an aggregated array, where Oracle writes it as a text with its zone
      */
     protected override transformProjection(sql: string, context: TypeAdapterProjectionContext): string {
-        if (context.output === 'resultColumn' && __isZonedDateTimeClass(context.requestedType)) {
+        if ((context.output === 'resultColumn' || context.output === 'aggregatedArrayValue') && __isZonedDateTimeClass(context.requestedType)) {
             // A zoned date and time leaves the database as its wall clock with its offset, which give its instant, with all
             // its digits and the era always written, followed by the region of its zone in brackets (Temporal reads its
-            // name whatever its case): the value written once
+            // name whatever its case): the value written once; also inside the JSON of an aggregated array, which would
+            // write it with its offset only
             context.comparison = 'equality'
             return "to_char(" + sql + ", 'YYYY-MM-DD\"T\"HH24:MI:SS.FF9TZH:TZM BC\"[\"TZR\"]\"', 'NLS_DATE_LANGUAGE=AMERICAN')"
         }

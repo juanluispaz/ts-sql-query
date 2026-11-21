@@ -479,6 +479,16 @@ describe(ctx.label, () => {
         })
     })
 
+    test('zoned-dates-and-times-in-an-aggregated-array', async () => {
+        // Inside the JSON of an aggregated array a zoned date and time keeps its zone: a column kept as its text
+        ctx.mockNext({ ats: zoned.map((value, i) => ({ id: i + 1, at: value.toInstant().toString() + ' AD[' + value.timeZoneId + ']' })) })
+        const row = await ctx.conn.selectFrom(tZonedValue)
+            .select({ ats: ctx.conn.aggregateAsArray({ id: tZonedValue.id, at: tZonedValue.zonedText }) })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (json_agg(json_build_object('id', id, 'at', to_char((split_part(zoned_at, '[', 1)::timestamptz) at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z" BC') || '[' || rtrim(split_part(zoned_at, '[', 2), ']') || ']')))::text as ats from zoned_value"`)
+        expect(row.ats.map(entry => [entry.id, entry.at?.toString()]).sort((a, b) => Number(a[0]) - Number(b[0]))).toEqual(zoned.map((value, i) => [i + 1, value.toString()]))
+    })
+
     test('a-zoned-date-and-time-needs-a-database-with-zones', async () => {
         // PostgreSQL computes a zoned date and time in the query: the query is built
         ctx.mockNext([{ id: 1, at: '2024-01-14T09:15:30.123456Z AD[EUROPE/MADRID]' }])

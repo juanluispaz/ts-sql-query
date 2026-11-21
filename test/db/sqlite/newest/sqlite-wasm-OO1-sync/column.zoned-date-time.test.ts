@@ -457,6 +457,16 @@ describe(ctx.label, () => {
         })
     })
 
+    test('zoned-dates-and-times-in-an-aggregated-array', async () => {
+        // Inside the JSON of an aggregated array a zoned date and time keeps its zone: a column kept as its text
+        ctx.mockNext({ ats: zoned.map((value, i) => ({ id: i + 1, at: value.toString() })) })
+        const row = sync(ctx.conn.selectFrom(tZonedValue)
+            .select({ ats: ctx.conn.aggregateAsArray({ id: tZonedValue.id, at: tZonedValue.zonedText }) })
+            .executeSelectOne())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select json_group_array(json_object('id', id, 'at', zoned_at)) as ats from zoned_value"`)
+        expect(row.ats.map(entry => [entry.id, entry.at?.toString()]).sort((a, b) => Number(a[0]) - Number(b[0]))).toEqual(zoned.map((value, i) => [i + 1, value.toString()]))
+    })
+
     // NOT-APPLICABLE: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA: what needs them is not offered here
     /*
     test('a-zoned-date-and-time-needs-a-database-with-zones', async () => {

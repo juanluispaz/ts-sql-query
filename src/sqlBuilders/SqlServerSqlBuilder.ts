@@ -21,6 +21,7 @@ import { __isColumn, __asDBColumnValueSource, __asNodeValueSource, isValueSource
 import { __classOf, __sqlDataTypeOf } from '../nodes/adaptedTypeClass.js'
 import { isZeroDuration } from '../utils/durationValues.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
+import { __isZonedDateTimeClass } from '../typeSystem/dataTypeQuestions.js'
 import { __arithmeticOperandClassOf, __valueOperandClassOf } from '../typeSystem/dataTypeClasses.js'
 import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
 
@@ -1683,7 +1684,8 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             // convert defaults to nvarchar(30) and overflows. nvarchar(36)
             // matches the upper-cased representation native FOR JSON emits.
             result = `'"' + convert(nvarchar(36), ` + sql + `) + '"'`
-        } else if (family === 'character string' || __isJsonDocumentSql(typeClass)) {
+        } else if (family === 'character string' || __isJsonDocumentSql(typeClass) || __isZonedDateTimeClass(typeClass)) {
+            // A zoned date and time is kept as its RFC 9557 text
             // Strings are unbounded; the length-less convert defaults to
             // nvarchar(30) and truncates. nvarchar(max) preserves the value.
             result = 'convert(nvarchar(max), ' + sql + ')'

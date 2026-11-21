@@ -484,6 +484,16 @@ describe(ctx.label, () => {
         })
     })
 
+    test('zoned-dates-and-times-in-an-aggregated-array', async () => {
+        // Inside the JSON of an aggregated array a zoned date and time keeps its zone: a column kept as its text
+        ctx.mockNext({ ats: zoned.map((value, i) => ({ id: i + 1, at: value.toInstant().toString() + ' AD[' + value.timeZoneId.toUpperCase() + ']' })) })
+        const row = await ctx.conn.selectFrom(tZonedValue)
+            .select({ ats: ctx.conn.aggregateAsArray({ id: tZonedValue.id, at: tZonedValue.zonedText }) })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select json_arrayagg(json_object('id' value id, 'at' value to_char((to_timestamp_tz(substr(replace(zoned_text, 'Z[', '+00:00['), 1, instr(replace(zoned_text, 'Z[', '+00:00['), '[') - 1), 'YYYY-MM-DD"T"HH24:MI:SS.FFTZH:TZM') at time zone substr(replace(zoned_text, 'Z[', '+00:00['), instr(replace(zoned_text, 'Z[', '+00:00['), '[') + 1, length(replace(zoned_text, 'Z[', '+00:00[')) - instr(replace(zoned_text, 'Z[', '+00:00['), '[') - 1)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9TZH:TZM BC"["TZR"]"', 'NLS_DATE_LANGUAGE=AMERICAN'))) as "ats" from zoned_value"`)
+        expect(row.ats.map(entry => [entry.id, entry.at?.toString()]).sort((a, b) => Number(a[0]) - Number(b[0]))).toEqual(zoned.map((value, i) => [i + 1, value.toString()]))
+    })
+
     test('a-zoned-date-and-time-needs-a-database-with-zones', async () => {
         // Oracle keeps a zone with each value: the query is built
         ctx.mockNext([{ id: 1, at: '2024-01-14T09:15:30.123456Z AD[EUROPE/MADRID]' }])

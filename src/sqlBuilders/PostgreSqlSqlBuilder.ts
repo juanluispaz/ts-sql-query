@@ -1130,12 +1130,35 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
                 // Only whether the column is converted is asked
                 return 'zonedDateTime'
             }
-            const zone = this._pgZoneText(this._pgZoneOf(context, value as unknown as ToSql))
-            const instant = /^(?:[\w."]+|\$\d+(?:::timestamptz)?)$/.test(sql) || isWholeBetweenParentheses(sql) ? sql : '(' + sql + ')'
-            const bracketed = zone.startsWith("'") ? "'[" + zone.slice(1, -1) + "]'" : "'[' || " + zone + " || ']'"
-            return "to_char(" + instant + " at time zone 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\" BC') || " + bracketed
+            return this._pgZonedText(value, sql, this._pgZoneText(this._pgZoneOf(context, value as unknown as ToSql)))
         }
         return super._appendResultColumnProjection(value, sql, context)
+    }
+    /** The text a zoned date and time leaves the database as: its instant in UTC with all its digits and its era, and its zone in brackets */
+    _pgZonedText(_value: AnyValueSource, sql: string, zone: string): string {
+        const instant = /^(?:[\w."]+|\$\d+(?:::timestamptz)?)$/.test(sql) || isWholeBetweenParentheses(sql) ? sql : '(' + sql + ')'
+        const bracketed = zone.startsWith("'") ? "'[" + zone.slice(1, -1) + "]'" : "'[' || " + zone + " || ']'"
+        return "to_char(" + instant + " at time zone 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\" BC') || " + bracketed
+    }
+    /**
+     * A zoned date and time inside the JSON of an aggregated array is the text of the result column (see
+     * _appendResultColumnProjection), with its zone: one known when the query is built, or the one of the text of a column
+     * where the aggregate reads the column itself (not over the select that orders, limits or makes distinct its values,
+     * a_N_, where the text of the column isn't)
+     */
+    override _appendAggregatedArrayValueProjection(value: AnyValueSource, sql: string, context?: SqlBuildContext): string {
+        if (!isValueSource(value) || !__isZonedDateTimeClass(__classOf(__asNodeValueSource(value)))) {
+            return super._appendAggregatedArrayValueProjection(value, sql, context)
+        }
+        if (sql === '' || !context) {
+            // Only whether the value is converted is asked
+            return 'zonedDateTime'
+        }
+        const zone = this._pgZoneText(this._pgZoneOf(context, value as unknown as ToSql))
+        if (!zone.startsWith("'") && !zone.startsWith("interval '") && /^a_\d+_\./.test(sql)) {
+            throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_QUERY' }, 'PostgreSQL keeps no time zone with a value: a zoned date and time whose zone is the one of the text of a column can\'t be in an aggregated array with distinct, an order by, a limit or an offset')
+        }
+        return this._pgZonedText(value, sql, zone)
     }
     override _supportDatabaseOutsideUtc(): boolean {
         return true

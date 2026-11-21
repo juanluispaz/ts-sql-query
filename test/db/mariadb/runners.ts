@@ -291,12 +291,28 @@ async function bootstrapWorkerDbSchemaAndSeed(host: string, port: number): Promi
         multipleStatements: true,
     })
     try {
-        await applySchemaAndSeedOnConnection(conn)
+        // The schema of a worker DB that already has it (the one of its schema hash: a change of it drops the worker DBs,
+        // see validateOrResetForReuse) isn't applied again: schema.sql drops and creates functions while the other
+        // workers run queries that call them (see the same step of the MySQL runners). Its data is restored as the
+        // per-test reseed does
+        const ready = await conn.query(
+            `SELECT COUNT(*) AS n FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = '${SCHEMA_READY_TABLE}'`,
+            [workerDb],
+        )
+        if (Number(ready[0]?.n) > 0) {
+            await applyResetAndSeedOnConnection(conn)
+        } else {
+            await applySchemaAndSeedOnConnection(conn)
+            await conn.query(`CREATE TABLE IF NOT EXISTS ${SCHEMA_READY_TABLE} (ready INT)`)
+        }
     } finally {
         await conn.end()
     }
     return workerDb
 }
+
+/** The table a worker DB has once its schema is applied whole (see bootstrapWorkerDbSchemaAndSeed) */
+const SCHEMA_READY_TABLE = 'tssqlquery_schema_ready'
 
 async function connectWithRetry(mariadb: typeof import('mariadb'), config: any): Promise<import('mariadb').Connection> {
     // 90 s window (was 30 s). The one-shot validator/bootstrap connects run at

@@ -1299,11 +1299,11 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     }
     override _toPlainMonthDay(context: SqlBuildContext, valueSource: ToSql): string {
         // Its month and day in the reference year
-        return this._sqliteTemporalIn('date', "strftime('" + this._temporalReference().year + "-%m-%d', " + this._dateFunctionArgument(context, valueSource) + ')')
+        return this._sqliteTemporalIn('date', "strftime('" + this._yearOfStoredMonthDays() + "-%m-%d', " + this._dateFunctionArgument(context, valueSource) + ')')
     }
     override _toPlainYearMonth(context: SqlBuildContext, valueSource: ToSql): string {
         // The first day of its month, and the days to the reference day
-        const day = this._temporalReference().day
+        const day = this._dayOfStoredYearMonths()
         return this._sqliteTemporalIn('date', this._dateFunctionArgument(context, valueSource) + ", 'start of month'" + (day === 1 ? '' : ", '+" + (day - 1) + " days'"))
     }
     override _dayOfWeek(context: SqlBuildContext, valueSource: ToSql): string {

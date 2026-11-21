@@ -92,7 +92,7 @@ export abstract class PostgreSqlConnection<NAME extends string> extends Abstract
             return sql
         }
         if (this.isDatabaseOutsideUtc()) {
-            const zoned = postgreSqlZonedValueSql(sql, context.requestedType, this.localTimeReferenceDate)
+            const zoned = postgreSqlZonedValueSql(sql, context.requestedType, this.dateToConvertTimesBetweenZones)
             if (zoned) {
                 return context.output === 'aggregatedArrayValue' ? zoned + '::text' : zoned
             }

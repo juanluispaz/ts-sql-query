@@ -213,13 +213,17 @@ export interface ConnectionConfiguration {
     readonly sqliteRunsInApplicationTimeZone?: boolean
     /** The zone of the database, an IANA name (`databaseTimeZone`); `'UTC'` by default */
     readonly databaseTimeZone?: string
+    /** The day of the date a month of a year is stored in (`dayOfStoredYearMonths`, 1 by default) */
+    readonly dayOfStoredYearMonths?: number
+    /** The year of the date a day of a month is stored in (`yearOfStoredMonthDays`, 1972 by default) */
+    readonly yearOfStoredMonthDays?: number
+    /** Oracle: the date of a column of a date that stores only a time of the day (`dateOfStoredTimes`, `'1972-01-01'` by default) */
+    readonly dateOfStoredTimes?: string
     /**
-     * The date a month of a year and a day of a month are kept in (`temporalReferenceDate`, `'1972-01-01'` by default,
-     * Temporal's): its day for a plainYearMonth, its year for a plainMonthDay
+     * With a databaseTimeZone other than UTC, the date a time of the day is converted between the zone of the database
+     * and UTC with (`dateToConvertTimesBetweenZones`, `'1972-01-01'` by default, a date or `'today'`)
      */
-    readonly temporalReferenceDate?: string
-    /** With a databaseTimeZone other than UTC, the day a localTime is completed with (`localTimeReferenceDate`) */
-    readonly localTimeReferenceDate?: string
+    readonly dateToConvertTimesBetweenZones?: string
     /** SQLite: an integer read where a date or time with another format was expected is a Julian day */
     readonly treatUnexpectedIntegerDateTimeAsJulian?: boolean
     /** SQLite: a text without time zone read where a date or time with another format was expected is in UTC */

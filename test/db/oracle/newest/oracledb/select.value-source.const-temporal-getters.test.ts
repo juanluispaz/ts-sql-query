@@ -70,9 +70,9 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(hour from :0) as "h", extract(minute from :1) as "m", trunc(extract(second from :2)) as "s" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T12:34:56.000Z,
-            1970-01-01T12:34:56.000Z,
-            1970-01-01T12:34:56.000Z,
+            1972-01-01T12:34:56.000Z,
+            1972-01-01T12:34:56.000Z,
+            1972-01-01T12:34:56.000Z,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ h: number; m: number; s: number }>>>()
@@ -156,7 +156,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select to_number(to_char(:0, 'FF3')) as "ms" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T12:34:56.000Z,
+            1972-01-01T12:34:56.000Z,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ ms: number }>>>()
@@ -414,10 +414,10 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(hour from :0) as "h", extract(minute from :1) as "m", trunc(extract(second from :2)) as "s", to_number(to_char(:3, 'FF3')) as "ms" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T12:34:56.000Z,
-            1970-01-01T12:34:56.000Z,
-            1970-01-01T12:34:56.000Z,
-            1970-01-01T12:34:56.000Z,
+            1972-01-01T12:34:56.000Z,
+            1972-01-01T12:34:56.000Z,
+            1972-01-01T12:34:56.000Z,
+            1972-01-01T12:34:56.000Z,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ h?: number; m?: number; s?: number; ms?: number }>>>()

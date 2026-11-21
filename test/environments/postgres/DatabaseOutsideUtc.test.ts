@@ -1,7 +1,7 @@
 // A PostgreSQL database outside UTC, with its zone declared in the databaseTimeZone of the connection and the session in
 // that zone: the values without zone are wall clocks of Europe/Madrid, and the database completes their zone with its
 // session. A Date sent is stored as the wall clock of Madrid of its instant, a wall clock read is its instant, the date
-// functions give the parts in UTC, and a localTime is completed with the localTimeReferenceDate. Through every runner,
+// functions give the parts in UTC, and a localTime is completed with the dateToConvertTimesBetweenZones. Through every runner,
 // with the process in Madrid, in UTC and in Tokyo. The zone of a process is set when it starts, so each case runs in a
 // process of its own (databaseOutsideUtc/probe.ts).
 
@@ -38,9 +38,9 @@ function checkScenario(out: ScenarioResult): void {
     // Read: the instant, with the date functions in UTC; row 3 was written by another program
     const parts = { hours: 9, date: 14, month: 0, year: 2024 }
     expect(out.read).toEqual([
-        { id: 1, ts: winter, tstz: winter, t: '1970-01-01T17:00:00.000Z', ...parts, time: Date.parse(winter), tHours: 17, same: true },
+        { id: 1, ts: winter, tstz: winter, t: '1972-01-01T17:00:00.000Z', ...parts, time: Date.parse(winter), tHours: 17, same: true },
         { id: 2, ts: summer, tstz: summer, ...parts, month: 6, time: Date.parse(summer), same: true },
-        { id: 3, ts: winter, tstz: winter, t: '1970-01-01T17:00:00.000Z', ...parts, time: Date.parse(winter), tHours: 17, same: true },
+        { id: 3, ts: winter, tstz: winter, t: '1972-01-01T17:00:00.000Z', ...parts, time: Date.parse(winter), tHours: 17, same: true },
         { id: 5, ts: old, ...parts, month: 6, year: 1960, time: Date.parse(old) },
     ])
     // Compared: with the wall clock of Madrid of the instant
@@ -56,11 +56,11 @@ function checkScenario(out: ScenarioResult): void {
     expect(Number(String(out.constTimeToday).slice(0, 4))).toBeGreaterThan(2000)
     // A localTime is written and read with the offset of its own day: a day of summer, the reference date
     expect(out.summerTime).toEqual({ stored: ['18:00:00'], read: '2024-07-14T16:00:00.000Z' })
-    // A localTime after midnight in Madrid, on the reference date 1970-01-01
-    expect(out.timeAfterMidnight).toEqual({ stored: ['00:30:00'], read: '1969-12-31T23:30:00.000Z', where: [9] })
+    // A localTime after midnight in Madrid, on the date to convert times between zones, 1972-01-01
+    expect(out.timeAfterMidnight).toEqual({ stored: ['00:30:00'], read: '1971-12-31T23:30:00.000Z', where: [9] })
     // A time with time zone: the driver delivers its text with the offset, the library reads its instant on
     // 1970-01-01, and its hour in UTC
-    expect(out.timeWithTimeZone).toEqual({ delivered: '19:30:15.123+09', read: '1970-01-01T10:30:15.123Z', hours: 10 })
+    expect(out.timeWithTimeZone).toEqual({ delivered: '19:30:15.123+09', read: '1972-01-01T10:30:15.123Z', hours: 10 })
     // A wall clock that Madrid repeats when it leaves summer time is taken in winter time; one it skips when it
     // changes to summer time is moved forward by PostgreSQL
     expect(out.repeated).toBe('2024-10-27T01:30:00.000Z')
@@ -99,11 +99,11 @@ interface DeclaredTypesResult { sql: string[], stored: unknown[], where: number[
 function checkDeclaredTypes(out: DeclaredTypesResult, table: string): void {
     expect(out.sql).toEqual([
         `insert into ${table} (id, ts, t) values ($1, $2, $3::time)`,
-        `select ts::timestamptz as ts, (date '1970-01-01' + t)::timestamptz as t, $1::timestamptz as "constTs" from ${table}`,
+        `select ts::timestamptz as ts, (date '1972-01-01' + t)::timestamptz as t, $1::timestamptz as "constTs" from ${table}`,
     ])
     expect(out.stored).toEqual([{ ts: '2024-01-14 10:15:30.123', t: '18:00:00' }])
     expect(out.where).toEqual([1])
-    expect(out.read).toEqual({ ts: winter, t: '1970-01-01T17:00:00.000Z', constTs: winter })
+    expect(out.read).toEqual({ ts: winter, t: '1972-01-01T17:00:00.000Z', constTs: winter })
 }
 
 // Each version of the engine mapped for --docker-version closest runs too, with the compatibilityVersion of its cells

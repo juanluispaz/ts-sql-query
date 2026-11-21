@@ -375,7 +375,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", nvl(started_at, :0) as "t" from issue_worklog where id = :1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T08:00:00.000Z,
+            1972-01-01T08:00:00.000Z,
             1,
           ]
         `)
@@ -586,7 +586,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", nullif(started_at, :0) as "t", nullif(started_at, started_at) as "t2" from issue_worklog where id = :1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T08:00:00.000Z,
+            1972-01-01T08:00:00.000Z,
             1,
           ]
         `)
@@ -614,7 +614,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", nullif(cutoff_time, :0) as "t", nullif(cutoff_time, cutoff_time) as "t2" from project_release where id = :1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T16:00:00.000Z,
+            1972-01-01T16:00:00.000Z,
             1,
           ]
         `)
@@ -1531,7 +1531,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", nvl(cutoff_time, :0) as "x" from project_release where id = :1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T08:00:00.000Z,
+            1972-01-01T08:00:00.000Z,
             1,
           ]
         `)

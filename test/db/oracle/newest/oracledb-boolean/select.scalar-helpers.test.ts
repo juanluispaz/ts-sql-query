@@ -57,7 +57,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFromNoTable()
             .select({ t: ctx.conn.currentTime() })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select timestamp '1970-01-01 00:00:00' + (localtimestamp - trunc(localtimestamp)) as "t" from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select timestamp '1972-01-01 00:00:00' + (localtimestamp - trunc(localtimestamp)) as "t" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         expect(rows[0]!.t).toBeDefined()
     })
@@ -74,11 +74,11 @@ describe(ctx.label, () => {
                 beforeEndOfDay: ctx.conn.currentTime().lessOrEqual(endOfDay),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select timestamp '1970-01-01 00:00:00' + (localtimestamp - trunc(localtimestamp)) >= :0 as "afterStartOfDay", timestamp '1970-01-01 00:00:00' + (localtimestamp - trunc(localtimestamp)) <= :1 as "beforeEndOfDay" from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select timestamp '1972-01-01 00:00:00' + (localtimestamp - trunc(localtimestamp)) >= :0 as "afterStartOfDay", timestamp '1972-01-01 00:00:00' + (localtimestamp - trunc(localtimestamp)) <= :1 as "beforeEndOfDay" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T00:00:00.000Z,
-            1970-01-01T23:59:59.999Z,
+            1972-01-01T00:00:00.000Z,
+            1972-01-01T23:59:59.999Z,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ afterStartOfDay: boolean, beforeEndOfDay: boolean }>>>()

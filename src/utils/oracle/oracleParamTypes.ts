@@ -2,7 +2,8 @@ import type { DataTypeClass } from '../../TypeAdapter.js'
 import { exactDecimalDigitsOf, rejectExactDecimalParam } from '../exactDecimalParams.js'
 import { __durationSqlDataTypeOf, __temporalFieldsOf, __typeSqlDataTypeOf } from '../../typeSystem/dataTypes.js'
 import { oracleDateParam, oracleZonedParam } from '../metadataSymbols.js'
-import { existingParamContextOf } from '../../internal/QueryContextImpl.js'
+import { existingParamContextOf, existingQueryContextOf } from '../../internal/QueryContextImpl.js'
+import { dateOfStoredTimesOf } from '../temporalReference.js'
 import { isDurationValue } from '../durationValues.js'
 import { instantUtcDateTime, isInstantValue, isZonedDateTimeValue } from '../instantValues.js'
 import { __temporalIfAvailable, type TemporalPlainDateTime, type TemporalPlainTime } from '../../typeSystem/temporal.js'
@@ -76,9 +77,9 @@ export function isOracleZonedParam(params: any[], index: number): boolean {
  * update) Oracle converts it with its session into the wall clock it stores, and the placeholder is the bare one;
  * anywhere else it is cast to the type of the column, the wall clock of the session, so the column compares with it as
  * it is and its index can be used: `cast(:0 as timestamp)`, or `cast(:0 as date)` for a value of whole seconds of a DATE
- * column (oracleDateParam). A localTime, in every position, is the time of the day of that wall clock on 1970-01-01,
- * the day every localTime is kept on: `timestamp '1970-01-01 00:00:00' + (cast(:0 as timestamp) - trunc(cast(:0 as
- * timestamp)))`. A null, or any other parameter, keeps the bare placeholder.
+ * column (oracleDateParam). A localTime, in every position, is the time of the day of that wall clock on the date of
+ * the times (dateOfStoredTimes, 1972-01-01 by default): `timestamp '1972-01-01 00:00:00' + (cast(:0 as timestamp) -
+ * trunc(cast(:0 as timestamp)))`. A null, or any other parameter, keeps the bare placeholder.
  */
 export function oraclePlaceholder(placeholder: string, params: any[], index: number, value: unknown): string {
     const plain = oraclePlainTemporalFormOfParam(params, index, value)
@@ -110,9 +111,10 @@ export function oraclePlaceholder(placeholder: string, params: any[], index: num
     const ofDate = param?.getMetadata(oracleDateParam) === true && value.getUTCMilliseconds() === 0
     const cast = 'cast(' + placeholder + (ofDate ? ' as date)' : ' as timestamp)')
     if (__temporalFieldsOf(param?.requestedType) === 'time') {
-        // A localTime is kept on 1970-01-01, as in UTC: the time of the day of the wall clock, also as the value of a
-        // column, so a time after midnight in the zone of the database isn't kept on another day
-        return (ofDate ? "date '1970-01-01'" : "timestamp '1970-01-01 00:00:00'") + ' + (' + cast + ' - trunc(' + cast + '))'
+        // A localTime is kept on the date of the times, as in UTC: the time of the day of the wall clock, also as the
+        // value of a column, so a time after midnight in the zone of the database isn't kept on another day
+        const date = dateOfStoredTimesOf(existingQueryContextOf(params)?.connectionConfiguration?.dateOfStoredTimes)
+        return (ofDate ? "date '" + date + "'" : "timestamp '" + date + " 00:00:00'") + ' + (' + cast + ' - trunc(' + cast + '))'
     }
     if (param?.isValueForColumn === true) {
         return placeholder
@@ -123,12 +125,12 @@ export function oraclePlaceholder(placeholder: string, params: any[], index: num
 /**
  * How a Temporal value without zone is sent on Oracle: its text, and the conversion and the format that read it, with
  * the era always written (`AD` or `BC`; Oracle has no year 0, the year 1 BC). A PlainDate is a DATE
- * (`to_date(:0, 'YYYY-MM-DD BC')`); a PlainTime is a TIMESTAMP on 1970-01-01, the day a time of the day is kept on in
- * Oracle, which has no TIME type; a PlainDateTime is a TIMESTAMP with all the digits of its fraction of a second
+ * (`to_date(:0, 'YYYY-MM-DD BC')`); a PlainTime is a TIMESTAMP on timeDate, the date a time of the day is kept on in
+ * Oracle, which has no TIME type (dateOfStoredTimes); a PlainDateTime is a TIMESTAMP with all the digits of its fraction of a second
  * (`to_timestamp(:0, 'YYYY-MM-DD HH24:MI:SS.FF9 BC')`), or a DATE when it is the value of a DATE column (`ofDate`) of
  * whole seconds, which the column compares with as it is, so its index can be used. Undefined for any other value.
  */
-export function oraclePlainTemporalForm(value: unknown, ofDate: boolean): { text: string, conversion: 'to_date' | 'to_timestamp', format: string } | undefined {
+export function oraclePlainTemporalForm(value: unknown, ofDate: boolean, timeDate: string = '1972-01-01'): { text: string, conversion: 'to_date' | 'to_timestamp', format: string } | undefined {
     const temporal = __temporalIfAvailable()
     if (!temporal || value === null || typeof value !== 'object') {
         return undefined
@@ -149,7 +151,7 @@ export function oraclePlainTemporalForm(value: unknown, ofDate: boolean): { text
         date = oracleDateText(value.year, value.month, value.day)
         time = value
     } else if (value instanceof temporal.PlainTime) {
-        date = '1970-01-01 AD'
+        date = timeDate + ' AD'
         time = value
     } else {
         return undefined
@@ -171,7 +173,7 @@ export function oraclePlainTemporalForm(value: unknown, ofDate: boolean): { text
  */
 export function oraclePlainTemporalFormOfParam(params: any[], index: number, value: unknown): { text: string, conversion: 'to_date' | 'to_timestamp', format: string } | undefined {
     const ofDate = existingParamContextOf(params, index)?.getMetadata(oracleDateParam) === true && !(isInstantValue(value) && isOracleZonedParam(params, index))
-    return oraclePlainTemporalForm(value, ofDate)
+    return oraclePlainTemporalForm(value, ofDate, dateOfStoredTimesOf(existingQueryContextOf(params)?.connectionConfiguration?.dateOfStoredTimes))
 }
 
 /** `YYYY-MM-DD AD`, or `YYYY-MM-DD BC` for a year before 1 (the year 0 is 1 BC) */

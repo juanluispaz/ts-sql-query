@@ -169,9 +169,10 @@ Every rejection is `INVALID_VALUE_TO_SEND_TO_DATABASE`.
 | `string` | `string` | non-string | the string |
 | `uuid` | `string` (format not checked) | non-string | the string; in lower case with the uuid strategy `'string'` (MariaDB, MySQL, Oracle, SQLite) and on SQL Server unless `useUpperCaseUuid` |
 | `localDate` | a valid `Date` | invalid `Date`, non-Date | the `Date` as given (its UTC day is the value) |
-| `localTime` | a valid `Date` | invalid `Date`, non-Date | a new `Date` on 1970-01-01 UTC with the UTC time of the given one; with a database outside UTC, the instant of its own day (§7.3) |
+| `localTime` | a valid `Date` | invalid `Date`, non-Date | a new `Date` on 1970-01-01 UTC with the UTC time of the given one (on Oracle on `dateOfStoredTimes`); with a database outside UTC, the instant of its own day (§7.3) |
 | `localDateTime` | a valid `Date` | invalid `Date`, non-Date | the `Date` as given (its UTC getters are the digits; the instant for a zoned column) |
 | `plainDate`, `plainTime`, `plainDateTime` | a `Temporal.PlainDate`, `Temporal.PlainTime`, `Temporal.PlainDateTime`, the one of its type | anything else (a `Date`, a text, a Temporal value of another type) | the Temporal value as given |
+| `plainYearMonth`, `plainMonthDay` | a `Temporal.PlainYearMonth`, `Temporal.PlainMonthDay`, the one of its type | anything else | the `Temporal.PlainDate` of its reference: on the day `dayOfStoredYearMonths` (1 by default), in the year `yearOfStoredMonthDays` (1972 by default), which each query runner sends as a date |
 | `duration` | a `Temporal.Duration` | anything else (a text, a number) | on PostgreSQL and Oracle the `Temporal.Duration` (an interval), unless its SQL data type is a text; elsewhere, and in a column whose SQL data type is a text, its ISO 8601 text (`value.toString()`), with the digits of the fraction of a second the connection keeps (`getDurationFractionDigits`, 9 by default), the others truncated. Oracle rejects an interval duration that doesn't fit the interval of its column: with years or months for a day-to-second one (the default), with weeks, days or less for a year-to-month one (its SQL data type `{ family: 'interval', fields: 'year to month' }`) |
 | `instant` | a `Temporal.Instant` | anything else (a `Date`, a text, a `Temporal.ZonedDateTime`) | the `Temporal.Instant` as given |
 | `zonedDateTime` | a `Temporal.ZonedDateTime`, on a database that computes with the rules of the time zones (Oracle, PostgreSQL) | anything else; on any other database, every value (`UNSUPPORTED_QUERY`, when the query is built) | the `Temporal.ZonedDateTime` as given |
@@ -315,10 +316,10 @@ After `transformValueToDB` without adapter, `addParam` and the work of execution
 | string | text; forced: `text` | text | `NVarChar` | text | text |
 | uuid, UuidsType | text; forced: `uuid` | text | `UniqueIdentifier` | text | text |
 | localDate | `YYYY-MM-DD` (UTC day); forced: `date` | `YYYY-MM-DD` (UTC day) | the Date, `Date` | `DATE` of the UTC day | per `SqliteDateTimeFormat` |
-| localTime | `HH:MM:SS.mmm` (UTC); forced: `time` | `HH:MM:SS.mmm` (UTC) | the Date on 1970-01-01 UTC, `Time` | `TIMESTAMP` on 1970-01-01, the UTC digits | per format |
+| localTime | `HH:MM:SS.mmm` (UTC); forced: `time` | `HH:MM:SS.mmm` (UTC) | the Date on 1970-01-01 UTC, `Time` | `TIMESTAMP` on `dateOfStoredTimes` (the Date the connection gives is on it), the UTC digits | per format |
 | localDateTime | `YYYY-MM-DD HH:MM:SS.mmm+00`; forced: `timestamp` | `YYYY-MM-DD HH:MM:SS.mmm` (UTC) | the Date, `DateTime2` | `TIMESTAMP`, the UTC digits | per format |
 | plainDate | `YYYY-MM-DD`, a year before 1 as `0044-03-15 BC`; forced: `date` | `YYYY-MM-DD` | a Date at 00:00 UTC of its day, `Date` | text `YYYY-MM-DD AD`, the placeholder `to_date(:N, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')` | per `SqliteDateTimeFormat` |
-| plainTime | `HH:MM:SS[.fffffffff]`, every digit it has; forced: `time` | `HH:MM:SS[.fffffffff]` | a Date on 1970-01-01 UTC with its `nanosecondDelta`, `Time` | text `1970-01-01 HH:MM:SS.fffffffff AD`, the placeholder `to_timestamp(:N, 'YYYY-MM-DD HH24:MI:SS.FF9 BC', …)` | per format |
+| plainTime | `HH:MM:SS[.fffffffff]`, every digit it has; forced: `time` | `HH:MM:SS[.fffffffff]` | a Date on 1970-01-01 UTC with its `nanosecondDelta`, `Time` | text `<dateOfStoredTimes> HH:MM:SS.fffffffff AD` (`1972-01-01` by default), the placeholder `to_timestamp(:N, 'YYYY-MM-DD HH24:MI:SS.FF9 BC', …)` | per format |
 | plainDateTime | `YYYY-MM-DD HH:MM:SS[.fffffffff]`, without an offset (a wall clock: the database completes no zone); forced: `timestamp` | `YYYY-MM-DD HH:MM:SS[.fffffffff]` | a Date with its UTC getters and its `nanosecondDelta`, `DateTime2`; of a `datetime` or `smalldatetime` column, that type | text `YYYY-MM-DD HH:MM:SS.fffffffff AD` with `to_timestamp`, or, as the value of a DATE column of whole seconds, `YYYY-MM-DD HH:MM:SS AD` with `to_date(:N, 'YYYY-MM-DD HH24:MI:SS BC', …)` | per format |
 | instant | `YYYY-MM-DD HH:MM:SS[.fffffffff]+00`, the wall clock of its instant in UTC with its offset, a year before 1 as `0044-03-15 09:15:30+00 BC`; forced: `timestamptz` | `YYYY-MM-DD HH:MM:SS[.fffffffff]`, its wall clock in UTC | a Date of its wall clock in UTC with its `nanosecondDelta`, `DateTime2` (a `datetimeoffset` column takes it with `+00:00`); of a `datetime` or `smalldatetime` column, that type | as a plainDateTime of its wall clock in UTC: text `YYYY-MM-DD HH:MM:SS.fffffffff AD` with `to_timestamp` (a column with zone takes it in the zone of the session, UTC) | per format, as a localDateTime |
 | zonedDateTime | its instant, as an instant (its zone is written in the query); forced: `timestamptz` | — | — | text of the wall clock of its instant in UTC, as an instant, the placeholder `(from_tz(to_timestamp(:N, fmt), '+00:00') at time zone '<its zone>')`, its zone written by its name (Oracle takes no bind there) | — |
@@ -380,7 +381,7 @@ changes, which nothing reads), and one that doesn't is rounded or cut without an
 **The conversion of the types of a database**, `sqlDataTypeFrom(nativeName)` and `nativeSqlDataTypeOf(sqlDataType)`,
 are methods of each connection: they follow its `compatibilityVersion` (a type the version doesn't have gives
 `undefined`, never another type) and where it stores what the database lacks (`uuidStrategy`, Oracle's
-`booleanStorage` and its time of the day on 1970-01-01, the date formats of SQLite). A generator uses a connection with
+`booleanStorage` and its time of the day on `dateOfStoredTimes`, the date formats of SQLite). A generator uses a connection with
 `NoExecutionQueryRunner`, which rejects every query with `QUERY_NOT_ALLOWED`. `nativeSqlDataTypeOf` builds the name
 once for each SQL data type and class of connection (the version and the strategies are the ones of the class) and keeps
 it in the SQL data type, hidden; the class overrides `buildNativeSqlDataTypeOf` to change it. Tests:
@@ -461,6 +462,7 @@ Common: `undefined` and `null` → `null`; `''` → `null` unless `allowEmptyStr
 | `localTime` | same inputs → a Date on 1970-01-01 with the UTC time of the received one; with a database outside UTC, the instant read, on its own day (§7.3) | — | same |
 | `localDateTime` | same inputs → the received Date (the parsed one for text) | — | same |
 | `plainDate`, `plainTime`, `plainDateTime` | its Temporal value as it is; a `Temporal.PlainDateTime` → its day (`plainDate`) or its time (`plainTime`); a `Temporal.PlainDate` → at 00:00 (`plainDateTime`); temporal text (§3.4) with every digit of its fraction up to the nanosecond, and with an offset the instant it gives in the zone of the database (the wall clock of the session that wrote it); a valid Date, by its UTC getters | — | anything else (a number too), invalid Date, unparsable text, text outside the calendar |
+| `plainYearMonth`, `plainMonthDay` | its Temporal value as it is; a `Temporal.PlainDate`, a `Temporal.PlainDateTime` or the text of a date of any day or year → its month of the year or its day of the month, with the reference of Temporal (as Temporal's `from`) | — | anything else |
 | `duration` | a `Temporal.Duration` as it is; ISO 8601 text, also with a sign in each field (`P-1DT-2H`); the text of a PostgreSQL interval in its `postgres` style; the text of an interval of Oracle (`+000000003 04:05:06.789000000`, `-000000001-02`); an oracledb `IntervalDS` or `IntervalYM` | — | a number; fields of different signs (`-1 days +02:03:00`, `1 mon -1 days`), which a `Temporal.Duration` can't hold; out of its range; `P`, `PT`; anything else |
 | `instant` | a `Temporal.Instant` as it is; temporal text (§3.4) with every digit of its fraction up to the nanosecond: with an offset the instant it gives, without one the instant of its digits as a wall clock of the zone of the database (`databaseTimeZone`); a valid Date, its instant | — | anything else (a number, a `Temporal.PlainDateTime`), invalid Date, unparsable text, text outside the calendar or beyond the range of an instant |
 | `zonedDateTime` | a `Temporal.ZonedDateTime` as it is; the text of an instant with an offset or `Z` (§3.4) followed by the name of its zone in brackets, in any case (Oracle gives `...+02:00 AD[EUROPE/MADRID]`) | — | anything else, a text without a zone or with a zone Temporal doesn't know |
@@ -593,8 +595,9 @@ its zone, not to move the session to UTC (that mixes the database, §7.3).
 
 Other `INVALID_CONFIGURATION`: `registerSqliteFunctions` on a Node without `function`/`aggregate`; an unknown
 `SqliteDateTimeFormat`; a `databaseTimeZone` other than UTC on a database that doesn't support it, and a
-`localTimeReferenceDate` that is neither a `YYYY-MM-DD` date nor `'today'` with a database outside UTC, both at the
-first query (§7.3; `test/runners/general/DatabaseTimeZone.test.ts`); and the errors of postgres.js about
+`dateToConvertTimesBetweenZones` that is neither a `YYYY-MM-DD` date nor `'today'` with a database outside UTC, a
+`dateOfStoredTimes` that isn't a `YYYY-MM-DD` date, a `dayOfStoredYearMonths` that isn't from 1 to 28 and a
+`yearOfStoredMonthDays` that isn't a leap year, all at the first query (§7.3; `test/runners/general/DatabaseTimeZone.test.ts`); and the errors of postgres.js about
 `target_session_attrs` and `channel_binding`, which its error mapper classifies so.
 
 ### 5.3 What is the user's (documented, not readable without a query)
@@ -830,7 +833,7 @@ arithmetic. With UTC the SQL doesn't change.
   instead of converting it to the zone of the database.
   A parameter read back as it is (a constant selected) needs no conversion: `$1::timestamptz`; a column is read as `<sql>::timestamptz` (a no-op on a `timestamptz`), and as its text in the JSON of an
   aggregated array; the date functions take `(<sql>::timestamptz at time zone 'UTC')`, so they keep giving the parts
-  in UTC. A `localTime` is completed with the `localTimeReferenceDate` (`'1970-01-01'` by default, a date, or
+  in UTC. A `localTime` is completed with the `dateToConvertTimesBetweenZones` (`'1972-01-01'` by default, a date, or
   `'today'`, `current_date`), and the connection keeps that day in the `Date` it reads. A wall clock the zone skips is
   moved forward by PostgreSQL, one it repeats is taken in winter time. A `timetz` is read as its instant, and its
   `getHours` gives the hour in UTC. An `instant` is sent and read as a `localDateTime`, as its text with every digit:
@@ -844,13 +847,13 @@ arithmetic. With UTC the SQL doesn't change.
   `cast(:0 as timestamp)`, or `cast(:0 as date)` for a value of whole seconds of a `DATE` column
   (`OracleDateAsTimestampTypeAdapter`), so the column compares with it as it is and its index is used. A `localTime`
   is sent as the instant of its own day, and in every position, the value of a column too, its time of the day goes on
-  1970-01-01, the day every `localTime` is kept on: `timestamp '1970-01-01 00:00:00' + (cast(:0 as timestamp) -
-  trunc(cast(:0 as timestamp)))`, or for a value of whole seconds of a `DATE` column `date '1970-01-01' + (cast(:0 as
+  `dateOfStoredTimes`, the date every `localTime` is kept on (`1972-01-01` by default): `timestamp '1972-01-01 00:00:00' + (cast(:0 as timestamp) -
+  trunc(cast(:0 as timestamp)))`, or for a value of whole seconds of a `DATE` column `date '1972-01-01' + (cast(:0 as
   date) - trunc(cast(:0 as date)))`, so a time after midnight in the zone of the database isn't kept on another day
   (measured: `INDEX RANGE SCAN`; a `TIMESTAMP WITH LOCAL TIME ZONE` compared as it is makes Oracle convert the column, a
   full scan). A column is read as `cast(<sql> as timestamp with time zone)`, also inside the JSON of an aggregated
   array, where Oracle writes it as a text with its zone (`+01:00` on 23, `Z` on 21; both are read as the instant); a
-  `localTime` replaces the day it is stored with by the `localTimeReferenceDate`,
+  `localTime` replaces the day it is stored with by the `dateToConvertTimesBetweenZones`,
   `cast(timestamp 'D 00:00:00' + (<sql> - trunc(<sql>)) as timestamp with time zone)`, or
   `cast(trunc(localtimestamp) as timestamp)` for `'today'`. The date functions take `sys_extract_utc(<that>)`. A
   `returning` writes the same conversion into its `TIMESTAMP WITH TIME ZONE` OUT bind. The session must be `ORA_SDTZ`
@@ -858,9 +861,9 @@ arithmetic. With UTC the SQL doesn't change.
   `LOCAL` or `DBTIMEZONE` are rejected (§5.2). Limits, with an error, never a wrong value: `DBTIMEZONE` as a region
   (measured: oracledb NJS-201 for a `TIMESTAMP WITH LOCAL TIME ZONE` bind; it reads `DBTIMEZONE` itself when it connects), a
   stored wall clock the zone skips (ORA-01878 when it is read or given to a date function; one it repeats is taken in
-  winter time). A `localTime` compares with the day it is kept on, 1970-01-01, in UTC too: one written by another
-  program on another day doesn't match (keeping that day is the user's convention, as for every library that maps a
-  time of the day on Oracle). An `instant` is sent as the text of its wall clock in UTC, converted to the wall clock of
+  winter time). A `localTime` compares with the date it is kept on, `dateOfStoredTimes`, in UTC too: one written by another
+  program on another date doesn't match (keeping that date is the user's convention; `dateOfStoredTimes` declares the
+  one of a database). An `instant` is sent as the text of its wall clock in UTC, converted to the wall clock of
   the session in every position, `cast(from_tz(to_timestamp(:0, …), '+00:00') at local as timestamp)`, and read, in UTC
   or not, as the text of its instant, `to_char(sys_extract_utc(cast(<sql> as timestamp(9) with time zone)), …)`, with
   every digit. `test/environments/oracle/DatabaseOutsideUtc.test.ts`: the three runners, `ORA_SDTZ` in

@@ -917,8 +917,8 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where started_at >= :0 and started_at < :1 order by "id""`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T09:00:00.000Z,
-            1970-01-01T17:00:00.000Z,
+            1972-01-01T09:00:00.000Z,
+            1972-01-01T17:00:00.000Z,
           ]
         `)
     })
@@ -1068,8 +1068,8 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as "id" from project_release where cutoff_time >= :0 and cutoff_time < :1 order by "id""`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T09:00:00.000Z,
-            1970-01-01T20:00:00.000Z,
+            1972-01-01T09:00:00.000Z,
+            1972-01-01T20:00:00.000Z,
           ]
         `)
     })
@@ -1316,8 +1316,8 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as "id" from project_release where cutoff_time >= :0 and cutoff_time < :1 order by "id""`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T09:00:00.000Z,
-            1970-01-01T20:00:00.000Z,
+            1972-01-01T09:00:00.000Z,
+            1972-01-01T20:00:00.000Z,
           ]
         `)
     })
@@ -1677,8 +1677,8 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where started_at >= :0 and started_at < :1 order by "id""`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T09:00:00.000Z,
-            1970-01-01T17:00:00.000Z,
+            1972-01-01T09:00:00.000Z,
+            1972-01-01T17:00:00.000Z,
           ]
         `)
     })
@@ -2962,15 +2962,15 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where started_at = :0 and started_at <> :1 and decode(started_at, :2, 1, 0 ) = 1 and decode(started_at, :3, 1, 0 ) = 0 and started_at in (:4, :5) and started_at not in (:6) and started_at <= :7 and started_at > :8 and started_at is null and started_at is not null order by "id""`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T08:00:00.000Z,
-            1970-01-01T12:00:00.000Z,
-            1970-01-01T17:00:00.000Z,
-            1970-01-01T08:00:00.000Z,
-            1970-01-01T08:00:00.000Z,
-            1970-01-01T12:00:00.000Z,
-            1970-01-01T17:00:00.000Z,
-            1970-01-01T12:00:00.000Z,
-            1970-01-01T08:00:00.000Z,
+            1972-01-01T08:00:00.000Z,
+            1972-01-01T12:00:00.000Z,
+            1972-01-01T17:00:00.000Z,
+            1972-01-01T08:00:00.000Z,
+            1972-01-01T08:00:00.000Z,
+            1972-01-01T12:00:00.000Z,
+            1972-01-01T17:00:00.000Z,
+            1972-01-01T12:00:00.000Z,
+            1972-01-01T08:00:00.000Z,
           ]
         `)
     })
@@ -3004,15 +3004,15 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where started_at = :0 and started_at <> :1 and decode(started_at, :2, 1, 0 ) = 1 and decode(started_at, :3, 1, 0 ) = 0 and started_at in (:4, :5) and started_at not in (:6) and started_at <= :7 and started_at > :8 and started_at is null and started_at is not null order by "id""`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T08:00:00.000Z,
-            1970-01-01T12:00:00.000Z,
-            1970-01-01T17:00:00.000Z,
-            1970-01-01T08:00:00.000Z,
-            1970-01-01T08:00:00.000Z,
-            1970-01-01T12:00:00.000Z,
-            1970-01-01T17:00:00.000Z,
-            1970-01-01T12:00:00.000Z,
-            1970-01-01T08:00:00.000Z,
+            1972-01-01T08:00:00.000Z,
+            1972-01-01T12:00:00.000Z,
+            1972-01-01T17:00:00.000Z,
+            1972-01-01T08:00:00.000Z,
+            1972-01-01T08:00:00.000Z,
+            1972-01-01T12:00:00.000Z,
+            1972-01-01T17:00:00.000Z,
+            1972-01-01T12:00:00.000Z,
+            1972-01-01T08:00:00.000Z,
           ]
         `)
     })
@@ -3048,15 +3048,15 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where started_at = :0 and started_at <> :1 and decode(started_at, :2, 1, 0 ) = 1 and decode(started_at, :3, 1, 0 ) = 0 and started_at in (:4, :5) and started_at not in (:6) and started_at <= :7 and started_at > :8 order by "id""`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T08:00:00.000Z,
-            1970-01-01T12:00:00.000Z,
-            1970-01-01T17:00:00.000Z,
-            1970-01-01T08:00:00.000Z,
-            1970-01-01T08:00:00.000Z,
-            1970-01-01T12:00:00.000Z,
-            1970-01-01T17:00:00.000Z,
-            1970-01-01T12:00:00.000Z,
-            1970-01-01T08:00:00.000Z,
+            1972-01-01T08:00:00.000Z,
+            1972-01-01T12:00:00.000Z,
+            1972-01-01T17:00:00.000Z,
+            1972-01-01T08:00:00.000Z,
+            1972-01-01T08:00:00.000Z,
+            1972-01-01T12:00:00.000Z,
+            1972-01-01T17:00:00.000Z,
+            1972-01-01T12:00:00.000Z,
+            1972-01-01T08:00:00.000Z,
           ]
         `)
     })
@@ -3091,15 +3091,15 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where started_at = :0 and started_at <> :1 and decode(started_at, :2, 1, 0 ) = 1 and decode(started_at, :3, 1, 0 ) = 0 and started_at in (:4, :5) and started_at not in (:6) and started_at <= :7 and started_at > :8 order by "id""`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T08:00:00.000Z,
-            1970-01-01T12:00:00.000Z,
-            1970-01-01T17:00:00.000Z,
-            1970-01-01T08:00:00.000Z,
-            1970-01-01T08:00:00.000Z,
-            1970-01-01T12:00:00.000Z,
-            1970-01-01T17:00:00.000Z,
-            1970-01-01T12:00:00.000Z,
-            1970-01-01T08:00:00.000Z,
+            1972-01-01T08:00:00.000Z,
+            1972-01-01T12:00:00.000Z,
+            1972-01-01T17:00:00.000Z,
+            1972-01-01T08:00:00.000Z,
+            1972-01-01T08:00:00.000Z,
+            1972-01-01T12:00:00.000Z,
+            1972-01-01T17:00:00.000Z,
+            1972-01-01T12:00:00.000Z,
+            1972-01-01T08:00:00.000Z,
           ]
         `)
     })
@@ -4219,15 +4219,15 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as "id" from project_release where cutoff_time = :0 and cutoff_time <> :1 and decode(cutoff_time, :2, 1, 0 ) = 1 and decode(cutoff_time, :3, 1, 0 ) = 0 and cutoff_time in (:4, :5) and cutoff_time not in (:6) and cutoff_time <= :7 and cutoff_time > :8 and cutoff_time is null and cutoff_time is not null order by "id""`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T08:00:00.000Z,
-            1970-01-01T12:00:00.000Z,
-            1970-01-01T20:00:00.000Z,
-            1970-01-01T08:00:00.000Z,
-            1970-01-01T08:00:00.000Z,
-            1970-01-01T12:00:00.000Z,
-            1970-01-01T20:00:00.000Z,
-            1970-01-01T12:00:00.000Z,
-            1970-01-01T08:00:00.000Z,
+            1972-01-01T08:00:00.000Z,
+            1972-01-01T12:00:00.000Z,
+            1972-01-01T20:00:00.000Z,
+            1972-01-01T08:00:00.000Z,
+            1972-01-01T08:00:00.000Z,
+            1972-01-01T12:00:00.000Z,
+            1972-01-01T20:00:00.000Z,
+            1972-01-01T12:00:00.000Z,
+            1972-01-01T08:00:00.000Z,
           ]
         `)
     })
@@ -4261,15 +4261,15 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as "id" from project_release where cutoff_time = :0 and cutoff_time <> :1 and decode(cutoff_time, :2, 1, 0 ) = 1 and decode(cutoff_time, :3, 1, 0 ) = 0 and cutoff_time in (:4, :5) and cutoff_time not in (:6) and cutoff_time <= :7 and cutoff_time > :8 and cutoff_time is null and cutoff_time is not null order by "id""`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T08:00:00.000Z,
-            1970-01-01T12:00:00.000Z,
-            1970-01-01T20:00:00.000Z,
-            1970-01-01T08:00:00.000Z,
-            1970-01-01T08:00:00.000Z,
-            1970-01-01T12:00:00.000Z,
-            1970-01-01T20:00:00.000Z,
-            1970-01-01T12:00:00.000Z,
-            1970-01-01T08:00:00.000Z,
+            1972-01-01T08:00:00.000Z,
+            1972-01-01T12:00:00.000Z,
+            1972-01-01T20:00:00.000Z,
+            1972-01-01T08:00:00.000Z,
+            1972-01-01T08:00:00.000Z,
+            1972-01-01T12:00:00.000Z,
+            1972-01-01T20:00:00.000Z,
+            1972-01-01T12:00:00.000Z,
+            1972-01-01T08:00:00.000Z,
           ]
         `)
     })
@@ -4305,15 +4305,15 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as "id" from project_release where cutoff_time = :0 and cutoff_time <> :1 and decode(cutoff_time, :2, 1, 0 ) = 1 and decode(cutoff_time, :3, 1, 0 ) = 0 and cutoff_time in (:4, :5) and cutoff_time not in (:6) and cutoff_time <= :7 and cutoff_time > :8 order by "id""`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T08:00:00.000Z,
-            1970-01-01T12:00:00.000Z,
-            1970-01-01T20:00:00.000Z,
-            1970-01-01T08:00:00.000Z,
-            1970-01-01T08:00:00.000Z,
-            1970-01-01T12:00:00.000Z,
-            1970-01-01T20:00:00.000Z,
-            1970-01-01T12:00:00.000Z,
-            1970-01-01T08:00:00.000Z,
+            1972-01-01T08:00:00.000Z,
+            1972-01-01T12:00:00.000Z,
+            1972-01-01T20:00:00.000Z,
+            1972-01-01T08:00:00.000Z,
+            1972-01-01T08:00:00.000Z,
+            1972-01-01T12:00:00.000Z,
+            1972-01-01T20:00:00.000Z,
+            1972-01-01T12:00:00.000Z,
+            1972-01-01T08:00:00.000Z,
           ]
         `)
     })
@@ -4348,15 +4348,15 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as "id" from project_release where cutoff_time = :0 and cutoff_time <> :1 and decode(cutoff_time, :2, 1, 0 ) = 1 and decode(cutoff_time, :3, 1, 0 ) = 0 and cutoff_time in (:4, :5) and cutoff_time not in (:6) and cutoff_time <= :7 and cutoff_time > :8 order by "id""`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T08:00:00.000Z,
-            1970-01-01T12:00:00.000Z,
-            1970-01-01T20:00:00.000Z,
-            1970-01-01T08:00:00.000Z,
-            1970-01-01T08:00:00.000Z,
-            1970-01-01T12:00:00.000Z,
-            1970-01-01T20:00:00.000Z,
-            1970-01-01T12:00:00.000Z,
-            1970-01-01T08:00:00.000Z,
+            1972-01-01T08:00:00.000Z,
+            1972-01-01T12:00:00.000Z,
+            1972-01-01T20:00:00.000Z,
+            1972-01-01T08:00:00.000Z,
+            1972-01-01T08:00:00.000Z,
+            1972-01-01T12:00:00.000Z,
+            1972-01-01T20:00:00.000Z,
+            1972-01-01T12:00:00.000Z,
+            1972-01-01T08:00:00.000Z,
           ]
         `)
     })
@@ -5298,8 +5298,8 @@ describe(ctx.label, () => {
             100,
             2024-03-31T00:00:00.000Z,
             2024-03-01T00:00:00.000Z,
-            1970-01-01T17:00:00.000Z,
-            1970-01-01T09:00:00.000Z,
+            1972-01-01T17:00:00.000Z,
+            1972-01-01T09:00:00.000Z,
           ]
         `)
     })
@@ -5398,8 +5398,8 @@ describe(ctx.label, () => {
           [
             2024-12-31T10:00:00.000Z,
             2024-01-01T10:00:00.000Z,
-            1970-01-01T20:00:00.000Z,
-            1970-01-01T09:00:00.000Z,
+            1972-01-01T20:00:00.000Z,
+            1972-01-01T09:00:00.000Z,
             2024-12-31T00:00:00.000Z,
             2024-01-01T00:00:00.000Z,
           ]

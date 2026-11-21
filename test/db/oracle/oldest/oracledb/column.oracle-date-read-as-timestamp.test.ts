@@ -155,7 +155,7 @@ describe(ctx.label, () => {
             2024-03-15T09:05:07.000Z,
             2024-03-18T15:00:00.000Z,
             2024-03-18T16:00:00.000Z,
-            1970-01-01T09:00:00.000Z,
+            1972-01-01T09:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof result, Array<{
@@ -183,7 +183,7 @@ describe(ctx.label, () => {
           [
             2024-03-15T09:05:07.000Z,
             2024-03-18T14:40:00.000Z,
-            1970-01-01T16:45:30.000Z,
+            1972-01-01T16:45:30.000Z,
           ]
         `)
         assertType<Exact<typeof result, Array<{
@@ -210,7 +210,7 @@ describe(ctx.label, () => {
               [
                 3,
                 2024-04-02T10:00:15.723Z,
-                1970-01-01T07:15:00.000Z,
+                1972-01-01T07:15:00.000Z,
               ]
             `)
             expect(inserted).toBe(1)
@@ -254,7 +254,7 @@ describe(ctx.label, () => {
             expect(ctx.lastSql).toMatchInlineSnapshot(`"update standup_meeting set ends_at = starts_at, daily_at = :0 where id = :1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
-                1970-01-01T17:10:00.000Z,
+                1972-01-01T17:10:00.000Z,
                 2,
               ]
             `)

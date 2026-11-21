@@ -29,7 +29,7 @@ class MadridConnection extends OracleConnection<'MadridConnection'> {
 class MadridSummerConnection extends OracleConnection<'MadridConnection'> {
     protected override databaseTimeZone = 'Europe/Madrid'
     protected override compatibilityVersion = config.options.compatibilityVersion ?? Number.POSITIVE_INFINITY
-    protected override localTimeReferenceDate = '2024-07-14'
+    protected override dateToConvertTimesBetweenZones = '2024-07-14'
 }
 /** The same connection with the functions of the library that take a wall clock to its zone as Temporal */
 class MadridConnectionWithFunctions extends MadridConnection {
@@ -38,7 +38,7 @@ class MadridConnectionWithFunctions extends MadridConnection {
 class MadridTodayConnection extends OracleConnection<'MadridTodayConnection'> {
     protected override databaseTimeZone = 'Europe/Madrid'
     protected override compatibilityVersion = config.options.compatibilityVersion ?? Number.POSITIVE_INFINITY
-    protected override localTimeReferenceDate = 'today'
+    protected override dateToConvertTimesBetweenZones = 'today'
 }
 
 const tableName = config.options.table ?? 'rt_ora_madrid'
@@ -171,7 +171,7 @@ async function scenario(): Promise<ScenarioResult> {
         // The current date and time of the database, read as its instant
         const before = Date.now()
         out.currentTimestampDrift = Math.abs((await conn.selectFromNoTable().selectOneColumn(conn.currentTimestamp()).executeSelectOne()).getTime() - before)
-        // A localTime constant on the reference date: 1970-01-01, and today, the current date of the database
+        // A localTime constant on the date to convert times between zones: 1972-01-01, and today, the current date of the database
         out.constTime = iso(await conn.selectFromNoTable().selectOneColumn(conn.const(time17, 'localTime')).executeSelectOne())
         const today = new MadridTodayConnection(conn.queryRunner as QueryRunner)
         out.constTimeToday = iso(await today.selectFromNoTable().selectOneColumn(today.const(time17, 'localTime')).executeSelectOne())
@@ -183,11 +183,11 @@ async function scenario(): Promise<ScenarioResult> {
             stored: (await raw(`select to_char(t, 'YYYY-MM-DD HH24:MI:SS') as t from ${tableName} where id = 8`)).map(row => row.T),
             read: iso(await summerConn.selectFrom(tMoment).where(tMoment.id.equals(8)).selectOneColumn(tMoment.t).executeSelectOne()),
         }
-        // A localTime after midnight in Madrid (00:30, 23:30Z of the day before) is kept on 1970-01-01, the day of every
+        // A localTime after midnight in Madrid (00:30, 23:30Z of the day before) is kept on 1972-01-01, the date of every
         // localTime, as another program writes it
         // (also in a multi-row insert, a PL/SQL block)
         await conn.insertInto(tMoment).values([{ id: 9, t: new Date('1969-12-31T23:30:00.000Z') }, { id: 11, t: time17 }]).executeInsert()
-        await raw(`insert into ${tableName} (id, t) values (10, timestamp '1970-01-01 00:30:00')`)
+        await raw(`insert into ${tableName} (id, t) values (10, timestamp '1972-01-01 00:30:00')`)
         out.timeAfterMidnight = {
             stored: (await raw(`select id, to_char(t, 'YYYY-MM-DD HH24:MI:SS') as t from ${tableName} where id in (9, 10, 11) order by id`)).map(row => row.ID + ' ' + row.T),
             where: (await conn.selectFrom(tMoment).where(tMoment.t.equals(new Date('1969-12-31T23:30:00.000Z'))).select({ id: tMoment.id }).orderBy('id').executeSelectMany()).map(row => row.id),

@@ -1,6 +1,6 @@
 // The months of a year (Temporal.PlainYearMonth) and the days of a month (Temporal.PlainMonthDay) as the connection
-// converts them: kept in the date of their reference (temporalReferenceDate, '1972-01-01' by default: the 1st of the
-// month, the year 1972), read from a date of any day or year, and the references a connection can't keep.
+// converts them: stored in a date of the day of dayOfStoredYearMonths and of the year of yearOfStoredMonthDays (1 and
+// 1972 by default, the ones of Temporal), read from a date of any day or year, and the days and years that can't be.
 
 import { describe, expect, test } from '../../lib/testRunner.js'
 import { PostgreSqlConnection } from '../../../src/connections/PostgreSqlConnection.js'
@@ -10,12 +10,14 @@ import { Table, TsSqlError } from '../../../src/exports/v2/index.js'
 class PgConnection extends PostgreSqlConnection<'PgConnection'> {}
 /** A connection whose months of a year are kept on the 15th and days of a month in the year 2000 */
 class PgReferenceConnection extends PostgreSqlConnection<'PgReferenceConnection'> {
-    protected override temporalReferenceDate = '2000-01-15'
+    protected override dayOfStoredYearMonths = 15
+    protected override yearOfStoredMonthDays = 2000
 }
-/** A connection with the reference given */
-function connectionWithReference(reference: string): PgReferenceConnection {
+/** A connection with the day and the year given */
+function connectionWithReference(day: number, year: number): PgReferenceConnection {
     return new class extends PgReferenceConnection {
-        protected override temporalReferenceDate = reference
+        protected override dayOfStoredYearMonths = day
+        protected override yearOfStoredMonthDays = year
     }(new MockQueryRunner(executor, { queryRunner: 'PgPoolQueryRunner' }))
 }
 
@@ -90,7 +92,7 @@ describe('PlainYearMonthValues', () => {
         expect(await outcome(() => pg.insertInto(tPgCalendar).values({ id: 1, monthOf: Temporal.PlainYearMonth.from('2024-03'), dayOf: date, bornOn: date }).executeInsert())).toBe('INVALID_VALUE_TO_SEND_TO_DATABASE')
     })
 
-    test('the-reference-of-the-connection-is-the-date-they-are-kept-in', async () => {
+    test('the-day-and-the-year-of-the-connection-are-the-ones-of-the-date-they-are-stored-in', async () => {
         await pgReference.insertInto(tPgReferenceCalendar).values({ id: 1, monthOf: Temporal.PlainYearMonth.from('2024-02'), dayOf: Temporal.PlainMonthDay.from('02-29'), bornOn: Temporal.PlainDate.from('2024-02-29') }).executeInsert()
         expect(lastParams.map(String)).toEqual(['1', '2024-02-15', '2000-02-29', '2024-02-29'])
         rowsToReturn = [{ month: '2024-02-15', day: '2000-02-29' }]
@@ -100,10 +102,10 @@ describe('PlainYearMonthValues', () => {
         expect([row.month.toString({ calendarName: 'always' }), row.day.toString({ calendarName: 'always' })]).toEqual(['2024-02-01[u-ca=iso8601]', '1972-02-29[u-ca=iso8601]'])
     })
 
-    test('a-reference-a-month-or-february-29-hasnt-is-rejected', async () => {
-        // A year without February 29, a day not every month has, and what isn't a date
-        for (const reference of ['2001-01-01', '2000-01-29', '2000-13-01', 'today']) {
-            const connection = connectionWithReference(reference)
+    test('a-day-not-every-month-has-or-a-year-without-february-29-is-rejected', async () => {
+        // A year without February 29, a day not every month has, and what isn't a day or a year
+        for (const [day, year] of [[1, 2001], [1, 1900], [29, 2000], [0, 2000], [1.5, 2000], [1, 2000.5]] as const) {
+            const connection = connectionWithReference(day, year)
             expect(await outcome(() => connection.insertInto(tPgReferenceCalendar).values({ id: 1, monthOf: Temporal.PlainYearMonth.from('2024-02'), dayOf: Temporal.PlainMonthDay.from('02-29'), bornOn: Temporal.PlainDate.from('2024-02-29') }).executeInsert())).toBe('INVALID_CONFIGURATION')
         }
     })

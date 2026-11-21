@@ -49,7 +49,7 @@ import { PlainDateTimeType, PlainDateType, PlainTimeType } from '../typeSystem/p
 import { InstantType, __instantFromEpoch } from '../typeSystem/instants.js'
 import { parseInstantText, parsePlainDateTimeText, parseZonedDateTimeText, plainDateTimeOfUtcDate } from '../utils/plainDateTimeText.js'
 import { durationIsoText, durationOfReceivedValue, isDurationValue } from '../utils/durationValues.js'
-import { temporalReferenceOf } from '../utils/temporalReference.js'
+import { dayOfStoredYearMonthsOf, yearOfStoredMonthDaysOf } from '../utils/temporalReference.js'
 import type { NumberType } from '../typeSystem/number.js'
 import type { BigintType } from '../typeSystem/bigint.js'
 import type { StringDecimalType } from '../typeSystem/decimals.js'
@@ -135,18 +135,21 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
      */
     protected databaseTimeZone: string = 'UTC'
     /**
-     * With a databaseTimeZone other than UTC, the day a localTime is completed with to give it the offset of that day:
-     * a date `'YYYY-MM-DD'` (`'1970-01-01'` by default, the day of a localTime) or `'today'`, the current date of the
-     * database
+     * With a databaseTimeZone other than UTC, the date a time of the day (a localTime) is converted between the zone of
+     * the database and UTC with, which gives it the offset of that date: a date `'YYYY-MM-DD'` (`'1972-01-01'` by
+     * default) or `'today'`, the current date of the database. The Date read keeps that date
      */
-    protected localTimeReferenceDate: string = '1970-01-01'
+    protected dateToConvertTimesBetweenZones: string = '1972-01-01'
     /**
-     * The date a month of a year (plainYearMonth) and a day of a month (plainMonthDay) are kept in, a date
-     * `'YYYY-MM-DD'`: its day for a month of a year (1 to 28, a day every month has), its year for a day of a month (a
-     * leap year, that has February 29). `'1972-01-01'` by default, the reference of Temporal: the 1st of the month, the
-     * year 1972. A value read is accepted on any day or year, and is given with the reference of Temporal
+     * The day of the date a month of a year (plainYearMonth) is stored in: 1 to 28, a day every month has. 1 by
+     * default, the one of Temporal. A date read is accepted on any day
      */
-    protected temporalReferenceDate: string = '1972-01-01'
+    protected dayOfStoredYearMonths: number = 1
+    /**
+     * The year of the date a day of a month (plainMonthDay) is stored in: a leap year, that has February 29. 1972 by
+     * default, the one of Temporal. A date read is accepted in any year
+     */
+    protected yearOfStoredMonthDays: number = 1972
     /** Whether the databaseTimeZone isn't UTC */
     protected isDatabaseOutsideUtc(): boolean {
         return !isUtcTimeZoneName(this.databaseTimeZone)
@@ -1243,7 +1246,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid localTime value received from the db: ' + String(value))
             }
             // With a databaseTimeZone other than UTC the database gives the instant of the time on the day of the
-            // localTimeReferenceDate: that day gives it its offset, and the Date keeps it
+            // dateToConvertTimesBetweenZones: that day gives it its offset, and the Date keeps it
             const result: any = this.isDatabaseOutsideUtc() ? new Date(received.getTime()) : new Date(Date.UTC(1970, 0, 1, received.getUTCHours(), received.getUTCMinutes(), received.getUTCSeconds(), received.getUTCMilliseconds()))
             result.___type___ = 'localTime'
             return result
@@ -1448,7 +1451,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             if (value instanceof Date && !isNaN(value.getTime())) {
                 if (this.isDatabaseOutsideUtc()) {
                     // With a databaseTimeZone other than UTC a localTime is the instant of a time on its own day, as it
-                    // is read (on the localTimeReferenceDate): that day gives the offset the database converts it with
+                    // is read (on the dateToConvertTimesBetweenZones): that day gives the offset the database converts it with
                     return new Date(value.getTime())
                 }
                 // The time of a localTime is the one of its UTC getters, whatever the zone of the process, on
@@ -1472,15 +1475,14 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid plainDate value to send to the db: ' + String(value))
         }
         if (__isPlainYearMonthClass(context.requestedType) || __isPlainMonthDayClass(context.requestedType)) {
-            // Kept in the date of its reference (temporalReferenceDate): its day for a month of a year, its year for a
-            // day of a month. A Temporal.PlainDate, which each query runner gives its driver as a date
+            // Stored in the date of the day of a month of a year (dayOfStoredYearMonths), or of the year of a day of a
+            // month (yearOfStoredMonthDays). A Temporal.PlainDate, which each query runner gives its driver as a date
             const temporal = __temporal(type)
-            const reference = temporalReferenceOf(this.temporalReferenceDate)
             if (__isPlainYearMonthClass(context.requestedType) && value instanceof temporal.PlainYearMonth) {
-                return value.toPlainDate({ day: reference.day })
+                return value.toPlainDate({ day: dayOfStoredYearMonthsOf(this.dayOfStoredYearMonths) })
             }
             if (__isPlainMonthDayClass(context.requestedType) && value instanceof temporal.PlainMonthDay) {
-                return value.toPlainDate({ year: reference.year })
+                return value.toPlainDate({ year: yearOfStoredMonthDaysOf(this.yearOfStoredMonthDays) })
             }
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid ' + type + ' value to send to the db: ' + String(value))
         }

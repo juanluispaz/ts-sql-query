@@ -244,7 +244,7 @@ describe(ctx.label, () => {
             expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue_worklog set started_at = :0 where id = :1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
-                1970-01-01T09:15:00.123Z,
+                1972-01-01T09:15:00.123Z,
                 1,
               ]
             `)
@@ -259,7 +259,7 @@ describe(ctx.label, () => {
             expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue_worklog set started_at = :0 where id = :1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
-                1970-01-01T09:15:00.045Z,
+                1972-01-01T09:15:00.045Z,
                 1,
               ]
             `)
@@ -274,7 +274,7 @@ describe(ctx.label, () => {
             expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue_worklog set started_at = :0 where id = :1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
-                1970-01-01T09:15:00.007Z,
+                1972-01-01T09:15:00.007Z,
                 1,
               ]
             `)

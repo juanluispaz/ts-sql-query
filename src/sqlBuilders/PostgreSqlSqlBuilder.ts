@@ -814,7 +814,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     }
     override _toPlainYearMonth(context: SqlBuildContext, valueSource: ToSql): string {
         // The first day of its month, and the days to the reference day
-        const day = this._temporalReference().day
+        const day = this._dayOfStoredYearMonths()
         return "date_trunc('month', " + this._appendSqlForDatePartArgument(valueSource, context) + ')::date' + (day === 1 ? '' : ' + ' + (day - 1))
     }
     /** A time and a timestamp keep microseconds */
@@ -1140,7 +1140,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
             return sql
         }
         const nodeValueSource = __asNodeValueSource(valueSource)
-        const zoned = postgreSqlZonedValueSql(sql, __classOf(nodeValueSource), this._connectionConfiguration.localTimeReferenceDate)
+        const zoned = postgreSqlZonedValueSql(sql, __classOf(nodeValueSource), this._connectionConfiguration.dateToConvertTimesBetweenZones)
         return zoned ? '(' + zoned + " at time zone 'UTC')" : sql
     }
 }
@@ -1148,10 +1148,10 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
 /**
  * The instant of a localDateTime, a localTime or an instant of a database outside UTC, as a timestamptz the database completes with
  * the zone of its session (the zone of the database): `<sql>::timestamptz`, a no-op on a timestamptz; a localTime on
- * the day of the localTimeReferenceDate, `(date '1970-01-01' + <sql>)::timestamptz` or `(current_date + <sql>)…`.
+ * the day of the dateToConvertTimesBetweenZones, `(date '1972-01-01' + <sql>)::timestamptz` or `(current_date + <sql>)…`.
  * Undefined for any other type.
  */
-export function postgreSqlZonedValueSql(sql: string, typeClass: DataTypeClass, localTimeReferenceDate: string | undefined): string | undefined {
+export function postgreSqlZonedValueSql(sql: string, typeClass: DataTypeClass, dateToConvertTimesBetweenZones: string | undefined): string | undefined {
     if (isPlainTemporalClass(typeClass) || __isZonedDateTimeClass(typeClass)) {
         // A Temporal value without zone is a wall clock: nothing completes it; a zoned date and time is a timestamptz
         return undefined
@@ -1166,7 +1166,7 @@ export function postgreSqlZonedValueSql(sql: string, typeClass: DataTypeClass, l
         return (/^(?:[\w."]+|\$\d+)$/.test(sql) ? sql : '(' + sql + ')') + '::timestamptz'
     }
     if (fields === 'time') {
-        const day = localTimeReferenceDate === 'today' ? 'current_date' : "date '" + (localTimeReferenceDate ?? '1970-01-01') + "'"
+        const day = dateToConvertTimesBetweenZones === 'today' ? 'current_date' : "date '" + (dateToConvertTimesBetweenZones ?? '1972-01-01') + "'"
         return '(' + day + ' + ' + sql + ')::timestamptz'
     }
     return undefined

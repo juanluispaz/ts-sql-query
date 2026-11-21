@@ -1,3 +1,4 @@
+import { dateOfStoredTimesOf } from '../utils/temporalReference.js'
 import { isKeptInADateClass } from '../utils/plainTemporalValues.js'
 import type { NAggregate, NConnection, NSource } from '../utils/sourceName.js'
 import { argumentNumber, integerDigits, nativeNameFor, nativeTypeParts } from '../utils/sqlDataTypeNames.js'
@@ -87,6 +88,13 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
      * Temporal's.
      */
     protected temporalFunctions: 'installed' | 'not installed' = 'not installed'
+    /**
+     * The date of a column of a date (DATE, TIMESTAMP) that stores only a time of the day (a localTime, a plainTime):
+     * Oracle has no type of a time alone. A date `'YYYY-MM-DD'`, `'1972-01-01'` by default; the date of a time read is
+     * ignored. A column whose times were stored on another date (`'1970-01-01'` by version 1 of the library) compares
+     * and orders as a time of the day only with this date
+     */
+    protected dateOfStoredTimes: string = '1972-01-01'
     /**
      * The scale of `roundn` is a whole number of decimals, and Oracle truncates a fractional one (`roundn(1.6)` rounds to
      * 1 decimal), while the other databases round it. ts-sql-query rounds it on every database: a number is sent
@@ -234,7 +242,13 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
             // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number#number_coercion
             return Number(value);
         }
-        return super.transformValueToDB(value, context)
+        const result = super.transformValueToDB(value, context)
+        if (__isLocalTimeClass(context.requestedType) && result instanceof Date && !this.isDatabaseOutsideUtc()) {
+            // A time of the day is stored on dateOfStoredTimes (its placeholder takes it there outside UTC)
+            const date = dateOfStoredTimesOf(this.dateOfStoredTimes)
+            return new Date(Date.UTC(Number(date.slice(0, 4)), Number(date.slice(5, 7)) - 1, Number(date.slice(8, 10)), result.getUTCHours(), result.getUTCMinutes(), result.getUTCSeconds(), result.getUTCMilliseconds()))
+        }
+        return result
     }
 
     /**
@@ -259,7 +273,7 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
             return "to_char(sys_extract_utc(cast(" + sql + " as timestamp(9) with time zone)), 'YYYY-MM-DD\"T\"HH24:MI:SS.FF9\"Z\" BC', 'NLS_DATE_LANGUAGE=AMERICAN')"
         }
         if (this.isDatabaseOutsideUtc()) {
-            const zoned = oracleZonedValueSql(sql, context.requestedType, this.localTimeReferenceDate)
+            const zoned = oracleZonedValueSql(sql, context.requestedType, this.dateToConvertTimesBetweenZones)
             if (zoned) {
                 return zoned
             }
@@ -356,7 +370,7 @@ function oracleFamilyOf(nativeName: string): SqlDataType {
 
 /**
  * The type of Oracle for the SQL data type, in that version, or undefined when Oracle can't hold it; a boolean, a uuid
- * and a time of the day as the connection stores them (booleanStorage, uuidStrategy, a localTime on 1970-01-01)
+ * and a time of the day as the connection stores them (booleanStorage, uuidStrategy, a time of the day on dateOfStoredTimes)
  */
 function oracleNativeSqlDataTypeOf(sqlDataType: SqlDataType, compatibilityVersion: number, booleanStorage: string, uuidStrategy: string): string | undefined {
     const native = nativeNameFor(sqlDataType, 'oracle')
@@ -397,7 +411,7 @@ function oracleNativeSqlDataTypeOf(sqlDataType: SqlDataType, compatibilityVersio
             const p = oracleFractionSuffix(sqlDataType.precision)
             if (p === undefined) return undefined
             if (fields === 'date') return 'DATE'
-            // A time of the day is kept on 1970-01-01
+            // A time of the day is kept on dateOfStoredTimes
             if (fields === 'time') return timeZone === undefined || timeZone === 'none' ? 'TIMESTAMP' + p : undefined
             if (fields !== 'timestamp') return undefined
             if (timeZone === 'session') return 'TIMESTAMP' + p + ' WITH LOCAL TIME ZONE'

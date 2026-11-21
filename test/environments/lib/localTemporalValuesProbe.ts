@@ -157,7 +157,8 @@ export const oracleTemporalDialect: TemporalDialect = {
     literal(column, digits, offset) {
         switch (column.kind) {
             case 'date': return `DATE '${digits}'`
-            case 'time': return `TIMESTAMP '1970-01-01 ${digits}'`
+            // A time of the day on the date the library stores times on (dateOfStoredTimes, 1972-01-01 by default)
+            case 'time': return `TIMESTAMP '1972-01-01 ${digits}'`
             case 'zoned': return `TIMESTAMP '${digits} ${offset}'`
             // A TIMESTAMP WITH TIME ZONE in UTC: stored as that instant, without the zone of the session
             case 'session': return `TIMESTAMP '${digits} +00:00'`

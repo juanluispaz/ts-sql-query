@@ -51,7 +51,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where started_at = :0 order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T09:15:00.000Z,
+            1972-01-01T09:15:00.000Z,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()

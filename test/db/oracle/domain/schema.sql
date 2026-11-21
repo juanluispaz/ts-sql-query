@@ -259,7 +259,7 @@ CREATE OR REPLACE FUNCTION ret_uuid(p_id IN NUMBER) RETURN RAW AS BEGIN RETURN H
 
 CREATE OR REPLACE FUNCTION ret_day(p_id IN NUMBER) RETURN DATE AS BEGIN RETURN DATE '2024-02-03'; END;
 
-CREATE OR REPLACE FUNCTION ret_clock(p_id IN NUMBER) RETURN TIMESTAMP AS BEGIN RETURN TIMESTAMP '1970-01-01 14:25:36'; END;
+CREATE OR REPLACE FUNCTION ret_clock(p_id IN NUMBER) RETURN TIMESTAMP AS BEGIN RETURN TIMESTAMP '1972-01-01 14:25:36'; END;
 
 CREATE OR REPLACE FUNCTION ret_activity(p_id IN NUMBER) RETURN VARCHAR2 AS BEGIN RETURN 'coding'; END;
 
@@ -344,7 +344,7 @@ CREATE TABLE release_draft (
     shifted_rating BINARY_DOUBLE DEFAULT 4.5 NOT NULL,
     bracket_signing_key RAW(16) DEFAULT HEXTORAW('00000000000040008000000000000000') NOT NULL,
     shifted_release_day DATE DEFAULT DATE '2025-03-01' NOT NULL,
-    shifted_cutoff TIMESTAMP DEFAULT TIMESTAMP '1970-01-01 09:00:00' NOT NULL
+    shifted_cutoff TIMESTAMP DEFAULT TIMESTAMP '1972-01-01 09:00:00' NOT NULL
 );
 
 -- col_matrix: one plain, NOT NULL column per base kind. Every
@@ -451,7 +451,7 @@ CREATE TABLE service_plan (
 
 -- standup_meeting: a date and time kept in DATE columns (the date and the time to the
 -- second, no fraction), as many schemas do. starts_at and ends_at hold a localDateTime,
--- daily_at a localTime (on 1970-01-01); all three are declared with an
+-- daily_at a localTime (on 1972-01-01); all three are declared with an
 -- OracleDateAsTimestampTypeAdapter.
 CREATE TABLE standup_meeting (
     id NUMBER PRIMARY KEY,

@@ -491,8 +491,18 @@ interface PlainDateValueSource extends ComparableValueSource<Temporal.PlainDate,
     dayOfWeek(): NumberValueSource
     /** Gets the day of the year, from 1 to 366 (as Temporal's dayOfYear) */
     dayOfYear(): NumberValueSource
+    /** Gets the code of the month, 'M01' to 'M12' (as Temporal's monthCode) */
+    monthCode(): StringValueSource
+    /** Gets the days of its month, of its year, its months, and whether its year has February 29 (as Temporal's daysInMonth, daysInYear, monthsInYear, inLeapYear) */
+    daysInMonth(): NumberValueSource
+    daysInYear(): NumberValueSource
+    monthsInYear(): NumberValueSource
+    inLeapYear(): BooleanValueSource
     /** This date at 00:00, or at the time given (as Temporal's toPlainDateTime) */
     toPlainDateTime(time?: Temporal.PlainTime | PlainTimeValueSource): PlainDateTimeValueSource
+    /** Its month of the year and its day of the month (as Temporal's toPlainYearMonth and toPlainMonthDay) */
+    toPlainYearMonth(): PlainYearMonthValueSource
+    toPlainMonthDay(): PlainMonthDayValueSource
     /** The date plus a duration, as Temporal's add: the months keeping the day in the month, then the days and the whole days of the time */
     add(duration: Temporal.Duration | Temporal.DurationLike | DurationValueSource, options?: { overflow?: 'constrain' | 'reject' }): PlainDateValueSource
     /** The date minus a duration, as Temporal's subtract */
@@ -503,6 +513,45 @@ interface PlainDateValueSource extends ComparableValueSource<Temporal.PlainDate,
     until(other: Temporal.PlainDate | PlainDateValueSource, options?: DifferenceOptions<DateUnit>): DurationValueSource
     /** The duration from the other date to this one, as Temporal's since: until with the rounding mode negated, negated */
     since(other: Temporal.PlainDate | PlainDateValueSource, options?: DifferenceOptions<DateUnit>): DurationValueSource
+}
+
+/**
+ * Represents a month of a year (using a Temporal.PlainYearMonth), stored in the date of its reference day
+ */
+interface PlainYearMonthValueSource extends ComparableValueSource<Temporal.PlainYearMonth, 'plainYearMonth'> {
+    /** Gets the year and the month, from 1 to 12, and the code of the month (as Temporal's year, month and monthCode) */
+    year(): NumberValueSource
+    month(): NumberValueSource
+    monthCode(): StringValueSource
+    /** Gets the days of the month, of the year, the months of the year, and whether the year has February 29 */
+    daysInMonth(): NumberValueSource
+    daysInYear(): NumberValueSource
+    monthsInYear(): NumberValueSource
+    inLeapYear(): BooleanValueSource
+    /** Plus or minus a duration of years and months, as Temporal's add and subtract */
+    add(duration: Temporal.Duration | { years?: number, months?: number }, options?: { overflow?: 'constrain' | 'reject' }): PlainYearMonthValueSource
+    subtract(duration: Temporal.Duration | { years?: number, months?: number }, options?: { overflow?: 'constrain' | 'reject' }): PlainYearMonthValueSource
+    /** With another year or month, as Temporal's with */
+    with(fields: { year?: number, month?: number, monthCode?: string }, options?: { overflow?: 'constrain' | 'reject' }): PlainYearMonthValueSource
+    /** The duration to or from another month of a year, in years and months, as Temporal's until and since */
+    until(other: Temporal.PlainYearMonth | PlainYearMonthValueSource, options?: DifferenceOptions<'year' | 'month'>): DurationValueSource
+    since(other: Temporal.PlainYearMonth | PlainYearMonthValueSource, options?: DifferenceOptions<'year' | 'month'>): DurationValueSource
+    /** The date of that day of the month, taken to the last one (as Temporal's toPlainDate) */
+    toPlainDate(fields: { day: number }): PlainDateValueSource
+}
+
+/**
+ * Represents a day of a month (using a Temporal.PlainMonthDay), stored in the date of its reference year; compared
+ * only for equality, as Temporal
+ */
+interface PlainMonthDayValueSource extends EqualableValueSource<Temporal.PlainMonthDay, 'plainMonthDay'> {
+    /** Gets the code of the month and the day (as Temporal's monthCode and day) */
+    monthCode(): StringValueSource
+    day(): NumberValueSource
+    /** With another month or day, the day taken to the last one of the month in a leap year or the year given, as Temporal's with */
+    with(fields: { month?: number, monthCode?: string, day?: number, year?: number }, options?: { overflow?: 'constrain' | 'reject' }): PlainMonthDayValueSource
+    /** The date in the year given, February 29 taken to the 28th (as Temporal's toPlainDate) */
+    toPlainDate(fields: { year: number }): PlainDateValueSource
 }
 
 /**
@@ -547,6 +596,13 @@ interface PlainDateTimeValueSource extends ComparableValueSource<Temporal.PlainD
     dayOfWeek(): NumberValueSource
     /** Gets the day of the year, from 1 to 366 (as Temporal's dayOfYear) */
     dayOfYear(): NumberValueSource
+    /** Gets the code of the month, 'M01' to 'M12' (as Temporal's monthCode) */
+    monthCode(): StringValueSource
+    /** Gets the days of its month, of its year, its months, and whether its year has February 29 (as Temporal's daysInMonth, daysInYear, monthsInYear, inLeapYear) */
+    daysInMonth(): NumberValueSource
+    daysInYear(): NumberValueSource
+    monthsInYear(): NumberValueSource
+    inLeapYear(): BooleanValueSource
     /** Gets the hour (as Temporal's hour) */
     hour(): NumberValueSource
     /** Gets the minute (as Temporal's minute) */
@@ -1006,6 +1062,13 @@ interface Connection {
      * ISO 8601 text; the others are truncated. By default, 9
      */
     getDurationFractionDigits(): number
+    /** Protected property with the zone of the database ('UTC' by default) */
+    databaseTimeZone: string
+    /** Protected property with the date a time of the day is converted between the zone of the database and UTC with ('1972-01-01' by default, or 'today') */
+    dateToConvertTimesBetweenZones: string
+    /** Protected properties with the day of the date a month of a year is stored in (1 by default) and the year of the date a day of a month is stored in (1972 by default) */
+    dayOfStoredYearMonths: number
+    yearOfStoredMonthDays: number
 
     /** Protected method that transforms the values received from the database, as the type requested for them */
     transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext): unknown

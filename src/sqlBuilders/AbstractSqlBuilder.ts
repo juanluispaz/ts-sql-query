@@ -28,7 +28,7 @@ import type { SqlOperation0ValueSource, SqlOperation2ValueSource } from '../node
 import type { TemporalDuration } from '../typeSystem/temporal.js'
 import { durationOfArgument, durationOfParts, durationPartsFor, isZeroDuration, type DurationParts, type DurationPartsSql } from '../utils/durationValues.js'
 import { plainTemporalFieldsOf, type PlainTemporalFields } from '../utils/plainTemporalFields.js'
-import { temporalReferenceOf, type TemporalReference } from '../utils/temporalReference.js'
+import { dateOfStoredTimesOf, dayOfStoredYearMonthsOf, yearOfStoredMonthDaysOf } from '../utils/temporalReference.js'
 import { plainTemporalRoundingOf, type PlainTemporalRounding } from '../utils/plainTemporalRounding.js'
 import type { ZonedInterpretation } from '../utils/zonedOptions.js'
 import { plainTemporalDifferenceOf, type PlainTemporalDifference, type PlainTemporalDifferenceFields } from '../utils/plainTemporalDifference.js'
@@ -4037,20 +4037,21 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _toPlainYearMonth(context: SqlBuildContext, valueSource: ToSql): string {
         const year = this._integerPart(this._year(context, valueSource))
         const month = this._integerPart(this._month(context, valueSource))
-        return this._makeDate(context, year, month, String(this._temporalReference().day))
+        return this._makeDate(context, year, month, String(this._dayOfStoredYearMonths()))
     }
     /** The day of the month of a date, kept in the date of its reference year (see _temporalReference) */
     _toPlainMonthDay(context: SqlBuildContext, valueSource: ToSql): string {
         const month = this._integerPart(this._month(context, valueSource))
         const day = this._integerPart(this._day(context, valueSource))
-        return this._makeDate(context, String(this._temporalReference().year), month, day)
+        return this._makeDate(context, String(this._yearOfStoredMonthDays()), month, day)
     }
-    /**
-     * The reference of a month of a year (its day) and of a day of a month (its year), the date they are kept in: the
-     * temporalReferenceDate of the connection, Temporal's 1972-01-01 by default
-     */
-    _temporalReference(): TemporalReference {
-        return temporalReferenceOf(this._connectionConfiguration.temporalReferenceDate)
+    /** The day of the date a month of a year is stored in (dayOfStoredYearMonths of the connection, 1 by default) */
+    _dayOfStoredYearMonths(): number {
+        return dayOfStoredYearMonthsOf(this._connectionConfiguration.dayOfStoredYearMonths)
+    }
+    /** The year of the date a day of a month is stored in (yearOfStoredMonthDays of the connection, 1972 by default) */
+    _yearOfStoredMonthDays(): number {
+        return yearOfStoredMonthDaysOf(this._connectionConfiguration.yearOfStoredMonthDays)
     }
     _toPlainTime(context: SqlBuildContext, valueSource: ToSql): string {
         return 'cast(' + this._appendSql(valueSource, context, false) + ' as time)'
@@ -4507,17 +4508,17 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const given = plainTemporalFieldsOf(value, 'date')!
         const year = given.year === undefined ? this._integerPart(this._year(context, valueSource)) : String(given.year)
         const month = given.month === undefined ? this._integerPart(this._month(context, valueSource)) : String(given.month)
-        return this._makeDate(context, year, month, String(this._temporalReference().day))
+        return this._makeDate(context, year, month, String(this._dayOfStoredYearMonths()))
     }
     /**
      * with of a day of a month without a year (its month or its code and its day): the date in the reference year, a
      * leap year, with the fields, the day taken to the last one of the month or rejected
      */
     _monthDayWith(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        return this._appendWithFields(context, valueSource, value, typeClass, false, this._temporalReference().year)
+        return this._appendWithFields(context, valueSource, value, typeClass, false, this._yearOfStoredMonthDays())
     }
     _monthDayWithRejecting(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        return this._appendWithFields(context, valueSource, value, typeClass, true, this._temporalReference().year)
+        return this._appendWithFields(context, valueSource, value, typeClass, true, this._yearOfStoredMonthDays())
     }
     _withFieldsRejecting(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         return this._appendWithFields(context, valueSource, value, typeClass, true)
@@ -5320,7 +5321,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     /** Rejects, for each query executed, a configuration of the connection this database can't honor */
     _checkConnectionConfiguration(): void {
-        temporalReferenceOf(this._connectionConfiguration.temporalReferenceDate)
+        dayOfStoredYearMonthsOf(this._connectionConfiguration.dayOfStoredYearMonths)
+        yearOfStoredMonthDaysOf(this._connectionConfiguration.yearOfStoredMonthDays)
+        dateOfStoredTimesOf(this._connectionConfiguration.dateOfStoredTimes)
         if (!this._isDatabaseOutsideUtc()) {
             return
         }
@@ -5328,9 +5331,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (!this._supportDatabaseOutsideUtc()) {
             throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'databaseTimeZone', value: zone }, 'A databaseTimeZone other than UTC is not supported on this database (' + zone + '): it can\'t complete the zone of a value without zone for every date (see the known limits of the time zones in the documentation)')
         }
-        const referenceDate = this._connectionConfiguration.localTimeReferenceDate
+        const referenceDate = this._connectionConfiguration.dateToConvertTimesBetweenZones
         if (referenceDate !== undefined && referenceDate !== 'today' && !/^\d{4}-\d{2}-\d{2}$/.test(referenceDate)) {
-            throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'localTimeReferenceDate', value: referenceDate }, "localTimeReferenceDate must be a date 'YYYY-MM-DD' or 'today': " + referenceDate)
+            throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'dateToConvertTimesBetweenZones', value: referenceDate }, "dateToConvertTimesBetweenZones must be a date 'YYYY-MM-DD' or 'today': " + referenceDate)
         }
     }
     _appendSqlForDatePartArgument(valueSource: ToSql, context: SqlBuildContext): string {

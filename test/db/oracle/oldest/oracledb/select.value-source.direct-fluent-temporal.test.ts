@@ -228,7 +228,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where started_at = :0 order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T14:00:00.000Z,
+            1972-01-01T14:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
@@ -244,7 +244,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where started_at <> :0 order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T14:00:00.000Z,
+            1972-01-01T14:00:00.000Z,
           ]
         `)
         expect(ne).toEqual(expectedNe)
@@ -265,7 +265,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where decode(started_at, :0, 1, 0 ) = 1 order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T14:00:00.000Z,
+            1972-01-01T14:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
@@ -281,7 +281,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where decode(started_at, :0, 1, 0 ) = 0 order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T14:00:00.000Z,
+            1972-01-01T14:00:00.000Z,
           ]
         `)
         expect(isNot).toEqual(expectedIsNot)
@@ -302,8 +302,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where started_at between :0 and :1 order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T09:00:00.000Z,
-            1970-01-01T11:00:00.000Z,
+            1972-01-01T09:00:00.000Z,
+            1972-01-01T11:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
@@ -319,8 +319,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where started_at not between :0 and :1 order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T09:00:00.000Z,
-            1970-01-01T11:00:00.000Z,
+            1972-01-01T09:00:00.000Z,
+            1972-01-01T11:00:00.000Z,
           ]
         `)
         expect(notRows).toEqual(expectedNot)
@@ -343,7 +343,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where started_at < :0 order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T10:30:00.000Z,
+            1972-01-01T10:30:00.000Z,
           ]
         `)
         assertType<Exact<typeof lt, Array<{ id: number }>>>()
@@ -359,7 +359,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where started_at > :0 order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T10:30:00.000Z,
+            1972-01-01T10:30:00.000Z,
           ]
         `)
         expect(gt).toEqual(expectedGt)
@@ -374,7 +374,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where started_at <= :0 order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T10:30:00.000Z,
+            1972-01-01T10:30:00.000Z,
           ]
         `)
         expect(le).toEqual(expectedLe)
@@ -389,7 +389,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where started_at >= :0 order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T10:30:00.000Z,
+            1972-01-01T10:30:00.000Z,
           ]
         `)
         expect(ge).toEqual(expectedGe)
@@ -412,7 +412,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where cutoff_time = :0 order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T17:00:00.000Z,
+            1972-01-01T17:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
@@ -428,7 +428,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where cutoff_time <> :0 order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T17:00:00.000Z,
+            1972-01-01T17:00:00.000Z,
           ]
         `)
         expect(ne).toEqual(expectedNe)
@@ -449,8 +449,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where cutoff_time in (:0, :1) order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T17:00:00.000Z,
-            1970-01-01T16:00:00.000Z,
+            1972-01-01T17:00:00.000Z,
+            1972-01-01T16:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof inRows, Array<{ id: number }>>>()
@@ -466,7 +466,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where cutoff_time in (:0) order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T17:00:00.000Z,
+            1972-01-01T17:00:00.000Z,
           ]
         `)
         expect(inNRows).toEqual(expectedInN)
@@ -487,8 +487,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where cutoff_time between :0 and :1 order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T16:30:00.000Z,
-            1970-01-01T18:00:00.000Z,
+            1972-01-01T16:30:00.000Z,
+            1972-01-01T18:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
@@ -504,8 +504,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where cutoff_time not between :0 and :1 order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T16:30:00.000Z,
-            1970-01-01T18:00:00.000Z,
+            1972-01-01T16:30:00.000Z,
+            1972-01-01T18:00:00.000Z,
           ]
         `)
         expect(notRows).toEqual(expectedNot)
@@ -1051,7 +1051,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where decode(cutoff_time, :0, 1, 0 ) = 1 order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T17:00:00.000Z,
+            1972-01-01T17:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
@@ -1067,7 +1067,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where decode(cutoff_time, :0, 1, 0 ) = 0 order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T17:00:00.000Z,
+            1972-01-01T17:00:00.000Z,
           ]
         `)
         expect(isNot).toEqual(expectedIsNot)
@@ -1280,7 +1280,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where cutoff_time > :0 order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T17:00:00.000Z,
+            1972-01-01T17:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof gt, Array<{ id: number }>>>()
@@ -1296,7 +1296,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where cutoff_time <= :0 order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T17:00:00.000Z,
+            1972-01-01T17:00:00.000Z,
           ]
         `)
         expect(le).toEqual(expectedLe)
@@ -1315,7 +1315,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where cutoff_time not in (:0) order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T17:00:00.000Z,
+            1972-01-01T17:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof notInRows, Array<{ id: number }>>>()
@@ -1330,7 +1330,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where cutoff_time not in (:0) order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T17:00:00.000Z,
+            1972-01-01T17:00:00.000Z,
           ]
         `)
         expect(notInNRows).toEqual(expected)
@@ -1349,7 +1349,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where cutoff_time = :0 order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T17:00:00.000Z,
+            1972-01-01T17:00:00.000Z,
           ]
         `)
         assertType<Exact<typeof eq, Array<{ id: number }>>>()
@@ -1461,8 +1461,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(hour from nvl(cutoff_time, :0)) as "h", trunc(extract(second from nullif(cutoff_time, :1))) as "s" from project_release where id = :2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T00:00:00.000Z,
-            1970-01-01T12:00:00.000Z,
+            1972-01-01T00:00:00.000Z,
+            1972-01-01T12:00:00.000Z,
             1,
           ]
         `)

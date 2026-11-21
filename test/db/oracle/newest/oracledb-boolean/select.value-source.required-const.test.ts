@@ -151,9 +151,9 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select :0 as "lt", :1 as "ldt", :2 as "clt", :3 as "cldt" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1970-01-01T17:00:00.000Z,
+            1972-01-01T17:00:00.000Z,
             2024-01-14T12:30:00.000Z,
-            1970-01-01T17:00:00.000Z,
+            1972-01-01T17:00:00.000Z,
             2024-01-14T12:30:00.000Z,
           ]
         `)

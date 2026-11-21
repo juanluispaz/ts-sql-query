@@ -41,13 +41,13 @@ class MadridConnectionWithFunctions extends MadridConnection {
 class MadridTodayConnection extends PostgreSqlConnection<'MadridConnection'> {
     protected override databaseTimeZone = 'Europe/Madrid'
     protected override compatibilityVersion = compatibilityVersion
-    protected override localTimeReferenceDate = 'today'
+    protected override dateToConvertTimesBetweenZones = 'today'
 }
 // The same database, with a reference date of summer
 class MadridSummerConnection extends PostgreSqlConnection<'MadridConnection'> {
     protected override databaseTimeZone = 'Europe/Madrid'
     protected override compatibilityVersion = compatibilityVersion
-    protected override localTimeReferenceDate = '2024-07-14'
+    protected override dateToConvertTimesBetweenZones = '2024-07-14'
 }
 // A connection that declares the zone it is told (UTC when none), for the first query
 class DeclaredConnection extends PostgreSqlConnection<'MadridConnection'> {

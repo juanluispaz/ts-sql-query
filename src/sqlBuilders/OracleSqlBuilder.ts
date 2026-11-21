@@ -1,3 +1,4 @@
+import { dateOfStoredTimesOf } from '../utils/temporalReference.js'
 import type { PlainTemporalFields } from '../utils/plainTemporalFields.js'
 import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import { oracleOperationsThatNeedParenthesis } from '../utils/oracle/oracleOperationsThatNeedParenthesis.js'
@@ -1275,10 +1276,17 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         // A timestamp with time zone, its instant whatever the zone of the session
         return 'systimestamp'
     }
+    /**
+     * The date a time of the day is stored on (dateOfStoredTimes of the connection, 1972-01-01 by default), a TIMESTAMP:
+     * Oracle has no type of a time alone
+     */
+    _oracleDateOfStoredTimes(): string {
+        return "timestamp '" + dateOfStoredTimesOf(this._connectionConfiguration.dateOfStoredTimes) + " 00:00:00'"
+    }
     override _currentTime(_context: SqlBuildContext): string {
-        // Oracle has no type of a time alone: a localTime is kept on the day 1970-01-01, and the current time is put on
+        // Oracle has no type of a time alone: a localTime is kept on dateOfStoredTimes, and the current time is put on
         // that day, so it compares with a localTime only by the time of the day (`localtimestamp` carries today)
-        return "timestamp '1970-01-01 00:00:00' + (localtimestamp - trunc(localtimestamp))"
+        return this._oracleDateOfStoredTimes() + " + (localtimestamp - trunc(localtimestamp))"
     }
     override _valueWhenNull(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         if (this._isDateReadAsTimestamp(valueSource) && !this._isDateReadAsTimestamp(value)) {
@@ -1328,7 +1336,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             return undefined
         }
         const nodeValueSource = __asNodeValueSource(valueSource)
-        const zoned = oracleZonedValueSql(this._appendSql(valueSource, context, false), __classOf(nodeValueSource), this._connectionConfiguration.localTimeReferenceDate)
+        const zoned = oracleZonedValueSql(this._appendSql(valueSource, context, false), __classOf(nodeValueSource), this._connectionConfiguration.dateToConvertTimesBetweenZones)
         return zoned ? 'sys_extract_utc(' + zoned + ')' : undefined
     }
     // Oracle counts a negative start from the end like JS, but answers '' once the start runs
@@ -1703,11 +1711,11 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     override _toPlainMonthDay(context: SqlBuildContext, valueSource: ToSql): string {
         // Its month and day in the reference year: a text of numbers, read with a format of numbers (no setting of the
         // session takes part)
-        return "to_date('" + this._temporalReference().year + "' || to_char(" + this._appendSql(valueSource, context, false) + ", 'MMDD'), 'YYYYMMDD')"
+        return "to_date('" + this._yearOfStoredMonthDays() + "' || to_char(" + this._appendSql(valueSource, context, false) + ", 'MMDD'), 'YYYYMMDD')"
     }
     override _toPlainYearMonth(context: SqlBuildContext, valueSource: ToSql): string {
         // The first day of its month, and the days to the reference day
-        const day = this._temporalReference().day
+        const day = this._dayOfStoredYearMonths()
         return 'trunc(' + this._appendSql(valueSource, context, false) + ", 'MM')" + (day === 1 ? '' : ' + ' + (day - 1))
     }
     override _dayOfWeek(context: SqlBuildContext, valueSource: ToSql): string {
@@ -1727,10 +1735,10 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return 'trunc(' + this._appendSql(valueSource, context, false) + ')'
     }
     override _toPlainTime(context: SqlBuildContext, valueSource: ToSql): string {
-        // Oracle has no TIME type: a time of the day is a TIMESTAMP on 1970-01-01, the time since the start of its day
+        // Oracle has no TIME type: a time of the day is a TIMESTAMP on dateOfStoredTimes, the time since the start of its day
         // added to it
         const value = this._appendSqlParenthesis(valueSource, context, false)
-        return "timestamp '1970-01-01 00:00:00' + (" + value + ' - trunc(' + value + '))'
+        return this._oracleDateOfStoredTimes() + ' + (' + value + ' - trunc(' + value + '))'
     }
     override _toPlainDateTime(context: SqlBuildContext, valueSource: ToSql): string {
         return 'cast(' + this._appendSql(valueSource, context, false) + ' as timestamp(9))'
@@ -1801,7 +1809,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 // Less than a day, either way
                 ? 'mod(' + secondsOfTheDay + ' + ' + seconds + ' + 86400, 86400)'
                 : 'mod(mod(' + secondsOfTheDay + ' + ' + seconds + ', 86400) + 86400, 86400)'
-            return "timestamp '1970-01-01 00:00:00' + numtodsinterval(" + ofTheDay + ", 'second')"
+            return this._oracleDateOfStoredTimes() + ' + numtodsinterval(' + ofTheDay + ", 'second')"
         }
         let result: string
         if (fields === 'date') {
@@ -1844,8 +1852,8 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return "to_number(to_char(" + this._appendTimestampForTimeGetter(context, valueSource) + ", 'FF9'))"
     }
     override _makeTime(_context: SqlBuildContext, hour: string, minute: string, second: string, nanoseconds: string): string {
-        // Oracle has no TIME type: a time of the day is a TIMESTAMP on 1970-01-01
-        return "timestamp '1970-01-01 00:00:00' + numtodsinterval(" + oracleSecondsOfTheDay(hour, minute, second, nanoseconds) + ", 'second')"
+        // Oracle has no TIME type: a time of the day is a TIMESTAMP on dateOfStoredTimes
+        return this._oracleDateOfStoredTimes() + ' + numtodsinterval(' + oracleSecondsOfTheDay(hour, minute, second, nanoseconds) + ", 'second')"
     }
     override _makeTimestamp(context: SqlBuildContext, year: string, month: string, day: string, hour: string, minute: string, second: string, nanoseconds: string): string {
         return 'cast(' + this._makeDate(context, year, month, day) + ' as timestamp(9)) + numtodsinterval(' + oracleSecondsOfTheDay(hour, minute, second, nanoseconds) + ", 'second')"
@@ -1963,7 +1971,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return 'trunc(' + this._appendSql(valueSource, context, false) + ')'
     }
     override _timeOfNanoseconds(_context: SqlBuildContext, nanoseconds: string): string {
-        return "timestamp '1970-01-01 00:00:00' + numtodsinterval(mod(" + nanoseconds + ", 86400000000000) / 1000000000, 'second')"
+        return this._oracleDateOfStoredTimes() + ' + numtodsinterval(mod(' + nanoseconds + ", 86400000000000) / 1000000000, 'second')"
     }
     override _dateTimeOfNanoseconds(_context: SqlBuildContext, date: string, nanoseconds: string): string {
         return 'cast(' + date + ' as timestamp(9)) + numtodsinterval((' + nanoseconds + ") / 1000000000, 'second')"
@@ -1997,7 +2005,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return sqlDataType?.family === 'interval' && sqlDataType.fields === 'year to month'
     }
     override _toPlainDateTimeAt(context: SqlBuildContext, valueSource: ToSql, value: any, _typeClass: DataTypeClass): string {
-        // The time of the day (a TIMESTAMP on 1970-01-01, written once) as the interval since the start of its day
+        // The time of the day (a TIMESTAMP on dateOfStoredTimes, written once) as the interval since the start of its day
         return 'cast(' + this._appendSql(valueSource, context, false) + " as timestamp(9)) + to_dsinterval('0 ' || to_char(cast(" + this._appendPlainTimeOperand(context, value) + " as timestamp(9)), 'HH24:MI:SS.FF9'))"
     }
     /**
@@ -2136,11 +2144,11 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
 /**
  * The instant of a localDateTime, a localTime or an instant of a database outside UTC, as a timestamp with time zone the database
  * completes with the zone of its session (the zone of the database): `cast(<sql> as timestamp with time zone)`; a
- * localTime on the day of the localTimeReferenceDate, replacing the day it is stored with (Oracle has no type of a
- * time alone): `cast(timestamp '1970-01-01 00:00:00' + (<sql> - trunc(<sql>)) as timestamp with time zone)`, or the
+ * localTime on the day of the dateToConvertTimesBetweenZones, replacing the day it is stored with (Oracle has no type of a
+ * time alone): `cast(timestamp '1972-01-01 00:00:00' + (<sql> - trunc(<sql>)) as timestamp with time zone)`, or the
  * current date of the session for `'today'`. A wall clock the zone skips gives ORA-01878. Undefined for any other type.
  */
-export function oracleZonedValueSql(sql: string, typeClass: DataTypeClass, localTimeReferenceDate: string | undefined): string | undefined {
+export function oracleZonedValueSql(sql: string, typeClass: DataTypeClass, dateToConvertTimesBetweenZones: string | undefined): string | undefined {
     if (isPlainTemporalClass(typeClass)) {
         // A Temporal value without zone is a wall clock: nothing completes it
         return undefined
@@ -2150,7 +2158,7 @@ export function oracleZonedValueSql(sql: string, typeClass: DataTypeClass, local
         return 'cast(' + sql + ' as timestamp with time zone)'
     }
     if (fields === 'time') {
-        const day = localTimeReferenceDate === 'today' ? 'cast(trunc(localtimestamp) as timestamp)' : "timestamp '" + (localTimeReferenceDate ?? '1970-01-01') + " 00:00:00'"
+        const day = dateToConvertTimesBetweenZones === 'today' ? 'cast(trunc(localtimestamp) as timestamp)' : "timestamp '" + (dateToConvertTimesBetweenZones ?? '1972-01-01') + " 00:00:00'"
         return 'cast(' + day + ' + (' + sql + ' - trunc(' + sql + ')) as timestamp with time zone)'
     }
     return undefined

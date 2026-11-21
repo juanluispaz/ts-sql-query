@@ -1,7 +1,7 @@
 // An Oracle database outside UTC, with its zone declared in the databaseTimeZone of the connection and the session in
 // that zone (ORA_SDTZ): the values without zone are wall clocks of Europe/Madrid, and the database completes their zone
 // with its session. A Date sent is stored as the wall clock of Madrid of its instant, a wall clock read is its instant,
-// the date functions give the parts in UTC, a localTime is completed with the localTimeReferenceDate, and the column
+// the date functions give the parts in UTC, a localTime is completed with the dateToConvertTimesBetweenZones, and the column
 // compares with a value with its index. The same with the process in Madrid, in UTC and in Tokyo. The zone of a
 // process and ORA_SDTZ are set when it starts, so each case runs in a process of its own (databaseOutsideUtc/probe.ts).
 
@@ -38,20 +38,20 @@ for (const { version, compatibilityVersion, label } of await environmentVersions
                 // +01:00, summer at +02:00); a DATE keeps the whole seconds
                 expect(out.insertSql).toBe('insert into rt_ora_madrid (id, ts) values (:0, :1)')
                 expect(out.stored).toEqual([
-                    { ID: 1, TS: '2024-01-14 10:15:30.123', DX: '2024-01-14 10:15:30', T: '1970-01-01 18:00:00.000', TZ_UTC: '2024-01-14 09:15:30.123' },
+                    { ID: 1, TS: '2024-01-14 10:15:30.123', DX: '2024-01-14 10:15:30', T: '1972-01-01 18:00:00.000', TZ_UTC: '2024-01-14 09:15:30.123' },
                     { ID: 2, TS: '2024-07-14 11:15:30.123', DX: '1960-07-14 10:15:30', T: null, TZ_UTC: '2024-07-14 09:15:30.123' },
-                    { ID: 5, TS: '1960-07-14 10:15:30.123', DX: null, T: '1970-01-01 18:00:00.000', TZ_UTC: null },
+                    { ID: 5, TS: '1960-07-14 10:15:30.123', DX: null, T: '1972-01-01 18:00:00.000', TZ_UTC: null },
                     { ID: 6, TS: '2024-01-14 10:15:30.123', DX: null, T: null, TZ_UTC: null },
                 ])
                 expect(out.returning).toEqual({ ts: '2024-01-14T09:15:30.123Z' })
                 // Read: the instant, with the date functions in UTC; row 3 was written by another program, with the time of
-                // its localTime on a day of summer, read on the reference date 1970-01-01
+                // its localTime on a day of summer, read on the date to convert times between zones, 1972-01-01
                 const winter = { hours: 9, minutes: 15, seconds: 30, milliseconds: 123, date: 14, day: 0, month: 0, year: 2024, time: Date.parse('2024-01-14T09:15:30.123Z') }
                 expect(out.read).toEqual([
-                    { id: 1, ts: '2024-01-14T09:15:30.123Z', dx: '2024-01-14T09:15:30.000Z', t: '1970-01-01T17:00:00.000Z', tz: '2024-01-14T09:15:30.123Z', ...winter, dxHours: 9, dxTime: Date.parse('2024-01-14T09:15:30Z'), tHours: 17, same: true },
+                    { id: 1, ts: '2024-01-14T09:15:30.123Z', dx: '2024-01-14T09:15:30.000Z', t: '1972-01-01T17:00:00.000Z', tz: '2024-01-14T09:15:30.123Z', ...winter, dxHours: 9, dxTime: Date.parse('2024-01-14T09:15:30Z'), tHours: 17, same: true },
                     { id: 2, ts: '2024-07-14T09:15:30.123Z', dx: '1960-07-14T09:15:30.000Z', tz: '2024-07-14T09:15:30.123Z', ...winter, month: 6, time: Date.parse('2024-07-14T09:15:30.123Z'), dxHours: 9, dxTime: Date.parse('1960-07-14T09:15:30Z'), same: true },
-                    { id: 3, ts: '2024-01-14T09:15:30.123Z', dx: '2024-01-14T09:15:30.000Z', t: '1970-01-01T17:00:00.000Z', ...winter, dxHours: 9, dxTime: Date.parse('2024-01-14T09:15:30Z'), tHours: 17 },
-                    { id: 5, ts: '1960-07-14T09:15:30.123Z', t: '1970-01-01T17:00:00.000Z', ...winter, day: 4, month: 6, year: 1960, time: Date.parse('1960-07-14T09:15:30.123Z'), tHours: 17 },
+                    { id: 3, ts: '2024-01-14T09:15:30.123Z', dx: '2024-01-14T09:15:30.000Z', t: '1972-01-01T17:00:00.000Z', ...winter, dxHours: 9, dxTime: Date.parse('2024-01-14T09:15:30Z'), tHours: 17 },
+                    { id: 5, ts: '1960-07-14T09:15:30.123Z', t: '1972-01-01T17:00:00.000Z', ...winter, day: 4, month: 6, year: 1960, time: Date.parse('1960-07-14T09:15:30.123Z'), tHours: 17 },
                 ])
                 // Compared: with the wall clock of Madrid of the instant, cast to the type of the column, with its index
                 // An instant: stored as the wall clock of Madrid of the instant (a DATE with its whole seconds), read,
@@ -100,11 +100,11 @@ for (const { version, compatibilityVersion, label } of await environmentVersions
                 expect(out.plan.dx).not.toMatch(/TABLE ACCESS FULL/)
                 // Inside the JSON of an aggregated array
                 expect([...out.aggregated].map(String).sort()).toEqual(['2024-01-14T09:15:30.123Z', '2024-07-14T09:15:30.123Z'])
-                expect(out.aggregatedObjects).toEqual([{ ts: '2024-01-14T09:15:30.123Z', t: '1970-01-01T17:00:00.000Z' }])
+                expect(out.aggregatedObjects).toEqual([{ ts: '2024-01-14T09:15:30.123Z', t: '1972-01-01T17:00:00.000Z' }])
                 // The current date and time of the database, read as its instant
                 expect(out.currentTimestampDrift).toBeLessThan(60_000)
-                // A localTime on the reference date: 1970-01-01 (+01:00), and today, the current date of the database
-                expect(out.constTime).toBe('1970-01-01T17:00:00.000Z')
+                // A localTime on the date to convert times between zones: 1972-01-01 (+01:00), and today, the current date of the database
+                expect(out.constTime).toBe('1972-01-01T17:00:00.000Z')
                 expect(out.constTimeToday).toMatch(/^\d{4}-\d{2}-\d{2}T1[67]:00:00\.000Z$/)
                 expect(Number(String(out.constTimeToday).slice(0, 4))).toBeGreaterThan(2000)
                 // A wall clock Madrid repeats when it leaves summer time is taken in winter time; one it skips when it
@@ -112,9 +112,9 @@ for (const { version, compatibilityVersion, label } of await environmentVersions
                 expect(out.repeated).toBe('2024-10-27T01:30:00.000Z')
                 expect(out.skipped).toMatch(/^rejected: .*ORA-01878/)
                 // A localTime is written and read with the offset of its own day: a day of summer, the reference date
-                expect(out.summerTime).toEqual({ stored: ['1970-01-01 18:00:00'], read: '2024-07-14T16:00:00.000Z' })
-                // A localTime is kept on 1970-01-01 also after midnight in Madrid, and compares with one another program wrote
-                expect(out.timeAfterMidnight).toEqual({ stored: ['9 1970-01-01 00:30:00', '10 1970-01-01 00:30:00', '11 1970-01-01 18:00:00'], where: [9, 10] })
+                expect(out.summerTime).toEqual({ stored: ['1972-01-01 18:00:00'], read: '2024-07-14T16:00:00.000Z' })
+                // A localTime is kept on 1972-01-01 (dateOfStoredTimes) also after midnight in Madrid, and compares with one another program wrote
+                expect(out.timeAfterMidnight).toEqual({ stored: ['9 1972-01-01 00:30:00', '10 1972-01-01 00:30:00', '11 1972-01-01 18:00:00'], where: [9, 10] })
             }, TIMEOUT)
         }
 

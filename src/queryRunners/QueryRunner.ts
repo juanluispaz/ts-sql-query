@@ -199,12 +199,8 @@ export interface ConnectionConfiguration {
      * its `sql_mode`), declared with `useSimultaneousAssignment`
      */
     readonly useSimultaneousAssignment?: boolean
-    /**
-     * PostgreSQL and Oracle: the functions of the library that compute dates and times with zones as Temporal are in the
-     * database
-     * (`temporalFunctions`, `'installed'`)
-     */
-    readonly temporalFunctions?: string
+    /** Oracle, PostgreSQL, SQL Server and SQLite: the functions of the library are in the database (`libraryFunctions`): `'installed'` or `'not installed'` */
+    readonly libraryFunctions?: string
     /** PostgreSQL: write the insensitive comparisons with `like` instead of `ilike` (`useLikeInsteadOfIlike`) */
     readonly useLikeInsteadOfIlike?: boolean
     /** SQLite: how an exact decimal is computed and compared (`decimalStrategy`) */
@@ -234,22 +230,14 @@ export interface ConnectionConfiguration {
     readonly excludeTrailingBlanksInLength?: boolean
     /** PostgreSQL and SQL Server: the smaller and greater of two values ignore a null (`ignoreNullInMinAndMaxValue`) */
     readonly ignoreNullInMinAndMaxValue?: boolean
-    /** PostgreSQL and SQL Server: the function of yours that gives the smaller of two values (`minValueFunction`) */
-    readonly minValueFunction?: string
-    /** PostgreSQL and SQL Server: the function of yours that gives the greater of two values (`maxValueFunction`) */
-    readonly maxValueFunction?: string
     /** Oracle: how a boolean is stored, `'number'` (`NUMBER(1)`, 1 / 0) or `'boolean'` (`BOOLEAN`, Oracle 23ai) (`booleanStorage`) */
     readonly booleanStorage?: string
     /** Oracle: a concatenation reads a null as the empty string (`ignoreNullInConcat`) */
     readonly ignoreNullInConcat?: boolean
-    /** Oracle: the function of yours that concatenates propagating a null (`concatFunction`) */
-    readonly concatFunction?: string
     /** Oracle and SQL Server: the collation of `replace` (`replaceCollation`) */
     readonly replaceCollation?: string | undefined
     /** Oracle: the collation of the insensitive `replace` (`replaceInsensitiveCollation`) */
     readonly replaceInsensitiveCollation?: string | undefined
-    /** SQLite: the function of yours that replaces ignoring case (`replaceAllInsensitiveFunction`) */
-    readonly replaceAllInsensitiveFunction?: string | undefined
 }
 
 /**

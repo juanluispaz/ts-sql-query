@@ -1060,14 +1060,14 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         // operand, contradicting the optional type the library declares; the poison CASE
         // built by the base wraps the version-appropriate inner so a NULL operand poisons
         // the result (it also fixes the `<2022` iif's operand-order asymmetry).
-        // `maxValueFunction` is the user opt-in.
-        return this._minAndMaxValueBetweenTwoValuesPoisoningNull(context, valueSource, value, typeClass, this._connectionConfiguration.maxValueFunction, 'least')
+        // With libraryFunctions installed it calls tsq_least_strict.
+        return this._minAndMaxValueBetweenTwoValuesPoisoningNull(context, valueSource, value, typeClass, (this._libraryFunctionsInstalled() ? 'dbo.tsq_least_strict' : undefined), 'least')
     }
     override _maximumBetweenTwoValues(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         // minValue(x) — the LARGER of the two. Native `greatest` / the `iif` emulation IGNORE
         // a NULL operand; the base's poison CASE wraps the version-appropriate inner so a NULL
-        // operand poisons the result. `minValueFunction` is the user opt-in.
-        return this._minAndMaxValueBetweenTwoValuesPoisoningNull(context, valueSource, value, typeClass, this._connectionConfiguration.minValueFunction, 'greatest')
+        // operand poisons the result. With libraryFunctions installed it calls tsq_greatest_strict.
+        return this._minAndMaxValueBetweenTwoValuesPoisoningNull(context, valueSource, value, typeClass, (this._libraryFunctionsInstalled() ? 'dbo.tsq_greatest_strict' : undefined), 'greatest')
     }
     override _minAndMaxValueSelection(context: SqlBuildContext, valueSource: ToSql, value: any, argumentClass: DataTypeClass, functionName: string, argumentNeedsTypeCast: boolean): string {
         if (this._connectionConfiguration.compatibilityVersion >= 16_000_000) {

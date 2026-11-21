@@ -1211,9 +1211,9 @@ column on the newest image, which a run without that flag uses.
 
 When the rows of a recursive `with` form a cycle, Oracle answers `ORA-32044: cycle detected while executing recursive WITH query`, also when a condition on a level column would end the walk (verified on the `newest` and `oldest` images). PostgreSQL, MySQL, MariaDB, SQLite and SQL Server follow the cycle until the condition stops it. On Oracle, `connectByNoCycle` is the way to walk data with a cycle. The test `docs:recursive-select/depth-limit` is commented out with `// NOT-SUPPORTED:` on the Oracle cells.
 
-### `replaceAllInsensitiveFunction`'s UDF cannot be registered on Bun SQL
+### `libraryFunctions`'s UDF cannot be registered on Bun SQL
 
-`replaceAllInsensitiveFunction` lets a SQLite connection route
+`libraryFunctions` lets a SQLite connection route
 `replaceAllInsensitive` through a case-folding user-defined function (`tsq_ci_replace`).
 Registering that UDF needs a driver-level user-defined-function API. **better-sqlite3**,
 **bun:sqlite** (`Database.function`, Bun 1.4+), **node:sqlite** and **sqlite-wasm**
@@ -1221,7 +1221,7 @@ expose one and run the test live; Bun SQL's sqlite adapter (no UDF API, and it d
 expose the `bun:sqlite` `Database` it opens) does not, so
 `tsq_ci_replace` cannot be registered there. This is **within-dialect divergence** across SQLite runners, so it is a
 per-runner boundary, not a dialect frontier — and only that driver growing a
-UDF-registration API would close it. The `replaceAllInsensitiveFunction` test is
+UDF-registration API would close it. The `libraryFunctions` test is
 commented with `// NOT-SUPPORTED:` (full canonical body preserved) on `bun_sql_sqlite`
 and runs live on the other SQLite runners.
 

@@ -60,17 +60,12 @@ function _typeNegatives() {
         // @ts-expect-error ignoreNullInMinAndMaxValue is not declared on MySqlConnection
         protected override ignoreNullInMinAndMaxValue = true
 
-        // Rule: minValue cannot be routed to a user function on MySqlConnection.
-        // @ts-expect-error minValueFunction is not declared on MySqlConnection
-        protected override minValueFunction = 'min_value'
 
-        // Rule: maxValue cannot be routed to a user function on MySqlConnection.
-        // @ts-expect-error maxValueFunction is not declared on MySqlConnection
-        protected override maxValueFunction = 'max_value'
 
-        // Rule: the concatenation function is not configurable on MySqlConnection.
-        // @ts-expect-error concatFunction is not declared on MySqlConnection
-        protected override concatFunction = 'concat_null'
+
+        // Rule: MySqlConnection calls no optional function of the library: it has no libraryFunctions.
+        // @ts-expect-error libraryFunctions is not declared on MySqlConnection
+        protected override libraryFunctions = 'installed' as const
 
         // Rule: the NULL-ignoring concatenation opt-out is not part of MySqlConnection.
         // @ts-expect-error ignoreNullInConcat is not declared on MySqlConnection
@@ -88,9 +83,6 @@ function _typeNegatives() {
         // @ts-expect-error excludeTrailingBlanksInLength is not declared on MySqlConnection
         protected override excludeTrailingBlanksInLength = true
 
-        // Rule: the insensitive replace function is not configurable on MySqlConnection.
-        // @ts-expect-error replaceAllInsensitiveFunction is not declared on MySqlConnection
-        protected override replaceAllInsensitiveFunction = 'tsq_ci_replace'
 
         // Rule: MySQL stores date/time values in a date/time data type, so the integer
         // reading rule is not part of MySqlConnection.

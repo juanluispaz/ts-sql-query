@@ -25,7 +25,7 @@ import { SynchronousPromise } from 'synchronous-promise'
 import { DBConnection } from './domain/connection.js'
 
 // The SQL functions the library may write on SQLite (the decimal strategies with functions, the uuid strategy
-// 'uuid-extension' and replaceAllInsensitiveFunction = 'tsq_ci_replace') are registered with the registerSqliteFunctions
+// 'uuid-extension' and replaceAllInsensitive with libraryFunctions = 'installed') are registered with the registerSqliteFunctions
 // of each query runner, the call the connector pages give, so the tests run with what users get. One connector can't
 // register them, so its tests that need them stay mock-only (via `ctx.mockOnlyConnection()`): Bun SQL (sqlite
 // adapter) exposes neither a user-defined-function API nor the bun:sqlite `Database` it opens. Each module is imported
@@ -62,14 +62,8 @@ export interface SqliteTestContext extends TestContext<DBConnection> {
     readonly exampleCollationForInsensitiveEquality: string
     /** A `DBConnection` whose `insensitiveCollation` is pinned to `collation`. */
     withInsensitiveCollation(collation: string | undefined): DBConnection
-    /**
-     * A `DBConnection` whose `replaceAllInsensitiveFunction` is pinned to
-     * `functionName` — the SQLite-only knob that routes `replaceAllInsensitive`
-     * through a user-registered UDF (e.g. `tsq_ci_replace`, registered above for the
-     * function-capable connectors) instead of the case-sensitive `replace(...)`
-     * fallback.
-     */
-    withReplaceAllInsensitiveFunction(functionName: string): DBConnection
+    /** A `DBConnection` with `libraryFunctions: 'installed'`: the functions of the library are in the database. */
+    withLibraryFunctions(): DBConnection
     /** A `DBConnection` whose `uuidStrategy` is pinned to `strategy`. */
     withUuidStrategy(strategy: 'string' | 'string as sent' | 'uuid-extension'): DBConnection
     /** A `DBConnection` whose `decimalStrategy` is pinned to `strategy`. */
@@ -138,9 +132,9 @@ function decorateSqliteContext(
             }
             return base.withConnection(C)
         },
-        withReplaceAllInsensitiveFunction(functionName: string): DBConnection {
+        withLibraryFunctions(): DBConnection {
             class C extends DBConnection {
-                protected override replaceAllInsensitiveFunction = functionName
+                protected override libraryFunctions = 'installed' as const
             }
             return base.withConnection(C)
         },

@@ -33,7 +33,7 @@ class MadridSummerConnection extends OracleConnection<'MadridConnection'> {
 }
 /** The same connection with the functions of the library that take a wall clock to its zone as Temporal */
 class MadridConnectionWithFunctions extends MadridConnection {
-    protected override temporalFunctions = 'installed' as const
+    protected override libraryFunctions = 'installed' as const
 }
 class MadridTodayConnection extends OracleConnection<'MadridTodayConnection'> {
     protected override databaseTimeZone = 'Europe/Madrid'

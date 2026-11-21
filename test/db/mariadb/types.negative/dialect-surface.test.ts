@@ -46,17 +46,12 @@ function _typeNegatives() {
         // @ts-expect-error ignoreNullInMinAndMaxValue is not declared on MariaDBConnection
         protected override ignoreNullInMinAndMaxValue = true
 
-        // Rule: minValue cannot be routed to a user function on MariaDBConnection.
-        // @ts-expect-error minValueFunction is not declared on MariaDBConnection
-        protected override minValueFunction = 'min_value'
 
-        // Rule: maxValue cannot be routed to a user function on MariaDBConnection.
-        // @ts-expect-error maxValueFunction is not declared on MariaDBConnection
-        protected override maxValueFunction = 'max_value'
 
-        // Rule: the concatenation function is not configurable on MariaDBConnection.
-        // @ts-expect-error concatFunction is not declared on MariaDBConnection
-        protected override concatFunction = 'concat_null'
+
+        // Rule: MariaDBConnection calls no optional function of the library: it has no libraryFunctions.
+        // @ts-expect-error libraryFunctions is not declared on MariaDBConnection
+        protected override libraryFunctions = 'installed' as const
 
         // Rule: the NULL-ignoring concatenation opt-out is not part of MariaDBConnection.
         // @ts-expect-error ignoreNullInConcat is not declared on MariaDBConnection
@@ -74,9 +69,6 @@ function _typeNegatives() {
         // @ts-expect-error excludeTrailingBlanksInLength is not declared on MariaDBConnection
         protected override excludeTrailingBlanksInLength = true
 
-        // Rule: the insensitive replace function is not configurable on MariaDBConnection.
-        // @ts-expect-error replaceAllInsensitiveFunction is not declared on MariaDBConnection
-        protected override replaceAllInsensitiveFunction = 'tsq_ci_replace'
 
         // Rule: MariaDB stores date/time values in a date/time data type, so the integer
         // reading rule is not part of MariaDBConnection.

@@ -1311,25 +1311,22 @@ interface MySqlConnectionConfiguration {
 interface OracleConnectionConfiguration {
     uuidStrategy: 'string' | 'string as sent' | 'custom-functions' | 'built-in' // Default: 'built-in'
     ignoreNullInConcat: boolean // Default: false
-    concatFunction?: string
     usePlatformDependentRound: boolean // Default: false
     replaceCollation: string // Default: 'BINARY'
     replaceInsensitiveCollation: string // Default: 'BINARY_CI'
-    temporalFunctions: 'installed' | 'not installed' // Default: 'not installed'
+    libraryFunctions: 'installed' | 'not installed' // Default: 'not installed'
 }
 
 interface PostgreSqlConnectionConfiguration {
     usePlatformDependentRound: boolean // Default: false
     ignoreNullInMinAndMaxValue: boolean // Default: false
-    minValueFunction?: string
-    maxValueFunction?: string
     useLikeInsteadOfIlike: boolean // Default: false
-    temporalFunctions: 'installed' | 'not installed' // Default: 'not installed'
+    libraryFunctions: 'installed' | 'not installed' // Default: 'not installed'
 }
 
 interface SqliteConnectionConfiguration {
     uuidStrategy: 'string' | 'string as sent' | 'uuid-extension' // Default: 'uuid-extension'
-    replaceAllInsensitiveFunction?: string
+    libraryFunctions: 'installed' | 'not installed' // Default: 'not installed'
     /** Protected method with the format of a date, a time or a date time. By default, 'localdate milliseconds as text' */
     getDateTimeFormat(type: 'date' | 'time' | 'dateTime'): 'localdate seconds as text' | 'localdate milliseconds as text' | 'localdate seconds as text using T separator' | 'localdate milliseconds as text using T separator' | 'UTC seconds as text' | 'UTC milliseconds as text' | 'UTC seconds as text using T separator' | 'UTC milliseconds as text using T separator' | 'UTC seconds as text using Z timezone' | 'UTC milliseconds as text using Z timezone' | 'UTC seconds as text using T separator and Z timezone' | 'UTC milliseconds as text using T separator and Z timezone' | 'Julian day as real number' | 'Unix time seconds as integer' | 'Unix time milliseconds as integer'
     sqliteRunsInApplicationTimeZone: boolean // Default: false
@@ -1344,8 +1341,7 @@ interface SqlServerConnectionConfiguration {
     usePlatformDependentRound: boolean // Default: false
     useUpperCaseUuid: boolean // Default: false
     ignoreNullInMinAndMaxValue: boolean // Default: false
-    minValueFunction?: string
-    maxValueFunction?: string
+    libraryFunctions: 'installed' | 'not installed' // Default: 'not installed'
     replaceCollation: string // Default: 'Latin1_General_BIN2'
 }
 

@@ -70,14 +70,12 @@ export interface PostgresTestContext extends TestContext<DBConnection> {
     withInsensitiveCollation(collation: string | undefined): DBConnection
     /** A `DBConnection` with `useLikeInsteadOfIlike` on and `insensitiveCollation` pinned to `collation`. */
     withLikeInsteadOfIlike(collation: string | undefined): DBConnection
-    /** A `DBConnection` with `temporalFunctions: 'installed'` (a wall clock taken to its zone as Temporal disambiguates it). */
-    withTemporalFunctions(): DBConnection
+    /** A `DBConnection` with `libraryFunctions: 'installed'`: the functions of the library are in the database. */
+    withLibraryFunctions(): DBConnection
     /** A `DBConnection` with `allowEmptyString` enabled (empty strings kept, not mapped to null). */
     withAllowEmptyString(): DBConnection
     /** A `DBConnection` with `ignoreNullInMinAndMaxValue` enabled (keeps native least/greatest NULL-ignoring semantics). */
     withIgnoreNullInMinAndMaxValue(): DBConnection
-    /** A `DBConnection` whose `minValueFunction` / `maxValueFunction` are pinned to the given user functions. */
-    withMinMaxFunctions(minValueFunction: string, maxValueFunction: string): DBConnection
     /** A `DBConnection` with `usePlatformDependentRound` enabled (bare `round(...)`, no `::numeric` cast). */
     withUsePlatformDependentRound(): DBConnection
     /**
@@ -123,9 +121,9 @@ function decoratePostgresContext(
             }
             return base.withConnection(C)
         },
-        withTemporalFunctions(): DBConnection {
+        withLibraryFunctions(): DBConnection {
             class C extends DBConnection {
-                protected override temporalFunctions = 'installed' as const
+                protected override libraryFunctions = 'installed' as const
             }
             return base.withConnection(C)
         },
@@ -138,13 +136,6 @@ function decoratePostgresContext(
         withIgnoreNullInMinAndMaxValue(): DBConnection {
             class C extends DBConnection {
                 protected override ignoreNullInMinAndMaxValue = true
-            }
-            return base.withConnection(C)
-        },
-        withMinMaxFunctions(minValueFunction: string, maxValueFunction: string): DBConnection {
-            class C extends DBConnection {
-                protected override minValueFunction = minValueFunction
-                protected override maxValueFunction = maxValueFunction
             }
             return base.withConnection(C)
         },

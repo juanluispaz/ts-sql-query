@@ -240,7 +240,7 @@ LANGUAGE sql AS $$ SELECT MAX(created_at) FROM issue WHERE project_id = p_id $$;
 CREATE FUNCTION estimated_total(p_id integer) RETURNS double precision
 LANGUAGE sql AS $$ SELECT COALESCE(SUM(estimated_hours), 0)::double precision FROM issue WHERE project_id = p_id $$;
 
--- Null-propagating min/max helpers for the `minValueFunction` / `maxValueFunction`
+-- Null-propagating min/max helpers for the `libraryFunctions` (tsq_greatest_strict / tsq_least_strict)
 -- opt-in (config.min-max-null-handling.test.ts). PostgreSQL's native `least` / `greatest`
 -- IGNORE a NULL operand; these poison it to NULL instead, so a user who prefers the
 -- function form over the CASE the builder emits by default can name them. `anycompatible`

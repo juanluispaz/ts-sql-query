@@ -66,8 +66,8 @@ export interface SqlServerTestContext extends TestContext<DBConnection> {
     withAllowEmptyString(): DBConnection
     /** A `DBConnection` with `ignoreNullInMinAndMaxValue` enabled (keeps native least/greatest NULL-ignoring semantics). */
     withIgnoreNullInMinAndMaxValue(): DBConnection
-    /** A `DBConnection` whose `minValueFunction` / `maxValueFunction` are pinned to the given user functions. */
-    withMinMaxFunctions(minValueFunction: string, maxValueFunction: string): DBConnection
+    /** A `DBConnection` with `libraryFunctions: 'installed'`: the functions of the library are in the database. */
+    withLibraryFunctions(): DBConnection
     /** A `DBConnection` whose `replaceCollation` is pinned to `collation` (`''` opts out to a bare `replace(...)`). */
     withReplaceCollation(collation: string): DBConnection
     /** A `DBConnection` with `excludeTrailingBlanksInLength` enabled (bare native `len(...)`). */
@@ -102,10 +102,9 @@ function decorateSqlServerContext(base: TestContext<DBConnection>): SqlServerTes
             }
             return base.withConnection(C)
         },
-        withMinMaxFunctions(minValueFunction: string, maxValueFunction: string): DBConnection {
+        withLibraryFunctions(): DBConnection {
             class C extends DBConnection {
-                protected override minValueFunction = minValueFunction
-                protected override maxValueFunction = maxValueFunction
+                protected override libraryFunctions = 'installed' as const
             }
             return base.withConnection(C)
         },

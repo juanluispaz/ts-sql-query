@@ -73,21 +73,22 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
      * null-checked, so a concatenation of required operands is still the bare `||`.
      *
      * Setting this flag to `true` keeps the bare native `||`, which reads NULL as the empty
-     * string. Prefer {@link concatFunction} if you want NULL propagation without the
-     * operand-repeating `CASE`.
+     * string. With {@link libraryFunctions} installed, the NULL propagation calls a function of the
+     * library instead of the operand-repeating `CASE`.
      */
     protected ignoreNullInConcat: boolean = false
     /**
-     * Whether the functions of the library that compute a date and time in a time zone as Temporal does
-     * (`tsq_zoned_of_wall`) are in the database: `'installed'` or `'not installed'` (the default).
-     *
-     * Without them, a wall clock taken to its zone (`toZonedDateTime`, and the arithmetic of a zoned date and time) is
-     * the instant Oracle itself gives it: the later one of a wall clock the zone repeats, where Temporal's default
-     * `'compatible'` takes the earlier one, and a wall clock the zone skips makes the query fail (ORA-01878); a
-     * disambiguation `'earlier'` or `'reject'` is rejected when the query is built. With them, every disambiguation is
-     * Temporal's.
+     * Whether the functions of the library are in the database (its file of SQL, tsq-functions.sql): `'installed'` or
+     * `'not installed'` (the default). The ones a query always needs, of durations and of differences of zoned dates and
+     * times in days, are called anyway. With them installed the library also calls:
+     * - `tsq_zoned_of_wall`, to take a wall clock to its zone (`toZonedDateTime`, and the arithmetic of a zoned date and
+     *   time) as Temporal disambiguates it. Without it, a wall clock the zone repeats is the later instant Oracle gives,
+     *   where Temporal's default `'compatible'` takes the earlier one, a wall clock the zone skips makes the query fail
+     *   (ORA-01878), and a disambiguation `'earlier'` or `'reject'` is rejected when the query is built.
+     * - `tsq_string_util.concat_strict`, for a concatenation (`concat` and the patterns of `startsWith`, `endsWith` and
+     *   `contains`) that gives null for a null operand writing each operand once; without it, a `CASE` repeats them.
      */
-    protected temporalFunctions: 'installed' | 'not installed' = 'not installed'
+    protected libraryFunctions: 'installed' | 'not installed' = 'not installed'
     /**
      * The date of a column of a date (DATE, TIMESTAMP) that stores only a time of the day (a localTime, a plainTime):
      * Oracle has no type of a time alone. A date `'YYYY-MM-DD'`, `'1972-01-01'` by default; the date of a time read is
@@ -105,25 +106,6 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
      */
     protected usePlatformDependentRound: boolean = false
 
-    /**
-     * Name of a null-propagating concatenation function to emit instead of the default
-     * NULL-poisoning `CASE`, so the operand is not repeated (the same trade-off
-     * {@link minValueFunction} makes on other dialects). Preferred over the `CASE` when set.
-     *
-     * By default (unset, and with {@link ignoreNullInConcat} left `false`) the builder wraps
-     * every concatenation it emits — `concat` and the affix patterns alike — in a `CASE` that
-     * propagates a NULL operand, matching the other databases. That `CASE` repeats the operand
-     * (once in the null check, once in the `||`); free for a column, but not for an expensive
-     * value-source receiver. Set this to the name of a function you created and every
-     * concatenation goes through `func(a, b)` instead, each operand appearing once. `concat`
-     * and the affix predicates always move together: a `startsWith` that propagates NULL while
-     * `concat` does not would only relocate the inconsistency.
-     *
-     * The name is yours: pass whatever you called it, package-qualified if it lives in a
-     * package (which it must, if you want the overloads that keep CLOB values from being
-     * truncated). See the Oracle page of the documentation for an implementation.
-     */
-    protected concatFunction?: string
 
     /**
      * Collation forced on the **match** operands of `.replaceAll(...)`.

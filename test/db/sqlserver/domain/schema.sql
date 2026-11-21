@@ -256,7 +256,7 @@ GO
 CREATE FUNCTION estimated_total(@p_id INT) RETURNS FLOAT AS BEGIN RETURN (SELECT COALESCE(SUM(estimated_hours),0) FROM issue WHERE project_id = @p_id) END;
 GO
 
--- Null-propagating min/max helpers for the `minValueFunction` / `maxValueFunction`
+-- Null-propagating min/max helpers for the `libraryFunctions` (tsq_greatest_strict / tsq_least_strict)
 -- opt-in (config.min-max-null-handling.test.ts). SQL Server's native `least` / `greatest`
 -- (2022+) and the `iif` emulation IGNORE a NULL operand; these poison it to NULL instead,
 -- so a user who prefers the function form over the CASE the builder emits by default can

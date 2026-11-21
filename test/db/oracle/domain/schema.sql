@@ -228,7 +228,7 @@ CREATE OR REPLACE FUNCTION latest_issue_at(p_id IN NUMBER) RETURN TIMESTAMP AS v
 
 CREATE OR REPLACE FUNCTION estimated_total(p_id IN NUMBER) RETURN BINARY_DOUBLE AS v BINARY_DOUBLE; BEGIN SELECT COALESCE(SUM(estimated_hours),0) INTO v FROM issue WHERE project_id = p_id; RETURN v; END;
 
--- A null-propagating concatenation, for the `concatFunction` connection option: Oracle's
+-- A null-propagating concatenation, for the `libraryFunctions` connection option: Oracle's
 -- own `||` reads NULL as the empty string, so `concat` returns a present string where its
 -- type says NULL, and an affix predicate on a NULL term matches every row instead of none.
 -- Four overloads, not two: a CLOB argument against a VARCHAR2 literal is the common call,

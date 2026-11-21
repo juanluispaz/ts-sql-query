@@ -4,7 +4,7 @@
 // instant. zoned_value row 1 is 2024-10-27T02:30:00.123456+02:00[Europe/Madrid] with the wall clock 2024-10-27 02:30,
 // which Madrid repeats; row 2 is 2024-01-14T14:45:30.123456+05:30[Asia/Kolkata] with 2024-03-31 02:30, which Madrid
 // skips, and the zone America/New_York; row 3 is 1969-07-20T15:17:40-05:00[-05:00] with 2024-01-14 10:00, without zone.
-// Every value expected is the one Temporal gives, with the functions of the library (temporalFunctions); without them a
+// Every value expected is the one Temporal gives, with the functions of the library (libraryFunctions); without them a
 // wall clock the zone repeats is the later instant, as PostgreSQL takes it.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
@@ -52,7 +52,7 @@ describe(ctx.label, () => {
         // of each row
         const summer = Temporal.ZonedDateTime.from('2024-07-01T12:00:00.987654+02:00[Europe/Madrid]')
         ctx.mockNext({ sent: summer.toInstant().toString() + ' AD[EUROPE/MADRID]' })
-        const sent = await ctx.withTemporalFunctions().selectFromNoTable().select({ sent: ctx.withTemporalFunctions().const(summer, 'zonedDateTime') }).executeSelectOne()
+        const sent = await ctx.withLibraryFunctions().selectFromNoTable().select({ sent: ctx.withLibraryFunctions().const(summer, 'zonedDateTime') }).executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select to_char($1::timestamptz at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z" BC') || '[Europe/Madrid]' as sent"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
@@ -60,7 +60,7 @@ describe(ctx.label, () => {
           ]
         `)
         ctx.mockNext(zoned.map((value, i) => ({ id: i + 1, zonedAt: value.toInstant().toString() + ' AD[' + value.timeZoneId + ']' })))
-        const rows = await ctx.withTemporalFunctions().selectFrom(tZonedValue)
+        const rows = await ctx.withLibraryFunctions().selectFrom(tZonedValue)
             .select({ id: tZonedValue.id, zonedAt: zonedAt })
             .orderBy('id')
             .executeSelectMany()
@@ -77,7 +77,7 @@ describe(ctx.label, () => {
             zone: value.timeZoneId, offset: value.offset, offsetNanoseconds: value.offsetNanoseconds, milliseconds: value.epochMilliseconds, nanoseconds: String(value.epochNanoseconds),
             year: value.year, month: value.month, dayOfMonth: value.day, dayOfWeek: value.dayOfWeek, dayOfYear: value.dayOfYear, hour: value.hour, minute: value.minute, second: value.second, millisecond: value.millisecond, microsecond: value.microsecond,
         })))
-        const rows = await ctx.withTemporalFunctions().selectFrom(tZonedValue)
+        const rows = await ctx.withLibraryFunctions().selectFrom(tZonedValue)
             .select({
                 id: tZonedValue.id,
                 instant: zonedAt.toInstant(),
@@ -121,13 +121,13 @@ describe(ctx.label, () => {
             newYork: value.toInstant().toString() + ' AD[AMERICA/NEW_YORK]',
             offsetZone: '2024-01-14T09:15:30.123456Z AD[+05:30]',
         })))
-        const rows = await ctx.withTemporalFunctions().selectFrom(tZonedValue)
+        const rows = await ctx.withLibraryFunctions().selectFrom(tZonedValue)
             .select({
                 id: tZonedValue.id,
                 tokyo: zonedAt.withTimeZone('Asia/Tokyo'),
                 ofColumn: zonedAt.withTimeZone(tZonedValue.zoneName),
                 newYork: zonedAt.toInstant().toZonedDateTimeISO('America/New_York'),
-                offsetZone: ctx.withTemporalFunctions().const(Temporal.Instant.from('2024-01-14T09:15:30.123456Z'), 'instant').toZonedDateTimeISO('+05:30'),
+                offsetZone: ctx.withLibraryFunctions().const(Temporal.Instant.from('2024-01-14T09:15:30.123456Z'), 'instant').toZonedDateTimeISO('+05:30'),
             })
             .orderBy('id')
             .executeSelectMany()
@@ -154,7 +154,7 @@ describe(ctx.label, () => {
             later: wall.toZonedDateTime('Europe/Madrid', { disambiguation: 'later' }).toInstant().toString() + ' AD[EUROPE/MADRID]',
             ofColumn: zoneNames[i] === undefined ? null : wall.toZonedDateTime(zoneNames[i]!).toInstant().toString() + ' AD[' + zoneNames[i]!.toUpperCase() + ']',
         })))
-        const rows = await ctx.withTemporalFunctions().selectFrom(tZonedValue)
+        const rows = await ctx.withLibraryFunctions().selectFrom(tZonedValue)
             .select({
                 id: tZonedValue.id,
                 compatible: tZonedValue.wallAt.toZonedDateTime('Europe/Madrid'),
@@ -189,7 +189,7 @@ describe(ctx.label, () => {
         const failures: boolean[] = []
         for (const id of [1, 2, 3]) {
             ctx.mockNext([walls[id - 1]!.toZonedDateTime('Europe/Madrid').toInstant().toString() + ' AD[EUROPE/MADRID]'])
-            failures.push(await failureOf(ctx.withTemporalFunctions().selectFrom(tZonedValue)
+            failures.push(await failureOf(ctx.withLibraryFunctions().selectFrom(tZonedValue)
                 .where(tZonedValue.id.equals(id))
                 .selectOneColumn(tZonedValue.wallAt.toZonedDateTime('Europe/Madrid', { disambiguation: 'reject' }))
                 .executeSelectMany()))
@@ -202,7 +202,7 @@ describe(ctx.label, () => {
         // Compared and ordered by their instant, as Temporal's compare: row 2 in Tokyo is row 2 (Temporal's equals also
         // compares the zone)
         ctx.mockNext([1])
-        const later = await ctx.withTemporalFunctions().selectFrom(tZonedValue)
+        const later = await ctx.withLibraryFunctions().selectFrom(tZonedValue)
             .where(zonedAt.greaterThan(zoned[1]!.withTimeZone('UTC')))
             .selectOneColumn(tZonedValue.id)
             .executeSelectMany()
@@ -213,12 +213,12 @@ describe(ctx.label, () => {
           ]
         `)
         ctx.mockNext([2])
-        const same = await ctx.withTemporalFunctions().selectFrom(tZonedValue)
+        const same = await ctx.withLibraryFunctions().selectFrom(tZonedValue)
             .where(zonedAt.equals(zoned[1]!.withTimeZone('Asia/Tokyo')))
             .selectOneColumn(tZonedValue.id)
             .executeSelectMany()
         ctx.mockNext([3, 2, 1].map(id => ({ id, at: zoned[id - 1]!.toInstant().toString() + ' AD[' + zoned[id - 1]!.timeZoneId.toUpperCase() + ']' })))
-        const ordered = (await ctx.withTemporalFunctions().selectFrom(tZonedValue)
+        const ordered = (await ctx.withLibraryFunctions().selectFrom(tZonedValue)
             .select({ id: tZonedValue.id, at: zonedAt })
             .orderBy('at')
             .executeSelectMany()).map(row => row.id)
@@ -238,13 +238,13 @@ describe(ctx.label, () => {
         ctx.mockNext(zoned.map((value, i) => ({
             id: i + 1, nextDay: text(value.add({ days: 1 })), twoHoursBefore: text(value.subtract({ hours: 2 })), monthAndHour: text(value.add({ months: 1, hours: 1 })), ofDuration: text(value.add(duration)),
         })))
-        const rows = await ctx.withTemporalFunctions().selectFrom(tZonedValue)
+        const rows = await ctx.withLibraryFunctions().selectFrom(tZonedValue)
             .select({
                 id: tZonedValue.id,
                 nextDay: zonedAt.add({ days: 1 }),
                 twoHoursBefore: zonedAt.subtract({ hours: 2 }),
                 monthAndHour: zonedAt.add({ months: 1, hours: 1 }),
-                ofDuration: zonedAt.add(ctx.withTemporalFunctions().const(duration, 'duration')),
+                ofDuration: zonedAt.add(ctx.withLibraryFunctions().const(duration, 'duration')),
             })
             .orderBy('id')
             .executeSelectMany()
@@ -273,7 +273,7 @@ describe(ctx.label, () => {
             id: i + 1, quarterTo: text(value.with({ minute: 45 })), later: text(value.with({ minute: 45 }, { offset: 'ignore', disambiguation: 'later' })), hour: text(value.round('hour')),
             day: text(value.round('day')), start: text(value.startOfDay()), atNoon: text(value.withPlainTime(noon)), hoursInDay: value.hoursInDay,
         })))
-        const rows = await ctx.withTemporalFunctions().selectFrom(tZonedValue)
+        const rows = await ctx.withLibraryFunctions().selectFrom(tZonedValue)
             .select({
                 id: tZonedValue.id,
                 quarterTo: zonedAt.with({ minute: 45 }),
@@ -325,7 +325,7 @@ describe(ctx.label, () => {
         const text = (value: Temporal.ZonedDateTime) => value.toInstant().toString() + ' AD[' + value.timeZoneId.toUpperCase() + ']'
         const chain = (value: Temporal.ZonedDateTime) => value.add({ days: 1 }).with({ hour: 3 }).round('hour')
         ctx.mockNext(zoned.map((value, i) => ({ id: i + 1, chained: text(chain(value).startOfDay()), hoursInDay: chain(value).hoursInDay })))
-        const rows = await ctx.withTemporalFunctions().selectFrom(tZonedValue)
+        const rows = await ctx.withLibraryFunctions().selectFrom(tZonedValue)
             .select({
                 id: tZonedValue.id,
                 chained: zonedAt.add({ days: 1 }).with({ hour: 3 }).round('hour').startOfDay(),
@@ -351,11 +351,11 @@ describe(ctx.label, () => {
         const value = zoned[0]!
         const text = (zonedValue: Temporal.ZonedDateTime) => zonedValue.toInstant().toString() + ' AD[' + zonedValue.timeZoneId.toUpperCase() + ']'
         ctx.mockNext([text(value.add({ months: 1 }, { overflow: 'reject' }))])
-        failures.push(await failureOf(ctx.withTemporalFunctions().selectFrom(tZonedValue).where(tZonedValue.id.equals(1)).selectOneColumn(zonedAt.add({ months: 1 }, { overflow: 'reject' })).executeSelectMany()))
+        failures.push(await failureOf(ctx.withLibraryFunctions().selectFrom(tZonedValue).where(tZonedValue.id.equals(1)).selectOneColumn(zonedAt.add({ months: 1 }, { overflow: 'reject' })).executeSelectMany()))
         ctx.mockNext([])
-        failures.push(await failureOf(ctx.withTemporalFunctions().selectFrom(tZonedValue).where(tZonedValue.id.equals(1)).selectOneColumn(zonedAt.with({ month: 2, day: 30 }, { overflow: 'reject' })).executeSelectMany()))
+        failures.push(await failureOf(ctx.withLibraryFunctions().selectFrom(tZonedValue).where(tZonedValue.id.equals(1)).selectOneColumn(zonedAt.with({ month: 2, day: 30 }, { overflow: 'reject' })).executeSelectMany()))
         ctx.mockNext([])
-        failures.push(await failureOf(ctx.withTemporalFunctions().selectFrom(tZonedValue).where(tZonedValue.id.equals(1)).selectOneColumn(zonedAt.with({ offset: '+05:00' }, { offset: 'reject' })).executeSelectMany()))
+        failures.push(await failureOf(ctx.withLibraryFunctions().selectFrom(tZonedValue).where(tZonedValue.id.equals(1)).selectOneColumn(zonedAt.with({ offset: '+05:00' }, { offset: 'reject' })).executeSelectMany()))
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select to_char((select (((tsq_z.x at time zone (case when value_zone ~ '^[+-]' then translate(value_zone, '+-', '-+') else value_zone end)) - make_interval(secs => 18000)) + make_interval(days => (extract(day from make_date(2001, 2, case when ((((tsq_z.x at time zone (case when value_zone ~ '^[+-]' then translate(value_zone, '+-', '-+') else value_zone end)) - make_interval(secs => 18000)) at time zone 'UTC') at time zone (case when value_zone ~ '^[+-]' then translate(value_zone, '+-', '-+') else value_zone end)) = (tsq_z.x at time zone (case when value_zone ~ '^[+-]' then translate(value_zone, '+-', '-+') else value_zone end)) then 28 else 29 end))::integer - 28))) at time zone 'UTC' from (select instant_at::timestamptz as x offset 0) tsq_z) at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z" BC') || '[' || value_zone || ']' as result from zoned_value where id = $1"`)
         expect(failures).toEqual([false, ctx.realDbEnabled, ctx.realDbEnabled])
     })
@@ -368,7 +368,7 @@ describe(ctx.label, () => {
             id: i + 1, hours: value.until(later(value)).toString(), days: value.until(later(value), { largestUnit: 'day' }).toString(),
             months: value.since(value.subtract({ months: 1, days: 10 }), { largestUnit: 'month', smallestUnit: 'month', roundingMode: 'halfExpand' }).toString(),
         })))
-        const rows = await ctx.withTemporalFunctions().selectFrom(tZonedValue)
+        const rows = await ctx.withLibraryFunctions().selectFrom(tZonedValue)
             .select({
                 id: tZonedValue.id,
                 hours: zonedAt.until(zonedAt.add({ days: 2, hours: 1 })),
@@ -399,10 +399,10 @@ describe(ctx.label, () => {
         // As Temporal, which rejects it: row 2 is in Kolkata, the other value in Madrid; in hours any two are compared
         const madrid = Temporal.ZonedDateTime.from('2024-02-01T00:00:00+01:00[Europe/Madrid]')
         ctx.mockNext([])
-        const failure = await failureOf(ctx.withTemporalFunctions().selectFrom(tZonedValue).where(tZonedValue.id.equals(2)).selectOneColumn(zonedAt.until(madrid, { largestUnit: 'day' })).executeSelectMany())
+        const failure = await failureOf(ctx.withLibraryFunctions().selectFrom(tZonedValue).where(tZonedValue.id.equals(2)).selectOneColumn(zonedAt.until(madrid, { largestUnit: 'day' })).executeSelectMany())
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_zoned_until(instant_at::timestamptz, value_zone, $1::timestamptz, 'Europe/Madrid', 'day', 'nanosecond', 1, 'trunc', 1) as result from zoned_value where id = $2"`)
         ctx.mockNext(zoned[1]!.until(madrid).toString())
-        const hours = await ctx.withTemporalFunctions().selectFrom(tZonedValue).where(tZonedValue.id.equals(2)).selectOneColumn(zonedAt.until(madrid)).executeSelectOne()
+        const hours = await ctx.withLibraryFunctions().selectFrom(tZonedValue).where(tZonedValue.id.equals(2)).selectOneColumn(zonedAt.until(madrid)).executeSelectOne()
         expect([failure, hours.toString()]).toEqual([ctx.realDbEnabled, zoned[1]!.until(madrid).toString()])
     })
 

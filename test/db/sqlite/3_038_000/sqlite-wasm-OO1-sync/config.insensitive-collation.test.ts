@@ -223,13 +223,13 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email like (replace(replace(replace(full_name, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%') escape '\\'"`)
     })
 
-    test('replaceAllInsensitiveFunction routes through the named UDF', async () => {
-        // With `replaceAllInsensitiveFunction = 'tsq_ci_replace'`, `replaceAllInsensitive`
+    test('libraryFunctions: replaceAllInsensitive calls tsq_ci_replace', async () => {
+        // With `libraryFunctions = 'tsq_ci_replace'`, `replaceAllInsensitive`
         // emits `tsq_ci_replace(?, ?, ?)` instead of the case-sensitive `replace(...)`
         // fallback. `tsq_ci_replace` folds case, so 'ABCabc' with 'abc' → 'X' rewrites both
         // 'ABC' and 'abc' → 'XX'.
                 ctx.mockNext([{ v: 'XX' }])
-const conn = ctx.withReplaceAllInsensitiveFunction('tsq_ci_replace')
+const conn = ctx.withLibraryFunctions()
         const rows = sync(conn.selectFromNoTable()
             .select({ v: conn.const('ABCabc', 'string').replaceAllInsensitive('abc', 'X') })
             .executeSelectMany())

@@ -419,14 +419,14 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     override _minimumBetweenTwoValues(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         // maxValue(x) — the SMALLER of the two. PostgreSQL's `least` ignores a NULL
         // operand, contradicting the optional type the library declares; wrap it so a
-        // NULL operand poisons the result. `maxValueFunction` is the user opt-in.
-        return this._minAndMaxValueBetweenTwoValuesPoisoningNull(context, valueSource, value, typeClass, this._connectionConfiguration.maxValueFunction, 'least')
+        // NULL operand poisons the result. With libraryFunctions installed it calls tsq_least_strict.
+        return this._minAndMaxValueBetweenTwoValuesPoisoningNull(context, valueSource, value, typeClass, (this._libraryFunctionsInstalled() ? 'tsq_least_strict' : undefined), 'least')
     }
     override _maximumBetweenTwoValues(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         // minValue(x) — the LARGER of the two. PostgreSQL's `greatest` ignores a NULL
-        // operand; wrap it so a NULL operand poisons the result. `minValueFunction` is
-        // the user opt-in.
-        return this._minAndMaxValueBetweenTwoValuesPoisoningNull(context, valueSource, value, typeClass, this._connectionConfiguration.minValueFunction, 'greatest')
+        // operand; wrap it so a NULL operand poisons the result. With libraryFunctions installed it
+        // calls tsq_greatest_strict.
+        return this._minAndMaxValueBetweenTwoValuesPoisoningNull(context, valueSource, value, typeClass, (this._libraryFunctionsInstalled() ? 'tsq_greatest_strict' : undefined), 'greatest')
     }
     override _asNullValue(context: SqlBuildContext, typeClass: DataTypeClass): string {
         // A null of a type PostgreSQL knows is a parameter that carries its type, written as a cast or sent with it by
@@ -902,12 +902,12 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     /*
      * A wall clock taken to its zone: PostgreSQL's own `timestamp at time zone`, which takes the later instant of a wall
      * clock the zone repeats and moves one it skips forward, as Temporal's 'later' (Temporal's 'compatible' takes the
-     * earlier one); with the functions of the library (temporalFunctions), tsq_zoned_of_wall, as Temporal disambiguates
+     * earlier one); with the functions of the library (libraryFunctions), tsq_zoned_of_wall, as Temporal disambiguates
      * it. The SQL is the instant, a timestamptz, so the computations of zones of PostgreSQL are written here with it
      */
-    /** Whether the functions of the library that compute as Temporal are in the database (`temporalFunctions`) */
+    /** Whether the functions of the library that compute as Temporal are in the database (`libraryFunctions`) */
     _pgTemporalFunctions(): boolean {
-        return this._connectionConfiguration.temporalFunctions === 'installed'
+        return this._libraryFunctionsInstalled()
     }
     /**
      * The instant of a wall clock in a zone (see _zonedTimeZoneSql), with Temporal's disambiguation, or PostgreSQL's
@@ -919,7 +919,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
             return 'tsq_zoned_of_wall(' + wall + ', ' + this._pgZoneText(zone) + ", '" + disambiguation + "'" + (preferredOffset === undefined ? '' : ', ' + preferredOffset) + ')'
         }
         if (disambiguation === 'earlier' || disambiguation === 'reject') {
-            throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_QUERY' }, "PostgreSQL takes a wall clock its zone repeats as the later instant, and one it skips moved forward: the disambiguation '" + disambiguation + "' needs the functions of the library (temporalFunctions: 'installed')")
+            throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_QUERY' }, "PostgreSQL takes a wall clock its zone repeats as the later instant, and one it skips moved forward: the disambiguation '" + disambiguation + "' needs the functions of the library (libraryFunctions: 'installed')")
         }
         if (preferredOffset === undefined) {
             return this._pgWallAt(wall, zone)

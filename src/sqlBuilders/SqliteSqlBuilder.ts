@@ -1414,6 +1414,10 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     override _zonedKeptAsText(): boolean {
         return true
     }
+    /** tsq_ci_replace, registered in the connection of the driver with the functions of the library (libraryFunctions) */
+    override _replaceAllInsensitiveFunction(): string | undefined {
+        return this._libraryFunctionsInstalled() ? 'tsq_ci_replace' : undefined
+    }
     /** The date and time with its offset of the text of a zoned date and time, as the date functions take it */
     _sqliteZonedTextDateTime(context: SqlBuildContext, valueSource: ToSql): string {
         return "substr(" + this._appendSql(valueSource, context, false) + ", 1, instr(" + this._appendSql(valueSource, context, false) + ", '[') - 1)"

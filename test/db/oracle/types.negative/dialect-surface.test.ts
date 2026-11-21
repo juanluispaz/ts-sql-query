@@ -58,21 +58,12 @@ function _typeNegatives() {
         // @ts-expect-error ignoreNullInMinAndMaxValue is not declared on OracleConnection
         protected override ignoreNullInMinAndMaxValue = true
 
-        // Rule: minValue cannot be routed to a user function on OracleConnection.
-        // @ts-expect-error minValueFunction is not declared on OracleConnection
-        protected override minValueFunction = 'min_value'
 
-        // Rule: maxValue cannot be routed to a user function on OracleConnection.
-        // @ts-expect-error maxValueFunction is not declared on OracleConnection
-        protected override maxValueFunction = 'max_value'
 
         // Rule: the trailing-blanks rule of length is not configurable on OracleConnection.
         // @ts-expect-error excludeTrailingBlanksInLength is not declared on OracleConnection
         protected override excludeTrailingBlanksInLength = true
 
-        // Rule: the insensitive replace function is not configurable on OracleConnection.
-        // @ts-expect-error replaceAllInsensitiveFunction is not declared on OracleConnection
-        protected override replaceAllInsensitiveFunction = 'tsq_ci_replace'
 
         // Rule: Oracle stores date/time values in a date/time data type, so the integer
         // reading rule is not part of OracleConnection.

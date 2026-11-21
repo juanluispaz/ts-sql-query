@@ -124,27 +124,21 @@ export abstract class SqlServerConnection<NAME extends string> extends AbstractA
      * result, matching the declared type and the other dialects (MySQL / MariaDB / Oracle
      * / SQLite already propagate).
      *
-     * Setting this flag to `true` keeps the bare native form, which ignores NULL. Prefer
-     * {@link minValueFunction} / {@link maxValueFunction} if you want NULL propagation
-     * without the operand-repeating `CASE`.
+     * Setting this flag to `true` keeps the bare native form, which ignores NULL. With
+     * {@link libraryFunctions} installed, the NULL propagation calls functions of the library
+     * instead of the operand-repeating `CASE`.
      */
     protected ignoreNullInMinAndMaxValue: boolean = false
 
     /**
-     * Name of a user-defined SQL function that returns the **larger** of two values
-     * and propagates NULL, used to emit `.minValue(x)` as `func(a, b)` instead of the
-     * default NULL-poisoning `CASE`. Avoids repeating the operand (the
-     * {@link OracleConnection.concatFunction} pattern). Preferred over the `CASE` when set.
+     * Whether the functions of the library are in the database (its file of SQL, tsq-functions.sql): `'installed'` or
+     * `'not installed'` (the default). The ones a query always needs, of durations, are called anyway. With them
+     * installed the library also calls `dbo.tsq_greatest_strict` and `dbo.tsq_least_strict`, for `minValue` and
+     * `maxValue`, which give null for a null operand writing each operand once; without them, a `CASE` repeats them.
      */
-    protected minValueFunction?: string
+    protected libraryFunctions: 'installed' | 'not installed' = 'not installed'
 
-    /**
-     * Name of a user-defined SQL function that returns the **smaller** of two values
-     * and propagates NULL, used to emit `.maxValue(x)` as `func(a, b)` instead of the
-     * default NULL-poisoning `CASE`. Avoids repeating the operand. Preferred over the
-     * `CASE` when set.
-     */
-    protected maxValueFunction?: string
+
 
     /**
      * Collation forced on the **match** operands of `.replaceAll(...)`.

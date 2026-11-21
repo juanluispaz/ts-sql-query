@@ -168,7 +168,7 @@ describe(ctx.label, () => {
     })
 
     // ── replaceAllInsensitive ──────────────────────────────────────────
-    // With no `replaceAllInsensitiveFunction` configured, SQLite falls back to a
+    // With no `libraryFunctions` configured, SQLite falls back to a
     // plain case-sensitive `replace(...)` (documented, never an error). 'ABCabc'
     // → only 'abc' matches → 'ABCX'.
     test('replaceAllInsensitive on cased data', async () => {

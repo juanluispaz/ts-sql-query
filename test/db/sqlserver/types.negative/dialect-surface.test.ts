@@ -73,9 +73,6 @@ function _typeNegatives() {
         // @ts-expect-error uuidStrategy is not declared on SqlServerConnection
         protected override uuidStrategy = 'string'
 
-        // Rule: the concatenation function is not configurable on SqlServerConnection.
-        // @ts-expect-error concatFunction is not declared on SqlServerConnection
-        protected override concatFunction = 'concat_null'
 
         // Rule: the NULL-ignoring concatenation opt-out is not part of SqlServerConnection.
         // @ts-expect-error ignoreNullInConcat is not declared on SqlServerConnection
@@ -85,9 +82,6 @@ function _typeNegatives() {
         // @ts-expect-error replaceInsensitiveCollation is not declared on SqlServerConnection
         protected override replaceInsensitiveCollation = 'binary_ci'
 
-        // Rule: the insensitive replace function is not configurable on SqlServerConnection.
-        // @ts-expect-error replaceAllInsensitiveFunction is not declared on SqlServerConnection
-        protected override replaceAllInsensitiveFunction = 'tsq_ci_replace'
 
         // Rule: SQL Server stores date/time values in a date/time data type, so the integer
         // reading rule is not part of SqlServerConnection.

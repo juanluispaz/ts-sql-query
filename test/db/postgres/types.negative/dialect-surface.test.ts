@@ -42,9 +42,6 @@ function _typeNegatives() {
         // @ts-expect-error uuidStrategy is not declared on PostgreSqlConnection
         protected override uuidStrategy = 'string'
 
-        // Rule: the concatenation function is not configurable on PostgreSqlConnection.
-        // @ts-expect-error concatFunction is not declared on PostgreSqlConnection
-        protected override concatFunction = 'concat_null'
 
         // Rule: the NULL-ignoring concatenation opt-out is not part of PostgreSqlConnection.
         // @ts-expect-error ignoreNullInConcat is not declared on PostgreSqlConnection
@@ -62,9 +59,6 @@ function _typeNegatives() {
         // @ts-expect-error excludeTrailingBlanksInLength is not declared on PostgreSqlConnection
         protected override excludeTrailingBlanksInLength = true
 
-        // Rule: the insensitive replace function is not configurable on PostgreSqlConnection.
-        // @ts-expect-error replaceAllInsensitiveFunction is not declared on PostgreSqlConnection
-        protected override replaceAllInsensitiveFunction = 'tsq_ci_replace'
 
         // Rule: PostgreSQL stores date/time values in a date/time data type, so the integer
         // reading rule is not part of PostgreSqlConnection.

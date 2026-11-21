@@ -70,17 +70,8 @@ function _typeNegatives() {
         // @ts-expect-error ignoreNullInMinAndMaxValue is not declared on SqliteConnection
         protected override ignoreNullInMinAndMaxValue = true
 
-        // Rule: minValue cannot be routed to a user function on SqliteConnection.
-        // @ts-expect-error minValueFunction is not declared on SqliteConnection
-        protected override minValueFunction = 'min_value'
 
-        // Rule: maxValue cannot be routed to a user function on SqliteConnection.
-        // @ts-expect-error maxValueFunction is not declared on SqliteConnection
-        protected override maxValueFunction = 'max_value'
 
-        // Rule: the concatenation function is not configurable on SqliteConnection.
-        // @ts-expect-error concatFunction is not declared on SqliteConnection
-        protected override concatFunction = 'concat_null'
 
         // Rule: the NULL-ignoring concatenation opt-out is not part of SqliteConnection.
         // @ts-expect-error ignoreNullInConcat is not declared on SqliteConnection

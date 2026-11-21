@@ -123,15 +123,17 @@ export abstract class PostgreSqlConnection<NAME extends string> extends Abstract
     protected usePlatformDependentRound: boolean = false
 
     /**
-     * Whether the functions of the library that compute a date and time in a time zone as Temporal does
-     * (`tsq_zoned_of_wall`) are in the database: `'installed'` or `'not installed'` (the default).
-     *
-     * Without them, a wall clock taken to its zone (`toZonedDateTime`, and the arithmetic of a zoned date and time) is
-     * the instant PostgreSQL itself gives it: the later one of a wall clock the zone repeats, where Temporal's default
-     * `'compatible'` takes the earlier one, and a disambiguation `'earlier'` or `'reject'` is rejected when the query is
-     * built. With them, every disambiguation is Temporal's.
+     * Whether the functions of the library are in the database (its file of SQL, tsq-functions.sql): `'installed'` or
+     * `'not installed'` (the default). The ones a query always needs, of durations and of differences of zoned dates and
+     * times in days, are called anyway. With them installed the library also calls:
+     * - `tsq_zoned_of_wall`, to take a wall clock to its zone (`toZonedDateTime`, and the arithmetic of a zoned date and
+     *   time) as Temporal disambiguates it. Without it, a wall clock the zone repeats is the later instant PostgreSQL
+     *   gives, where Temporal's default `'compatible'` takes the earlier one, and a disambiguation `'earlier'` or
+     *   `'reject'` is rejected when the query is built.
+     * - `tsq_greatest_strict` and `tsq_least_strict`, for `minValue` and `maxValue`, which give null for a null operand
+     *   writing each operand once; without them, a `CASE` repeats them.
      */
-    protected temporalFunctions: 'installed' | 'not installed' = 'not installed'
+    protected libraryFunctions: 'installed' | 'not installed' = 'not installed'
 
     /**
      * Writes the insensitive operations with a pattern (`likeInsensitive`, `containsInsensitive`...) with `like` instead
@@ -156,26 +158,12 @@ export abstract class PostgreSqlConnection<NAME extends string> extends Abstract
      * the other dialects (MySQL / MariaDB / Oracle / SQLite already propagate).
      *
      * Setting this flag to `true` keeps the bare native `least` / `greatest`, which
-     * ignores NULL. Prefer {@link minValueFunction} / {@link maxValueFunction} if you
-     * want NULL propagation without the operand-repeating `CASE`.
+     * ignores NULL. With {@link libraryFunctions} installed, the NULL propagation calls
+     * functions of the library instead of the operand-repeating `CASE`.
      */
     protected ignoreNullInMinAndMaxValue: boolean = false
 
-    /**
-     * Name of a user-defined SQL function that returns the **larger** of two values
-     * and propagates NULL, used to emit `.minValue(x)` as `func(a, b)` instead of the
-     * default NULL-poisoning `CASE`. Avoids repeating the operand (the
-     * {@link OracleConnection.concatFunction} pattern). Preferred over the `CASE` when set.
-     */
-    protected minValueFunction?: string
 
-    /**
-     * Name of a user-defined SQL function that returns the **smaller** of two values
-     * and propagates NULL, used to emit `.maxValue(x)` as `func(a, b)` instead of the
-     * default NULL-poisoning `CASE`. Avoids repeating the operand. Preferred over the
-     * `CASE` when set.
-     */
-    protected maxValueFunction?: string
 
     constructor(queryRunner: QueryRunner, sqlBuilder = new PostgreSqlSqlBuilder()) {
         super(queryRunner, sqlBuilder)

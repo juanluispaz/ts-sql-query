@@ -3697,7 +3697,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
      *
      * Kept as a seam because `||` is not the only way a dialect can be asked to
      * concatenate: Oracle reads NULL as the empty string there, so a connection that
-     * cannot live with that points `concatFunction` at a null-propagating function and
+     * cannot live with that installs the functions of the library (`libraryFunctions`) and
      * every concatenation the builder emits goes through it instead. `_concat` and the
      * affix patterns must move together: an affix predicate that propagates NULL while
      * `concat` does not would be its own inconsistency.
@@ -4252,6 +4252,14 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * wall clock, its offset, its zone and its instant (the wall clock minus the offset). Each piece is written by the
      * database from the value source, written again in each place it is used (a parameter can't be repeated by its text)
      */
+    /** Whether the functions of the library are in the database (`libraryFunctions`) */
+    _libraryFunctionsInstalled(): boolean {
+        return this._connectionConfiguration.libraryFunctions === 'installed'
+    }
+    /** The function of the library that replaces ignoring the case of the text, when the database has one (SQLite) */
+    _replaceAllInsensitiveFunction(): string | undefined {
+        return undefined
+    }
     /** Whether a zonedDateTime is kept as its RFC 9557 text: its SQL is that text */
     _zonedKeptAsText(): boolean {
         return false
@@ -5857,7 +5865,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * Two opt-outs (the maintainer's principle: what the database provides natively wins,
      * an opt-in is the last resort):
      *   - `ignoreNullInMinAndMaxValue` — keep the native ignore-NULL behaviour (no CASE).
-     *   - `userFunction` (`minValueFunction`/`maxValueFunction`) — a user-provided
+     *   - `userFunction` (the function of the library, with `libraryFunctions` installed) — a
      *     null-propagating function emitted as `func(a, b)`, so the operand is not repeated.
      *
      * The operand appears twice in the optional cases (null check + `<inner>`); accepted,
@@ -6002,13 +6010,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     /**
      * Case-insensitive `replaceAll`. The base form is the SQLite behaviour: emit the
-     * configured UDF (`replaceAllInsensitiveFunction`) when the connection names one, and
+     * function of the library (`_replaceAllInsensitiveFunction`) when the connection has it, and
      * otherwise fall back to plain case-sensitive `replace(...)` — documented, never an
      * error. The engines whose `REPLACE`/`REGEXP_REPLACE` can fold case override this:
      * SQL Server / Oracle (collation-driven), MySQL / MariaDB / PostgreSQL (regex-driven).
      */
     _replaceAllInsensitive(context: SqlBuildContext, valueSource: ToSql, value: any, value2: any, typeClass: DataTypeClass): string {
-        const fn = this._connectionConfiguration.replaceAllInsensitiveFunction
+        const fn = this._replaceAllInsensitiveFunction()
         if (fn) {
             return fn + '(' + this._appendSql(valueSource, context, false) + ', ' + this._appendValue(value, context, typeClass, false) + ', ' + this._appendValue(value2, context, typeClass, false) + ')'
         }

@@ -109,22 +109,14 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
     protected decimalStrategy: SqliteDecimalStrategy = 'decimal-extension and tsq-functions with canonical text'
 
     /**
-     * Name of a scalar SQL function to call for `.replaceAllInsensitive(...)`.
-     *
-     * SQLite has no case-insensitive `REPLACE` and no built-in `regexp_replace`, so the
-     * library can only offer an insensitive replace through a user-defined function you
-     * register on the connection. Set this to that function's name and the builder emits
-     * `<name>(src, from, to)`; leave it unset (the default) and `.replaceAllInsensitive(...)`
-     * falls back to a plain, **case-sensitive** `replace(src, from, to)` — documented, never an
-     * error.
-     *
-     * The three connectors that expose a JS user-function API can register it:
-     * `better-sqlite3` / `node:sqlite` via `db.function(name, (s, f, t) => …)`, `sqlite-wasm`
-     * via `db.createFunction`. The `bun:sqlite` and `bun:sql` connectors have no such
-     * API, so on them `.replaceAllInsensitive(...)` stays case-sensitive. See the Collations page
-     * of the documentation for the JS implementation to register per connector.
+     * Whether the functions of the library are registered in the connection of the driver (`registerSqliteFunctions`):
+     * `'installed'` or `'not installed'` (the default). The ones a setting of the connection needs (of its decimal
+     * strategy, of its uuid strategy) and the ones of durations are called anyway. With them registered the library also
+     * calls `tsq_ci_replace` for `replaceAllInsensitive`, which ignores the case of the text; without it, SQLite's
+     * `replace` distinguishes the case (SQLite has no `replace` that ignores it). The connectors without functions
+     * written in JavaScript (`bun:sql`) can't register it.
      */
-    protected replaceAllInsensitiveFunction?: string
+    protected libraryFunctions: 'installed' | 'not installed' = 'not installed'
 
     /**
      * Says that SQLite runs in the same zone as the application, so the date functions computed

@@ -836,8 +836,8 @@ export abstract class StringsType</*in|out*/ VALUE_TYPE> extends ComparableType<
      *
      * On PostgreSQL it writes `regexp_replace(..., 'gi')`, which ignores only case; on MySQL and MariaDB
      * `regexp_replace` with the connection's `insensitiveCollation` when it has one; on SQL Server and Oracle
-     * `replace` under a case-insensitive collation. On SQLite it calls the function the connection names in
-     * `replaceAllInsensitiveFunction`, and without one it is the case-sensitive `replace`.
+     * `replace` under a case-insensitive collation. On SQLite it calls the function of the library
+     * `tsq_ci_replace` with `libraryFunctions` installed, and without it it is the case-sensitive `replace`.
      */
     replaceAllInsensitive(findString: string, replaceWith: string): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     /**
@@ -845,8 +845,8 @@ export abstract class StringsType</*in|out*/ VALUE_TYPE> extends ComparableType<
      *
      * On PostgreSQL it writes `regexp_replace(..., 'gi')`, which ignores only case; on MySQL and MariaDB
      * `regexp_replace` with the connection's `insensitiveCollation` when it has one; on SQL Server and Oracle
-     * `replace` under a case-insensitive collation. On SQLite it calls the function the connection names in
-     * `replaceAllInsensitiveFunction`, and without one it is the case-sensitive `replace`.
+     * `replace` under a case-insensitive collation. On SQLite it calls the function of the library
+     * `tsq_ci_replace` with `libraryFunctions` installed, and without it it is the case-sensitive `replace`.
      */
     replaceAllInsensitive<VALUE2 extends IStringValue>(findString: string, replaceWith: VALUE2): ValueSource<SourceOf<this> | SourceOf<VALUE2>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE2>>>
     /**
@@ -854,8 +854,8 @@ export abstract class StringsType</*in|out*/ VALUE_TYPE> extends ComparableType<
      *
      * On PostgreSQL it writes `regexp_replace(..., 'gi')`, which ignores only case; on MySQL and MariaDB
      * `regexp_replace` with the connection's `insensitiveCollation` when it has one; on SQL Server and Oracle
-     * `replace` under a case-insensitive collation. On SQLite it calls the function the connection names in
-     * `replaceAllInsensitiveFunction`, and without one it is the case-sensitive `replace`.
+     * `replace` under a case-insensitive collation. On SQLite it calls the function of the library
+     * `tsq_ci_replace` with `libraryFunctions` installed, and without it it is the case-sensitive `replace`.
      */
     replaceAllInsensitive<VALUE extends IStringValue>(findString: VALUE, replaceWith: string): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     /**
@@ -863,8 +863,8 @@ export abstract class StringsType</*in|out*/ VALUE_TYPE> extends ComparableType<
      *
      * On PostgreSQL it writes `regexp_replace(..., 'gi')`, which ignores only case; on MySQL and MariaDB
      * `regexp_replace` with the connection's `insensitiveCollation` when it has one; on SQL Server and Oracle
-     * `replace` under a case-insensitive collation. On SQLite it calls the function the connection names in
-     * `replaceAllInsensitiveFunction`, and without one it is the case-sensitive `replace`.
+     * `replace` under a case-insensitive collation. On SQLite it calls the function of the library
+     * `tsq_ci_replace` with `libraryFunctions` installed, and without it it is the case-sensitive `replace`.
      */
     replaceAllInsensitive<VALUE extends IStringValue, VALUE2 extends IStringValue>(findString: VALUE, replaceWith: VALUE2): ValueSource<SourceOf<this> | SourceOf<VALUE> | SourceOf<VALUE2>, DataTypeOf<this>, CombinedOptionality<CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>, OptionalityOf<VALUE2>>>
     replaceAllInsensitive(findString: any, replaceWith: any): any {

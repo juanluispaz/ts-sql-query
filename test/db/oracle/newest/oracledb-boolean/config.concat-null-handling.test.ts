@@ -11,7 +11,7 @@
 //   - default (neither option set) — EMULATE NULL propagation with a poison `CASE`, gated by
 //     build-time optionality (required operands stay the bare `||`), matching the other dialects.
 //   - `ignoreNullInConcat = true` — keep the bare native `||` (Oracle's own ignore-NULL semantics).
-//   - `concatFunction` — route every concatenation through a user null-propagating function,
+//   - `libraryFunctions` — route every concatenation through a user null-propagating function,
 //     which poisons NULL itself without repeating the operand. `tsq_string_util.concat_strict` is
 //     created by the schema (domain/schema.sql) — the same helper the docs tell users to create.
 //
@@ -277,12 +277,12 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    // === concatFunction: route every concatenation through the user function ===
+    // === libraryFunctions: route every concatenation through the user function ===
 
-    test('concatFunction: concat on a null receiver answers null', async () => {
+    test('libraryFunctions: concat on a null receiver answers null', async () => {
         // `body` is NULL on issue 1, and the result type is optional — which is what the
         // other databases answer. The function propagates NULL without repeating the operand.
-        const conn = ctx.withConcatFunction('tsq_string_util.concat_strict')
+        const conn = ctx.withLibraryFunctions()
         const expected = [{ id: 1 }]
         ctx.mockNext(expected)
         const rows = await conn.selectFrom(tIssue)
@@ -300,8 +300,8 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('concatFunction: concat on a present receiver is unchanged', async () => {
-        const conn = ctx.withConcatFunction('tsq_string_util.concat_strict')
+    test('libraryFunctions: concat on a present receiver is unchanged', async () => {
+        const conn = ctx.withLibraryFunctions()
         const expected = [{ id: 2, tagged: 'Use new tokens!' }]
         ctx.mockNext(expected)
         const rows = await conn.selectFrom(tIssue)
@@ -319,11 +319,11 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('concatFunction: an affix predicate on a null term matches no row', async () => {
+    test('libraryFunctions: an affix predicate on a null term matches no row', async () => {
         // The half that silently corrupts a result set: with `||`, `title like (NULL || '%')`
         // is `title like '%'` and every issue comes back. Routing through the function makes the
         // pattern NULL, so nothing matches — which is what every other database does.
-        const conn = ctx.withConcatFunction('tsq_string_util.concat_strict')
+        const conn = ctx.withLibraryFunctions()
         const expected: Array<{ id: number }> = []
         ctx.mockNext(expected)
         const rows = await conn.selectFrom(tIssue)
@@ -336,9 +336,9 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('concatFunction: an affix predicate on a present term still matches', async () => {
+    test('libraryFunctions: an affix predicate on a present term still matches', async () => {
         // The function must not disable the predicate — only the NULL case changes.
-        const conn = ctx.withConcatFunction('tsq_string_util.concat_strict')
+        const conn = ctx.withLibraryFunctions()
         const expected = [{ id: 2 }]
         ctx.mockNext(expected)
         const rows = await conn.selectFrom(tIssue)
@@ -355,8 +355,8 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('concatFunction: contains glues the wildcard on both sides through the function', async () => {
-        const conn = ctx.withConcatFunction('tsq_string_util.concat_strict')
+    test('libraryFunctions: contains glues the wildcard on both sides through the function', async () => {
+        const conn = ctx.withLibraryFunctions()
         const expected = [{ id: 2 }]
         ctx.mockNext(expected)
         const rows = await conn.selectFrom(tIssue)
@@ -373,11 +373,11 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('concatFunction: an embedded concat is not wrapped in parenthesis', async () => {
+    test('libraryFunctions: an embedded concat is not wrapped in parenthesis', async () => {
         // `||` is an operator, so a concat embedded in a larger expression is wrapped —
         // `(title || :0) = :1`. The function is not an operator: it already stands alone,
         // and wrapping it would only add noise. A nested concat is not wrapped either.
-        const conn = ctx.withConcatFunction('tsq_string_util.concat_strict')
+        const conn = ctx.withLibraryFunctions()
         const expected = [{ id: 2 }]
         ctx.mockNext(expected)
         const rows = await conn.selectFrom(tIssue)
@@ -395,8 +395,8 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('concatFunction: a chained concat nests the function calls', async () => {
-        const conn = ctx.withConcatFunction('tsq_string_util.concat_strict')
+    test('libraryFunctions: a chained concat nests the function calls', async () => {
+        const conn = ctx.withLibraryFunctions()
         const expected = [{ id: 2, v: 'Redesign navbarab' }]
         ctx.mockNext(expected)
         const rows = await conn.selectFrom(tIssue)
@@ -479,8 +479,8 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('concatFunction: endsWith glues the wildcard on the left through the function', async () => {
-        const conn = ctx.withConcatFunction('tsq_string_util.concat_strict')
+    test('libraryFunctions: endsWith glues the wildcard on the left through the function', async () => {
+        const conn = ctx.withLibraryFunctions()
         const expected = [{ id: 2 }]
         ctx.mockNext(expected)
         const rows = await conn.selectFrom(tIssue)
@@ -497,11 +497,11 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('concatFunction: the insensitive affix predicates build the pattern through the function', async () => {
+    test('libraryFunctions: the insensitive affix predicates build the pattern through the function', async () => {
         // startsWith / endsWith / contains insensitive: each pattern is glued
         // through the function and lowered. Only issue 2 ('Redesign navbar')
         // matches all three.
-        const conn = ctx.withConcatFunction('tsq_string_util.concat_strict')
+        const conn = ctx.withLibraryFunctions()
         const expected = [{ id: 2 }]
         ctx.mockNext(expected)
         const rows = await conn.selectFrom(tIssue)

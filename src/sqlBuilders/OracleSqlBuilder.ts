@@ -80,6 +80,10 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         }
         return this._escape(nodeColumn.__name, true)
     }
+    /** The function of the library that concatenates giving null for a null operand, with libraryFunctions installed */
+    _oracleConcatFunction(): string | undefined {
+        return this._libraryFunctionsInstalled() ? 'tsq_string_util.concat_strict' : undefined
+    }
     _getUuidStrategy(): 'string' | 'custom-functions' | 'built-in' {
         // 'string as sent' stores a uuid as 'string' does; only the connection reads it otherwise
         const strategy = this._connectionConfiguration.uuidStrategy
@@ -107,7 +111,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     // `startsWith` that propagates NULL while `concat` does not would only relocate the
     // inconsistency. There are three modes, chosen per call:
     //
-    //   - `concatFunction` set → route through the user's null-propagating function
+    //   - `libraryFunctions` installed → route through the null-propagating function of the library
     //     (`_concatSql` emits `f(a, b)`; the affix methods below nest it). It poisons NULL
     //     itself and does not repeat the operand.
     //   - `ignoreNullInConcat` set → keep the bare native `||` (Oracle's own semantics).
@@ -119,30 +123,30 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     //     stance min/max already takes for PostgreSQL / SQL Server.
     //
     // The poison repeats each optional operand (once in the null check, once in the value) —
-    // free for a column, and the `concatFunction` opt-in exists for the rare expensive
+    // free for a column, and the function of the library (`libraryFunctions`) exists for the rare expensive
     // receiver. Each appearance is its OWN emission (a fresh append / escape), because the
     // library never reuses a bind placeholder: an operand that carries a parameter is bound
     // once per appearance, exactly as min/max does (e.g. `substr(:8, …, -length(:10), :11)`).
     //
     // `_needParenthesis` keeps `_concat` as needing parenthesis (the native `a || b` and the
     // poison `case … end` are both operators/expressions that must be wrapped when embedded);
-    // only the `concatFunction` form is exempt, since `f(a, b)` already stands alone. The
+    // only the form of the function of the library is exempt, since `f(a, b)` already stands alone. The
     // decision is made here per call because the connection hands the builder its
     // configuration after the constructor runs; the cost is one property read when unset.
     override _needParenthesis(value: any): boolean {
-        if (this._connectionConfiguration.concatFunction && operationOf(value) === '_concat') {
+        if (this._oracleConcatFunction() && operationOf(value) === '_concat') {
             return false
         }
         return super._needParenthesis(value)
     }
     override _needParenthesisExcluding(value: any, excluding: keyof SqlOperation): boolean {
-        if (this._connectionConfiguration.concatFunction && operationOf(value) === '_concat') {
+        if (this._oracleConcatFunction() && operationOf(value) === '_concat') {
             return false
         }
         return super._needParenthesisExcluding(value, excluding)
     }
     override _concatSql(left: string, right: string): string {
-        const concatFunction = this._connectionConfiguration.concatFunction
+        const concatFunction = this._oracleConcatFunction()
         if (concatFunction) {
             return concatFunction + '(' + left + ', ' + right + ')'
         }
@@ -153,7 +157,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         // Function opt-in and native opt-out both go through `_concatSql` (super): the
         // function propagates NULL itself, the native `||` is the deliberate opt-out. Neither
         // needs the poison `CASE`.
-        if (configuration.concatFunction || configuration.ignoreNullInConcat) {
+        if (this._oracleConcatFunction() || configuration.ignoreNullInConcat) {
             return super._concat(context, valueSource, value, typeClass)
         }
         // Default: emulate NULL propagation, following the same shape as the base's min/max
@@ -284,14 +288,14 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     /**
      * Oracle's `||` already reads a NULL operand as the empty string — what `_concat` above has to
      * emulate AWAY — so it is the base form without the `coalesce`, a no-op here anyway since ''
-     * IS NULL. `concatFunction` / `ignoreNullInConcat` are not consulted: both choose how `concat`
+     * IS NULL. `libraryFunctions` / `ignoreNullInConcat` are not consulted: both choose how `concat`
      * PROPAGATES NULL, which this operation never asks.
      */
     override _appendConcatIgnoringNull(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         return this._appendSqlParenthesisExcluding(valueSource, context, '_concatIgnoringNull', false) + ' || ' + this._appendValueParenthesisExcluding(value, context, typeClass, '_concatIgnoringNull', false)
     }
     override _likePatternStartingWith(context: SqlBuildContext, value: any, typeClass: DataTypeClass, fold: boolean): string {
-        const concatFunction = this._connectionConfiguration.concatFunction
+        const concatFunction = this._oracleConcatFunction()
         if (concatFunction) {
             const term = this._escapeLikeWildcard(value, context, typeClass, false)
             const sql = concatFunction + '(' + term + ", '%')"
@@ -303,7 +307,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return this._poisonAffixPattern(context, value, typeClass, fold, (term) => term + " || '%'")
     }
     override _likePatternEndingWith(context: SqlBuildContext, value: any, typeClass: DataTypeClass, fold: boolean): string {
-        const concatFunction = this._connectionConfiguration.concatFunction
+        const concatFunction = this._oracleConcatFunction()
         if (concatFunction) {
             const term = this._escapeLikeWildcard(value, context, typeClass, false)
             const sql = concatFunction + "('%', " + term + ')'
@@ -315,7 +319,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return this._poisonAffixPattern(context, value, typeClass, fold, (term) => "'%' || " + term)
     }
     override _likePatternContaining(context: SqlBuildContext, value: any, typeClass: DataTypeClass, fold: boolean): string {
-        const concatFunction = this._connectionConfiguration.concatFunction
+        const concatFunction = this._oracleConcatFunction()
         if (concatFunction) {
             // The function is binary, so gluing both wildcards nests: `f(f('%', term), '%')`.
             const term = this._escapeLikeWildcard(value, context, typeClass, false)
@@ -1580,12 +1584,12 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     /*
      * A wall clock taken to its zone: Oracle's own from_tz, which takes the later instant of a wall clock the zone repeats,
      * as Temporal's 'later' (Temporal's 'compatible' takes the earlier one), and fails for one it skips (ORA-01878); with
-     * the functions of the library (temporalFunctions), tsq_zoned_of_wall, as Temporal disambiguates it. The SQL is the
+     * the functions of the library (libraryFunctions), tsq_zoned_of_wall, as Temporal disambiguates it. The SQL is the
      * TIMESTAMP WITH TIME ZONE in its zone
      */
-    /** Whether the functions of the library that compute as Temporal are in the database (`temporalFunctions`) */
+    /** Whether the functions of the library that compute as Temporal are in the database (`libraryFunctions`) */
     _oracleTemporalFunctions(): boolean {
-        return this._connectionConfiguration.temporalFunctions === 'installed'
+        return this._libraryFunctionsInstalled()
     }
     /**
      * The instant of a wall clock (a TIMESTAMP) in a zone (as `at time zone` takes it), with Temporal's disambiguation, or
@@ -1597,7 +1601,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             return 'tsq_zoned_of_wall(' + wall + ', ' + zone + ", '" + disambiguation + "'" + (preferredOffset === undefined ? '' : ', ' + preferredOffset) + ')'
         }
         if (disambiguation === 'earlier' || disambiguation === 'reject') {
-            throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_QUERY' }, "Oracle takes a wall clock its zone repeats as the later instant, and fails for one it skips: the disambiguation '" + disambiguation + "' needs the functions of the library (temporalFunctions: 'installed')")
+            throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_QUERY' }, "Oracle takes a wall clock its zone repeats as the later instant, and fails for one it skips: the disambiguation '" + disambiguation + "' needs the functions of the library (libraryFunctions: 'installed')")
         }
         if (preferredOffset === undefined) {
             return 'from_tz(' + wall + ', ' + zone + ')'

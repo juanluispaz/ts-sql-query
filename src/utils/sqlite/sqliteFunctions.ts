@@ -15,7 +15,7 @@
  * - The functions of SQLite's uuid extension (ext/misc/uuid.c) the uuid strategy 'uuid-extension' writes: uuid,
  *   uuid_str and uuid_blob. uuid() generates a version 7 UUID (the extension generates a version 4), whose text and
  *   whose blob sort by the time they were generated.
- * - tsq_ci_replace, a case-insensitive replace, for the connections whose replaceAllInsensitiveFunction is 'tsq_ci_replace'.
+ * - tsq_ci_replace, a case-insensitive replace, for replaceAllInsensitive with libraryFunctions 'installed'.
  * - tsq_duration_part, a part of the ISO 8601 text of a duration, to add or subtract a duration kept as its text.
  * - tsq_duration_text, the ISO 8601 text of a duration of its fields, to write a duration a query computes (until,
  *   since).

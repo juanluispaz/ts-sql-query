@@ -41,11 +41,15 @@ async function failureOf(query: Promise<unknown>): Promise<boolean> {
 void walls
 void zoneNames
 void failureOf
+void reasonOf
 
 /** The value as the database computes it, to the microsecond: MySQL rounds the digits below */
 function atDatabase(value: Temporal.ZonedDateTime): Temporal.ZonedDateTime {
     return value.round({ smallestUnit: 'microsecond', roundingMode: 'halfExpand' })
 }
+
+// Used by the commented-out tests below; the cells where they run use them for real.
+void tInstantValue
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -116,7 +120,7 @@ describe(ctx.label, () => {
         ]))
     })
 
-    // NOT-SUPPORTED: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA, which this needs
+    // NOT-APPLICABLE: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA: what needs them is not offered here
     /*
     test('an-instant-in-a-zone', async () => {
         // The same instant in another zone, in the zone of a column (none in row 3), and an instant given in an offset zone
@@ -147,7 +151,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA, which this needs
+    // NOT-APPLICABLE: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA: what needs them is not offered here
     /*
     test('a-wall-clock-in-a-zone-with-each-disambiguation', async () => {
         // Row 1's wall clock is repeated in Madrid, row 2's skipped: compatible takes the earlier of a repeated one and
@@ -179,7 +183,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA, which this needs
+    // NOT-APPLICABLE: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA: what needs them is not offered here
     /*
     test('reject-fails-for-a-wall-clock-the-zone-repeats-or-skips', async () => {
         // As Temporal: row 1's wall clock is repeated in Madrid and row 2's skipped; row 3's is a wall clock of Madrid
@@ -228,7 +232,7 @@ describe(ctx.label, () => {
         ])
     })
 
-    // NOT-SUPPORTED: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA, which this needs
+    // NOT-APPLICABLE: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA: what needs them is not offered here
     /*
     test('a-zoned-date-and-time-plus-a-duration', async () => {
         // Days are added to the wall clock in the zone: row 1 plus a day is 02:30 on the next day, an hour later in UTC,
@@ -257,7 +261,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA, which this needs
+    // NOT-APPLICABLE: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA: what needs them is not offered here
     /*
     test('a-zoned-date-and-time-with-other-fields-rounded-and-at-the-start-of-its-day', async () => {
         // Row 1 is in the first 02:30 of a day Madrid repeats, with 25 hours: with keeps its offset when the zone still
@@ -291,7 +295,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA, which this needs
+    // NOT-APPLICABLE: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA: what needs them is not offered here
     /*
     test('operations-on-a-computed-zoned-date-and-time', async () => {
         // A value computed from another one is computed once and named in the query; each operation is Temporal's
@@ -313,7 +317,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA, which this needs
+    // NOT-APPLICABLE: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA: what needs them is not offered here
     /*
     test('reject-fails-for-a-day-the-month-has-not-or-an-offset-the-zone-has-not', async () => {
         // As Temporal: row 1 is in October, a month later November has its day 27; February has no day 30; Madrid has
@@ -332,7 +336,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA, which this needs
+    // NOT-APPLICABLE: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA: what needs them is not offered here
     /*
     test('the-duration-between-two-zoned-dates-and-times', async () => {
         // In hours by default, the difference of their instants; in days, the days of the calendar in their zone: row 1
@@ -361,7 +365,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA, which this needs
+    // NOT-APPLICABLE: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA: what needs them is not offered here
     /*
     test('a-difference-in-days-needs-the-same-zone', async () => {
         // As Temporal, which rejects it: row 2 is in Kolkata, the other value in Madrid; in hours any two are compared
@@ -375,7 +379,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA, which this needs
+    // NOT-APPLICABLE: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA: what needs them is not offered here
     /*
     test('a-zoned-date-and-time-kept-and-computed-with-the-zones', async () => {
         // A column that keeps its RFC 9557 text, computed with the rules of its zone: row 1 plus a day is 02:30 on the next
@@ -417,6 +421,8 @@ describe(ctx.label, () => {
     })
     */
 
+    // NOT-APPLICABLE: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA: what needs them is not offered here
+    /*
     test('a-zoned-date-and-time-needs-a-database-with-zones', async () => {
         // This database keeps no zone with each value: the query isn't sent
         const reason = await reasonOf(() => ctx.conn.selectFrom(tInstantValue)
@@ -425,4 +431,5 @@ describe(ctx.label, () => {
             .executeSelectMany())
         expect(reason).toBe('UNSUPPORTED_QUERY')
     })
+    */
 })

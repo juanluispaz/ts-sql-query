@@ -17,7 +17,7 @@ import { test, expect } from '../../../lib/testRunner.js'
 import { MySqlConnection } from '../../../../src/connections/MySqlConnection.js'
 import { Table } from '../../../../src/Table.js'
 import type { DBConnection } from '../domain/connection.js'
-import { tColMatrixColumn as t, tColMatrixPlain, tCalendarValue, tDurationValue, tInstantValue } from '../domain/connection.js'
+import { tColMatrixColumn as t, tColMatrixPlain, tCalendarValue, tDurationValue, tInstantValue, tZonedValue } from '../domain/connection.js'
 import { EnumType } from '../../../../src/exports/v2/index.js'
 import { DecimalsType, IntegersType, RealsType } from '../../../../src/exports/v2/index.js'
 
@@ -682,30 +682,38 @@ function _typeNegatives() {
     void connection.instantFromEpochMilliseconds(t.mDouble)
     // @ts-expect-error the nanoseconds of a value are a bigint, as in Temporal
     void connection.instantFromEpochNanoseconds(1705223730123)
-    // A zoned date and time: an instant or a wall clock in a zone given by its name, and its parts there
-    void tInstantValue.instantAt.toZonedDateTimeISO('Europe/Madrid').hour()
-    void tColMatrixPlain.mDatetime.toZonedDateTime('Europe/Madrid', { disambiguation: 'later' }).toInstant()
-    // @ts-expect-error a zone is a name
-    void tInstantValue.instantAt.toZonedDateTimeISO(1)
-    // @ts-expect-error the disambiguation is one of Temporal's
-    void tColMatrixPlain.mDatetime.toZonedDateTime('Europe/Madrid', { disambiguation: 'first' })
-    // @ts-expect-error a date has no instant in a zone without a time of the day
-    void tColMatrixPlain.mDate.toZonedDateTime('Europe/Madrid')
-    // The arithmetic of a zoned date and time: a duration of any unit, its fields, a rounding to a day, a difference in days
-    void tInstantValue.instantAt.toZonedDateTimeISO('Europe/Madrid').add({ days: 1, hours: 2 }, { overflow: 'reject' })
-    void tInstantValue.instantAt.toZonedDateTimeISO('Europe/Madrid').subtract(tDurationValue.span)
-    void tInstantValue.instantAt.toZonedDateTimeISO('Europe/Madrid').with({ hour: 2, offset: '+01:00' }, { offset: 'prefer', disambiguation: 'later' })
-    void tInstantValue.instantAt.toZonedDateTimeISO('Europe/Madrid').round({ smallestUnit: 'day', roundingMode: 'floor' })
-    void tInstantValue.instantAt.toZonedDateTimeISO('Europe/Madrid').until(tInstantValue.instantAt.toZonedDateTimeISO('Europe/Madrid'), { largestUnit: 'month' })
-    void tInstantValue.instantAt.toZonedDateTimeISO('Europe/Madrid').withPlainTime(tColMatrixPlain.mTime).hoursInDay()
-    // @ts-expect-error the offset of with is one of Temporal's
-    void tInstantValue.instantAt.toZonedDateTimeISO('Europe/Madrid').with({ hour: 2 }, { offset: 'keep' })
-    // @ts-expect-error a zoned date and time isn't rounded to a week
-    void tInstantValue.instantAt.toZonedDateTimeISO('Europe/Madrid').round('week')
-    // @ts-expect-error the other value is a zoned date and time
-    void tInstantValue.instantAt.toZonedDateTimeISO('Europe/Madrid').until(tInstantValue.instantAt)
-    // @ts-expect-error the time of withPlainTime is a plainTime
-    void tInstantValue.instantAt.toZonedDateTimeISO('Europe/Madrid').withPlainTime(tColMatrixPlain.mDatetime)
+    // A zoned date and time kept as its text: its parts, its instant and its zone, and compared and ordered by its instant
+    void tZonedValue.zonedAt.hour()
+    void tZonedValue.zonedAt.toInstant().epochMilliseconds()
+    void tZonedValue.zonedAt.timeZoneId()
+    void tZonedValue.zonedAt.lessThan(Temporal.ZonedDateTime.from('2024-01-14T10:00:00+01:00[Europe/Madrid]'))
+    // @ts-expect-error a zoned date and time is compared with another one
+    void tZonedValue.zonedAt.lessThan(tInstantValue.instantAt)
+    // What needs the rules of the zones is offered only on a database that computes with them (Oracle, PostgreSQL)
+    // @ts-expect-error an instant isn't taken to a zone here
+    void tInstantValue.instantAt.toZonedDateTimeISO('Europe/Madrid')
+    // @ts-expect-error a wall clock isn't taken to a zone here
+    void tColMatrixPlain.mDatetime.toZonedDateTime('Europe/Madrid')
+    // @ts-expect-error a zoned date and time isn't taken to another zone here
+    void tZonedValue.zonedAt.withTimeZone('Asia/Tokyo')
+    // @ts-expect-error no duration is added to a zoned date and time here
+    void tZonedValue.zonedAt.add({ days: 1 })
+    // @ts-expect-error no duration is subtracted from a zoned date and time here
+    void tZonedValue.zonedAt.subtract(tDurationValue.span)
+    // @ts-expect-error a zoned date and time has no other fields here
+    void tZonedValue.zonedAt.with({ hour: 2 })
+    // @ts-expect-error a zoned date and time has no other time of the day here
+    void tZonedValue.zonedAt.withPlainTime()
+    // @ts-expect-error a zoned date and time has no start of its day here
+    void tZonedValue.zonedAt.startOfDay()
+    // @ts-expect-error a zoned date and time has no hours of its day here
+    void tZonedValue.zonedAt.hoursInDay()
+    // @ts-expect-error a zoned date and time isn't rounded here
+    void tZonedValue.zonedAt.round('hour')
+    // @ts-expect-error there is no duration between two zoned dates and times here
+    void tZonedValue.zonedAt.until(tZonedValue.zonedAt)
+    // @ts-expect-error there is no duration between two zoned dates and times here
+    void tZonedValue.zonedAt.since(tZonedValue.zonedAt)
     // A month of a year is compared and ordered; a day of a month only compared for equality, as in Temporal
     void tCalendarValue.monthOf.lessThan(Temporal.PlainYearMonth.from('2025-01'))
     void tCalendarValue.dayOf.equals(Temporal.PlainMonthDay.from('02-29'))

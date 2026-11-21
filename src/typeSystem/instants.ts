@@ -16,7 +16,7 @@ import { DurationType } from './durations.js'
 import { IntType } from './number.js'
 import { BigintType } from './bigint.js'
 import { PlainDateTimeType, PlainDateType, PlainTimeType } from './plainDates.js'
-import { ZonedDateTimeType, __zonedOfInstant } from './zonedDateTimes.js'
+import { ZonedDateTimeType, __zonedOfInstant, type OfDatabaseWithZoneRules } from './zonedDateTimes.js'
 
 /** The date and time of the instant in the zone of the database: a plainDateTime */
 function plainDateTimeOf(valueSource: unknown): any {
@@ -130,9 +130,9 @@ export abstract class InstantsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME e
      * The instant in the zone given (an IANA name or an offset), a zonedDateTime, with its date and time there:
      * Temporal's `toZonedDateTimeISO`
      */
-    toZonedDateTimeISO(timeZone: string): ValueSource<SourceOf<this>, ZonedDateTimeType, OptionalityOf<this>>
+    toZonedDateTimeISO(this: OfDatabaseWithZoneRules, timeZone: string): ValueSource<SourceOf<this>, ZonedDateTimeType, OptionalityOf<this>>
     /** The instant in the zone of the string given, a zonedDateTime: Temporal's `toZonedDateTimeISO` */
-    toZonedDateTimeISO<VALUE extends IValueWithType<'type:string:'>>(timeZone: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, ZonedDateTimeType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    toZonedDateTimeISO<VALUE extends IValueWithType<'type:string:'>>(this: OfDatabaseWithZoneRules, timeZone: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, ZonedDateTimeType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     toZonedDateTimeISO(timeZone: unknown): any {
         return __zonedOfInstant(this, timeZone, ZonedDateTimeType)
     }

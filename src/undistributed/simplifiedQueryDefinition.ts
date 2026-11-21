@@ -627,7 +627,7 @@ interface PlainDateTimeValueSource extends ComparableValueSource<Temporal.PlainD
     round(options: TimeUnit | 'day' | 'days' | { smallestUnit: TimeUnit | 'day' | 'days', roundingIncrement?: number, roundingMode?: RoundingMode }): PlainDateTimeValueSource
     /** The instant of this date and time as a wall clock of the zone of the database, as Temporal's toZonedDateTime(zone).toInstant() */
     toInstant(): InstantValueSource
-    /** The wall clock in the zone given, as Temporal's toZonedDateTime with its disambiguation; only Oracle has zones */
+    /** The wall clock in the zone given, as Temporal's toZonedDateTime with its disambiguation; only on Oracle and PostgreSQL */
     toZonedDateTime(timeZone: string | StringValueSource, options?: { disambiguation?: 'compatible' | 'earlier' | 'later' | 'reject' }): ZonedDateTimeValueSource
     /** The duration from this date and time to the other one, as Temporal's until: in days by default (hours for a time) */
     until(other: Temporal.PlainDateTime | PlainDateTimeValueSource, options?: DifferenceOptions<DateUnit | TimeUnit>): DurationValueSource
@@ -697,7 +697,7 @@ interface InstantValueSource extends ComparableValueSource<Temporal.Instant, 'in
     /** The duration to or from the other instant, as Temporal's until and since: in seconds by default, up to hours */
     until(other: Temporal.Instant | InstantValueSource, options?: DifferenceOptions<TimeUnit>): DurationValueSource
     since(other: Temporal.Instant | InstantValueSource, options?: DifferenceOptions<TimeUnit>): DurationValueSource
-    /** The instant in the zone given (an IANA name or an offset), as Temporal's toZonedDateTimeISO; only Oracle has zones */
+    /** The instant in the zone given (an IANA name or an offset), as Temporal's toZonedDateTimeISO; only on Oracle and PostgreSQL */
     toZonedDateTimeISO(timeZone: string | StringValueSource): ZonedDateTimeValueSource
 }
 
@@ -728,6 +728,10 @@ interface ZonedDateTimeValueSource extends ComparableValueSource<Temporal.ZonedD
     second(): NumberValueSource
     millisecond(): NumberValueSource
     microsecond(): NumberValueSource
+    /*
+     * What follows needs the rules of the zones: it is offered only on Oracle and PostgreSQL (MariaDB, MySQL, SQLite and
+     * SQL Server keep a zoned date and time as its text, with its parts and its instant)
+     */
     /** The same instant in another zone, as Temporal's withTimeZone */
     withTimeZone(timeZone: string | StringValueSource): ZonedDateTimeValueSource
     /**

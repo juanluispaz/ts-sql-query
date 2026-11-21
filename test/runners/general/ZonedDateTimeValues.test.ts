@@ -149,9 +149,11 @@ describe('ZonedDateTimeValues', () => {
     })
 
     test('a-database-without-zones-fails-the-query-when-it-is-built', async () => {
-        // MySQL computes with no zones of IANA: a computation with them sends nothing
+        // MySQL computes with no zones of IANA: what needs them doesn't compile there, and written anyway the query fails
+        // when it is built and sends nothing
         const connection = new MySqlDBConnection(runner())
         queries = 0
+        // @ts-expect-error an instant isn't taken to a zone on MySQL
         expect(await reasonOf(() => connection.selectFrom(tMySqlEvent).select({ at: tMySqlEvent.at.toZonedDateTimeISO('Europe/Madrid') }).executeSelectMany())).toBe('UNSUPPORTED_QUERY')
         expect(queries).toBe(0)
     })

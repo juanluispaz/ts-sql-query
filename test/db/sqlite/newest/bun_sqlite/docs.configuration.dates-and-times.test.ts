@@ -218,7 +218,7 @@ describe(ctx.label, () => {
         ])
     })
 
-    // NOT-SUPPORTED: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA, which this needs
+    // NOT-APPLICABLE: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA: what needs them is not offered here
     /*
     test('docs:dates-and-times/zoned-dates-and-times', async () => {
         ctx.mockNext([
@@ -251,7 +251,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-SUPPORTED: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA, which this needs
+    // NOT-APPLICABLE: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA: what needs them is not offered here
     /*
     test('docs:dates-and-times/the-arithmetic-of-a-zoned-date-and-time', async () => {
         ctx.mockNext([

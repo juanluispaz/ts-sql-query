@@ -12,7 +12,7 @@ import { getOptionalType2 } from '../nodes/operands.js'
 import { isValueSource } from '../nodes/NodeStrategy.js'
 import { DurationType } from './durations.js'
 import { InstantType } from './instants.js'
-import { ZonedDateTimeType, __zonedOfWallClock } from './zonedDateTimes.js'
+import { ZonedDateTimeType, __zonedOfWallClock, type OfDatabaseWithZoneRules } from './zonedDateTimes.js'
 import type { operandTypeName } from '../utils/symbols.js'
 import { IntType } from './number.js'
 import { StringType } from './strings.js'
@@ -424,9 +424,9 @@ export abstract class PlainDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
      * disambiguation says: `'compatible'` (the default) the earlier of a repeated one and the later of a skipped one;
      * `'reject'` makes the query fail
      */
-    toZonedDateTime(timeZone: string, options?: TemporalDisambiguationOptions): ValueSource<SourceOf<this>, ZonedDateTimeType, OptionalityOf<this>>
+    toZonedDateTime(this: OfDatabaseWithZoneRules, timeZone: string, options?: TemporalDisambiguationOptions): ValueSource<SourceOf<this>, ZonedDateTimeType, OptionalityOf<this>>
     /** This date and time as a wall clock of the zone of the string given, a zonedDateTime: Temporal's `toZonedDateTime` */
-    toZonedDateTime<VALUE extends IValueWithType<'type:string:'>>(timeZone: VALUE, options?: TemporalDisambiguationOptions): ValueSource<SourceOf<this> | SourceOf<VALUE>, ZonedDateTimeType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    toZonedDateTime<VALUE extends IValueWithType<'type:string:'>>(this: OfDatabaseWithZoneRules, timeZone: VALUE, options?: TemporalDisambiguationOptions): ValueSource<SourceOf<this> | SourceOf<VALUE>, ZonedDateTimeType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     toZonedDateTime(timeZone: unknown, options?: unknown): any {
         return __zonedOfWallClock(this, timeZone, options)
     }

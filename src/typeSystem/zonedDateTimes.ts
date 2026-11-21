@@ -3,6 +3,8 @@ import { ComparableType } from './comparable.js'
 import { __temporal, type TemporalDateUnit, type TemporalDifferenceOptions, type TemporalDisambiguation, type TemporalDuration, type TemporalDurationLike, type TemporalOffsetOption, type TemporalOverflowOptions, type TemporalPlainDateFields, type TemporalPlainTime, type TemporalPlainTimeFields, type TemporalRoundingOptions, type TemporalTimeUnit, type TemporalZonedDateTime } from './temporal.js'
 import type { DataTypeOf, IValueWithType, OptionalityOf, SourceOf, ValueSource } from './base.js'
 import type { CombinedOptionality } from './valueSource.js'
+import type { HasSource } from '../utils/ITableOrView.js'
+import type { NDBWithType } from '../utils/sourceName.js'
 import { __newSqlOperation2ValueSource, __operation0, __operation1 } from '../nodes/operations.js'
 import { __newSqlOperationConstValueSource } from '../nodes/constants.js'
 import { getOptionalType2 } from '../nodes/operands.js'
@@ -31,6 +33,13 @@ import { PlainDateTimeType, PlainDateType, PlainTimeType } from './plainDates.js
  */
 
 /** The type in the database of a zoned date and time: a date and a time with the zone of each value (Oracle's `TIMESTAMP WITH TIME ZONE`) */
+/**
+ * A value source of a database that computes with the rules of the time zones (Oracle, PostgreSQL): what needs them
+ * (taking a value to a zone, the arithmetic of a zoned date and time) is offered only there. MariaDB, MySQL, SQLite and SQL
+ * Server keep a zoned date and time as its text, which gives its parts and its instant without them
+ */
+export type OfDatabaseWithZoneRules = HasSource<NDBWithType<'oracle' | 'postgreSql' | 'noopDB'>>
+
 export const zonedDateTimeSqlDataType: SqlDataType = { family: 'datetime', fields: 'timestamp', timeZone: 'kept' }
 
 /** The date and time of the zoned date and time in its zone: a plainDateTime */
@@ -229,9 +238,9 @@ export abstract class ZonedDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
         return __operation0(plainDateTimeOf(this), '_microsecond', IntType)
     }
     /** The same instant in the zone given (an IANA name or an offset), of the same data type: Temporal's `withTimeZone` */
-    withTimeZone(timeZone: string): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    withTimeZone(this: OfDatabaseWithZoneRules, timeZone: string): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     /** The same instant in the zone of the string given (an IANA name or an offset), of the same data type: Temporal's `withTimeZone` */
-    withTimeZone<VALUE extends IValueWithType<'type:string:'>>(timeZone: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    withTimeZone<VALUE extends IValueWithType<'type:string:'>>(this: OfDatabaseWithZoneRules, timeZone: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     withTimeZone(timeZone: unknown): any {
         return __zonedOfInstant(this.toInstant(), timeZone, __computedClassOf(this as object, __typeClassOf(this as any)))
     }
@@ -243,16 +252,16 @@ export abstract class ZonedDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
      * when it repeats it); then its hours and smaller units are added to that instant. The duration is a
      * Temporal.Duration or its fields (`{ days: 1, hours: 2 }`)
      */
-    add(duration: TemporalDuration | TemporalDurationLike, options?: TemporalOverflowOptions): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    add(this: OfDatabaseWithZoneRules, duration: TemporalDuration | TemporalDurationLike, options?: TemporalOverflowOptions): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     /** The zoned date and time plus the duration given, as Temporal's `add`, a duration value source */
-    add<VALUE extends IValueWithType<'type:duration:'>>(duration: VALUE, options?: TemporalOverflowOptions): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    add<VALUE extends IValueWithType<'type:duration:'>>(this: OfDatabaseWithZoneRules, duration: VALUE, options?: TemporalOverflowOptions): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     add(duration: unknown, options?: unknown): any {
         return withDuration(this, '_zonedAddDuration', duration, options)
     }
     /** The zoned date and time minus the duration given, as Temporal's `subtract`: `add` of the duration negated */
-    subtract(duration: TemporalDuration | TemporalDurationLike, options?: TemporalOverflowOptions): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    subtract(this: OfDatabaseWithZoneRules, duration: TemporalDuration | TemporalDurationLike, options?: TemporalOverflowOptions): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     /** The zoned date and time minus the duration given, as Temporal's `subtract`, a duration value source */
-    subtract<VALUE extends IValueWithType<'type:duration:'>>(duration: VALUE, options?: TemporalOverflowOptions): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    subtract<VALUE extends IValueWithType<'type:duration:'>>(this: OfDatabaseWithZoneRules, duration: VALUE, options?: TemporalOverflowOptions): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     subtract(duration: unknown, options?: unknown): any {
         return withDuration(this, '_zonedSubtractDuration', duration, options)
     }
@@ -263,7 +272,7 @@ export abstract class ZonedDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
      * the field `offset` gives another one), otherwise disambiguated (`disambiguation`); `offset: 'use'` takes the
      * offset as it is, `'ignore'` disambiguates always, and `'reject'` makes the query fail when the zone hasn't it
      */
-    with(fields: TemporalPlainDateFields & TemporalPlainTimeFields & { readonly offset?: string | undefined }, options?: TemporalOverflowOptions & { readonly disambiguation?: TemporalDisambiguation | undefined, readonly offset?: TemporalOffsetOption | undefined }): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    with(this: OfDatabaseWithZoneRules, fields: TemporalPlainDateFields & TemporalPlainTimeFields & { readonly offset?: string | undefined }, options?: TemporalOverflowOptions & { readonly disambiguation?: TemporalDisambiguation | undefined, readonly offset?: TemporalOffsetOption | undefined }): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     with(fields: unknown, options?: unknown): any {
         const offsetField = fields !== null && typeof fields === 'object' ? (fields as { offset?: unknown }).offset : undefined
         const interpretation = zonedWithInterpretationOf(options, offsetField)
@@ -283,12 +292,13 @@ export abstract class ZonedDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
      * The zoned date and time at the time of the day given, or at the start of its day without one, as Temporal's
      * `withPlainTime`: the wall clock taken back to its zone as `'compatible'` disambiguates it
      */
-    withPlainTime(time?: TemporalPlainTime): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    withPlainTime(this: OfDatabaseWithZoneRules, time?: TemporalPlainTime): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     /** The zoned date and time at the time of the day of the plainTime given, as Temporal's `withPlainTime` */
-    withPlainTime<VALUE extends IValueWithType<'type:plainTime:'>>(time: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    withPlainTime<VALUE extends IValueWithType<'type:plainTime:'>>(this: OfDatabaseWithZoneRules, time: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     withPlainTime(time?: unknown): any {
         if (time === undefined) {
-            return this.startOfDay()
+            // Offered on the databases that compute with the rules of the zones, as this method (see OfDatabaseWithZoneRules)
+            return (this as unknown as { startOfDay(): unknown }).startOfDay()
         }
         return wallClockIn(referenceOf(this).toPlainDate().toPlainDateTime(time), this, compatibleInterpretation)
     }
@@ -296,12 +306,12 @@ export abstract class ZonedDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
      * The start of its day in its zone, as Temporal's `startOfDay`: its midnight, or the first instant of the day when
      * the zone skips midnight
      */
-    startOfDay(): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    startOfDay(this: OfDatabaseWithZoneRules): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     startOfDay(): any {
         return wallClockIn(referenceOf(this).toPlainDate().toPlainDateTime(), this, compatibleInterpretation)
     }
     /** The hours of its day in its zone, as a double: Temporal's `hoursInDay` (23 or 25 where the zone changes its offset) */
-    hoursInDay(): ValueSource<SourceOf<this>, DoubleType, OptionalityOf<this>>
+    hoursInDay(this: OfDatabaseWithZoneRules): ValueSource<SourceOf<this>, DoubleType, OptionalityOf<this>>
     hoursInDay(): any {
         return __operation0(this as any, '_zonedHoursInDay', DoubleType)
     }
@@ -311,7 +321,7 @@ export abstract class ZonedDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
      * options, to multiples of `roundingIncrement` of `smallestUnit` in the `roundingMode` given (`'halfExpand'` by
      * default), taken back to its zone keeping its offset when the zone still has it
      */
-    round(options: TemporalTimeUnit | 'day' | 'days' | TemporalRoundingOptions<TemporalTimeUnit | 'day' | 'days'>): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    round(this: OfDatabaseWithZoneRules, options: TemporalTimeUnit | 'day' | 'days' | TemporalRoundingOptions<TemporalTimeUnit | 'day' | 'days'>): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     round(options: unknown): any {
         const rounding = plainTemporalRoundingOf(options, 'timestamp')
         if (!rounding) {
@@ -328,16 +338,16 @@ export abstract class ZonedDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
      * their zone (both must be in the same zone, or the query fails), each with its length there; `smallestUnit`,
      * `roundingIncrement` and `roundingMode` round it
      */
-    until(other: VALUE_TYPE, options?: TemporalDifferenceOptions<TemporalDateUnit | TemporalTimeUnit>): ValueSource<SourceOf<this>, DurationType, OptionalityOf<this>>
+    until(this: OfDatabaseWithZoneRules, other: VALUE_TYPE, options?: TemporalDifferenceOptions<TemporalDateUnit | TemporalTimeUnit>): ValueSource<SourceOf<this>, DurationType, OptionalityOf<this>>
     /** The duration from this zoned date and time to the other one, as Temporal's `until` */
-    until<VALUE extends IValueWithType<this[typeof operandTypeName]>>(other: VALUE, options?: TemporalDifferenceOptions<TemporalDateUnit | TemporalTimeUnit>): ValueSource<SourceOf<this> | SourceOf<VALUE>, DurationType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    until<VALUE extends IValueWithType<this[typeof operandTypeName]>>(this: OfDatabaseWithZoneRules, other: VALUE, options?: TemporalDifferenceOptions<TemporalDateUnit | TemporalTimeUnit>): ValueSource<SourceOf<this> | SourceOf<VALUE>, DurationType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     until(other: unknown, options?: unknown): any {
         return difference(this, '_until', other, options)
     }
     /** The duration from the other zoned date and time to this one, as Temporal's `since`: `until` with the rounding mode inverted, negated */
-    since(other: VALUE_TYPE, options?: TemporalDifferenceOptions<TemporalDateUnit | TemporalTimeUnit>): ValueSource<SourceOf<this>, DurationType, OptionalityOf<this>>
+    since(this: OfDatabaseWithZoneRules, other: VALUE_TYPE, options?: TemporalDifferenceOptions<TemporalDateUnit | TemporalTimeUnit>): ValueSource<SourceOf<this>, DurationType, OptionalityOf<this>>
     /** The duration from the other zoned date and time to this one, as Temporal's `since` */
-    since<VALUE extends IValueWithType<this[typeof operandTypeName]>>(other: VALUE, options?: TemporalDifferenceOptions<TemporalDateUnit | TemporalTimeUnit>): ValueSource<SourceOf<this> | SourceOf<VALUE>, DurationType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    since<VALUE extends IValueWithType<this[typeof operandTypeName]>>(this: OfDatabaseWithZoneRules, other: VALUE, options?: TemporalDifferenceOptions<TemporalDateUnit | TemporalTimeUnit>): ValueSource<SourceOf<this> | SourceOf<VALUE>, DurationType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     since(other: unknown, options?: unknown): any {
         return difference(this, '_since', other, options)
     }

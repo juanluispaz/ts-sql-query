@@ -950,6 +950,49 @@ const followUps = await connection.selectFrom(tRelease)
     .executeSelectMany()
 ```
 
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    -- Not available on MariaDB
+    ```
+=== "MySQL"
+    ```mysql
+    -- Not available on MySQL
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        version as "version", 
+        to_char((select from_tz((cast(tsq_z.x as timestamp(9)) + numtodsinterval(:0, 'day')), to_char(tsq_z.x, 'TZR')) from (select from_tz(cast(published_at as timestamp(9)), 'Europe/Madrid') as x from dual where rownum = 1) tsq_z), 'YYYY-MM-DD"T"HH24:MI:SS.FF9TZH:TZM BC"["TZR"]"', 'NLS_DATE_LANGUAGE=AMERICAN') as "followUp", 
+        tsq_zoned_until(from_tz(cast(published_at as timestamp(9)), 'Europe/Madrid'), (select from_tz((cast(tsq_z.x as timestamp(9)) + numtodsinterval(:1, 'day')), to_char(tsq_z.x, 'TZR')) from (select from_tz(cast(published_at as timestamp(9)), 'Europe/Madrid') as x from dual where rownum = 1) tsq_z), 'day', 'nanosecond', 1, 'trunc', 1) as "daysToFollowUp", 
+        tsq_duration_text(0, 0, 0, 0, ((trunc(sys_extract_utc((select from_tz((cast(tsq_z.x as timestamp(9)) + numtodsinterval(:2, 'day')), to_char(tsq_z.x, 'TZR')) from (select from_tz(cast(published_at as timestamp(9)), 'Europe/Madrid') as x from dual where rownum = 1) tsq_z))) - trunc(sys_extract_utc(from_tz(cast(published_at as timestamp(9)), 'Europe/Madrid')))) * 86400000000000 + (to_number(to_char(sys_extract_utc((select from_tz((cast(tsq_z.x as timestamp(9)) + numtodsinterval(:3, 'day')), to_char(tsq_z.x, 'TZR')) from (select from_tz(cast(published_at as timestamp(9)), 'Europe/Madrid') as x from dual where rownum = 1) tsq_z)), 'SSSSSFF9')) - to_number(to_char(sys_extract_utc(from_tz(cast(published_at as timestamp(9)), 'Europe/Madrid')), 'SSSSSFF9')))), 'hour') as "hoursToFollowUp", 
+        (select (cast(sys_extract_utc(from_tz(cast(trunc(cast(tsq_z.x as timestamp(9))) + 1 as timestamp(9)), to_char(tsq_z.x, 'TZR'))) as date) - cast(sys_extract_utc(from_tz(cast(trunc(cast(tsq_z.x as timestamp(9))) as timestamp(9)), to_char(tsq_z.x, 'TZR'))) as date)) * 24 from (select (select from_tz((cast(tsq_z.x as timestamp(9)) + numtodsinterval(:4, 'day')), to_char(tsq_z.x, 'TZR')) from (select from_tz(cast(published_at as timestamp(9)), 'Europe/Madrid') as x from dual where rownum = 1) tsq_z) as x from dual where rownum = 1) tsq_z) as "hoursInThatDay" 
+    from project_release 
+    order by "version"
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        version as version, 
+        to_char((((((published_at at time zone 'Europe/Madrid')) at time zone 'Europe/Madrid') + make_interval(days => $1)) at time zone 'Europe/Madrid') at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z" BC') || '[Europe/Madrid]' as "followUp", 
+        tsq_zoned_until(((published_at at time zone 'Europe/Madrid')), 'Europe/Madrid', ((((((published_at at time zone 'Europe/Madrid')) at time zone 'Europe/Madrid') + make_interval(days => $2)) at time zone 'Europe/Madrid')), 'Europe/Madrid', 'day', 'nanosecond', 1, 'trunc', 1) as "daysToFollowUp", 
+        (extract(epoch from (((((((published_at at time zone 'Europe/Madrid')) at time zone 'Europe/Madrid') + make_interval(days => $3)) at time zone 'Europe/Madrid')) at time zone 'UTC') - (((published_at at time zone 'Europe/Madrid')) at time zone 'UTC')) || ' seconds')::interval as "hoursToFollowUp", 
+        (select (extract(epoch from ((date_trunc('day', (tsq_z.x at time zone 'Europe/Madrid')) + interval '1 day') at time zone 'Europe/Madrid') - ((date_trunc('day', (tsq_z.x at time zone 'Europe/Madrid'))) at time zone 'Europe/Madrid')) / 3600)::float8 from (select (((((published_at at time zone 'Europe/Madrid')) at time zone 'Europe/Madrid') + make_interval(days => $4)) at time zone 'Europe/Madrid') as x offset 0) tsq_z) as "hoursInThatDay" 
+    from project_release 
+    order by version
+    ```
+=== "SQLite"
+    ```sqlite
+    -- Not available on SQLite
+    ```
+=== "SQL Server"
+    ```sqlserver
+    -- Not available on SQL Server
+    ```
+
+The parameters are: `[ 29, 29, 29, 29 ]` (on Oracle: `[ 29, 29, 29, 29, 29 ]`)
+
 | version | followUp | daysToFollowUp | hoursToFollowUp | hoursInThatDay |
 |---|---|---|---|---|
 | `'0.9.0'` | `2024-03-31T11:00:00+02:00[Europe/Madrid]` | `P29D` | `PT695H` | `23` |
@@ -1910,7 +1953,7 @@ The executed query is:
         version as version, 
         cast(date_format(released_on, '%Y-%m-01') as date) as month, 
         date_add(cast(date_format(released_on, '%Y-%m-01') as date), interval ? month) as nextMonth, 
-        day(last_day(cast(date_format(released_on, '%Y-%m-01') as date))) as daysInMonth, 
+        day(last_day(released_on)) as daysInMonth, 
         cast(date_format(released_on, '1972-%m-%d') as date) as anniversary, 
         date_add(date_add(makedate(2025, 1), interval month(cast(date_format(released_on, '1972-%m-%d') as date)) - 1 month), interval least(day(cast(date_format(released_on, '1972-%m-%d') as date)), day(last_day(date_add(makedate(2025, 1), interval month(cast(date_format(released_on, '1972-%m-%d') as date)) - 1 month)))) - 1 day) as anniversaryIn2025 
     from project_release 
@@ -1922,7 +1965,7 @@ The executed query is:
         version as version, 
         cast(date_format(released_on, '%Y-%m-01') as date) as month, 
         date_add(cast(date_format(released_on, '%Y-%m-01') as date), interval ? month) as nextMonth, 
-        day(last_day(cast(date_format(released_on, '%Y-%m-01') as date))) as daysInMonth, 
+        day(last_day(released_on)) as daysInMonth, 
         cast(date_format(released_on, '1972-%m-%d') as date) as anniversary, 
         date_add(date_add(makedate(2025, 1), interval month(cast(date_format(released_on, '1972-%m-%d') as date)) - 1 month), interval least(day(cast(date_format(released_on, '1972-%m-%d') as date)), day(last_day(date_add(makedate(2025, 1), interval month(cast(date_format(released_on, '1972-%m-%d') as date)) - 1 month)))) - 1 day) as anniversaryIn2025 
     from project_release 
@@ -1934,7 +1977,7 @@ The executed query is:
         version as "version", 
         to_char(trunc(released_on, 'MM'), 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "month", 
         to_char((add_months(trunc(released_on, 'MM'), :0) - greatest(0, extract(day from add_months(trunc(released_on, 'MM'), :0)) - extract(day from trunc(released_on, 'MM')))), 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "nextMonth", 
-        extract(day from last_day(trunc(released_on, 'MM'))) as "daysInMonth", 
+        extract(day from last_day(released_on)) as "daysInMonth", 
         to_char(to_date('1972' || to_char(released_on, 'MMDD'), 'YYYYMMDD'), 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "anniversary", 
         to_char((add_months(date '0001-01-01', (2025 - 1) * 12 + extract(month from to_date('1972' || to_char(released_on, 'MMDD'), 'YYYYMMDD')) - 1) + least(extract(day from to_date('1972' || to_char(released_on, 'MMDD'), 'YYYYMMDD')), extract(day from last_day((add_months(date '0001-01-01', (2025 - 1) * 12 + extract(month from to_date('1972' || to_char(released_on, 'MMDD'), 'YYYYMMDD')) - 1) + 1 - 1)))) - 1), 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "anniversaryIn2025" 
     from project_release 
@@ -1946,7 +1989,7 @@ The executed query is:
         version as version, 
         date_trunc('month', released_on)::date as month, 
         cast(date_trunc('month', released_on)::date + $1::interval as date) as "nextMonth", 
-        extract(day from date_trunc('month', date_trunc('month', released_on)::date) + interval '1 month - 1 day')::integer as "daysInMonth", 
+        extract(day from date_trunc('month', released_on) + interval '1 month - 1 day')::integer as "daysInMonth", 
         make_date(1972, cast(extract(month from released_on) as integer), cast(extract(day from released_on) as integer)) as anniversary, 
         make_date(2025, cast(extract(month from make_date(1972, cast(extract(month from released_on) as integer), cast(extract(day from released_on) as integer))) as integer), least(cast(extract(day from make_date(1972, cast(extract(month from released_on) as integer), cast(extract(day from released_on) as integer))) as integer), extract(day from make_date(2025, cast(extract(month from make_date(1972, cast(extract(month from released_on) as integer), cast(extract(day from released_on) as integer))) as integer), 1) + interval '1 month - 1 day')::integer)) as "anniversaryIn2025" 
     from project_release 
@@ -1958,7 +2001,7 @@ The executed query is:
         version as version, 
         date(released_on, 'start of month') as month, 
         date(date(date(released_on, 'start of month'), 'start of month', ?1), (min(cast(strftime('%d', date(released_on, 'start of month')) as integer), cast(strftime('%d', date(date(released_on, 'start of month'), 'start of month', ?1), '+1 months', '-1 days') as integer)) - 1) || ' days') as nextMonth, 
-        cast(strftime('%d', date(released_on, 'start of month'), 'start of month', '+1 months', '-1 days') as integer) as daysInMonth, 
+        cast(strftime('%d', released_on, 'start of month', '+1 months', '-1 days') as integer) as daysInMonth, 
         date(strftime('1972-%m-%d', released_on)) as anniversary, 
         date(printf('%04d-%02d-%02d', 2025, cast(strftime('%m', date(strftime('1972-%m-%d', released_on))) as integer), min(cast(strftime('%d', date(strftime('1972-%m-%d', released_on))) as integer), cast(strftime('%d', printf('%04d-%02d-01', 2025, cast(strftime('%m', date(strftime('1972-%m-%d', released_on))) as integer)), '+1 months', '-1 days') as integer)))) as anniversaryIn2025 
     from project_release 
@@ -1970,7 +2013,7 @@ The executed query is:
         version as version, 
         datefromparts(datepart(year, released_on), datepart(month, released_on), 1) as month, 
         dateadd(month, @0, datefromparts(datepart(year, released_on), datepart(month, released_on), 1)) as nextMonth, 
-        day(eomonth(datefromparts(datepart(year, released_on), datepart(month, released_on), 1))) as daysInMonth, 
+        day(eomonth(released_on)) as daysInMonth, 
         datefromparts(1972, datepart(month, released_on), datepart(day, released_on)) as anniversary, 
         datefromparts(2025, datepart(month, datefromparts(1972, datepart(month, released_on), datepart(day, released_on))), case when datepart(day, datefromparts(1972, datepart(month, released_on), datepart(day, released_on))) < day(eomonth(datefromparts(2025, datepart(month, datefromparts(1972, datepart(month, released_on), datepart(day, released_on))), 1))) then datepart(day, datefromparts(1972, datepart(month, released_on), datepart(day, released_on))) else day(eomonth(datefromparts(2025, datepart(month, datefromparts(1972, datepart(month, released_on), datepart(day, released_on))), 1))) end) as anniversaryIn2025 
     from project_release 

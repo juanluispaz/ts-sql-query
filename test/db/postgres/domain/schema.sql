@@ -1137,3 +1137,26 @@ CREATE OR REPLACE FUNCTION tsq_duration_round_of(one timestamp, two timestamp, l
         extract(year FROM two)::integer, extract(month FROM two)::integer, extract(day FROM two)::integer, round(extract(epoch FROM two::time) * 1000000)::bigint * 1000,
         largest_unit, smallest_unit, increment, rounding_mode, negation)
 $$;
+
+-- tsq_date_plus_duration and tsq_instant_plus_duration: a date or an instant plus a duration of the query given whole,
+-- multiplied by sign (1 to add it, -1 to subtract it), as Temporal adds it: its years and months first, keeping the day in
+-- the month, then its weeks and days, then its time; an instant takes only a duration of time; the functions of the
+-- library that read the duration once (libraryFunctions installed).
+CREATE OR REPLACE FUNCTION tsq_date_plus_duration(value date, duration interval, sgn integer) RETURNS date LANGUAGE sql IMMUTABLE AS $$
+    SELECT cast(value + make_interval(months => (extract(year FROM duration) * 12 + extract(month FROM duration))::integer, days => (extract(day FROM duration) + trunc(extract(epoch FROM duration - date_trunc('day', duration)) / 86400))::integer) * sgn AS date)
+$$;
+
+CREATE OR REPLACE FUNCTION tsq_instant_plus_duration(value timestamptz, duration interval, sgn integer) RETURNS timestamptz LANGUAGE plpgsql STABLE AS $$
+BEGIN
+    IF extract(year FROM duration) <> 0 OR extract(month FROM duration) <> 0 OR extract(day FROM duration) <> 0 THEN
+        RAISE EXCEPTION 'tsq_instant_plus_duration: an instant takes only a duration of hours and smaller units' USING ERRCODE = '22023';
+    END IF;
+    RETURN value + duration * sgn;
+END $$;
+
+-- tsq_duration_negated: the ISO 8601 text of a duration (Temporal.Duration) negated: without its minus, or with one; a
+-- duration of zero as it is (Temporal writes it without sign); the function of the library that writes the text once
+-- (libraryFunctions installed).
+CREATE OR REPLACE FUNCTION tsq_duration_negated(d text) RETURNS text LANGUAGE sql IMMUTABLE AS $$
+    SELECT CASE WHEN substr(d, 1, 1) = '-' THEN substr(d, 2) WHEN tsq_duration_part(d, 'sign') = 0 THEN d WHEN substr(d, 1, 1) = '+' THEN '-' || substr(d, 2) ELSE '-' || d END
+$$;

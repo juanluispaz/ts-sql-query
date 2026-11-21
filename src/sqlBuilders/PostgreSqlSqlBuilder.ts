@@ -1155,6 +1155,13 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
      * The parts of an interval for tsq_duration_add: the function of PostgreSQL returns an interval, so of the largest
      * field it only tells the years and months (rejected), the days and the time apart
      */
+    override _plusDurationFunction(fields: 'date' | 'time' | 'timestamp' | 'instant', duration: ToSql): string | undefined {
+        // An interval added to a date or an instant, which take its parts or check them: read once by the function
+        if (this._isDurationKeptAsText(duration)) {
+            return undefined
+        }
+        return fields === 'date' ? 'tsq_date_plus_duration' : fields === 'instant' ? 'tsq_instant_plus_duration' : undefined
+    }
     override _durationTextLiteral(text: string): string {
         // A text, not an interval: tsq_duration_sum and tsq_duration_total_of take either
         return "'" + text + "'::text"

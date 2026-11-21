@@ -2,7 +2,8 @@
 // (the one its page of functions links) (tsq_duration_part, tsq_duration_text, tsq_duration_round, tsq_duration_total, tsq_duration_add,
 // tsq_zoned_until, tsq_zoned_of_wall, tsq_zoned_wall, tsq_zoned_utc, tsq_zoned_of_text, tsq_zone, tsq_zoned_offset, tsq_round_to, tsq_nanoseconds_between, tsq_ticks_between,
 // tsq_time_of_ticks, tsq_datetime_of_ticks, tsq_zoned_hours_in_day, tsq_zoned_round_day,
-// tsq_duration_sum, tsq_duration_total_of, tsq_duration_round_of, tsq_ds_interval_text, tsq_ym_interval_text) are the ones the suite creates in the
+// tsq_duration_sum, tsq_duration_total_of, tsq_duration_round_of, tsq_ds_interval_text, tsq_ym_interval_text,
+// tsq_duration_negated and the ones of a value plus a duration) are the ones the suite creates in the
 // schema of that database (test/db/<db>/domain/schema.sql), which the tests of the arithmetic, the differences of dates,
 // the totals and the sums of durations run against every engine: the text of the page is the tested one.
 
@@ -112,6 +113,19 @@ describe('DurationPartFunctionDocs', () => {
             expect(documented(db, 'tsq_duration_round_of')).toBe(tested(schema, 'tsq_duration_round_of'))
         }
         expect(documented('oracle', 'tsq_ds_interval_text and tsq_ym_interval_text')).toBe(tested('oracle', 'tsq_ds_interval_text and tsq_ym_interval_text'))
+    })
+
+    test('the-documented-functions-of-a-value-plus-a-duration-and-of-a-negated-one-are-the-tested-ones', () => {
+        const all = 'tsq_date_plus_duration, tsq_time_plus_duration, tsq_datetime_plus_duration and tsq_instant_plus_duration'
+        for (const [db, schema] of [['mariadb', 'mariadb'], ['mysql', 'mysql'], ['oracle', 'oracle'], ['postgresql', 'postgres'], ['sqlserver', 'sqlserver']] as const) {
+            expect(documented(db, 'tsq_duration_negated')).toBe(tested(schema, 'tsq_duration_negated'))
+        }
+        for (const db of ['mariadb', 'mysql']) {
+            expect(documented(db, all)).toBe(tested(db, all))
+        }
+        expect(documented('sqlserver', 'tsq_datetime_plus_duration and tsq_instant_plus_duration')).toBe(tested('sqlserver', 'tsq_datetime_plus_duration and tsq_instant_plus_duration'))
+        expect(documented('postgresql', 'tsq_date_plus_duration and tsq_instant_plus_duration')).toBe(tested('postgres', 'tsq_date_plus_duration and tsq_instant_plus_duration'))
+        expect(documented('oracle', 'tsq_time_plus_duration and tsq_instant_plus_duration')).toBe(tested('oracle', 'tsq_time_plus_duration and tsq_instant_plus_duration'))
     })
 
     test('the-documented-functions-of-the-uuids-of-oracle-are-the-tested-ones', () => {

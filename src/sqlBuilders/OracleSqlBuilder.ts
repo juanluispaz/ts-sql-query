@@ -1975,6 +1975,18 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         // As a difference, the text Temporal writes: an interval of days to seconds would write PT25H as 1 day 1 hour
         return true
     }
+    override _plusDurationFunction(fields: 'date' | 'time' | 'timestamp' | 'instant', duration: ToSql): string | undefined {
+        // An interval of days to seconds added to a time or an instant, which take its parts or check them: read once by
+        // the function
+        if (this._isDurationKeptAsText(duration) || this._isYearToMonthDuration(duration)) {
+            return undefined
+        }
+        return fields === 'time' ? 'tsq_time_plus_duration' : fields === 'instant' ? 'tsq_instant_plus_duration' : undefined
+    }
+    override _plusDurationExtraArguments(fields: 'date' | 'time' | 'timestamp' | 'instant'): string {
+        // A time is kept on the date of the stored times
+        return fields === 'time' ? ', ' + this._oracleDateOfStoredTimes() : ''
+    }
     override _durationOperandForFunction(context: SqlBuildContext, valueSource: ToSql): string {
         if (this._isDurationKeptAsText(valueSource)) {
             return super._durationOperandForFunction(context, valueSource)

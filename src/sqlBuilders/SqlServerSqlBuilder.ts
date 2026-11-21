@@ -1151,6 +1151,13 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
      * the seconds are added as days. dateadd takes no nanoseconds on a datetime or a smalldatetime: a value that isn't
      * known to be a datetime2 (a parameter is one) is taken to a datetime2, which keeps its fraction, to add them
      */
+    override _plusDurationFunction(fields: 'date' | 'time' | 'timestamp' | 'instant', duration: ToSql): string | undefined {
+        // A duration kept as its text, added to a date and time or an instant: its parts read once by the function
+        if (!this._isDurationKeptAsText(duration)) {
+            return undefined
+        }
+        return fields === 'timestamp' ? 'dbo.tsq_datetime_plus_duration' : fields === 'instant' ? 'dbo.tsq_instant_plus_duration' : undefined
+    }
     override _appendWithDuration(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass, sign: 1 | -1): string {
         const fields = this._temporalFieldsOfDurationOperation(typeClass)
         const constant = this._constantDurationParts(value, typeClass, fields, sign)
@@ -1302,6 +1309,9 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _roundToFunction(value: string, step: string, mode: string): string {
         // A function of the user is called with its schema
         return 'dbo.tsq_round_to(' + value + ', ' + step + ", '" + mode + "')"
+    }
+    override _durationNegatedFunctionName(): string {
+        return 'dbo.tsq_duration_negated'
     }
     override _durationRoundOfFunctionName(): string {
         return 'dbo.tsq_duration_round_of'

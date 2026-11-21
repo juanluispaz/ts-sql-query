@@ -524,6 +524,9 @@ GO
 DROP FUNCTION IF EXISTS dbo.tsq_duration_sum;
 DROP FUNCTION IF EXISTS dbo.tsq_duration_total_of;
 DROP FUNCTION IF EXISTS dbo.tsq_duration_round_of;
+DROP FUNCTION IF EXISTS dbo.tsq_instant_plus_duration;
+DROP FUNCTION IF EXISTS dbo.tsq_datetime_plus_duration;
+DROP FUNCTION IF EXISTS dbo.tsq_duration_negated;
 GO
 
 -- tsq_duration_part: a part of the ISO 8601 text of a duration (Temporal.Duration), the function of the library that
@@ -882,5 +885,31 @@ BEGIN
     RETURN dbo.tsq_duration_round(YEAR(@one), MONTH(@one), DAY(@one), DATEDIFF_BIG(NANOSECOND, CAST('00:00' AS TIME), CAST(@one AS TIME)),
         YEAR(@two), MONTH(@two), DAY(@two), DATEDIFF_BIG(NANOSECOND, CAST('00:00' AS TIME), CAST(@two AS TIME)),
         @largest, @smallest, @increment, @mode, @negation);
+END
+GO
+
+-- tsq_datetime_plus_duration and tsq_instant_plus_duration: a date and time or an instant (its date and time in UTC) plus a duration of the query given whole,
+-- multiplied by sign (1 to add it, -1 to subtract it), as Temporal adds it: its years and months first, keeping the day in
+-- the month, then its weeks and days, then its time; an instant takes only a duration of time; the functions of the
+-- library that read the duration once (libraryFunctions installed).
+CREATE OR ALTER FUNCTION dbo.tsq_datetime_plus_duration(@value DATETIME2(7), @duration NVARCHAR(100), @sign INT) RETURNS DATETIME2(7) WITH SCHEMABINDING AS
+BEGIN
+    RETURN DATEADD(NANOSECOND, @sign * dbo.tsq_duration_part(@duration, 'N'), CAST(DATEADD(SECOND, @sign * dbo.tsq_duration_part(@duration, 'S') % 86400, DATEADD(DAY, (@sign * dbo.tsq_duration_part(@duration, 'D') + @sign * dbo.tsq_duration_part(@duration, 'S') / 86400), DATEADD(MONTH, @sign * dbo.tsq_duration_part(@duration, 'M'), @value))) AS DATETIME2(7)));
+END
+GO
+
+CREATE OR ALTER FUNCTION dbo.tsq_instant_plus_duration(@value DATETIME2(7), @duration NVARCHAR(100), @sign INT) RETURNS DATETIME2(7) WITH SCHEMABINDING AS
+BEGIN
+    -- A duration with days, weeks, months or years makes the query fail: the day 29 of February 2001, which it hasn't
+    RETURN DATEADD(DAY, DAY(DATEFROMPARTS(2001, 2, CASE WHEN dbo.tsq_duration_part(@duration, 'M') <> 0 OR dbo.tsq_duration_part(@duration, 'D') <> 0 THEN 29 ELSE 28 END)) - 28, dbo.tsq_datetime_plus_duration(@value, @duration, @sign));
+END
+GO
+
+-- tsq_duration_negated: the ISO 8601 text of a duration (Temporal.Duration) negated: without its minus, or with one; a
+-- duration of zero as it is (Temporal writes it without sign); the function of the library that writes the text once
+-- (libraryFunctions installed).
+CREATE OR ALTER FUNCTION dbo.tsq_duration_negated(@d NVARCHAR(100)) RETURNS NVARCHAR(100) WITH SCHEMABINDING AS
+BEGIN
+    RETURN CASE WHEN SUBSTRING(@d, 1, 1) = N'-' THEN SUBSTRING(@d, 2, 100) WHEN dbo.tsq_duration_part(@d, 'sign') = 0 THEN @d WHEN SUBSTRING(@d, 1, 1) = N'+' THEN N'-' + SUBSTRING(@d, 2, 100) ELSE N'-' + @d END;
 END
 GO

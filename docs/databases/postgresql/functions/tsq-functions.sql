@@ -606,6 +606,24 @@ CREATE OR REPLACE FUNCTION tsq_duration_round_of(one timestamp, two timestamp, l
         largest_unit, smallest_unit, increment, rounding_mode, negation)
 $$;
 
+-- ===== tsq_date_plus_duration and tsq_instant_plus_duration =====
+CREATE OR REPLACE FUNCTION tsq_date_plus_duration(value date, duration interval, sgn integer) RETURNS date LANGUAGE sql IMMUTABLE AS $$
+    SELECT cast(value + make_interval(months => (extract(year FROM duration) * 12 + extract(month FROM duration))::integer, days => (extract(day FROM duration) + trunc(extract(epoch FROM duration - date_trunc('day', duration)) / 86400))::integer) * sgn AS date)
+$$;
+
+CREATE OR REPLACE FUNCTION tsq_instant_plus_duration(value timestamptz, duration interval, sgn integer) RETURNS timestamptz LANGUAGE plpgsql STABLE AS $$
+BEGIN
+    IF extract(year FROM duration) <> 0 OR extract(month FROM duration) <> 0 OR extract(day FROM duration) <> 0 THEN
+        RAISE EXCEPTION 'tsq_instant_plus_duration: an instant takes only a duration of hours and smaller units' USING ERRCODE = '22023';
+    END IF;
+    RETURN value + duration * sgn;
+END $$;
+
+-- ===== tsq_duration_negated =====
+CREATE OR REPLACE FUNCTION tsq_duration_negated(d text) RETURNS text LANGUAGE sql IMMUTABLE AS $$
+    SELECT CASE WHEN substr(d, 1, 1) = '-' THEN substr(d, 2) WHEN tsq_duration_part(d, 'sign') = 0 THEN d WHEN substr(d, 1, 1) = '+' THEN '-' || substr(d, 2) ELSE '-' || d END
+$$;
+
 -- ===== tsq_greatest_strict and tsq_least_strict =====
 CREATE OR REPLACE FUNCTION tsq_greatest_strict(a anycompatible, b anycompatible) RETURNS anycompatible
 LANGUAGE sql IMMUTABLE AS $$ SELECT CASE WHEN a IS NULL OR b IS NULL THEN NULL ELSE greatest(a, b) END $$;

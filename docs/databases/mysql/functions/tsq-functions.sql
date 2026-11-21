@@ -397,3 +397,53 @@ BEGIN
 END
 //
 DELIMITER ;
+
+-- ===== tsq_date_plus_duration, tsq_time_plus_duration, tsq_datetime_plus_duration and tsq_instant_plus_duration =====
+DROP FUNCTION IF EXISTS tsq_date_plus_duration;
+DELIMITER //
+CREATE FUNCTION tsq_date_plus_duration(value DATE, duration VARCHAR(100), sgn INT) RETURNS DATE DETERMINISTIC NO SQL
+BEGIN
+    RETURN DATE_ADD(DATE_ADD(value, INTERVAL sgn * tsq_duration_part(duration, 'M') MONTH), INTERVAL (sgn * tsq_duration_part(duration, 'D') + sgn * tsq_duration_part(duration, 'S') DIV 86400) DAY);
+END
+//
+DELIMITER ;
+
+DROP FUNCTION IF EXISTS tsq_time_plus_duration;
+DELIMITER //
+CREATE FUNCTION tsq_time_plus_duration(value TIME(6), duration VARCHAR(100), sgn INT) RETURNS TIME(6) DETERMINISTIC NO SQL
+BEGIN
+    RETURN SEC_TO_TIME(MOD(MOD(FLOOR(TIME_TO_SEC(value)) * 1000000 + MICROSECOND(value) + (sgn * tsq_duration_part(duration, 'S') * 1000000 + sgn * tsq_duration_part(duration, 'N') DIV 1000), 86400000000) + 86400000000, 86400000000) * 0.000001);
+END
+//
+DELIMITER ;
+
+DROP FUNCTION IF EXISTS tsq_datetime_plus_duration;
+DELIMITER //
+CREATE FUNCTION tsq_datetime_plus_duration(value DATETIME(6), duration VARCHAR(100), sgn INT) RETURNS DATETIME(6) DETERMINISTIC NO SQL
+BEGIN
+    RETURN DATE_ADD(DATE_ADD(DATE_ADD(value, INTERVAL sgn * tsq_duration_part(duration, 'M') MONTH), INTERVAL sgn * tsq_duration_part(duration, 'D') DAY), INTERVAL (sgn * tsq_duration_part(duration, 'S') * 1000000 + sgn * tsq_duration_part(duration, 'N') DIV 1000) MICROSECOND);
+END
+//
+DELIMITER ;
+
+DROP FUNCTION IF EXISTS tsq_instant_plus_duration;
+DELIMITER //
+CREATE FUNCTION tsq_instant_plus_duration(value DATETIME(6), duration VARCHAR(100), sgn INT) RETURNS DATETIME(6) DETERMINISTIC NO SQL
+BEGIN
+    IF tsq_duration_part(duration, 'M') <> 0 OR tsq_duration_part(duration, 'D') <> 0 THEN
+        SIGNAL SQLSTATE '22023' SET MESSAGE_TEXT = 'tsq_instant_plus_duration: an instant takes only a duration of hours and smaller units';
+    END IF;
+    RETURN tsq_datetime_plus_duration(value, duration, sgn);
+END
+//
+DELIMITER ;
+
+-- ===== tsq_duration_negated =====
+DROP FUNCTION IF EXISTS tsq_duration_negated;
+DELIMITER //
+CREATE FUNCTION tsq_duration_negated(d VARCHAR(100)) RETURNS VARCHAR(100) CHARACTER SET ascii DETERMINISTIC NO SQL
+BEGIN
+    RETURN CASE WHEN SUBSTR(d, 1, 1) = '-' THEN SUBSTR(d, 2) WHEN tsq_duration_part(d, 'sign') = 0 THEN d WHEN SUBSTR(d, 1, 1) = '+' THEN CONCAT('-', SUBSTR(d, 2)) ELSE CONCAT('-', d) END;
+END
+//
+DELIMITER ;

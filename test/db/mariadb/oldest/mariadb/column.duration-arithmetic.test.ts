@@ -192,4 +192,65 @@ describe(ctx.label, () => {
         expect(withFunctions.map(read)).toEqual(withFunctions.map(ofTemporal))
         expect(withoutFunctions.map(read)).toEqual(withoutFunctions.map(ofTemporal))
     })
+
+    test('values-plus-a-duration-of-the-query-and-negated-with-the-functions-of-the-library', async () => {
+        // With the functions of the library installed a duration of the query added to a date, a time, a date and time or
+        // an instant, and negated, is written once: the values are the ones of Temporal for the values read, with and
+        // without the functions, and an instant plus a duration with days fails with and without them (the mock answers
+        // no rows: there it is the SQL that is checked)
+        const at = Temporal.Instant.from('2024-01-16T09:30:15Z')
+        const query = (conn: typeof ctx.conn) => conn.selectFrom(tRelease)
+            .where(tRelease.rolloutTime.isNotNull())
+            .select({
+                version: tRelease.version,
+                releasedOn: tRelease.releasedOn,
+                cutoffTime: tRelease.cutoffTime,
+                publishedAt: tRelease.publishedAt,
+                rolloutTime: tRelease.rolloutTime,
+                dayAfter: tRelease.releasedOn.add(tRelease.rolloutTime),
+                timeAfter: tRelease.cutoffTime.add(tRelease.rolloutTime),
+                after: tRelease.publishedAt.add(tRelease.rolloutTime),
+                before: tRelease.publishedAt.subtract(tRelease.rolloutTime),
+                back: tRelease.rolloutTime.negated(),
+            })
+            .orderBy('version')
+            .executeSelectMany()
+        const instantQuery = (conn: typeof ctx.conn, id: number) => conn.selectFrom(tDurationValue)
+            .where(tDurationValue.id.equals(id))
+            .select({
+                spanText: tDurationValue.spanText,
+                later: conn.const(at, 'instant').add(tDurationValue.spanText),
+                earlier: conn.const(at, 'instant').subtract(tDurationValue.spanText),
+                back: tDurationValue.spanText.negated(),
+            })
+            .executeSelectMany()
+        ctx.mockNext([])
+        const withFunctions = await query(ctx.withLibraryFunctions())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as version, released_on as releasedOn, cutoff_time as cutoffTime, published_at as publishedAt, rollout_time as rolloutTime, tsq_date_plus_duration(released_on, rollout_time, 1) as dayAfter, tsq_time_plus_duration(cutoff_time, rollout_time, 1) as timeAfter, tsq_datetime_plus_duration(published_at, rollout_time, 1) as after, tsq_datetime_plus_duration(published_at, rollout_time, -1) as \`before\`, tsq_duration_negated(rollout_time) as back from project_release where rollout_time is not null order by version"`)
+        ctx.mockNext([])
+        const withoutFunctions = await query(ctx.conn)
+        expect(withFunctions.length).toBe(ctx.realDbEnabled ? 3 : 0)
+        type Row = (typeof withFunctions)[number]
+        const read = (row: Row) => [row.version, row.dayAfter?.toString(), row.timeAfter?.toString(), row.after?.toString(), row.before?.toString(), row.back?.toString()]
+        const ofTemporal = (row: Row) => [row.version, row.rolloutTime && row.releasedOn.add(row.rolloutTime).toString(), row.rolloutTime && row.cutoffTime.add(row.rolloutTime).toString(),
+            row.rolloutTime && row.publishedAt.add(row.rolloutTime).toString(), row.rolloutTime && row.publishedAt.subtract(row.rolloutTime).toString(), row.rolloutTime?.negated().toString()]
+        expect(withFunctions.map(read)).toEqual(withFunctions.map(ofTemporal))
+        expect(withoutFunctions.map(read)).toEqual(withoutFunctions.map(ofTemporal))
+        ctx.mockNext([])
+        const instantWithFunctions = await instantQuery(ctx.withLibraryFunctions(), 3)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select span_text as spanText, tsq_instant_plus_duration(?, span_text, 1) as later, tsq_instant_plus_duration(?, span_text, -1) as earlier, tsq_duration_negated(span_text) as back from duration_value where id = ?"`)
+        ctx.mockNext([])
+        const instantWithoutFunctions = await instantQuery(ctx.conn, 3)
+        expect(instantWithFunctions.length).toBe(ctx.realDbEnabled ? 1 : 0)
+        type InstantRow = (typeof instantWithFunctions)[number]
+        const readInstant = (row: InstantRow) => [row.later?.toString(), row.earlier?.toString(), row.back?.toString()]
+        const instantOfTemporal = (row: InstantRow) => [row.spanText && at.add(row.spanText).toString(), row.spanText && at.subtract(row.spanText).toString(), row.spanText?.negated().toString()]
+        expect(instantWithFunctions.map(readInstant)).toEqual(instantWithFunctions.map(instantOfTemporal))
+        expect(instantWithoutFunctions.map(readInstant)).toEqual(instantWithoutFunctions.map(instantOfTemporal))
+        ctx.mockNext([])
+        const failsWithFunctions = await instantQuery(ctx.withLibraryFunctions(), 1).then(() => false, () => true)
+        ctx.mockNext([])
+        const failsWithoutFunctions = await instantQuery(ctx.conn, 1).then(() => false, () => true)
+        expect([failsWithFunctions, failsWithoutFunctions]).toEqual([ctx.realDbEnabled, ctx.realDbEnabled])
+    })
 })

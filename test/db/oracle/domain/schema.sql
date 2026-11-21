@@ -1212,6 +1212,33 @@ BEGIN
         largest_unit, smallest_unit, increment, rounding_mode, negation);
 END;
 
+-- tsq_time_plus_duration and tsq_instant_plus_duration: a time of the day (on the date of the stored times) or an
+-- instant (its date and time in UTC) plus a duration of the query given whole,
+-- multiplied by sign (1 to add it, -1 to subtract it), as Temporal adds it: its years and months first, keeping the day in
+-- the month, then its weeks and days, then its time; an instant takes only a duration of time; the functions of the
+-- library that read the duration once (libraryFunctions installed).
+CREATE OR REPLACE FUNCTION tsq_time_plus_duration(value IN TIMESTAMP_UNCONSTRAINED, duration IN DSINTERVAL_UNCONSTRAINED, sgn IN NUMBER, date_of_times IN TIMESTAMP_UNCONSTRAINED) RETURN TIMESTAMP_UNCONSTRAINED DETERMINISTIC IS
+BEGIN
+    IF value IS NULL OR duration IS NULL THEN RETURN NULL; END IF;
+    RETURN date_of_times + NUMTODSINTERVAL(MOD(MOD(TO_NUMBER(TO_CHAR(value, 'SSSSSFF9')) / 1000000000 + sgn * (EXTRACT(DAY FROM duration) * 86400 + EXTRACT(HOUR FROM duration) * 3600 + EXTRACT(MINUTE FROM duration) * 60 + EXTRACT(SECOND FROM duration)), 86400) + 86400, 86400), 'second');
+END;
+
+CREATE OR REPLACE FUNCTION tsq_instant_plus_duration(value IN TIMESTAMP_UNCONSTRAINED, duration IN DSINTERVAL_UNCONSTRAINED, sgn IN NUMBER) RETURN TIMESTAMP_UNCONSTRAINED DETERMINISTIC IS
+BEGIN
+    IF EXTRACT(DAY FROM duration) <> 0 THEN
+        RAISE_APPLICATION_ERROR(-20001, 'tsq_instant_plus_duration: an instant takes only a duration of hours and smaller units');
+    END IF;
+    RETURN value + duration * sgn;
+END;
+
+-- tsq_duration_negated: the ISO 8601 text of a duration (Temporal.Duration) negated: without its minus, or with one; a
+-- duration of zero as it is (Temporal writes it without sign); the function of the library that writes the text once
+-- (libraryFunctions installed).
+CREATE OR REPLACE FUNCTION tsq_duration_negated(d IN VARCHAR2) RETURN VARCHAR2 DETERMINISTIC IS
+BEGIN
+    RETURN CASE WHEN SUBSTR(d, 1, 1) = '-' THEN SUBSTR(d, 2) WHEN tsq_duration_part(d, 'sign') = 0 THEN d WHEN SUBSTR(d, 1, 1) = '+' THEN '-' || SUBSTR(d, 2) ELSE '-' || d END;
+END;
+
 -- tsq_uuid_to_raw and tsq_raw_to_uuid: a uuid and its RAW(16), the 16 bytes as they are (any version of uuid, any
 -- Oracle), the functions of the library that uuidStrategy 'custom-functions' calls; the text read is in lower case.
 CREATE OR REPLACE FUNCTION tsq_uuid_to_raw(uuid IN VARCHAR2) RETURN RAW DETERMINISTIC IS

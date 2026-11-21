@@ -710,6 +710,30 @@ BEGIN
 END;
 /
 
+-- ===== tsq_time_plus_duration and tsq_instant_plus_duration =====
+CREATE OR REPLACE FUNCTION tsq_time_plus_duration(value IN TIMESTAMP_UNCONSTRAINED, duration IN DSINTERVAL_UNCONSTRAINED, sgn IN NUMBER, date_of_times IN TIMESTAMP_UNCONSTRAINED) RETURN TIMESTAMP_UNCONSTRAINED DETERMINISTIC IS
+BEGIN
+    IF value IS NULL OR duration IS NULL THEN RETURN NULL; END IF;
+    RETURN date_of_times + NUMTODSINTERVAL(MOD(MOD(TO_NUMBER(TO_CHAR(value, 'SSSSSFF9')) / 1000000000 + sgn * (EXTRACT(DAY FROM duration) * 86400 + EXTRACT(HOUR FROM duration) * 3600 + EXTRACT(MINUTE FROM duration) * 60 + EXTRACT(SECOND FROM duration)), 86400) + 86400, 86400), 'second');
+END;
+/
+
+CREATE OR REPLACE FUNCTION tsq_instant_plus_duration(value IN TIMESTAMP_UNCONSTRAINED, duration IN DSINTERVAL_UNCONSTRAINED, sgn IN NUMBER) RETURN TIMESTAMP_UNCONSTRAINED DETERMINISTIC IS
+BEGIN
+    IF EXTRACT(DAY FROM duration) <> 0 THEN
+        RAISE_APPLICATION_ERROR(-20001, 'tsq_instant_plus_duration: an instant takes only a duration of hours and smaller units');
+    END IF;
+    RETURN value + duration * sgn;
+END;
+/
+
+-- ===== tsq_duration_negated =====
+CREATE OR REPLACE FUNCTION tsq_duration_negated(d IN VARCHAR2) RETURN VARCHAR2 DETERMINISTIC IS
+BEGIN
+    RETURN CASE WHEN SUBSTR(d, 1, 1) = '-' THEN SUBSTR(d, 2) WHEN tsq_duration_part(d, 'sign') = 0 THEN d WHEN SUBSTR(d, 1, 1) = '+' THEN '-' || SUBSTR(d, 2) ELSE '-' || d END;
+END;
+/
+
 -- ===== tsq_string_util.concat_strict =====
 CREATE OR REPLACE PACKAGE tsq_string_util AS
     FUNCTION concat_strict(a IN VARCHAR2, b IN VARCHAR2) RETURN VARCHAR2;

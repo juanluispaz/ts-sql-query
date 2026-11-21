@@ -16,6 +16,9 @@
  *   uuid_str and uuid_blob. uuid() generates a version 7 UUID (the extension generates a version 4), whose text and
  *   whose blob sort by the time they were generated.
  * - tsq_ci_replace, a case-insensitive replace, for replaceAllInsensitive with libraryFunctions 'installed'.
+ * - tsq_duration_negated, the ISO 8601 text of a duration negated, with libraryFunctions 'installed'.
+ * - tsq_date_plus_duration, tsq_datetime_plus_duration and tsq_instant_plus_duration, a value plus a duration of the
+ *   query given whole, as their text, with libraryFunctions 'installed'.
  * - tsq_duration_round_of, tsq_duration_round of two dates and times given whole, as their text, with
  *   libraryFunctions 'installed'.
  * - tsq_duration_sum and tsq_duration_total_of, tsq_duration_add and tsq_duration_total of durations given whole, as
@@ -940,6 +943,83 @@ function durationAdd(largest1: unknown, days1: unknown, seconds1: unknown, nanos
     return durationText(0n, 0n, 0n, days, total - days * day, largest <= 4 ? 'hour' : largest === 5 ? 'minute' : 'second')
 }
 
+/** tsq_duration_negated: the ISO 8601 text of a duration negated; a duration of zero as it is */
+function durationNegated(value: unknown): string | null {
+    if (value === null || value === undefined) {
+        return null
+    }
+    const text = String(value)
+    if (text.startsWith('-')) {
+        return text.slice(1)
+    }
+    if (durationPart(text, 'sign') === 0) {
+        return text
+    }
+    return '-' + (text.startsWith('+') ? text.slice(1) : text)
+}
+
+/**
+ * A date and time (its text, YYYY-MM-DD HH:MM:SS.SSS, as the date functions write it) plus the ISO 8601 text of a
+ * duration multiplied by sign, as the date functions add it: the months to the first of the month, the day kept in the
+ * month; then the days and, for a date and time, the seconds of the time (for a date, its whole days), to the
+ * millisecond; the text of the result, or null
+ */
+function plusDuration(value: unknown, duration: unknown, sign: unknown, date: boolean): string | null {
+    const parts = dateTimeParts(value)
+    const months = durationPart(duration, 'M')
+    const days = durationPart(duration, 'D')
+    const seconds = durationPart(duration, 'S')
+    const nanoseconds = durationPart(duration, 'N')
+    if (!parts || months === null || days === null || seconds === null || nanoseconds === null || sign === null || sign === undefined) {
+        return null
+    }
+    const s = Number(sign)
+    const monthIndex = parts.year * 12 + parts.month - 1 + s * months
+    const year = Math.floor(monthIndex / 12)
+    const month = monthIndex - year * 12
+    const lastDay = new Date(0)
+    lastDay.setUTCFullYear(year, month + 1, 0)
+    const first = new Date(0)
+    first.setUTCFullYear(year, month, Math.min(parts.day, lastDay.getUTCDate()))
+    const start = first.getTime()
+    let time = start + (date ? 0 : parts.nanoseconds / 1000000)
+    if (date) {
+        time += (s * days + Math.trunc(s * seconds / 86400)) * 86400000
+    } else {
+        time += s * days * 86400000 + Math.round((s * seconds + s * nanoseconds / 1000000000) * 1000)
+    }
+    return textOfTime(time, date)
+}
+
+/** The text YYYY-MM-DD HH:MM:SS.SSS (or YYYY-MM-DD) of the milliseconds since 1970-01-01T00:00 of a wall clock */
+function textOfTime(milliseconds: number, date: boolean): string {
+    const value = new Date(milliseconds)
+    const pad = (n: number, width: number) => String(n).padStart(width, '0')
+    const day = pad(value.getUTCFullYear(), 4) + '-' + pad(value.getUTCMonth() + 1, 2) + '-' + pad(value.getUTCDate(), 2)
+    if (date) {
+        return day
+    }
+    return day + ' ' + pad(value.getUTCHours(), 2) + ':' + pad(value.getUTCMinutes(), 2) + ':' + pad(value.getUTCSeconds(), 2) + '.' + pad(value.getUTCMilliseconds(), 3)
+}
+
+/** tsq_date_plus_duration: a date plus a duration, as the date functions add it (see plusDuration) */
+function datePlusDuration(value: unknown, duration: unknown, sign: unknown): string | null {
+    return plusDuration(value, duration, sign, true)
+}
+
+/** tsq_datetime_plus_duration: a date and time plus a duration, as the date functions add it (see plusDuration) */
+function dateTimePlusDuration(value: unknown, duration: unknown, sign: unknown): string | null {
+    return plusDuration(value, duration, sign, false)
+}
+
+/** tsq_instant_plus_duration: an instant (its date and time in UTC) plus a duration of hours and smaller units */
+function instantPlusDuration(value: unknown, duration: unknown, sign: unknown): string | null {
+    if (durationPart(duration, 'M') || durationPart(duration, 'D')) {
+        throw new Error('tsq_instant_plus_duration: an instant takes only a duration of hours and smaller units')
+    }
+    return plusDuration(value, duration, sign, false)
+}
+
 /**
  * tsq_duration_round_of: the duration from one date and time to another (their texts, YYYY-MM-DD HH:MM:SS.SSS, as the
  * date functions write them) rounded to the calendar, as tsq_duration_round of their parts
@@ -1008,6 +1088,10 @@ export const sqliteScalarFunctions: readonly SqliteScalarFunction[] = [
     { name: 'tsq_duration_round', arity: 13, deterministic: pure, fn: durationRound as SqliteScalarFunction['fn'] },
     { name: 'tsq_duration_total', arity: 9, deterministic: pure, fn: durationTotal as SqliteScalarFunction['fn'] },
     { name: 'tsq_duration_add', arity: 9, deterministic: pure, fn: durationAdd as SqliteScalarFunction['fn'] },
+    { name: 'tsq_duration_negated', arity: 1, deterministic: pure, fn: durationNegated as SqliteScalarFunction['fn'] },
+    { name: 'tsq_date_plus_duration', arity: 3, deterministic: pure, fn: datePlusDuration as SqliteScalarFunction['fn'] },
+    { name: 'tsq_datetime_plus_duration', arity: 3, deterministic: pure, fn: dateTimePlusDuration as SqliteScalarFunction['fn'] },
+    { name: 'tsq_instant_plus_duration', arity: 3, deterministic: pure, fn: instantPlusDuration as SqliteScalarFunction['fn'] },
     { name: 'tsq_duration_round_of', arity: 7, deterministic: pure, fn: durationRoundOf as SqliteScalarFunction['fn'] },
     { name: 'tsq_duration_sum', arity: 3, deterministic: pure, fn: durationSum as SqliteScalarFunction['fn'] },
     { name: 'tsq_duration_total_of', arity: 5, deterministic: pure, fn: durationTotalOf as SqliteScalarFunction['fn'] },

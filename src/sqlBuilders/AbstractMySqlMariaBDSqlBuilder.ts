@@ -1090,6 +1090,10 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
      * microseconds of the time, as Temporal does. A TIME doesn't go round at midnight: a time is the microseconds of the
      * day plus the ones of the duration, modulo a day
      */
+    override _plusDurationFunction(fields: 'date' | 'time' | 'timestamp' | 'instant', duration: ToSql): string | undefined {
+        // A duration kept as its text: its parts read once by the function
+        return this._isDurationKeptAsText(duration) ? { date: 'tsq_date_plus_duration', time: 'tsq_time_plus_duration', timestamp: 'tsq_datetime_plus_duration', instant: 'tsq_instant_plus_duration' }[fields] : undefined
+    }
     override _appendWithDuration(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass, sign: 1 | -1): string {
         const fields = this._temporalFieldsOfDurationOperation(typeClass)
         const constant = this._constantDurationParts(value, typeClass, fields, sign)

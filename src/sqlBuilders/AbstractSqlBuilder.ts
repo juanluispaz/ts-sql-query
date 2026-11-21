@@ -4527,6 +4527,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * days or more, which Temporal rejects: the query fails then (see _valueOrErrorWhenDurationHasDays)
      */
     _appendInstantWithDuration(context: SqlBuildContext, valueSource: ToSql, value: any, sign: 1 | -1): string {
+        const byFunction = this._appendPlusDuration(context, valueSource, value, 'instant', sign)
+        if (byFunction !== undefined) {
+            return this._instantOfUtc(context, byFunction)
+        }
         const sum = this._appendWithDuration(context, valueSource, value, __registeredDataType('plainDateTime'), sign)
         if (!isValueSource(value)) {
             return this._instantOfUtc(context, sum)
@@ -4560,10 +4564,41 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return this._appendValueParenthesis(value, context, __registeredDataType('plainTime'), true)
     }
     _addDuration(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        return this._appendWithDuration(context, valueSource, value, typeClass, 1)
+        return this._appendPlusDuration(context, valueSource, value, this._temporalFieldsOfDurationOperation(typeClass), 1) ?? this._appendWithDuration(context, valueSource, value, typeClass, 1)
     }
     _subtractDuration(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        return this._appendWithDuration(context, valueSource, value, typeClass, -1)
+        return this._appendPlusDuration(context, valueSource, value, this._temporalFieldsOfDurationOperation(typeClass), -1) ?? this._appendWithDuration(context, valueSource, value, typeClass, -1)
+    }
+    /**
+     * A value plus a duration of the query (multiplied by sign) with the function of the library that takes the duration
+     * whole, written once, with libraryFunctions installed; undefined for a duration given as a value, without the
+     * functions, or where the database has no such function for that value and that duration (see _plusDurationFunction)
+     */
+    _appendPlusDuration(context: SqlBuildContext, valueSource: ToSql, value: unknown, fields: 'date' | 'time' | 'timestamp' | 'instant', sign: 1 | -1): string | undefined {
+        if (!this._libraryFunctionsInstalled() || !isValueSource(value)) {
+            return undefined
+        }
+        const duration = __asNodeValueSource(value as AnyValueSource) as unknown as ToSql
+        const name = this._plusDurationFunction(fields, duration)
+        if (name === undefined) {
+            return undefined
+        }
+        return name + '(' + this._plusDurationOperand(context, valueSource, fields) + ', ' + this._appendSql(duration, context, false) + ', ' + sign + this._plusDurationExtraArguments(fields) + ')'
+    }
+    /**
+     * The function of the library that adds a duration of the query to a date, a time, a date and time or an instant (its
+     * wall clock in UTC): undefined where the SQL of the database is short already
+     */
+    _plusDurationFunction(_fields: 'date' | 'time' | 'timestamp' | 'instant', _duration: ToSql): string | undefined {
+        return undefined
+    }
+    /** The value a function that adds a duration takes */
+    _plusDurationOperand(context: SqlBuildContext, valueSource: ToSql, _fields: 'date' | 'time' | 'timestamp' | 'instant'): string {
+        return this._appendSql(valueSource, context, this._isConstOperand(valueSource))
+    }
+    /** The arguments after the sign of a function that adds a duration */
+    _plusDurationExtraArguments(_fields: 'date' | 'time' | 'timestamp' | 'instant'): string {
+        return ''
     }
     /**
      * A date, a time or a date and time plus a duration (multiplied by sign), as Temporal adds it (see DurationParts):
@@ -5133,6 +5168,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _durationRoundOfOperand(context: SqlBuildContext, valueSource: ToSql): string {
         return this._appendSql(valueSource, context, this._isConstOperand(valueSource))
     }
+    /** The name of the function of the library that negates the ISO 8601 text of a duration */
+    _durationNegatedFunctionName(): string {
+        return 'tsq_duration_negated'
+    }
     /** The name of the function of the library that rounds a difference of two values given whole to the calendar */
     _durationRoundOfFunctionName(): string {
         return 'tsq_duration_round_of'
@@ -5384,6 +5423,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const valueSource = this._temporalOperand(operand)
         if (!this._isDurationKeptAsText(valueSource)) {
             return negatedSql(this._appendSqlParenthesis(valueSource, context, false))
+        }
+        if (this._libraryFunctionsInstalled()) {
+            return this._durationNegatedFunctionName() + '(' + this._appendSql(valueSource, context, false) + ')'
         }
         // The text without its sign, or with a minus; a duration of zero as it is (Temporal writes it without sign)
         let result = 'case when ' + this._textFirstCharacter(this._appendSql(valueSource, context, false)) + " = '-' then " + this._textFromSecondCharacter(this._appendSql(valueSource, context, false))

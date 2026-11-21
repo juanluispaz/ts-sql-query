@@ -1368,6 +1368,22 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
      * days and the seconds. A time goes round at midnight. The digits below the millisecond are the ones the date
      * functions keep
      */
+    override _plusDurationFunction(fields: 'date' | 'time' | 'timestamp' | 'instant', duration: ToSql): string | undefined {
+        // A duration kept as its text, added to a date, a date and time or an instant: its parts read once by the function
+        if (!this._isDurationKeptAsText(duration) || fields === 'time') {
+            return undefined
+        }
+        return fields === 'date' ? 'tsq_date_plus_duration' : fields === 'timestamp' ? 'tsq_datetime_plus_duration' : 'tsq_instant_plus_duration'
+    }
+    override _plusDurationOperand(context: SqlBuildContext, valueSource: ToSql, _fields: 'date' | 'time' | 'timestamp' | 'instant'): string {
+        // Its text, as the date functions read it, with its milliseconds
+        return "strftime('%Y-%m-%d %H:%M:%f', " + this._dateFunctionArgument(context, valueSource) + ')'
+    }
+    override _appendPlusDuration(context: SqlBuildContext, valueSource: ToSql, value: unknown, fields: 'date' | 'time' | 'timestamp' | 'instant', sign: 1 | -1): string | undefined {
+        const sum = super._appendPlusDuration(context, valueSource, value, fields, sign)
+        // The text the function gives, in the format of the dates of the connection
+        return sum === undefined ? undefined : this._sqliteTemporalIn(fields === 'date' ? 'date' : 'dateTime', sum)
+    }
     override _appendWithDuration(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass, sign: 1 | -1): string {
         const fields = this._temporalFieldsOfDurationOperation(typeClass)
         const constant = this._constantDurationParts(value, typeClass, fields, sign)

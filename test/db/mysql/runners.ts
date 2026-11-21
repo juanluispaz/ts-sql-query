@@ -330,13 +330,29 @@ async function bootstrapWorkerDbSchemaAndSeed(host: string, port: number, needsU
         multipleStatements: true,
     })
     try {
-        if (needsUuidCompat) await applyUuidCompatFunctions(conn)
-        await applySchemaAndSeedOnConnection(conn)
+        // The schema of a worker DB that already has it (the one of its schema hash: a change of it drops the worker DBs,
+        // see validateOrResetForReuse) isn't applied again: schema.sql drops and creates functions, and MySQL fails a
+        // prepared statement of another worker calling a function of the library with ER_NEED_REPREPARE (1615) while
+        // functions are created (test/ENGINE_SUPPORT.md). Its data is restored as the per-test reseed does
+        const [ready] = await conn.query<Array<{ n: number }> & import('mysql2').RowDataPacket[]>(
+            `SELECT COUNT(*) AS n FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = '${SCHEMA_READY_TABLE}'`,
+            [workerDb],
+        )
+        if (Number(ready[0]?.n) > 0) {
+            await applyResetAndSeedOnConnection(conn)
+        } else {
+            if (needsUuidCompat) await applyUuidCompatFunctions(conn)
+            await applySchemaAndSeedOnConnection(conn)
+            await conn.query(`CREATE TABLE IF NOT EXISTS ${SCHEMA_READY_TABLE} (ready INT)`)
+        }
     } finally {
         await conn.end()
     }
     return workerDb
 }
+
+/** The table a worker DB has once its schema is applied whole (see bootstrapWorkerDbSchemaAndSeed) */
+const SCHEMA_READY_TABLE = 'tssqlquery_schema_ready'
 
 async function connectWithRetry(mysql2: typeof import('mysql2/promise'), config: any): Promise<import('mysql2/promise').Connection> {
     const deadline = Date.now() + 30_000

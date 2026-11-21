@@ -507,7 +507,7 @@ BEGIN
     RETURN make_interval(years => (v_years * negation)::integer, months => (v_months * negation)::integer, weeks => (v_weeks * negation)::integer, days => (v_days * negation)::integer, secs => v_t * negation / 1000000000.0);
 END $$;
 
--- ===== The functions of minValueFunction and maxValueFunction =====
+-- ===== tsq_greatest_strict and tsq_least_strict =====
 CREATE FUNCTION tsq_greatest_strict(a anycompatible, b anycompatible) RETURNS anycompatible
 LANGUAGE sql IMMUTABLE AS $$ SELECT CASE WHEN a IS NULL OR b IS NULL THEN NULL ELSE greatest(a, b) END $$;
 

@@ -370,19 +370,19 @@ class DBConnection extends OracleConnection<'DBConnection'> {
 
 ### Propagating NULL through a function instead of a `CASE`
 
-The default `CASE` repeats each optional operand (once in the null check, once in `||`) — free for a column, but not for an expensive value-source receiver. Set `concatFunction` to the name of a null-propagating function you created and **every** concatenation the builder emits — `concat` and the affix patterns alike — goes through `func(a, b)` instead, each operand appearing once:
+The default `CASE` repeats each optional operand (once in the null check, once in `||`) — free for a column, but not for an expensive value-source receiver. With the functions of the library in the database (`libraryFunctions = 'installed'`), **every** concatenation the builder emits — `concat` and the affix patterns alike — goes through `tsq_string_util.concat_strict(a, b)` instead, each operand appearing once:
 
 ```typescriptreact
 import { OracleConnection } from "ts-sql-query/oracle";
 
 class DBConnection extends OracleConnection<'DBConnection'> {
-    protected override concatFunction = 'tsq_string_util.concat_strict'
+    protected override libraryFunctions = 'installed' as const
 }
 ```
 
-The name is yours; the one above is only what this page's example calls it. Create it in the database, as a package: its code is in [Oracle functions](functions.md#the-function-of-concatfunction).
+Create it in the database with the functions of the library: see [Oracle functions](functions.md#tsq_string_utilconcat_strict).
 
-With the option set, the emitted SQL calls it on both halves, each operand appearing once:
+With them installed, the emitted SQL calls it on both halves, each operand appearing once:
 
 ```sql
 select tsq_string_util.concat_strict("body", :0) as "tagged" from issue where id = :1
@@ -391,7 +391,7 @@ select id from issue where title like tsq_string_util.concat_strict(:0, '%') esc
 
 !!! tip "Which of the three to pick"
 
-    Leave both options unset and the default `CASE` matches the declared type and the other databases — the right choice for a portable application, where a NULL reaching a `concat` or an affix filter would otherwise go unnoticed until the whole-table match above surfaces as a production bug. Reach for `concatFunction` when you want that same NULL propagation but the repeated operand is expensive enough to matter. Reach for `ignoreNullInConcat` only when you specifically want Oracle's native ignore-NULL semantics back.
+    Leave both settings as they are and the default `CASE` matches the declared type and the other databases — the right choice for a portable application, where a NULL reaching a `concat` or an affix filter would otherwise go unnoticed until the whole-table match above surfaces as a production bug. Install the functions of the library (`libraryFunctions`) when you want that same NULL propagation but the repeated operand is expensive enough to matter. Reach for `ignoreNullInConcat` only when you specifically want Oracle's native ignore-NULL semantics back.
 
 ## Collations & case sensitivity
 

@@ -252,7 +252,7 @@ BEGIN
 END
 GO
 
--- ===== The functions of minValueFunction and maxValueFunction =====
+-- ===== tsq_greatest_strict and tsq_least_strict =====
 CREATE FUNCTION dbo.tsq_greatest_strict(@a FLOAT, @b FLOAT) RETURNS FLOAT AS
 BEGIN
     RETURN CASE WHEN @a IS NULL OR @b IS NULL THEN NULL WHEN @a >= @b THEN @a ELSE @b END

@@ -199,25 +199,22 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 
 ### Propagating NULL through a function instead of a `CASE`
 
-The default `CASE` repeats the operand (once in the null check, once in `least` / `greatest`) — free for a column, but not for an expensive value-source receiver. Name a null-propagating function you created and it is emitted as `func(a, b)` instead, each operand appearing once:
+The default `CASE` repeats the operand (once in the null check, once in `least` / `greatest`) — free for a column, but not for an expensive value-source receiver. With the functions of the library in the database (`libraryFunctions = 'installed'`), `minValue` calls `tsq_greatest_strict(a, b)` and `maxValue` calls `tsq_least_strict(a, b)` instead, each operand appearing once:
 
 ```ts
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {
-    protected override minValueFunction = 'tsq_greatest_strict'  // minValue -> the LARGER of the two
-    protected override maxValueFunction = 'tsq_least_strict'     // maxValue -> the SMALLER of the two
+    protected override libraryFunctions = 'installed' as const
 }
 ```
 
-Mind the mapping: `minValue` (floor) returns the **larger** value, so it uses the `greatest`-like function; `maxValue` (cap) returns the **smaller**, so it uses the `least`-like one. The names are yours; the ones above are only what this page's example calls them.
+`minValue` (floor) returns the **larger** value, so it calls the `greatest`-like function; `maxValue` (cap) returns the **smaller**, so it calls the `least`-like one. Create them in the database with the functions of the library: see [PostgreSQL functions](functions.md#tsq_greatest_strict-and-tsq_least_strict).
 
-Create the functions in the database: their code is in [PostgreSQL functions](functions.md#the-functions-of-minvaluefunction-and-maxvaluefunction).
-
-With the options set, the emitted SQL calls them once per operand:
+With them installed, the emitted SQL calls them once per operand:
 
 ```sql
 select tsq_greatest_strict(estimated_hours, $1) as floored, tsq_least_strict(estimated_hours, $2) as capped from issue
 ```
 
-!!! tip "Leave all three unset unless you need them"
+!!! tip "Leave the defaults unless you need them"
 
-    The default `CASE` matches the declared type on every database and only pays a repeated operand for a value-source receiver. Reach for `ignoreNullInMinAndMaxValue` when you specifically want PostgreSQL's ignore-NULL semantics, or for `minValueFunction` / `maxValueFunction` when the repeated operand is expensive enough to matter. The row aggregate `min(col)` / `max(col)` over rows is a different function — it ignores NULL on every database by standard SQL — and is unaffected by any of these.
+    The default `CASE` matches the declared type on every database and only pays a repeated operand for a value-source receiver. Reach for `ignoreNullInMinAndMaxValue` when you specifically want PostgreSQL's ignore-NULL semantics, or install the functions of the library (`libraryFunctions`) when the repeated operand is expensive enough to matter. The row aggregate `min(col)` / `max(col)` over rows is a different function — it ignores NULL on every database by standard SQL — and is unaffected by any of these.

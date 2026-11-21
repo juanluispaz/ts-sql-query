@@ -593,7 +593,7 @@ BEGIN
 END;
 /
 
--- ===== The function of concatFunction =====
+-- ===== tsq_string_util.concat_strict =====
 CREATE OR REPLACE PACKAGE tsq_string_util AS
     FUNCTION concat_strict(a IN VARCHAR2, b IN VARCHAR2) RETURN VARCHAR2;
     FUNCTION concat_strict(a IN CLOB, b IN CLOB) RETURN CLOB;

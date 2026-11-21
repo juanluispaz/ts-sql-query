@@ -145,7 +145,7 @@ You can pick the collation at **three different levels**. This table is the whol
 | **query** | `insensitiveCollation` | property on **any `Connection`** | the `*Insensitive` operations and the `insensitive` order (`'<name>'` forces it; `''` trusts the column) |
 | **query** | `replaceCollation` | property on **`SqlServerConnection` / `OracleConnection`** | case-sensitive by default; `''` opts out |
 | **query** | `replaceInsensitiveCollation` | property on **`OracleConnection`** | insensitive — Oracle's forced collation for `replaceAllInsensitive`; `''` opts out |
-| **query** | `replaceAllInsensitiveFunction` | property on **`SqliteConnection`** | insensitive — names the SQLite user-defined function (UDF) |
+| **query** | `libraryFunctions = 'installed'` | property on **`SqliteConnection`** | insensitive — calls the function of the library `tsq_ci_replace` |
 | **schema** | column / database collation | plain SQL (`CREATE TABLE` / `CREATE DATABASE … COLLATE`) | either — the cleanest, if you own the schema |
 | **connection** | session collation | the engine's session statement, on connect | either — Oracle full, SQLite `LIKE`, MySQL/MariaDB partial, SQL Server & PostgreSQL none |
 
@@ -312,21 +312,21 @@ On **Oracle** the forced collation is fully configurable: `insensitiveCollation`
 
     On MySQL, `regexp_replace` needs MySQL 8.0.4 or newer: MySQL 5.7 rejects the query. On MariaDB it needs 10.0.5 or newer, according to the release notes of MariaDB 10.0.5.
 
-#### SQLite: register a UDF, or accept the case-sensitive fallback
+#### SQLite: the function of the library, or the case-sensitive fallback
 
-SQLite has no case-insensitive `REPLACE` and no built-in `regexp_replace`. Set **`replaceAllInsensitiveFunction`** on `SqliteConnection` to the name of a scalar function you register, and the builder emits `<name>(src, from, to)`; leave it unset and `replaceAllInsensitive` falls back to a plain, **case-sensitive** `replace(src, from, to)` — documented, never an error.
+SQLite has no case-insensitive `REPLACE` and no built-in `regexp_replace`. With the functions of the library registered (`libraryFunctions = 'installed'` on `SqliteConnection`), the builder emits `tsq_ci_replace(src, from, to)`; without it, `replaceAllInsensitive` falls back to a plain, **case-sensitive** `replace(src, from, to)` — documented, never an error.
 
 ```typescriptreact
 import { SqliteConnection } from "ts-sql-query/sqlite";
 
 class DBConnection extends SqliteConnection<'DBConnection'> {
-    override replaceAllInsensitiveFunction = 'tsq_ci_replace'
+    protected override libraryFunctions = 'installed' as const
 }
 ```
 
 Register `tsq_ci_replace` on the driver: `registerSqliteFunctions` of the query runner registers it, a case-insensitive replace of every occurrence, together with the other SQL functions the library may write. See the page of [better-sqlite3](query-runners/recommended/better-sqlite3.md#the-sql-functions-of-the-library), [bun:sqlite](query-runners/recommended/bun_sqlite.md#the-sql-functions-of-the-library), [node:sqlite](query-runners/recommended/node_sqlite.md#the-sql-functions-of-the-library) or [sqlite-wasm OO1](query-runners/recommended/sqlite-wasm-OO1.md#the-sql-functions-of-the-library), and [SQLite functions and extensions](supported-databases/sqlite/functions.md) for every function the library may write on SQLite.
 
-The **`bun:sql`** connector has **no user-defined-function API** (it does not expose the `bun:sqlite` database it opens either), so `replaceAllInsensitiveFunction` cannot be used — leave it unset and `replaceAllInsensitive` behaves as `replace` (case-sensitive).
+The **`bun:sql`** connector has **no user-defined-function API** (it does not expose the `bun:sqlite` database it opens either), so `libraryFunctions = 'installed'` cannot be used there — leave it as it is and `replaceAllInsensitive` behaves as `replace` (case-sensitive).
 
 ## Per database
 
@@ -426,7 +426,7 @@ The default collation, the collation names to use with `insensitiveCollation` / 
 
     **Session collation:** `PRAGMA case_sensitive_like = ON` makes `LIKE` case-sensitive (connection-global) — the only way to reach `LIKE`'s case behaviour, since `.collate()` doesn't. `GLOB` is case-sensitive with different wildcards.
 
-    See the [SQLite page](supported-databases/sqlite/index.md#case-insensitive-operations-fold-ascii-only) for the ASCII-only limitation, and [`replaceAllInsensitive` on SQLite](#sqlite-register-a-udf-or-accept-the-case-sensitive-fallback) for the UDF.
+    See the [SQLite page](supported-databases/sqlite/index.md#case-insensitive-operations-fold-ascii-only) for the ASCII-only limitation, and [`replaceAllInsensitive` on SQLite](#sqlite-the-function-of-the-library-or-the-case-sensitive-fallback) for the UDF.
 
 === "SQL Server"
     **Default:** case-**insensitive**, accent-sensitive (`SQL_Latin1_General_CP1_CI_AS`). So `equals` / `contains` fold case out of the box.

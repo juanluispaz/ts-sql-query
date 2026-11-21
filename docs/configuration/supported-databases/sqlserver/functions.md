@@ -6,10 +6,10 @@ search:
 
 Some queries call a function that SQL Server doesn't have built in. This page says what each one is for and when a query calls it; its code is in a file of SQL to run once in the database (see [Creating them](#creating-them)). A query that calls a function the database doesn't have fails with the error of the database for a function that doesn't exist; the other queries work without it, so you only need the functions of what you use.
 
-They are of two kinds:
+They are of these kinds, and all of them are in [one file](#creating-them):
 
-- **The functions of the library**, whose names start with `tsq_`. The queries of durations call them (see [Dates and times](../../dates-and-times.md)). Create them with their file, as it is.
-- **Functions of your own**, which a setting of the connection names. Their file is an example of them.
+- **The ones a query always needs**, the ones of durations: a query that uses one calls it (see [Dates and times](../../dates-and-times.md)).
+- **The optional ones**, `tsq_greatest_strict` and `tsq_least_strict`: a query calls them only with `libraryFunctions = 'installed'` on the connection; without it, the SQL of SQL Server does the same with less (see each one).
 
 ## Which function each query needs
 
@@ -20,11 +20,11 @@ They are of two kinds:
 | [`tsq_duration_round`](#tsq_duration_round) | `until` or `since` in months or years, or rounded to a week, a month or a year | `tsq_duration_text` |
 | [`tsq_duration_total`](#tsq_duration_total) | `total` of a duration | — |
 | [`tsq_duration_add`](#tsq_duration_add) | `add` or `subtract` of two durations | `tsq_duration_text` |
-| [The functions of `minValueFunction` and `maxValueFunction`](#the-functions-of-minvaluefunction-and-maxvaluefunction) | `minValue` or `maxValue` is written, with those settings | — |
+| [`tsq_greatest_strict` and `tsq_least_strict`](#tsq_greatest_strict-and-tsq_least_strict) | `minValue` or `maxValue` is written, with `libraryFunctions = 'installed'` | — |
 
 ## Creating them
 
-[`tsq-functions.sql`](functions/tsq-functions.sql) creates every function of the library on SQL Server, in the order they need, dropping the one of the same name first: run it as it is, with the client of your database, like `sqlcmd -d <database> -i tsq-functions.sql`, or in the editor you use. Each function is described below; a query that doesn't use one doesn't need it. It also has the functions a setting of the connection names, with a name of the library you can change.
+[`tsq-functions.sql`](functions/tsq-functions.sql) creates every function of the library on SQL Server, in the order they need, dropping the one of the same name first: run it as it is, with the client of your database, like `sqlcmd -d <database> -i tsq-functions.sql`, or in the editor you use. Each function is described below; a query that doesn't use one doesn't need it. A query calls the ones of the setting `libraryFunctions` only with it (see each one).
 
 ## `tsq_duration_part`
 
@@ -58,10 +58,10 @@ Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 
 Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 
-## The functions of `minValueFunction` and `maxValueFunction`
+## `tsq_greatest_strict` and `tsq_least_strict`
 
-`minValue` and `maxValue` give NULL when an operand is NULL, as their type says, with a `CASE` around `greatest` and `least`. With `minValueFunction` and `maxValueFunction`, a query calls a function of yours instead, which gives the same and writes each operand once (see [Propagating NULL through a function instead of a `CASE`](index.md#propagating-null-through-a-function-instead-of-a-case)). Without these settings, a query doesn't call them. The names are yours; these are the ones of that example. `minValue` returns the larger of the two values, so it takes the `greatest`-like function, and `maxValue` the `least`-like one.
+`minValue` and `maxValue` give NULL when an operand is NULL, as their type says, with a `CASE` around `greatest` and `least`. With `libraryFunctions = 'installed'`, a query calls these functions of the library instead, which give the same and write each operand once (see [Propagating NULL through a function instead of a `CASE`](index.md#propagating-null-through-a-function-instead-of-a-case)); without it, a query doesn't call them. `minValue` returns the larger of the two values, so it calls `tsq_greatest_strict`, and `maxValue` calls `tsq_least_strict`.
 
 A scalar function is not polymorphic on SQL Server, so `float` covers the numeric operands (`int` / `bigint` widen to it), and the `CASE` comparison works on every version (no dependency on the 2022+ `least` / `greatest`):
 
-Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql), with the functions of the library; the name is yours.
+Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).

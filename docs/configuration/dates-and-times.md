@@ -1027,19 +1027,19 @@ On Oracle a `duration` of the query kept in an `INTERVAL DAY TO SECOND` has 24 h
 
 Without the functions of the library, a query takes a wall clock to its zone as the database itself does. PostgreSQL (`timestamp at time zone`) moves one the zone skips forward, as Temporal, and takes the later instant of one it repeats, where Temporal's `'compatible'` takes the earlier one. Oracle (`from_tz`) takes the later instant too, and fails for one the zone skips, with `ORA-01878`. So, by default, `toZonedDateTime(zone)` and `toZonedDateTime(zone, { disambiguation: 'later' })` of 02:30 on 2024-10-27 in Madrid are `2024-10-27T02:30:00+01:00[Europe/Madrid]` (01:30 in UTC), `add({ days: 1 })` of `2024-10-26T02:30:00+02:00[Europe/Madrid]` gives that same instant, and `startOfDay()` of a day whose midnight the zone repeats (2012-11-04 in Havana) is the second midnight; on Oracle `toZonedDateTime('Europe/Madrid')` of 02:30 on 2024-03-31, which Madrid skips, makes the query fail. `disambiguation: 'earlier'` and `'reject'` fail when the query is built, with `UNSUPPORTED_QUERY`, and nothing is sent. Every other day and hour is Temporal's.
 
-With the function of the library `tsq_zoned_of_wall` in the database (its code is in [Oracle functions](supported-databases/oracle/functions.md#tsq_zoned_of_wall) and [PostgreSQL functions](supported-databases/postgresql/functions.md#tsq_zoned_of_wall)), set `temporalFunctions` to `'installed'` on the connection (`OracleConnection` or `PostgreSqlConnection`), and every disambiguation is Temporal's: the same three are `2024-10-27T02:30:00+02:00[Europe/Madrid]` (00:30 in UTC) and Havana's first midnight, and a wall clock the zone skips is moved forward, at the cost of a call to the function in each wall clock taken to its zone. Its default is `'not installed'`.
+With the function of the library `tsq_zoned_of_wall` in the database (its code is in [Oracle functions](supported-databases/oracle/functions.md#tsq_zoned_of_wall) and [PostgreSQL functions](supported-databases/postgresql/functions.md#tsq_zoned_of_wall)), set `libraryFunctions` to `'installed'` on the connection (`OracleConnection` or `PostgreSqlConnection`), and every disambiguation is Temporal's: the same three are `2024-10-27T02:30:00+02:00[Europe/Madrid]` (00:30 in UTC) and Havana's first midnight, and a wall clock the zone skips is moved forward, at the cost of a call to the function in each wall clock taken to its zone. Its default is `'not installed'`.
 
 ```ts
 import { PostgreSqlConnection } from 'ts-sql-query/postgresql'
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {
-    protected override temporalFunctions = 'installed' as const
+    protected override libraryFunctions = 'installed' as const
 }
 ```
 
 ### The functions `tsq_zoned_until` and `tsq_zoned_of_wall`
 
-`until` and `since` of two zoned dates and times in days or larger units count the days of the calendar in their zone, with the length of each one there, and round as Temporal rounds, which needs variables: it is done by `tsq_zoned_until`, a function of the library, with `tsq_zoned_of_wall`, which it uses, and which takes a wall clock to its zone as Temporal, the one `temporalFunctions` uses. Create it once in the database, on Oracle after [`tsq_duration_text`](#the-functions-tsq_duration_text-and-tsq_duration_round), which it uses; without it, the query fails with the error of the database for a function that doesn't exist. Two zoned dates and times in different zones make it fail (`ORA-20001` on Oracle).
+`until` and `since` of two zoned dates and times in days or larger units count the days of the calendar in their zone, with the length of each one there, and round as Temporal rounds, which needs variables: it is done by `tsq_zoned_until`, a function of the library, with `tsq_zoned_of_wall`, which it uses, and which takes a wall clock to its zone as Temporal, the one `libraryFunctions` uses. Create it once in the database, on Oracle after [`tsq_duration_text`](#the-functions-tsq_duration_text-and-tsq_duration_round), which it uses; without it, the query fails with the error of the database for a function that doesn't exist. Two zoned dates and times in different zones make it fail (`ORA-20001` on Oracle).
 
 Their code for each database (MariaDB, MySQL, SQLite and SQL Server have no zoned dates and times):
 

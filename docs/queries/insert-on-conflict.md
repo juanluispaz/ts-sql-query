@@ -8,7 +8,7 @@ An "upsert" is an insert that, if the row already exists, updates it instead: "c
 
 The same clause can also do nothing when the row already exists, which is useful to insert a row only if it isn't there yet.
 
-[PostgreSQL](../configuration/supported-databases/postgresql/index.md), [SQLite](../configuration/supported-databases/sqlite/index.md), [MariaDB](../configuration/supported-databases/mariadb/index.md) and [MySQL](../configuration/supported-databases/mysql/index.md) support it; [Oracle](../configuration/supported-databases/oracle/index.md) and [SQL Server](../configuration/supported-databases/sqlserver/index.md) don't. For the rest of the insert, see [Insert](insert.md).
+[PostgreSQL](../databases/postgresql/index.md), [SQLite](../databases/sqlite/index.md), [MariaDB](../databases/mariadb/index.md) and [MySQL](../databases/mysql/index.md) support it; [Oracle](../databases/oracle/index.md) and [SQL Server](../databases/sqlserver/index.md) don't. For the rest of the insert, see [Insert](insert.md).
 
 ## What a conflict is
 
@@ -53,7 +53,7 @@ The clause can follow the values of [one row](insert.md#insert-one-row), of [sev
 
 ## Do nothing
 
-If you are using [PostgreSQL](../configuration/supported-databases/postgresql/index.md), [SQLite](../configuration/supported-databases/sqlite/index.md), [MariaDB](../configuration/supported-databases/mariadb/index.md) or [MySQL](../configuration/supported-databases/mysql/index.md) you can specify the insert must do nothing in case of conflict.
+If you are using [PostgreSQL](../databases/postgresql/index.md), [SQLite](../databases/sqlite/index.md), [MariaDB](../databases/mariadb/index.md) or [MySQL](../databases/mysql/index.md) you can specify the insert must do nothing in case of conflict.
 
 ```ts
 const insertReturningCustomerData = connection.insertInto(tCustomer).set({
@@ -146,8 +146,8 @@ const insertReturningCustomerData: Promise<{
 
 !!! note
 
-    - On [PostgreSQL](../configuration/supported-databases/postgresql/index.md) and [SQLite](../configuration/supported-databases/sqlite/index.md), you can specify the columns that can create the conflict (including a `where` clause for that columns).
-    - On [PostgreSQL](../configuration/supported-databases/postgresql/index.md) you can specify the constraint name that raise the conflict.
+    - On [PostgreSQL](../databases/postgresql/index.md) and [SQLite](../databases/sqlite/index.md), you can specify the columns that can create the conflict (including a `where` clause for that columns).
+    - On [PostgreSQL](../databases/postgresql/index.md) you can specify the constraint name that raise the conflict.
     - You can combine this with other insert's features, e.g. return some columns.
 
 ## What is returned when nothing is inserted
@@ -210,7 +210,7 @@ const insertedId: number | null
 
 ## Update the existing row ("upsert")
 
-[PostgreSQL](../configuration/supported-databases/postgresql/index.md), [SQLite](../configuration/supported-databases/sqlite/index.md), [MariaDB](../configuration/supported-databases/mariadb/index.md) and [MySQL](../configuration/supported-databases/mysql/index.md) support specifying that an `INSERT` must do an update in case of conflict (also known as an "upsert"). The shape of the call depends on the engine:
+[PostgreSQL](../databases/postgresql/index.md), [SQLite](../databases/sqlite/index.md), [MariaDB](../databases/mariadb/index.md) and [MySQL](../databases/mysql/index.md) support specifying that an `INSERT` must do an update in case of conflict (also known as an "upsert"). The shape of the call depends on the engine:
 
 - On **MariaDB** and **MySQL** the update fires on any unique-key violation; you don't specify which one. Use the bare `.onConflictDoUpdateSet({...})`.
 - On **PostgreSQL** you must say which unique-key column or constraint triggers the update. Use `.onConflictOn(...)` (or `.onConflictOnConstraint(connection.rawFragment\`...\`)`) chained with `.doUpdateSet({...})`.
@@ -571,7 +571,7 @@ const insertReturningCustomerData: Promise<{
 
 !!! note
 
-    - On [PostgreSQL](../configuration/supported-databases/postgresql/index.md) and [SQLite](../configuration/supported-databases/sqlite/index.md) you can choose the conflict the clause handles, including a partial unique index, and on PostgreSQL a named constraint (see [Choosing the conflict](#choosing-the-conflict)), and decide with a `where` which conflicting rows are updated (see [Updating only some of the conflicting rows](#updating-only-some-of-the-conflicting-rows)).
+    - On [PostgreSQL](../databases/postgresql/index.md) and [SQLite](../databases/sqlite/index.md) you can choose the conflict the clause handles, including a partial unique index, and on PostgreSQL a named constraint (see [Choosing the conflict](#choosing-the-conflict)), and decide with a `where` which conflicting rows are updated (see [Updating only some of the conflicting rows](#updating-only-some-of-the-conflicting-rows)).
     - The update can also skip the values that have no value ([Updating only the values that have a value](#updating-only-the-values-that-have-a-value)) or be built dynamically ([Building the update dynamically](#building-the-update-dynamically)).
     - You can combine any of these forms with other insert features, e.g. return some columns.
     - On an insert with a [shape](shapes.md), the update receives its values with the names of that shape, and `extendShape` adds more names.
@@ -580,7 +580,7 @@ const insertReturningCustomerData: Promise<{
 
 ## Updating only some of the conflicting rows
 
-On [PostgreSQL](../configuration/supported-databases/postgresql/index.md) and [SQLite](../configuration/supported-databases/sqlite/index.md) a `where` after `doUpdateSet(...)` decides whether the conflicting row is updated; the condition can use the existing row (the table) and the values to insert (`valuesForInsert()`). Here the row is only updated when the company changes:
+On [PostgreSQL](../databases/postgresql/index.md) and [SQLite](../databases/sqlite/index.md) a `where` after `doUpdateSet(...)` decides whether the conflicting row is updated; the condition can use the existing row (the table) and the values to insert (`valuesForInsert()`). Here the row is only updated when the company changes:
 
 ```ts
 const tCustomerForInsert = tCustomer.valuesForInsert();
@@ -1004,7 +1004,7 @@ What you get back for a conflicting row is what a do nothing gives:
 
 ## Choosing the conflict
 
-On [PostgreSQL](../configuration/supported-databases/postgresql/index.md) and [SQLite](../configuration/supported-databases/sqlite/index.md) you can say which conflict the clause handles; any other conflict still raises an error. The columns must be those of a unique key of the table; otherwise the database raises an error even when the row conflicts with nothing. When an insert can break several unique keys, this lets you treat each as what it means: a repeated name is the same customer, while a repeated email can be a mistake that must fail. On [MariaDB](../configuration/supported-databases/mariadb/index.md) and [MySQL](../configuration/supported-databases/mysql/index.md) the clause handles any unique-key violation, so there is nothing to choose.
+On [PostgreSQL](../databases/postgresql/index.md) and [SQLite](../databases/sqlite/index.md) you can say which conflict the clause handles; any other conflict still raises an error. The columns must be those of a unique key of the table; otherwise the database raises an error even when the row conflicts with nothing. When an insert can break several unique keys, this lets you treat each as what it means: a repeated name is the same customer, while a repeated email can be a mistake that must fail. On [MariaDB](../databases/mariadb/index.md) and [MySQL](../databases/mysql/index.md) the clause handles any unique-key violation, so there is nothing to choose.
 
 ### Doing nothing for a specific conflict
 
@@ -1119,7 +1119,7 @@ const insertedCount: number
 
 ### A conflict on a named constraint
 
-On [PostgreSQL](../configuration/supported-databases/postgresql/index.md) the conflict can also be identified by the name of the unique constraint, with `onConflictOnConstraint(...)`. The name is an SQL identifier, not a value, so it is given as a [raw SQL fragment](sql-fragments.md); build it from what you know of the database, never from a string a user can influence.
+On [PostgreSQL](../databases/postgresql/index.md) the conflict can also be identified by the name of the unique constraint, with `onConflictOnConstraint(...)`. The name is an SQL identifier, not a value, so it is given as a [raw SQL fragment](sql-fragments.md); build it from what you know of the database, never from a string a user can influence.
 
 ```ts
 const insertedCount = await connection.insertInto(tCustomer).set({

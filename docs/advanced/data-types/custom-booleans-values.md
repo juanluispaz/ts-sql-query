@@ -4,7 +4,7 @@ search:
 ---
 # Custom booleans values
 
-Sometimes, especially in [Oracle](../../configuration/supported-databases/oracle/index.md) databases, a boolean is stored with values of your own instead of `true` and `false`, for example a column with `'Y'` for `true` and `'N'` for `false`. Your code still works with a `boolean`: you give the column a `CustomBooleanTypeAdapter` with the true value and the false value, both strings or both numbers, and the library converts them.
+Sometimes, especially in [Oracle](../../databases/oracle/index.md) databases, a boolean is stored with values of your own instead of `true` and `false`, for example a column with `'Y'` for `true` and `'N'` for `false`. Your code still works with a `boolean`: you give the column a `CustomBooleanTypeAdapter` with the true value and the false value, both strings or both numbers, and the library converts them.
 
 ```ts
 import { Table } from "ts-sql-query"
@@ -72,7 +72,7 @@ The executed query is:
     values (@0, case when (@1 = 1) then 'Y' else 'N' end)
     ```
 
-The parameters are: `[ 'My Big Company', true ]` (On [Oracle](../../configuration/supported-databases/oracle/index.md), output parameters are added at the corresponding position with the structure `{dir:3003}`)
+The parameters are: `[ 'My Big Company', true ]` (On [Oracle](../../databases/oracle/index.md), output parameters are added at the corresponding position with the structure `{dir:3003}`)
 
 The result type is:
 

@@ -101,7 +101,7 @@ The executed query is:
     values (@0, @1, @2)
     ```
 
-The parameters are: `[ "John", "Smith", 23 ]` (On [Oracle](../configuration/supported-databases/oracle/index.md), output parameters are added at the corresponding position with the structure `{dir:3003}`) 
+The parameters are: `[ "John", "Smith", 23 ]` (On [Oracle](../databases/oracle/index.md), output parameters are added at the corresponding position with the structure `{dir:3003}`) 
 
 The result type is a promise with the id of the last inserted row:
 ```tsx
@@ -197,7 +197,7 @@ The executed query is:
         (@3, @4, @5)
     ```
 
-The parameters are: `[ "John", "Smith", 23, "Other", "Person", 23 ]` (On [Oracle](../configuration/supported-databases/oracle/index.md), output parameters are added at the corresponding position with the structure `{dir:3003}`) 
+The parameters are: `[ "John", "Smith", 23, "Other", "Person", 23 ]` (On [Oracle](../databases/oracle/index.md), output parameters are added at the corresponding position with the structure `{dir:3003}`) 
 
 The result type is a promise with the id of the last inserted rows:
 ```tsx
@@ -463,7 +463,7 @@ The executed query is:
 The parameters are: `[ 'John', 10 ]`
 ## Update multiple tables in a single query
 
-On [MariaDB](../configuration/supported-databases/mariadb/index.md) and [MySQL](../configuration/supported-databases/mysql/index.md) a single query can change the columns of more than one table, like the name of a customer and the name of their company. Join the tables right after `update`, and use a shape: it's the shape that says where each value goes. A column of the other tables goes in the shape as the column itself, like `tCompany.name`, because a name refers only to the table in `update`.
+On [MariaDB](../databases/mariadb/index.md) and [MySQL](../databases/mysql/index.md) a single query can change the columns of more than one table, like the name of a customer and the name of their company. Join the tables right after `update`, and use a shape: it's the shape that says where each value goes. A column of the other tables goes in the shape as the column itself, like `tCompany.name`, because a name refers only to the table in `update`.
 
 <!-- doc-code-snippet-template: mariadb -->
 ```ts

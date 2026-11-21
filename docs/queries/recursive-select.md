@@ -802,7 +802,7 @@ These are the same operators of a [compound select](compound-select.md#what-each
 
 !!! warning "Limitation"
 
-    [Oracle](../configuration/supported-databases/oracle/index.md) and [SQL Server](../configuration/supported-databases/sqlserver/index.md) only accept `UNION ALL` between the anchor and recursive members of a recursive CTE (Oracle raises `ORA-32040 — missing UNION ALL in recursive WITH clause element`; SQL Server raises `Incorrect syntax near 'UNION'`). To prevent emitting SQL the engine will reject at runtime, `ts-sql-query` types `recursiveUnion` / `recursiveUnionOn` as `never` on those connections, so calling them is a TypeScript error — the compiler steers you to `recursiveUnionAll` / `recursiveUnionAllOn`. The plain `recursiveUnion` / `recursiveUnionOn` variants remain available on [MariaDB](../configuration/supported-databases/mariadb/index.md), [MySQL](../configuration/supported-databases/mysql/index.md), [PostgreSQL](../configuration/supported-databases/postgresql/index.md) and [SQLite](../configuration/supported-databases/sqlite/index.md).
+    [Oracle](../databases/oracle/index.md) and [SQL Server](../databases/sqlserver/index.md) only accept `UNION ALL` between the anchor and recursive members of a recursive CTE (Oracle raises `ORA-32040 — missing UNION ALL in recursive WITH clause element`; SQL Server raises `Incorrect syntax near 'UNION'`). To prevent emitting SQL the engine will reject at runtime, `ts-sql-query` types `recursiveUnion` / `recursiveUnionOn` as `never` on those connections, so calling them is a TypeScript error — the compiler steers you to `recursiveUnionAll` / `recursiveUnionAllOn`. The plain `recursiveUnion` / `recursiveUnionOn` variants remain available on [MariaDB](../databases/mariadb/index.md), [MySQL](../databases/mysql/index.md), [PostgreSQL](../databases/postgresql/index.md) and [SQLite](../databases/sqlite/index.md).
 
 ## Cycles
 
@@ -1176,7 +1176,7 @@ The order of the rows isn't defined unless you ask for it; in particular, don't 
 
 ## Recursive connect by
 
-[Oracle](../configuration/supported-databases/oracle/index.md) has an alternative syntax, in addition to the recursive selects above, that can be more performant in some situations. You write one select, with the `start with` and `connect by` clauses, instead of two parts:
+[Oracle](../databases/oracle/index.md) has an alternative syntax, in addition to the recursive selects above, that can be more performant in some situations. You write one select, with the `start with` and `connect by` clauses, instead of two parts:
 
 | Method | SQL | What it does |
 |---|---|---|
@@ -1305,4 +1305,4 @@ Two things work differently from the recursive selects above:
 | MariaDB | Yes | Yes | Not offered |
 | MySQL | From MySQL 8.0.1 | From MySQL 8.0.1 | Not offered |
 
-A method that is not offered doesn't compile on that connection. On MySQL, with a [`compatibilityVersion`](../configuration/supported-databases/mysql/index.md) below `8_000_000`, the promise of the execute method rejects with the error `UNSUPPORTED_QUERY`, and nothing is sent.
+A method that is not offered doesn't compile on that connection. On MySQL, with a [`compatibilityVersion`](../databases/mysql/index.md) below `8_000_000`, the promise of the execute method rejects with the error `UNSUPPORTED_QUERY`, and nothing is sent.

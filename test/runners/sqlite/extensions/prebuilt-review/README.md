@@ -1,6 +1,6 @@
 # Review of the prebuilt package sqlite-extensions
 
-The SQLite page of the documentation on extensions (`docs/configuration/supported-databases/sqlite/functions.md`)
+The SQLite page of the documentation on extensions (`docs/databases/sqlite/functions.md`)
 mentions the npm package [`sqlite-extensions`](https://www.npmjs.com/package/sqlite-extensions)
 ([repository](https://github.com/canislupaster/sqlite-extensions)) inside a caution box: prebuilt binaries of SQLite's
 `ext/misc`, outside the control of ts-sql-query. This folder keeps how that package was reviewed, so the review can be

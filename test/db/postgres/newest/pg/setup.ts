@@ -3,7 +3,7 @@
 // breakpoint is enabled, so the emitted SQL is the most modern flavour
 // ts-sql-query produces for postgres.
 //
-// Connector: `pg` (see docs/configuration/query-runners/recommended/pg.md).
+// Connector: `pg` (see docs/databases/postgresql/query-runners/pg.md).
 
 import { Pool } from 'pg'
 

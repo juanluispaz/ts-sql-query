@@ -60,7 +60,7 @@ Start with the file of the area of your task. These files are written for you: o
 | Go into the detail of a dynamic query: order and page from a request, optional joins, booleans and null, or a condition built with `if`s | [`llms-dynamic-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-dynamic-postgresql.txt) | 10k |
 | Use a select inside another, combine several, or walk a hierarchy | [`llms-queries-advanced-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-queries-advanced-postgresql.txt) | 12k |
 | Aggregate and group | [`llms-aggregates-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-aggregates-postgresql.txt) | 11k |
-| Write data | [`llms-mutations-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-mutations-postgresql.txt) | 25k |
+| Write data | [`llms-mutations-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-mutations-postgresql.txt) | 24k |
 | Use a transaction | [`llms-transactions.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-transactions.txt) | 13k |
 | Look up a method of the connection, a select, a value or a dynamic condition | [`llms-api-queries.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-api-queries.txt) | 25k |
 | Look up a method of an insert, an update or a delete | [`llms-api-mutations.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-api-mutations.txt) | 11k |
@@ -102,7 +102,7 @@ Start with the file of the area of your task. These files are written for you: o
 | Find what writes a SQL keyword | [`llms-keywords.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-keywords.txt) | 12k |
 | Know what the library is, and what it can't do | [`llms-general.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-general.txt) | 8k |
 | Move a project from v1 to v2 | [`llms-migrating-from-v1.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-migrating-from-v1.txt) | 17k |
-| See what changed in a version | [`llms-changelog-v2.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-changelog-v2.txt), or `llms-changelog-v1.txt` | 46k |
+| See what changed in a version | [`llms-changelog-v2.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-changelog-v2.txt), or `llms-changelog-v1.txt` | 45k |
 
 The files with `<database>` also come with all the databases, like `llms-queries-all.txt`, to compare them or to move code between them. Otherwise use the one of your database, which is smaller.
 
@@ -132,7 +132,7 @@ Once you know the area, go straight to the part you need, in those files or in i
 | Type a row of a table | [Utility types](advanced/tables-and-rows/utility-types.md), [columns from an object](advanced/tables-and-rows/columns-from-object.md) |
 | Declare tables and the connection | [Connection](configuration/connection.md), [mapping](configuration/mapping.md), [column types](configuration/data-types.md) |
 | Connect a driver | [Query runners](configuration/query-runners/): one page per driver |
-| Understand an error | [Overview](api/error-management/overview.md), [library errors](api/error-management/library-raised-errors.md); [native mappings](api/error-management/native-mappings/) for a native error of your database |
+| Understand an error | [Overview](api/error-management/overview.md), [library errors](api/error-management/library-raised-errors.md); the Errors page of your database, like [PostgreSQL errors](databases/postgresql/errors.md), for a native error |
 | Look up a method | [API](api/) |
 | See what can't be done | [Limitations](about/limitations.md) |
 

@@ -82,7 +82,7 @@ Coords
                  used for compile-time negatives — not a version
                  folder — and is included only under --run-connectors=all.
     <connector>  per-driver folder under <db>/<version>/, one of the
-                 entries in docs/configuration/query-runners/recommended/
+                 entries in docs/databases/<database>/query-runners/
                  for that DB (e.g. postgres: pg, postgres,
                  bun_sql_postgres, pglite).
     <file>       a single `*.test.ts` file inside <connector>/, for

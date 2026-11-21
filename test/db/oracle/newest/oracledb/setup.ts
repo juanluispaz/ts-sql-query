@@ -1,7 +1,7 @@
 // oracle in the "newest" zone — compatibilityVersion =
 // Number.POSITIVE_INFINITY, the library default.
 //
-// Connector: `oracledb` (see docs/configuration/query-runners/recommended/oracledb.md).
+// Connector: `oracledb` (see docs/databases/oracle/query-runners/oracledb.md).
 
 import { createOracleDBPoolTestContext } from '../../runners.js'
 

@@ -492,10 +492,10 @@ An instant can be kept in any column of a date and a time:
 | MySQL | `TIMESTAMP(6)`, converted with the zone of the session, from 1970 to 2038 | `DATETIME(6)` |
 | Oracle | `TIMESTAMP(9) WITH TIME ZONE`, or `TIMESTAMP(9) WITH LOCAL TIME ZONE`, converted with the zone of the session | `TIMESTAMP(9)`, `DATE` |
 | PostgreSQL | `timestamptz` | `timestamp` |
-| SQLite | none: it keeps an instant as it keeps a `localDateTime`, in the [format of its dates](supported-databases/sqlite/index.md#working-with-date-and-time) | |
+| SQLite | none: it keeps an instant as it keeps a `localDateTime`, in the [format of its dates](../databases/sqlite/index.md#working-with-date-and-time) | |
 | SQL Server | `datetimeoffset(7)` | `datetime2(7)` |
 
-On SQLite a `localdate` format keeps the wall clock of the instant in the zone of the application. With [`sqliteRunsInApplicationTimeZone`](supported-databases/sqlite/index.md#the-date-functions-and-the-time-zone), the arithmetic of the instant takes it to UTC and back with the modifiers `'utc'` and `'localtime'`; without it, the zone of the application must be UTC.
+On SQLite a `localdate` format keeps the wall clock of the instant in the zone of the application. With [`sqliteRunsInApplicationTimeZone`](../databases/sqlite/index.md#the-date-functions-and-the-time-zone), the arithmetic of the instant takes it to UTC and back with the modifiers `'utc'` and `'localtime'`; without it, the zone of the application must be UTC.
 
 The [four kinds of temporal column](time-zones.md#the-four-kinds-of-temporal-column) explain what each one does with the zone. On MySQL and MariaDB a `TIMESTAMP` rejects an instant outside its range, from `1970-01-01T00:00:01Z` to `2038-01-19T03:14:07Z` on MySQL, and to `2106-02-07T06:28:15Z` on MariaDB 13; a `DATETIME(6)` in UTC also holds the instants before and after it.
 
@@ -1027,7 +1027,7 @@ On Oracle a `duration` of the query kept in an `INTERVAL DAY TO SECOND` has 24 h
 
 Without the functions of the library, a query takes a wall clock to its zone as the database itself does. PostgreSQL (`timestamp at time zone`) moves one the zone skips forward, as Temporal, and takes the later instant of one it repeats, where Temporal's `'compatible'` takes the earlier one. Oracle (`from_tz`) takes the later instant too, and fails for one the zone skips, with `ORA-01878`. So, by default, `toZonedDateTime(zone)` and `toZonedDateTime(zone, { disambiguation: 'later' })` of 02:30 on 2024-10-27 in Madrid are `2024-10-27T02:30:00+01:00[Europe/Madrid]` (01:30 in UTC), `add({ days: 1 })` of `2024-10-26T02:30:00+02:00[Europe/Madrid]` gives that same instant, and `startOfDay()` of a day whose midnight the zone repeats (2012-11-04 in Havana) is the second midnight; on Oracle `toZonedDateTime('Europe/Madrid')` of 02:30 on 2024-03-31, which Madrid skips, makes the query fail. `disambiguation: 'earlier'` and `'reject'` fail when the query is built, with `UNSUPPORTED_QUERY`, and nothing is sent. Every other day and hour is Temporal's.
 
-With the function of the library `tsq_zoned_of_wall` in the database (its code is in [Oracle functions](supported-databases/oracle/functions.md#tsq_zoned_of_wall) and [PostgreSQL functions](supported-databases/postgresql/functions.md#tsq_zoned_of_wall)), set `libraryFunctions` to `'installed'` on the connection (`OracleConnection` or `PostgreSqlConnection`), and every disambiguation is Temporal's: the same three are `2024-10-27T02:30:00+02:00[Europe/Madrid]` (00:30 in UTC) and Havana's first midnight, and a wall clock the zone skips is moved forward, at the cost of a call to the function in each wall clock taken to its zone. Its default is `'not installed'`.
+With the function of the library `tsq_zoned_of_wall` in the database (its code is in [Oracle functions](../databases/oracle/functions.md#tsq_zoned_of_wall) and [PostgreSQL functions](../databases/postgresql/functions.md#tsq_zoned_of_wall)), set `libraryFunctions` to `'installed'` on the connection (`OracleConnection` or `PostgreSqlConnection`), and every disambiguation is Temporal's: the same three are `2024-10-27T02:30:00+02:00[Europe/Madrid]` (00:30 in UTC) and Havana's first midnight, and a wall clock the zone skips is moved forward, at the cost of a call to the function in each wall clock taken to its zone. Its default is `'not installed'`.
 
 ```ts
 import { PostgreSqlConnection } from 'ts-sql-query/postgresql'
@@ -1047,8 +1047,8 @@ Their code for each database (MariaDB, MySQL, SQLite and SQL Server have no zone
 |---|---|
 | MariaDB | — |
 | MySQL | — |
-| Oracle | [`tsq_zoned_of_wall`](supported-databases/oracle/functions.md#tsq_zoned_of_wall) and [`tsq_zoned_until`](supported-databases/oracle/functions.md#tsq_zoned_until) |
-| PostgreSQL | [`tsq_zoned_of_wall`](supported-databases/postgresql/functions.md#tsq_zoned_of_wall) and [`tsq_zoned_until`](supported-databases/postgresql/functions.md#tsq_zoned_until) |
+| Oracle | [`tsq_zoned_of_wall`](../databases/oracle/functions.md#tsq_zoned_of_wall) and [`tsq_zoned_until`](../databases/oracle/functions.md#tsq_zoned_until) |
+| PostgreSQL | [`tsq_zoned_of_wall`](../databases/postgresql/functions.md#tsq_zoned_of_wall) and [`tsq_zoned_until`](../databases/postgresql/functions.md#tsq_zoned_until) |
 | SQLite | — |
 | SQL Server | — |
 
@@ -1452,12 +1452,12 @@ Its code for each database:
 
 | Database | The code |
 |---|---|
-| MariaDB | [`tsq_duration_part`](supported-databases/mariadb/functions.md#tsq_duration_part) |
-| MySQL | [`tsq_duration_part`](supported-databases/mysql/functions.md#tsq_duration_part) |
-| Oracle | [`tsq_duration_part`](supported-databases/oracle/functions.md#tsq_duration_part) |
-| PostgreSQL | [`tsq_duration_part`](supported-databases/postgresql/functions.md#tsq_duration_part) |
-| SQLite | registered by `registerSqliteFunctions`: see [SQLite functions and extensions](supported-databases/sqlite/functions.md#the-functions-of-durations) |
-| SQL Server | [`tsq_duration_part`](supported-databases/sqlserver/functions.md#tsq_duration_part) |
+| MariaDB | [`tsq_duration_part`](../databases/mariadb/functions.md#tsq_duration_part) |
+| MySQL | [`tsq_duration_part`](../databases/mysql/functions.md#tsq_duration_part) |
+| Oracle | [`tsq_duration_part`](../databases/oracle/functions.md#tsq_duration_part) |
+| PostgreSQL | [`tsq_duration_part`](../databases/postgresql/functions.md#tsq_duration_part) |
+| SQLite | registered by `registerSqliteFunctions`: see [SQLite functions and extensions](../databases/sqlite/functions.md#the-functions-of-durations) |
+| SQL Server | [`tsq_duration_part`](../databases/sqlserver/functions.md#tsq_duration_part) |
 
 ## The duration between two dates and times
 
@@ -1590,12 +1590,12 @@ Their code for each database:
 
 | Database | The code |
 |---|---|
-| MariaDB | [`tsq_duration_text`](supported-databases/mariadb/functions.md#tsq_duration_text) and [`tsq_duration_round`](supported-databases/mariadb/functions.md#tsq_duration_round) |
-| MySQL | [`tsq_duration_text`](supported-databases/mysql/functions.md#tsq_duration_text) and [`tsq_duration_round`](supported-databases/mysql/functions.md#tsq_duration_round) |
-| Oracle | [`tsq_duration_text`](supported-databases/oracle/functions.md#tsq_duration_text) and [`tsq_duration_round`](supported-databases/oracle/functions.md#tsq_duration_round) |
-| PostgreSQL | [`tsq_duration_round`](supported-databases/postgresql/functions.md#tsq_duration_round) |
-| SQLite | registered by `registerSqliteFunctions`: see [SQLite functions and extensions](supported-databases/sqlite/functions.md#the-functions-of-durations) |
-| SQL Server | [`tsq_duration_text`](supported-databases/sqlserver/functions.md#tsq_duration_text) and [`tsq_duration_round`](supported-databases/sqlserver/functions.md#tsq_duration_round) |
+| MariaDB | [`tsq_duration_text`](../databases/mariadb/functions.md#tsq_duration_text) and [`tsq_duration_round`](../databases/mariadb/functions.md#tsq_duration_round) |
+| MySQL | [`tsq_duration_text`](../databases/mysql/functions.md#tsq_duration_text) and [`tsq_duration_round`](../databases/mysql/functions.md#tsq_duration_round) |
+| Oracle | [`tsq_duration_text`](../databases/oracle/functions.md#tsq_duration_text) and [`tsq_duration_round`](../databases/oracle/functions.md#tsq_duration_round) |
+| PostgreSQL | [`tsq_duration_round`](../databases/postgresql/functions.md#tsq_duration_round) |
+| SQLite | registered by `registerSqliteFunctions`: see [SQLite functions and extensions](../databases/sqlite/functions.md#the-functions-of-durations) |
+| SQL Server | [`tsq_duration_text`](../databases/sqlserver/functions.md#tsq_duration_text) and [`tsq_duration_round`](../databases/sqlserver/functions.md#tsq_duration_round) |
 
 ## The total of a duration in a unit
 
@@ -1693,7 +1693,7 @@ The number is the one Temporal's `total` gives, to the last digit. What applies 
 
 Without a date of reference, a duration with years, months or weeks fails the query, as Temporal's `total` throws: the type of the value doesn't tell which fields it has. The error is the one of the function below, which says it needs a date of reference (on SQL Server, an error converting that text to a number, because a function there can't raise one).
 
-On Oracle, a date before 15 October 1582 is in the Julian calendar: a total counted across that day isn't the one of Temporal (see [Dates before 1582](supported-databases/oracle/index.md#dates-before-1582)).
+On Oracle, a date before 15 October 1582 is in the Julian calendar: a total counted across that day isn't the one of Temporal (see [Dates before 1582](../databases/oracle/index.md#dates-before-1582)).
 
 ### The function `tsq_duration_total`
 
@@ -1703,12 +1703,12 @@ Its code for each database:
 
 | Database | The code |
 |---|---|
-| MariaDB | [`tsq_duration_total`](supported-databases/mariadb/functions.md#tsq_duration_total) |
-| MySQL | [`tsq_duration_total`](supported-databases/mysql/functions.md#tsq_duration_total) |
-| Oracle | [`tsq_duration_total`](supported-databases/oracle/functions.md#tsq_duration_total) |
-| PostgreSQL | [`tsq_duration_total`](supported-databases/postgresql/functions.md#tsq_duration_total) |
-| SQLite | registered by `registerSqliteFunctions`: see [SQLite functions and extensions](supported-databases/sqlite/functions.md#the-functions-of-durations) |
-| SQL Server | [`tsq_duration_total`](supported-databases/sqlserver/functions.md#tsq_duration_total) |
+| MariaDB | [`tsq_duration_total`](../databases/mariadb/functions.md#tsq_duration_total) |
+| MySQL | [`tsq_duration_total`](../databases/mysql/functions.md#tsq_duration_total) |
+| Oracle | [`tsq_duration_total`](../databases/oracle/functions.md#tsq_duration_total) |
+| PostgreSQL | [`tsq_duration_total`](../databases/postgresql/functions.md#tsq_duration_total) |
+| SQLite | registered by `registerSqliteFunctions`: see [SQLite functions and extensions](../databases/sqlite/functions.md#the-functions-of-durations) |
+| SQL Server | [`tsq_duration_total`](../databases/sqlserver/functions.md#tsq_duration_total) |
 
 ## Durations added and subtracted together
 
@@ -1802,12 +1802,12 @@ Its code for each database:
 
 | Database | The code |
 |---|---|
-| MariaDB | [`tsq_duration_add`](supported-databases/mariadb/functions.md#tsq_duration_add) |
-| MySQL | [`tsq_duration_add`](supported-databases/mysql/functions.md#tsq_duration_add) |
-| Oracle | [`tsq_duration_add`](supported-databases/oracle/functions.md#tsq_duration_add) |
-| PostgreSQL | [`tsq_duration_add`](supported-databases/postgresql/functions.md#tsq_duration_add) |
-| SQLite | registered by `registerSqliteFunctions`: see [SQLite functions and extensions](supported-databases/sqlite/functions.md#the-functions-of-durations) |
-| SQL Server | [`tsq_duration_add`](supported-databases/sqlserver/functions.md#tsq_duration_add) |
+| MariaDB | [`tsq_duration_add`](../databases/mariadb/functions.md#tsq_duration_add) |
+| MySQL | [`tsq_duration_add`](../databases/mysql/functions.md#tsq_duration_add) |
+| Oracle | [`tsq_duration_add`](../databases/oracle/functions.md#tsq_duration_add) |
+| PostgreSQL | [`tsq_duration_add`](../databases/postgresql/functions.md#tsq_duration_add) |
+| SQLite | registered by `registerSqliteFunctions`: see [SQLite functions and extensions](../databases/sqlite/functions.md#the-functions-of-durations) |
+| SQL Server | [`tsq_duration_add`](../databases/sqlserver/functions.md#tsq_duration_add) |
 
 ## Changing a field and rounding
 
@@ -2164,7 +2164,7 @@ A Temporal value goes to the database with all its digits, up to the nanosecond,
 | MySQL | Microseconds, rounded | `23:59:58.123457` |
 | Oracle | Microseconds in a `TIMESTAMP`, rounded | `23:59:58.123457` |
 | PostgreSQL | Microseconds, rounded | `23:59:58.123457` |
-| SQLite | What the [format of its dates](supported-databases/sqlite/index.md#working-with-date-and-time) says: milliseconds by default | `23:59:58.123` |
+| SQLite | What the [format of its dates](../databases/sqlite/index.md#working-with-date-and-time) says: milliseconds by default | `23:59:58.123` |
 | SQL Server | Hundreds of nanoseconds in a `datetime2(7)`, rounded | `23:59:58.1234568` |
 
 An Oracle `TIMESTAMP(9)`, or `TIMESTAMP(9) WITH TIME ZONE`, keeps the nanoseconds. A constant selected as it is comes back as it was sent, with all its digits, unless the database converts it: PostgreSQL and SQL Server round it to the digits of their type.
@@ -2174,7 +2174,7 @@ An Oracle `TIMESTAMP(9)`, or `TIMESTAMP(9) WITH TIME ZONE`, keeps the nanosecond
 - **Bun SQL** gives a `timestamp` (PostgreSQL) or a `datetime` (MySQL and MariaDB) as a `Date`, and has no way to give its text: a `plainDateTime` or an `instant` read through it stops at the millisecond. A `date` and a `time` keep all their digits. The other drivers of these databases read every digit.
 - **A year before 1.** In Temporal the year before 1 is 0 (1 BC), and the one before it -1. PostgreSQL and Oracle keep these dates, but `year()` gives the year as they number it, with no year 0: -1 for 1 BC and -44 for 44 BC, where the value read is `-000043-03-15`. SQL Server rejects a date before the year 1, and an instant before the year 1.
 - **Bun SQL on MySQL 8** sends a text parameter that MySQL converts to a time wrongly (`'10:07:30'` is `00:00:00`): a `plainTime` given as a value and rounded is another time there. A column is read right, and so is every value with the other drivers and with MariaDB.
-- **Oracle has no type for a time of the day**: a `plainTime` is kept in a `DATE` or a `TIMESTAMP` on one date, as a `localTime` is: `dateOfStoredTimes`, 1972-01-01 by default (see [A time of the day](supported-databases/oracle/index.md#a-time-of-the-day)).
+- **Oracle has no type for a time of the day**: a `plainTime` is kept in a `DATE` or a `TIMESTAMP` on one date, as a `localTime` is: `dateOfStoredTimes`, 1972-01-01 by default (see [A time of the day](../databases/oracle/index.md#a-time-of-the-day)).
 - **A difference of more than 292 years on SQLite**, like `until` of two instants or of two dates and times, has more nanoseconds than its 64-bit integers: the query fails with the error of `tsq_duration_text` or `tsq_duration_total`. The other databases compute it with decimal numbers.
 - **Grouping by the arithmetic of a zoned date and time that isn't a column, on Oracle**: a zoned date and time computed in the query (like `toZonedDateTimeISO(zone)` of an instant) or given as a value is computed once in a scalar subquery when an operation of its arithmetic uses it, and Oracle doesn't accept a subquery in the `group by` (*ORA-22818*). The arithmetic of a column has no subquery.
 - **A zoned date and time in local mean time on Oracle**: Oracle keeps the offset of the local mean time of a zone (like `-00:14:44` in Madrid until 1900, or `-03:50:40` in Asunción until 1931) without its seconds, so the date and time of an instant there, and the instant of a wall clock there, are some seconds off from Temporal's. A zoned date and time read keeps its instant.

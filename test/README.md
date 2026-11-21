@@ -232,14 +232,14 @@ test/
                                           ← test cells; see PER_DATABASE_LAYOUT.md
 ```
 
-- `<database>` = one of `docs/configuration/supported-databases/*.md`
+- `<database>` = one of `docs/databases/*.md`
   (`mariadb`, `mysql`, `oracle`, `postgres`, `sqlite`, `sqlserver`).
 - `<compatibilityVersion>` = `newest` (default,
   `Number.POSITIVE_INFINITY`), the literal numeric value of a
   documented breakpoint other than the highest, which `newest` covers (e.g.
   `10_005_000`, `8_000_017`), or `oldest` (the `< lowest-breakpoint` zone).
 - `<connector>` = a query runner of that database, named after its page in
-  `docs/configuration/query-runners/recommended/*.md` or `additional/*.md`;
+  `docs/databases/*/query-runners/*.md` or `additional/*.md`;
   `<connector>-sync`, the same runner driven synchronously; a storage twin such
   as `oracledb-boolean` (the same runner with the booleans stored as Oracle
   23ai's `BOOLEAN`, `newest` only); or `documentation`, the tests generated from

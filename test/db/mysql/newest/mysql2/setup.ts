@@ -1,7 +1,7 @@
 // mysql in the "newest" zone — compatibilityVersion =
 // Number.POSITIVE_INFINITY, the library default.
 //
-// Connector: `mysql2` (see docs/configuration/query-runners/recommended/mysql2.md).
+// Connector: `mysql2` (see docs/databases/mysql/query-runners/mysql2.md).
 
 import { createMySql2PoolTestContext } from '../../runners.js'
 

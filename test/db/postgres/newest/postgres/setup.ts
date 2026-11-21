@@ -2,7 +2,7 @@
 // Number.POSITIVE_INFINITY, the library default.
 //
 // Connector: `postgres` (porsager/postgres — see
-// docs/configuration/query-runners/recommended/postgres.md).
+// docs/databases/postgresql/query-runners/postgres.md).
 
 import postgres from 'postgres'
 

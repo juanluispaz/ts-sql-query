@@ -184,7 +184,7 @@ value as its name. The highest documented breakpoint has no folder of its own:
 at that value the library emits the same SQL as at `newest`, which covers it.
 
 The breakpoints come from
-[`docs/configuration/supported-databases/<database>/index.md`](../docs/configuration/supported-databases/);
+[`docs/databases/<database>/index.md`](../docs/databases/);
 test folder names must come from that file.
 
 ## `<connector>/setup.ts` — the cell entry

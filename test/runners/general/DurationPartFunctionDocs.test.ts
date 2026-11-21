@@ -12,11 +12,11 @@ const root = join(import.meta.dirname, '../../..')
 
 /**
  * The code of a function in the file of the functions of the library of a database that its page links
- * (docs/configuration/supported-databases/<db>/functions/tsq-functions.sql): its blocks, after its marker; without the
+ * (docs/databases/<db>/functions/tsq-functions.sql): its blocks, after its marker; without the
  * `/` that runs a PL/SQL unit in SQL*Plus
  */
 function documented(db: string, name: string): string {
-    const file = readFileSync(join(root, 'docs/configuration/supported-databases', db, 'functions/tsq-functions.sql'), 'utf8')
+    const file = readFileSync(join(root, 'docs/databases', db, 'functions/tsq-functions.sql'), 'utf8')
     const marker = '-- ===== ' + name + ' =====\n'
     expect(file.indexOf(marker)).toBeGreaterThan(0)
     let section = file.slice(file.indexOf(marker) + marker.length)
@@ -81,7 +81,7 @@ describe('DurationPartFunctionDocs', () => {
 
     test('the-documented-functions-of-the-uuids-of-oracle-are-the-tested-ones', () => {
         // tsq_uuid_to_raw and tsq_raw_to_uuid of the uuid strategy 'custom-functions', without the comments and the `/` of SQL*Plus
-        const file = readFileSync(join(root, 'docs/configuration/supported-databases/oracle/functions/tsq-uuid-functions.sql'), 'utf8')
+        const file = readFileSync(join(root, 'docs/databases/oracle/functions/tsq-uuid-functions.sql'), 'utf8')
         const code = file.split('\n').filter(line => line !== '/' && !line.startsWith('--')).join('\n').trim().replace(/\n{2,}/g, '\n\n')
         const schema = readFileSync(join(root, 'test/db/oracle/domain/schema.sql'), 'utf8')
         const start = schema.indexOf('CREATE OR REPLACE FUNCTION tsq_uuid_to_raw')

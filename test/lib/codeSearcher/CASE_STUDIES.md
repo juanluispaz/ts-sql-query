@@ -239,7 +239,7 @@ implemented on the value-source class. (The red-line branch fires when the recei
 
 ## Explained in docs (full)
 aggregate-as-object-array.md (the feature) · value-expressions.md (the signature) · **uuid setup:**
-data-types.md + supported-databases/<db>/index.md (and SQLite registers uuid functions on the connector).
+data-types.md + databases/<db>/index.md (and SQLite registers uuid functions on the connector).
 
 ## Coverage (summary)
 covered in 6 dbs (e.g. `select.aggregate-as-array.modifiers.test.ts` → test

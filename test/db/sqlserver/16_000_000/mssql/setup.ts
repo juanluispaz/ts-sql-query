@@ -5,7 +5,7 @@
 // emulation (not JSON_ARRAYAGG), substringToEnd passes an explicit length, and
 // currentDate emits cast(getdate() as date) rather than CURRENT_DATE.
 //
-// Connector: `mssql` (see docs/configuration/query-runners/recommended/mssql.md).
+// Connector: `mssql` (see docs/databases/sqlserver/query-runners/mssql.md).
 
 import { createMssqlPoolTestContext } from '../../runners.js'
 

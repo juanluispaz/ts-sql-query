@@ -141,7 +141,7 @@ for how the report should look.
    Before adding or modifying a test, read the relevant pages under
    [`docs/`](../docs/). The pages that matter most for the test suite:
 
-   - [`docs/configuration/supported-databases/<database>/index.md`](../docs/configuration/supported-databases/) —
+   - [`docs/databases/<database>/index.md`](../docs/databases/) —
      authoritative list of `compatibilityVersion` breakpoints, type
      mappings, sequence and `RETURNING` support, and engine-specific
      quirks. The folder names under `test/db/<database>/<version>/` come

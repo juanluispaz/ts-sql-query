@@ -31,11 +31,11 @@ DATABASES = {
 AREAS = [
     # Set up the project
     ('connect', 'Connecting a driver', 'the query runner of each driver, and using the library next to another one', [
-        'configuration/query-runners/index.md', 'configuration/query-runners/recommended/*.md',
+        'configuration/query-runners/index.md', 'databases/*/query-runners/*.md',
         'configuration/query-runners/combining-with-another-library.md',
     ], False),
     ('configuration', 'Mapping and configuration', 'the connection, tables and views, the types of the columns, dates and times (Temporal), time zones, collations and each database', [
-        'configuration/*.md', 'configuration/supported-databases/*/index.md',
+        'configuration/*.md', 'databases/*/index.md',
         'advanced/data-types/custom-booleans-values.md',
     ], True),
     ('api-mapping', 'API of the tables and views', 'the methods to declare tables, views and constant values as a view, to look up', [
@@ -79,7 +79,7 @@ AREAS = [
     ], False),
     # When the library doesn't write the SQL you need
     ('own-sql', 'SQL the library does not write', 'what to do when the library or the database does not write your SQL: fragments of SQL of your own, customizing a query, and the functions to create in each database (and the extensions of SQLite)', [
-        'queries/sql-fragments.md', 'configuration/supported-databases/*/functions.md',
+        'queries/sql-fragments.md', 'databases/*/functions.md',
     ], True),
     # Extend the library
     ('data-types', 'Data types of your own', 'a data type of your own: branded and opaque types, methods with SQL of their own, its type in the database, its conversions with type adapters and the context of a conversion', [
@@ -149,7 +149,7 @@ PAGES = [
     ('ID manipulation', 'advanced/id-manipulation.md', 'encrypting the ids that leave the backend'),
 ]
 OPTIONAL = [
-    ('native-mappings', 'api/error-management/native-mappings/*.md', 'how a native error of each database maps to a reason, one page per database'),
+    ('native-mappings', 'databases/*/errors.md', 'how a native error of each database maps to a reason, one page per database'),
     ('For AI agents', 'about/ai-agents.md', 'which of these files to use'),
 ]
 
@@ -291,7 +291,7 @@ def _only_database(text, database):
 
 def _of_database(page, slug):
     """A page about one database only goes in the files of that database"""
-    match = re.fullmatch(r'configuration/supported-databases/([a-z]+)/[a-z-]+\.md', page)
+    match = re.fullmatch(r'databases/([a-z]+)/[a-z-]+\.md', page)
     return not match or match.group(1) == slug
 
 
@@ -326,7 +326,8 @@ def _menu_order(root):
     """The pages in the order of the site's menu: it starts with the basics"""
     with open(os.path.join(root, 'mkdocs.yml'), encoding='utf-8') as file:
         nav = file.read().split('\nnav:\n', 1)[1]
-    return re.findall(r'^\s*- (?:[^\n]*?: )?"?([\w./-]+\.md)"?\s*$', nav, re.M)
+    # A page in the menu of two databases (a driver of MySQL and MariaDB) goes once, where it is first
+    return list(dict.fromkeys(re.findall(r'^\s*- (?:[^\n]*?: )?"?([\w./-]+\.md)"?\s*$', nav, re.M)))
 
 
 def _menu_titles(root):

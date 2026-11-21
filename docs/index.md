@@ -66,14 +66,14 @@ No extra query is sent to find anything out, and a value from a request never be
 
 ## Supported Databases
 
-- [MariaDB](configuration/supported-databases/mariadb/index.md)
-- [MySQL](configuration/supported-databases/mysql/index.md)
-- [Oracle](configuration/supported-databases/oracle/index.md)
-- [PostgreSQL](configuration/supported-databases/postgresql/index.md)
-- [SQLite](configuration/supported-databases/sqlite/index.md)
-- [SQL Server](configuration/supported-databases/sqlserver/index.md)
+- [MariaDB](databases/mariadb/index.md)
+- [MySQL](databases/mysql/index.md)
+- [Oracle](databases/oracle/index.md)
+- [PostgreSQL](databases/postgresql/index.md)
+- [SQLite](databases/sqlite/index.md)
+- [SQL Server](databases/sqlserver/index.md)
 
-`ts-sql-query` uses a unified dialect inspired by [SQLite](configuration/supported-databases/sqlite/index.md) and [PostgreSQL](configuration/supported-databases/postgresql/index.md), with naming conventions adapted to JavaScript. It automatically generates the correct SQL for your target database.
+`ts-sql-query` uses a unified dialect inspired by [SQLite](databases/sqlite/index.md) and [PostgreSQL](databases/postgresql/index.md), with naming conventions adapted to JavaScript. It automatically generates the correct SQL for your target database.
 
 ## Install
 
@@ -108,7 +108,7 @@ import { PgPoolQueryRunner } from 'ts-sql-query/postgresql/pg'
 |---|---|
 | `ts-sql-query` | Tables, views, values, the connection types, the type adapters, the errors, the dynamic queries, the helper types, and the query runners that need no driver, like `MockQueryRunner` and `InterceptorQueryRunner` |
 | `ts-sql-query/<database>`: `mariadb`, `mysql`, `oracle`, `postgresql`, `sqlite`, `sqlserver` | The connection of that database, and what is specific to it |
-| `ts-sql-query/<database>/<driver>`, like `ts-sql-query/postgresql/pg` | The query runners of a driver for that database: see the page of [each query runner](configuration/query-runners/recommended/pg.md) |
+| `ts-sql-query/<database>/<driver>`, like `ts-sql-query/postgresql/pg` | The query runners of a driver for that database: see the page of [each query runner](databases/postgresql/query-runners/pg.md) |
 | `ts-sql-query/IDEncrypter` | [`IDEncrypter`](advanced/id-manipulation.md) |
 
 The paths of version 1 still work, and mark each name as deprecated with the path to import it from now (see [Migrating from v1](about/changelog/migrating-from-v1.md#packaging-and-imports)).

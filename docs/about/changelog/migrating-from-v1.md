@@ -47,7 +47,7 @@ Work through it in this order:
 
     `__UNSUPPORTED__` reaches the internals of the library, with no stability guarantee.
 
-- **Dependencies.** `chained-error` and `ts-extended-types` are gone: remove any import of them from your code. The page of each query runner ([pg](../../configuration/query-runners/recommended/pg.md), for example) says which driver versions it is tested on, so check yours before updating.
+- **Dependencies.** `chained-error` and `ts-extended-types` are gone: remove any import of them from your code. The page of each query runner ([pg](../../databases/postgresql/query-runners/pg.md), for example) says which driver versions it is tested on, so check yours before updating.
 
 ## What stops compiling
 
@@ -102,10 +102,10 @@ The rules of a [dynamic condition](../../dynamic/helper-types/conditions.md) wer
 | `TypeSafePostgreSqlConnection`, `TypeSafeMySqlConnection`, ... | The connection without the prefix, like `PostgreSqlConnection`. Values are plain `number`, `string` and `Date`, not the `int`, `double`, `uuid`, `LocalDate`, ... of `ts-extended-types` | v1.60.0, 25 Feb 2024 |
 | `TyeSafeConnection`, `TyeUnsafeConnection` from `ts-sql-query/Connection`; `TypeSafeDynamicCondition` from `ts-sql-query/dynamicCondition` | `Connection`, `DynamicCondition`, from `ts-sql-query` | v1.69.0 |
 | `AnyDBQueryRunner`, `AnyDBPoolQueryRunner`, `LoopBackQueryRunner` (their projects are no longer maintained) | The query runner of your driver | v1.54.0, 26 Jun 2023 |
-| `MsNodeSqlV8QueryRunner`, `TediousQueryRunner`, `TediousPoolQueryRunner` | [`MssqlPoolQueryRunner`](../../configuration/query-runners/recommended/mssql.md) | v1.60.0, 25 Feb 2024 (`TediousPoolQueryRunner`, of `tedious-connection-pool`, since v1.54.0, 26 Jun 2023) |
-| `MySqlQueryRunner`, `MySqlPoolQueryRunner` (the `mysql` driver is no longer maintained) | [`MySql2QueryRunner`, `MySql2PoolQueryRunner`](../../configuration/query-runners/recommended/mysql2.md) | v1.66.0, 14 Jun 2025 |
-| `SqliteQueryRunner` (the `sqlite` package is no longer maintained) | [`BetterSqlite3QueryRunner`](../../configuration/query-runners/recommended/better-sqlite3.md), [`NodeSqliteQueryRunner`](../../configuration/query-runners/recommended/node_sqlite.md) | v1.66.0, 14 Jun 2025 |
-| `Sqlite3QueryRunner` (the `sqlite3` driver, deprecated by its maintainers) | [`BetterSqlite3QueryRunner`](../../configuration/query-runners/recommended/better-sqlite3.md), [`NodeSqliteQueryRunner`](../../configuration/query-runners/recommended/node_sqlite.md), on Bun [`BunSqliteQueryRunner`](../../configuration/query-runners/recommended/bun_sqlite.md), or [`Sqlite3WasmOO1QueryRunner`](../../configuration/query-runners/recommended/sqlite-wasm-OO1.md) | v1.69.0 |
+| `MsNodeSqlV8QueryRunner`, `TediousQueryRunner`, `TediousPoolQueryRunner` | [`MssqlPoolQueryRunner`](../../databases/sqlserver/query-runners/mssql.md) | v1.60.0, 25 Feb 2024 (`TediousPoolQueryRunner`, of `tedious-connection-pool`, since v1.54.0, 26 Jun 2023) |
+| `MySqlQueryRunner`, `MySqlPoolQueryRunner` (the `mysql` driver is no longer maintained) | [`MySql2QueryRunner`, `MySql2PoolQueryRunner`](../../databases/mysql/query-runners/mysql2.md) | v1.66.0, 14 Jun 2025 |
+| `SqliteQueryRunner` (the `sqlite` package is no longer maintained) | [`BetterSqlite3QueryRunner`](../../databases/sqlite/query-runners/better-sqlite3.md), [`NodeSqliteQueryRunner`](../../databases/sqlite/query-runners/node_sqlite.md) | v1.66.0, 14 Jun 2025 |
+| `Sqlite3QueryRunner` (the `sqlite3` driver, deprecated by its maintainers) | [`BetterSqlite3QueryRunner`](../../databases/sqlite/query-runners/better-sqlite3.md), [`NodeSqliteQueryRunner`](../../databases/sqlite/query-runners/node_sqlite.md), on Bun [`BunSqliteQueryRunner`](../../databases/sqlite/query-runners/bun_sqlite.md), or [`Sqlite3WasmOO1QueryRunner`](../../databases/sqlite/query-runners/sqlite-wasm-OO1.md) | v1.69.0 |
 | `PrismaQueryRunner` | On PostgreSQL, the `pg` query runners, which can [share the pool and the transaction with Prisma](../../configuration/query-runners/combining-with-another-library.md#example-prisma). On other databases there is no replacement that shares them | v1.69.0; its short-running transactions since v1.60.0, 25 Feb 2024 |
 
 ### Removed features
@@ -226,7 +226,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 }
 ```
 
-`transformPlaceholder` no longer receives `forceTypeCast` nor the value sent: it is `transformPlaceholder(placeholder, context)` in the connection, with `next` at the end in a type adapter, the value sent is `context.valueSentToDB`, and it receives the placeholder as the query runner wrote it, with the cast when there is one. To decide whether the database must receive the type of a parameter, set `context.forceTypeCast` in `transformValueToDB`; an override that cast every parameter on PostgreSQL is no longer needed, the library gives the type where PostgreSQL needs it (see [The type of a parameter](../../configuration/supported-databases/postgresql/index.md#the-type-of-a-parameter)).
+`transformPlaceholder` no longer receives `forceTypeCast` nor the value sent: it is `transformPlaceholder(placeholder, context)` in the connection, with `next` at the end in a type adapter, the value sent is `context.valueSentToDB`, and it receives the placeholder as the query runner wrote it, with the cast when there is one. To decide whether the database must receive the type of a parameter, set `context.forceTypeCast` in `transformValueToDB`; an override that cast every parameter on PostgreSQL is no longer needed, the library gives the type where PostgreSQL needs it (see [The type of a parameter](../../databases/postgresql/index.md#the-type-of-a-parameter)).
 
 A rule like this one, that only sends an integer of yours to `int`, is no longer needed: a custom type is converted as its family says (see [Custom types are converted as their family](#custom-types-are-converted-as-their-family)).
 
@@ -273,20 +273,20 @@ class DBConnection extends SqlServerConnection<'DBConnection'> {
 
 | If your database is older than | Value for that version | What the default emits and it doesn't accept |
 |---|---|---|
-| [PostgreSQL](../../configuration/supported-databases/postgresql/index.md#compatibility-version) 18 | `17_000_000` | `oldValues()` as `returning old.column` |
-| [MySQL](../../configuration/supported-databases/mysql/index.md#compatibility-version) 8.0.19 | `8_000_018` | `insert ... as _new_ on duplicate key update` |
+| [PostgreSQL](../../databases/postgresql/index.md#compatibility-version) 18 | `17_000_000` | `oldValues()` as `returning old.column` |
+| [MySQL](../../databases/mysql/index.md#compatibility-version) 8.0.19 | `8_000_018` | `insert ... as _new_ on duplicate key update` |
 | MySQL 8.0.17 | `8_000_016` | `cast(x as double)` in `.asDouble()`, `.divide(...)` and `average(...)` |
 | MySQL 8.0 | `5_007_000` | `with`, which is then written inline in the `from` |
-| [MariaDB](../../configuration/supported-databases/mariadb/index.md#compatibility-version) 10.5 | `10_004_000` | `insert ... returning` to read the last inserted id |
+| [MariaDB](../../databases/mariadb/index.md#compatibility-version) 10.5 | `10_004_000` | `insert ... returning` to read the last inserted id |
 | MariaDB 10.4 | `10_003_000` | `cast(x as double)` in `.asDouble()`, `.divide(...)` and `average(...)` |
 | MariaDB 10.3.3 | `10_003_002` | `value(column)` in `on duplicate key update` |
-| [SQLite](../../configuration/supported-databases/sqlite/index.md#compatibility-version) 3.42 | `3_041_000` | `unixepoch(x, 'subsec')` |
+| [SQLite](../../databases/sqlite/index.md#compatibility-version) 3.42 | `3_041_000` | `unixepoch(x, 'subsec')` |
 | SQLite 3.38 | `3_037_000` | `unixepoch(x)` |
 | SQLite 3.35 | `3_034_000` | `insert ... returning` to read the last inserted id |
 | SQLite 3.30 | `3_029_000` | `nulls first`, `nulls last` |
-| [SQL Server](../../configuration/supported-databases/sqlserver/index.md#compatibility-version) 2025 | `16_000_000` | `current_date`, `json_arrayagg`, `json_object`, `substring` without a length |
+| [SQL Server](../../databases/sqlserver/index.md#compatibility-version) 2025 | `16_000_000` | `current_date`, `json_arrayagg`, `json_object`, `substring` without a length |
 | SQL Server 2022 | `15_000_000` | `greatest`, `least` |
-| [Oracle](../../configuration/supported-databases/oracle/index.md#compatibility-version) 23ai | `19_000_000` | `Values` written with the `values` table constructor |
+| [Oracle](../../databases/oracle/index.md#compatibility-version) 23ai | `19_000_000` | `Values` written with the `values` table constructor |
 
 This only chooses the syntax. The changes in values and transactions apply whatever the version.
 
@@ -316,9 +316,9 @@ const [updated, deleted] = await connection.transaction(async () => {
 })
 ```
 
-**Oracle: statements outside a transaction are committed.** v2 runs them with `autoCommit: true`. v1 passed no such option and the driver doesn't commit by default, so nothing committed them. If your code commits by hand after those statements, remove that. If you run a transaction of your own over that connection, use [`forUseInTransaction`](../../configuration/query-runners/recommended/oracledb.md#inside-a-transaction-something-else-manages).
+**Oracle: statements outside a transaction are committed.** v2 runs them with `autoCommit: true`. v1 passed no such option and the driver doesn't commit by default, so nothing committed them. If your code commits by hand after those statements, remove that. If you run a transaction of your own over that connection, use [`forUseInTransaction`](../../databases/oracle/query-runners/oracledb.md#inside-a-transaction-something-else-manages).
 
-**PostgreSQL, Oracle: a nested transaction rejects** with `NESTED_TRANSACTION_NOT_SUPPORTED`. v1 sent a second begin on PostgreSQL, and on Oracle it only counted them; the inner commit committed everything. On PostgreSQL, you can keep them by creating the query runner with `allowNestedTransactions: true` ([docs](../../configuration/query-runners/recommended/pg.md)).
+**PostgreSQL, Oracle: a nested transaction rejects** with `NESTED_TRANSACTION_NOT_SUPPORTED`. v1 sent a second begin on PostgreSQL, and on Oracle it only counted them; the inner commit committed everything. On PostgreSQL, you can keep them by creating the query runner with `allowNestedTransactions: true` ([docs](../../databases/postgresql/query-runners/pg.md)).
 
 ### Errors
 
@@ -425,7 +425,7 @@ class DBConnection extends OracleConnection<'DBConnection'> {
 
 ### Oracle: the functions of the uuids
 
-v1 kept a uuid in a `RAW(16)` with the functions `uuid_to_raw` and `raw_to_uuid` of your database (its default strategy, `'custom-functions'`). In v2 the default strategy, `'built-in'`, calls `UUID_TO_RAW` and `RAW_TO_UUID`, the functions Oracle has from 23.9, which take version 4 uuids only; `'custom-functions'` calls `tsq_uuid_to_raw` and `tsq_raw_to_uuid`. If your uuids aren't version 4, or your functions reorder their bytes, choose `'custom-functions'` and create `tsq_uuid_to_raw` and `tsq_raw_to_uuid` that keep them as your `uuid_to_raw` and `raw_to_uuid` did, so the uuids you have are read as they were: the example of v1 for UUID v1 is [`tsq-uuid-functions-time-first.sql`](../../configuration/supported-databases/oracle/functions/tsq-uuid-functions-time-first.sql), and the one that kept the bytes as they are, [`tsq-uuid-functions.sql`](../../configuration/supported-databases/oracle/functions/tsq-uuid-functions.sql):
+v1 kept a uuid in a `RAW(16)` with the functions `uuid_to_raw` and `raw_to_uuid` of your database (its default strategy, `'custom-functions'`). In v2 the default strategy, `'built-in'`, calls `UUID_TO_RAW` and `RAW_TO_UUID`, the functions Oracle has from 23.9, which take version 4 uuids only; `'custom-functions'` calls `tsq_uuid_to_raw` and `tsq_raw_to_uuid`. If your uuids aren't version 4, or your functions reorder their bytes, choose `'custom-functions'` and create `tsq_uuid_to_raw` and `tsq_raw_to_uuid` that keep them as your `uuid_to_raw` and `raw_to_uuid` did, so the uuids you have are read as they were: the example of v1 for UUID v1 is [`tsq-uuid-functions-time-first.sql`](../../databases/oracle/functions/tsq-uuid-functions-time-first.sql), and the one that kept the bytes as they are, [`tsq-uuid-functions.sql`](../../databases/oracle/functions/tsq-uuid-functions.sql):
 
 <!-- doc-code-snippet-template: oracle -->
 ```ts
@@ -481,7 +481,7 @@ update my_table set my_column = substr(my_column, 1, 8) where length(my_column) 
 update my_table set my_column = substr(my_column, 1, 8) || 'Z' where length(my_column) > 9;
 ```
 
-The same statements work with the space and with the `T` separator. Columns with a `localDate` don't change, and neither do the numeric strategies. If the schema or a trigger writes the value, like a `default current_timestamp`, use the expression of your strategy: see [Values generated by the database](../../configuration/supported-databases/sqlite/index.md#values-generated-by-the-database).
+The same statements work with the space and with the `T` separator. Columns with a `localDate` don't change, and neither do the numeric strategies. If the schema or a trigger writes the value, like a `default current_timestamp`, use the expression of your strategy: see [Values generated by the database](../../databases/sqlite/index.md#values-generated-by-the-database).
 
 Choose `seconds` if other code writes in those columns with SQLite's own functions, which have no decimals: `UTC seconds as text` is the text of `current_timestamp`.
 
@@ -498,12 +498,12 @@ A property left in your connection class still compiles and does nothing, unless
 
 ### Query runners
 
-- **`MssqlPoolQueryRunner` no longer has `predefinedTypes`.** A subclass that assigned it to bind a type with another type of mssql now has no effect, and one that read it doesn't compile: give the type in [`driverTypeOf`](../../configuration/query-runners/recommended/mssql.md#the-type-of-the-parameters), or override `getType(params, index)`.
+- **`MssqlPoolQueryRunner` no longer has `predefinedTypes`.** A subclass that assigned it to bind a type with another type of mssql now has no effect, and one that read it doesn't compile: give the type in [`driverTypeOf`](../../databases/sqlserver/query-runners/mssql.md#the-type-of-the-parameters), or override `getType(params, index)`.
 - `ConsoleLogQueryRunner`: `logResults: true` logged no results and `false` logged them, the other way round. Now `true` logs them: swap the value you pass.
-- **`BetterSqlite3QueryRunner` no longer forces `safeIntegers(true)`.** Integers come as `number`, and above the safe range [they fail](#errors). To read them as `bigint`, enable `safeIntegers` in the database ([docs](../../configuration/query-runners/recommended/better-sqlite3.md)).
-- **Some configurations of the driver are rejected** when the query runner is created, with `INVALID_CONFIGURATION`: `pg` with `binary: true`; postgres.js with a `transform` of the results, or with `infer: true` outside UTC; `mssql` with `camelCaseColumns` or `columnNameReplacer`, with a `textsize` below the default of tedious, or with `useUTC: false` outside UTC; `oracledb` without `ORA_SDTZ` set to the zone of the database (UTC, or the `databaseTimeZone` you declare) when the process or the database isn't in UTC. See the *Connection requirements* of each query runner, like [oracledb](../../configuration/query-runners/recommended/oracledb.md#connection-requirements).
+- **`BetterSqlite3QueryRunner` no longer forces `safeIntegers(true)`.** Integers come as `number`, and above the safe range [they fail](#errors). To read them as `bigint`, enable `safeIntegers` in the database ([docs](../../databases/sqlite/query-runners/better-sqlite3.md)).
+- **Some configurations of the driver are rejected** when the query runner is created, with `INVALID_CONFIGURATION`: `pg` with `binary: true`; postgres.js with a `transform` of the results, or with `infer: true` outside UTC; `mssql` with `camelCaseColumns` or `columnNameReplacer`, with a `textsize` below the default of tedious, or with `useUTC: false` outside UTC; `oracledb` without `ORA_SDTZ` set to the zone of the database (UTC, or the `databaseTimeZone` you declare) when the process or the database isn't in UTC. See the *Connection requirements* of each query runner, like [oracledb](../../databases/oracle/query-runners/oracledb.md#connection-requirements).
 - **The settings of the driver that change a value no longer apply to the queries of the library**: the parsers of `date` and `timestamp` of `pg`; `dateStrings`, `supportBigNumbers`, `typeCast`, `rowsAsArray`, `decimalNumbers` and `timezone` of `mysql2`; `typeCast`, `rowsAsArray`, `metaAsArray`, `nestTables`, `dateStrings`, `decimalAsNumber`, `bigIntAsNumber` and `insertIdAsNumber` of `mariadb`; `arrayRowMode` of `mssql`; the global `fetchTypeHandler`, `fetchAsString`, `fetchAsBuffer` and `maxRows` of `oracledb`. They still apply to your own queries through the driver. If you used one to shape what the library returned, use a [type of yours](../../advanced/data-types/own-data-types.md) with its conversion instead. The `supportBigNumbers` of `mysql2` and the global `fetchTypeHandler` of `oracledb` that the docs recommended for large integers are no longer needed.
-- **Oracle: a `boolean` parameter of a procedure is bound as a PL/SQL `BOOLEAN`.** A procedure with a `NUMBER` parameter that you called with a `boolean` value fails with `PLS-00306`: give it an `int` (`this.const(flag ? 1 : 0, 'int')`) ([docs](../../configuration/query-runners/recommended/oracledb.md#procedures-with-a-boolean-parameter)).
+- **Oracle: a `boolean` parameter of a procedure is bound as a PL/SQL `BOOLEAN`.** A procedure with a `NUMBER` parameter that you called with a `boolean` value fails with `PLS-00306`: give it an `int` (`this.const(flag ? 1 : 0, 'int')`) ([docs](../../databases/oracle/query-runners/oracledb.md#procedures-with-a-boolean-parameter)).
 - **A date or a time outside the calendar is rejected when it's read**, like `2024-02-30` that MySQL keeps with `ALLOW_INVALID_DATES`, or `24:00:00`: before, it became another day ([docs](../../configuration/time-zones.md#known-limits)).
 - **SQL given straight to a query runner** must use the placeholders of the library. Oracle binds by name, so a placeholder is named after the index of its value (`:0`, `:1`). `BetterSqlite3QueryRunner` numbers them (`?1`, `?2`), and doesn't bind a bare `?`.
 

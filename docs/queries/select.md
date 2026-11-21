@@ -1190,7 +1190,7 @@ Part of the order is fixed: the `from` and the joins go first, and `order by`, `
 
 ??? note "Oracle variants"
 
-    [Oracle](../configuration/supported-databases/oracle/index.md) support _start with_, _connect by_ and _ordering siblings only_. The _ordering siblings only_ modifier changes the previous `order by` to `order siblings by`.
+    [Oracle](../databases/oracle/index.md) support _start with_, _connect by_ and _ordering siblings only_. The _ordering siblings only_ modifier changes the previous `order by` to `order siblings by`.
 
     - **Logical order**: from, join, _start with_, _connect by_, **WHERE**, **group by**, **having**, **select**, order by, _ordering siblings only_, limit, offset, customizeQuery
     - **Alternative logical order 0**: from, join, **WHERE**, _start with_, _connect by_, **group by**, **having**, **select**, order by, _ordering siblings only_, limit, offset, customizeQuery

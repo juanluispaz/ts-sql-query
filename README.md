@@ -136,12 +136,12 @@ The condition on the last name had no value, so it's not in the query. No extra 
 
 | Database | Drivers |
 |---|---|
-| [MariaDB](https://ts-sql-query.readthedocs.io/en/latest/configuration/supported-databases/mariadb/) | `mariadb`, Bun SQL |
-| [MySQL](https://ts-sql-query.readthedocs.io/en/latest/configuration/supported-databases/mysql/) | `mysql2`, Bun SQL |
-| [Oracle](https://ts-sql-query.readthedocs.io/en/latest/configuration/supported-databases/oracle/) | `oracledb` |
-| [PostgreSQL](https://ts-sql-query.readthedocs.io/en/latest/configuration/supported-databases/postgresql/) | `pg`, `postgres`, Bun SQL, PGlite |
-| [SQLite](https://ts-sql-query.readthedocs.io/en/latest/configuration/supported-databases/sqlite/) | `better-sqlite3`, `node:sqlite`, `bun:sqlite`, Bun SQL, sqlite-wasm |
-| [SQL Server](https://ts-sql-query.readthedocs.io/en/latest/configuration/supported-databases/sqlserver/) | `mssql` |
+| [MariaDB](https://ts-sql-query.readthedocs.io/en/latest/databases/mariadb/) | `mariadb`, Bun SQL |
+| [MySQL](https://ts-sql-query.readthedocs.io/en/latest/databases/mysql/) | `mysql2`, Bun SQL |
+| [Oracle](https://ts-sql-query.readthedocs.io/en/latest/databases/oracle/) | `oracledb` |
+| [PostgreSQL](https://ts-sql-query.readthedocs.io/en/latest/databases/postgresql/) | `pg`, `postgres`, Bun SQL, PGlite |
+| [SQLite](https://ts-sql-query.readthedocs.io/en/latest/databases/sqlite/) | `better-sqlite3`, `node:sqlite`, `bun:sqlite`, Bun SQL, sqlite-wasm |
+| [SQL Server](https://ts-sql-query.readthedocs.io/en/latest/databases/sqlserver/) | `mssql` |
 
 `ts-sql-query` uses one dialect, inspired by SQLite and PostgreSQL with names adapted to JavaScript, and writes the SQL of the database you connect to. Each database page says what it offers and what it doesn't, and [Query runners](https://ts-sql-query.readthedocs.io/en/latest/configuration/query-runners/) tells how to connect with each driver.
 

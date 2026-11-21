@@ -93,7 +93,7 @@ abstract class DownloadsType extends IntegersType<Downloads, 'Downloads'> {
 
 The TypeScript type has to be the one of that value: a `bigint` for an integer wider than a `number`.
 
-An integer wider than the integer types of the databases, like `{ family: 'exact numeric', precision: 30, scale: 0 }`, keeps every digit too: it's read, compared, computed and summed as an exact number. SQLite, whose integers have 64 bits, keeps it as its text, as an [exact decimal](../../configuration/supported-databases/sqlite/index.md#exact-decimals-the-decimal-strategies).
+An integer wider than the integer types of the databases, like `{ family: 'exact numeric', precision: 30, scale: 0 }`, keeps every digit too: it's read, compared, computed and summed as an exact number. SQLite, whose integers have 64 bits, keeps it as its text, as an [exact decimal](../../databases/sqlite/index.md#exact-decimals-the-decimal-strategies).
 
 ## Its conversions: a type adapter in the class
 

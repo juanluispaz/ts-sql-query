@@ -4,7 +4,7 @@ search:
 ---
 # Connection
 
-A connection object is what you run your queries with. You define one class for your database, and create an instance of it with a query runner, which connects it to your driver. This page has how to do both, and the options that apply to every database. What is particular to one database is on [its own page](supported-databases/postgresql/index.md).
+A connection object is what you run your queries with. You define one class for your database, and create an instance of it with a query runner, which connects it to your driver. This page has how to do both, and the options that apply to every database. What is particular to one database is on [its own page](../databases/postgresql/index.md).
 
 ## Defining the connection object
 
@@ -18,12 +18,12 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> { }
 
 | Database | Class to extend | Imported from |
 |---|---|---|
-| [MariaDB](supported-databases/mariadb/index.md) | `MariaDBConnection` | `ts-sql-query/mariadb` |
-| [MySQL](supported-databases/mysql/index.md) | `MySqlConnection` | `ts-sql-query/mysql` |
-| [Oracle](supported-databases/oracle/index.md) | `OracleConnection` | `ts-sql-query/oracle` |
-| [PostgreSQL](supported-databases/postgresql/index.md) | `PostgreSqlConnection` | `ts-sql-query/postgresql` |
-| [SQLite](supported-databases/sqlite/index.md) | `SqliteConnection` | `ts-sql-query/sqlite` |
-| [SQL Server](supported-databases/sqlserver/index.md) | `SqlServerConnection` | `ts-sql-query/sqlserver` |
+| [MariaDB](../databases/mariadb/index.md) | `MariaDBConnection` | `ts-sql-query/mariadb` |
+| [MySQL](../databases/mysql/index.md) | `MySqlConnection` | `ts-sql-query/mysql` |
+| [Oracle](../databases/oracle/index.md) | `OracleConnection` | `ts-sql-query/oracle` |
+| [PostgreSQL](../databases/postgresql/index.md) | `PostgreSqlConnection` | `ts-sql-query/postgresql` |
+| [SQLite](../databases/sqlite/index.md) | `SqliteConnection` | `ts-sql-query/sqlite` |
+| [SQL Server](../databases/sqlserver/index.md) | `SqlServerConnection` | `ts-sql-query/sqlserver` |
 
 The class is also the place for what your whole application shares:
 

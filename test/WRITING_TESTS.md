@@ -170,8 +170,8 @@ re-validate" loop benefits the most. Full flag reference in
    [`docs/dynamic/`](../docs/dynamic/),
    [`docs/advanced/`](../docs/advanced/) or
    [`docs/configuration/`](../docs/configuration/)) and any
-   `docs/configuration/supported-databases/<database>/index.md` /
-   `docs/configuration/query-runners/recommended/<connector>.md` pages that affect the
+   `docs/databases/<database>/index.md` /
+   `docs/databases/<database>/query-runners/<connector>.md` pages that affect the
    cells you'll touch.
 
 2. **Check whether the test would be redundant** — ask the searcher for the
@@ -277,7 +277,7 @@ re-validate" loop benefits the most. Full flag reference in
   `onConflictDoUpdateSet(...)`. A verbatim copy doesn't compile. See
   [`EXTERNAL_CAVEATS.md`](./EXTERNAL_CAVEATS.md).
 - **Before marking a test `NOT-APPLICABLE` because of the connector**, read
-  `docs/configuration/query-runners/recommended/<connector>.md`: the setup
+  `docs/databases/<database>/query-runners/<connector>.md`: the setup
   it shows may make the test runnable.
 
 ## Engine traps worth knowing

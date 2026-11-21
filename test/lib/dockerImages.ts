@@ -18,7 +18,7 @@
 //     the older images are separate containers.
 //
 // There is one entry per version folder, taken from the documented breakpoints
-// per engine (`docs/configuration/supported-databases/<db>/index.md`): the folder name
+// per engine (`docs/databases/<db>/index.md`): the folder name
 // is the map key. The highest breakpoint of an engine has no folder
 // of its own: `compatibilityVersion` at that value emits SQL identical
 // to `newest` (nothing is documented above it), so `newest` covers it.

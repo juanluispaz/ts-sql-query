@@ -128,7 +128,7 @@ The typical one is a **deadlock**: two transactions, each waiting for a row the 
 - MariaDB and MySQL: a deadlock, in the transaction chosen as its victim.
 - SQL Server: a deadlock, and the errors that doom a transaction, like a failed conversion, or any error when `XACT_ABORT` is `ON`.
 - SQLite: a conflict clause that rolls back (`ON CONFLICT ROLLBACK` in the table, `INSERT OR ROLLBACK`, `RAISE(ROLLBACK, ...)` in a trigger), and errors like a full disk.
-- PostgreSQL: any statement that fails, see [a statement that fails inside a transaction](../configuration/supported-databases/postgresql/index.md#a-statement-that-fails-inside-a-transaction).
+- PostgreSQL: any statement that fails, see [a statement that fails inside a transaction](../databases/postgresql/index.md#a-statement-that-fails-inside-a-transaction).
 
 Oracle rolls back only the statement that failed, also on a deadlock.
 
@@ -325,7 +325,7 @@ Available access modes:
 
 !!! warning
 
-    The [Oracle](../configuration/supported-databases/oracle/index.md) database doesn't support specifying the isolation level and the access mode simultaneously.
+    The [Oracle](../databases/oracle/index.md) database doesn't support specifying the isolation level and the access mode simultaneously.
 
 ### How each database refuses
 
@@ -521,7 +521,7 @@ connection.getTransactionMetadata().set('my key', 'my value');
 const myKeyValue: unknown = connection.getTransactionMetadata().get('my key');
 ```
 
-Calling it when there is no transaction throws a `TsSqlProcessingError` with reason `NOT_IN_TRANSACTION`. A transaction begun inside another one (when the query runner allows nested transactions, like [`PgPoolQueryRunner`](../configuration/query-runners/recommended/pg.md) created with `allowNestedTransactions: true`) has its own metadata, and the outer one gets its own back when the inner one ends.
+Calling it when there is no transaction throws a `TsSqlProcessingError` with reason `NOT_IN_TRANSACTION`. A transaction begun inside another one (when the query runner allows nested transactions, like [`PgPoolQueryRunner`](../databases/postgresql/query-runners/pg.md) created with `allowNestedTransactions: true`) has its own metadata, and the outer one gets its own back when the inner one ends.
 
 !!! tip "Use keys nobody else can write"
 

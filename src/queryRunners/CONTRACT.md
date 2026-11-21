@@ -556,7 +556,7 @@ instance). For what that configuration could change in the library's queries:
    each query when it depends on the configuration of the connection (the zone of the database), which the runner
    doesn't have when it is created.
 3. **Document** what can't be read without a query (a session setting, a module-global parser), as a requirement of
-   the connection on the runner's page (`docs/configuration/query-runners/recommended/<runner>.md`, "Connection
+   the connection on the runner's page (`docs/databases/<database>/query-runners/<runner>.md`, "Connection
    requirements"; on better-sqlite3, bun:sqlite and sqlite-wasm, "Large integers") (§5.3).
 4. **A loss that is detected anyway** (an unsafe number for an integer, a number for a decimal: `PRECISION_LOST`) needs
    nothing: choose what is cheapest to run.
@@ -617,7 +617,7 @@ Reading:
   query; what can be read (`ORA_SDTZ`, pg `options`, postgres.js `connection`) is checked (§5.2).
 - Bun SQL MySQL/MariaDB: the server in UTC. Bun sets the session to `+00:00`, right only over a database in UTC; over a
   database outside UTC it can't be detected, and a declared zone is rejected on MySQL and MariaDB anyway (decided: the
-  user's responsibility, documented in `docs/configuration/query-runners/recommended/bun_sql_mysql.md`).
+  user's responsibility, documented in `docs/databases/mysql/query-runners/bun_sql_mysql.md`).
 - MySQL/MariaDB: `TIMESTAMP` columns follow the session `time_zone` (the rule above). A date outside the calendar
   (`ALLOW_INVALID_DATES`), a zero date (without `NO_ZERO_DATE`) and a `24:00:00` value are rejected when read
   (`docs/configuration/time-zones.md#known-limits`); who stores them reads them with a type of their own.
@@ -633,7 +633,7 @@ Reading:
 - Oracle: the boolean columns are in the form `booleanStorage` says (`NUMBER(1)` by default, `BOOLEAN` with
   `'boolean'`, Oracle 23.4 or later); a column of the other form is declared with a `CustomBooleanTypeAdapter`.
 
-Sources: `docs/configuration/query-runners/recommended/<runner>.md`, "Connection requirements" ("Large integers" on
+Sources: `docs/databases/<database>/query-runners/<runner>.md`, "Connection requirements" ("Large integers" on
 better-sqlite3, bun:sqlite and sqlite-wasm); `docs/configuration/time-zones.md#known-limits`.
 
 ## 6. Adding or changing a query runner — checklist

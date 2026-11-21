@@ -71,10 +71,10 @@ async function main(client: PoolClient) {
 
     | Query runner | How to create it |
     | --- | --- |
-    | [`PgQueryRunner`](recommended/pg.md#inside-a-transaction-something-else-manages), [`MySql2QueryRunner`](recommended/mysql2.md#inside-a-transaction-something-else-manages), [`MariaDBQueryRunner`](recommended/mariadb.md#inside-a-transaction-something-else-manages), [`OracleDBQueryRunner`](recommended/oracledb.md#inside-a-transaction-something-else-manages), [`BetterSqlite3QueryRunner`](recommended/better-sqlite3.md#inside-a-transaction-something-else-manages), [`BunSqliteQueryRunner`](recommended/bun_sqlite.md#inside-a-transaction-something-else-manages), [`NodeSqliteQueryRunner`](recommended/node_sqlite.md#inside-a-transaction-something-else-manages), [`Sqlite3WasmOO1QueryRunner`](recommended/sqlite-wasm-OO1.md#inside-a-transaction-something-else-manages) | With the connection and the `forUseInTransaction` option |
-    | [`PgLiteQueryRunner`](recommended/pglite.md#inside-a-transaction-something-else-manages) | With the transaction of `db.transaction(...)`; or, in a transaction begun with a query on the database, with the database and the `forUseInTransaction` option |
-    | [`PostgresQueryRunner`](recommended/postgres.md#inside-a-transaction-you-began-with-postgresjs), [`BunSqlPostgresQueryRunner`](recommended/bun_sql_postgres.md#inside-a-transaction-you-began-with-bun-sql), [`BunSqlMySqlQueryRunner`](recommended/bun_sql_mysql.md#inside-a-transaction-you-began-with-bun-sql), [`BunSqlSqliteQueryRunner`](recommended/bun_sql_sqlite.md#inside-a-transaction-you-began-with-bun-sql) | With the transaction of `sql.begin(...)` |
-    | [`MssqlPoolQueryRunner`](recommended/mssql.md#inside-a-transaction-something-else-manages) | With the mssql `Transaction` |
+    | [`PgQueryRunner`](../../databases/postgresql/query-runners/pg.md#inside-a-transaction-something-else-manages), [`MySql2QueryRunner`](../../databases/mysql/query-runners/mysql2.md#inside-a-transaction-something-else-manages), [`MariaDBQueryRunner`](../../databases/mariadb/query-runners/mariadb.md#inside-a-transaction-something-else-manages), [`OracleDBQueryRunner`](../../databases/oracle/query-runners/oracledb.md#inside-a-transaction-something-else-manages), [`BetterSqlite3QueryRunner`](../../databases/sqlite/query-runners/better-sqlite3.md#inside-a-transaction-something-else-manages), [`BunSqliteQueryRunner`](../../databases/sqlite/query-runners/bun_sqlite.md#inside-a-transaction-something-else-manages), [`NodeSqliteQueryRunner`](../../databases/sqlite/query-runners/node_sqlite.md#inside-a-transaction-something-else-manages), [`Sqlite3WasmOO1QueryRunner`](../../databases/sqlite/query-runners/sqlite-wasm-OO1.md#inside-a-transaction-something-else-manages) | With the connection and the `forUseInTransaction` option |
+    | [`PgLiteQueryRunner`](../../databases/postgresql/query-runners/pglite.md#inside-a-transaction-something-else-manages) | With the transaction of `db.transaction(...)`; or, in a transaction begun with a query on the database, with the database and the `forUseInTransaction` option |
+    | [`PostgresQueryRunner`](../../databases/postgresql/query-runners/postgres.md#inside-a-transaction-you-began-with-postgresjs), [`BunSqlPostgresQueryRunner`](../../databases/postgresql/query-runners/bun_sql_postgres.md#inside-a-transaction-you-began-with-bun-sql), [`BunSqlMySqlQueryRunner`](../../databases/mysql/query-runners/bun_sql_mysql.md#inside-a-transaction-you-began-with-bun-sql), [`BunSqlSqliteQueryRunner`](../../databases/sqlite/query-runners/bun_sql_sqlite.md#inside-a-transaction-you-began-with-bun-sql) | With the transaction of `sql.begin(...)` |
+    | [`MssqlPoolQueryRunner`](../../databases/sqlserver/query-runners/mssql.md#inside-a-transaction-something-else-manages) | With the mssql `Transaction` |
     | The other query runners over a pool | They can't: a pool is not in a transaction. Take a connection from the pool and use the query runner over a single connection |
 
     Its statements then run in that transaction, and the other library commits it or rolls it back. A transaction can't begin on the query runner: `connection.transaction(...)` and `connection.beginTransaction()` reject with `NESTED_TRANSACTION_NOT_SUPPORTED`. For `ts-sql-query` there is no transaction open: `connection.commit()` and `connection.rollback()` reject with `NOT_IN_TRANSACTION`, and the end-of-transaction functions and `getTransactionMetadata()` throw it.
@@ -113,7 +113,7 @@ async function main() {
 
 ## Example: Prisma
 
-[Prisma](https://www.prisma.io) on PostgreSQL takes a [pg](https://node-postgres.com) pool or connection, so it works with the [pg query runners](recommended/pg.md) in all three ways.
+[Prisma](https://www.prisma.io) on PostgreSQL takes a [pg](https://node-postgres.com) pool or connection, so it works with the [pg query runners](../../databases/postgresql/query-runners/pg.md) in all three ways.
 
 !!! info "Checked with"
 
@@ -173,7 +173,7 @@ async function main() {
 
 ### Prisma manages the transaction
 
-Take a connection from the pool, create the Prisma client over it, and inside the transaction create the query runner over the same connection with [`forUseInTransaction`](recommended/pg.md#inside-a-transaction-something-else-manages):
+Take a connection from the pool, create the Prisma client over it, and inside the transaction create the query runner over the same connection with [`forUseInTransaction`](../../databases/postgresql/query-runners/pg.md#inside-a-transaction-something-else-manages):
 
 ```ts
 import { Pool } from 'pg';

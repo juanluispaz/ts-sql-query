@@ -220,7 +220,7 @@ class ForceTypeCast implements TypeAdapter {
 }
 ```
 
-`ForceTypeCast` asks for the type of the parameter in every position, also where the library doesn't detect that PostgreSQL needs it. See [A position the library doesn't detect](../configuration/supported-databases/postgresql/index.md#a-position-the-library-doesnt-detect).
+`ForceTypeCast` asks for the type of the parameter in every position, also where the library doesn't detect that PostgreSQL needs it. See [A position the library doesn't detect](../databases/postgresql/index.md#a-position-the-library-doesnt-detect).
 
 !!! tip
 

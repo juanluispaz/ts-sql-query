@@ -87,7 +87,7 @@ The value of a column can be:
 - A value of the type of the column.
 - An expression, to compute the new value from the current row, like `tCustomer.lastName.concat(' Jr.')`.
 - `null` or `undefined`, on an optional column: the column ends up with no value.
-- `connection.default()`, on a column with a default value: the column goes back to its default. It's not offered on [SQLite](../configuration/supported-databases/sqlite/index.md).
+- `connection.default()`, on a column with a default value: the column goes back to its default. It's not offered on [SQLite](../databases/sqlite/index.md).
 
 !!! danger "Security constraint"
 
@@ -274,7 +274,7 @@ The executed query is:
     where id = @1
     ```
 
-The parameters are: `[ 'Ron', 1 ]` (On [Oracle](../configuration/supported-databases/oracle/index.md), output parameters are added at the corresponding position with the structure `{dir:3003}`)
+The parameters are: `[ 'Ron', 1 ]` (On [Oracle](../databases/oracle/index.md), output parameters are added at the corresponding position with the structure `{dir:3003}`)
 
 The result type is a promise with the information of the updated rows:
 ```tsx
@@ -753,7 +753,7 @@ const addACMECompanyNameToLastName: Promise<number>
 
 After `from` you can add `join`, `innerJoin`, `leftJoin` or `leftOuterJoin`, each one with its `on`. Their `on` relates the tables in the `from` and the joins; the condition that relates them with the updated table goes in the `where`. As in a select, the table of a left join is the one returned by [`forUseInLeftJoin`](select.md#select-with-left-join).
 
-[MariaDB](../configuration/supported-databases/mariadb/index.md) and [MySQL](../configuration/supported-databases/mysql/index.md) also offer the join right after `update`, with no `from`, and its `on` can use the updated table:
+[MariaDB](../databases/mariadb/index.md) and [MySQL](../databases/mysql/index.md) also offer the join right after `update`, with no `from`, and its `on` can use the updated table:
 
 ```ts
 const addACMECompanyNameToLastNameWithJoin = connection.update(tCustomer)
@@ -827,13 +827,13 @@ const addACMECompanyNameToLastNameWithJoin: Promise<number>
 
 ## Update multiple tables in a single query
 
-If you are using [MariaDB](../configuration/supported-databases/mariadb/index.md) or [MySQL](../configuration/supported-databases/mysql/index.md) you can update multiple tables in a single query, using a shape: see [Update multiple tables in a single query](shapes.md#update-multiple-tables-in-a-single-query).
+If you are using [MariaDB](../databases/mariadb/index.md) or [MySQL](../databases/mysql/index.md) you can update multiple tables in a single query, using a shape: see [Update multiple tables in a single query](shapes.md#update-multiple-tables-in-a-single-query).
 
 ## Bulk update
 
 A bulk update changes several rows in a single query, each one with its own values, instead of sending one update per row. To do it, [map the constant values as a view](../configuration/mapping.md#mapping-constant-values-as-view) with `Values`, with one row per row to change, and use it in `from` like any other table.
 
-On [Oracle](../configuration/supported-databases/oracle/index.md) this isn't possible, not even on Oracle 23ai where `from` is accepted: the query needs a `with` before the `update`, and Oracle rejects it (`ORA-00928`). Use a `MERGE` or a correlated subquery instead.
+On [Oracle](../databases/oracle/index.md) this isn't possible, not even on Oracle 23ai where `from` is accepted: the query needs a `with` before the `update`, and Oracle rejects it (`ORA-00928`). Use a `MERGE` or a correlated subquery instead.
 
 ```ts
 class VCustomerForUpdate extends Values<DBConnection, 'customerForUpdate'> {
@@ -965,4 +965,4 @@ const updateCustomer: Promise<number>
 
 An option that is not offered doesn't compile on that connection. On an older version than the one in the table, the database rejects the query.
 
-On PostgreSQL, `oldValues()` is native from PostgreSQL 18. With a lower [`compatibilityVersion`](../configuration/supported-databases/postgresql/index.md#compatibility-version) it's emulated in a single query, and the table must have a primary key.
+On PostgreSQL, `oldValues()` is native from PostgreSQL 18. With a lower [`compatibilityVersion`](../databases/postgresql/index.md#compatibility-version) it's emulated in a single query, and the table must have a primary key.

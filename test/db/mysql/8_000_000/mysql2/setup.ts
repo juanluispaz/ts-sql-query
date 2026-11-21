@@ -5,7 +5,7 @@
 // alias syntax in ON DUPLICATE KEY UPDATE (8.0.19+) is also not emitted — legacy
 // VALUES(col) is used.
 //
-// Connector: `mysql2` (see docs/configuration/query-runners/recommended/mysql2.md).
+// Connector: `mysql2` (see docs/databases/mysql/query-runners/mysql2.md).
 
 import { createMySql2PoolTestContext } from '../../runners.js'
 

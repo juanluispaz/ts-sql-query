@@ -14,10 +14,10 @@ database has to satisfy see [`PER_DATABASE_LAYOUT.md`](./PER_DATABASE_LAYOUT.md)
 ## Adding a database
 
 0. **Read the docs first.** Open
-   `docs/configuration/supported-databases/<database>/index.md` for the
+   `docs/databases/<database>/index.md` for the
    compatibility ladder, the type mappings and any
    sequence/`RETURNING`/dialect quirks. Open every
-   `docs/configuration/query-runners/recommended/<connector>.md` you plan
+   `docs/databases/<database>/query-runners/<connector>.md` you plan
    to wire — that page gives you the runner class, the driver package, and
    the constructor signature.
 
@@ -126,7 +126,7 @@ A new connector under an existing database is a smaller version of the
 above:
 
 1. **Read the connector's docs page** in
-   `docs/configuration/query-runners/recommended/<connector>.md` — runner
+   `docs/databases/<database>/query-runners/<connector>.md` — runner
    class, driver package, constructor signature.
 
 2. **Create the folder**: `test/db/<database>/<version>/<connector>/` for
@@ -172,7 +172,7 @@ above:
 A new `<compatibilityVersion>` folder under an existing database:
 
 1. **Confirm the breakpoint exists** in
-   `docs/configuration/supported-databases/<database>/index.md`. The highest documented
+   `docs/databases/<database>/index.md`. The highest documented
    breakpoint gets no folder: it emits the same SQL as `newest`.
 
 2. **Create the folder** with the literal numeric value as its name (e.g.

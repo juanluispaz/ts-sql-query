@@ -1,7 +1,7 @@
 // sqlserver in the "newest" zone — compatibilityVersion =
 // Number.POSITIVE_INFINITY, the library default.
 //
-// Connector: `mssql` (see docs/configuration/query-runners/recommended/mssql.md).
+// Connector: `mssql` (see docs/databases/sqlserver/query-runners/mssql.md).
 
 import { createMssqlPoolTestContext } from '../../runners.js'
 

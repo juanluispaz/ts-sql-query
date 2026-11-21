@@ -119,7 +119,7 @@ SQL Server's `raiserror` (only from 13000). The engine and the driver are
 real; only the condition is not.
 
 The `raised.<code>` tests take every code the native mapping docs
-(`docs/api/error-management/native-mappings/*.md`) list, have the engine
+(`docs/databases/*/errors.md`) list, have the engine
 raise it on a session of their own (replaced if the code breaks it), and
 check the library reports the reason and subtype of its row: the docs are
 the expectation, so a mapper change that doesn't update its row fails here.

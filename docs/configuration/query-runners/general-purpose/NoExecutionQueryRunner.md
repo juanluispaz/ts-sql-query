@@ -8,12 +8,12 @@ A query runner that executes nothing: every query, and every statement of a tran
 
 !!! success "Supported databases"
 
-    - [MariaDB](../../supported-databases/mariadb/index.md)
-    - [MySQL](../../supported-databases/mysql/index.md)
-    - [Oracle](../../supported-databases/oracle/index.md)
-    - [PostgreSQL](../../supported-databases/postgresql/index.md)
-    - [SQLite](../../supported-databases/sqlite/index.md)
-    - [SQL Server](../../supported-databases/sqlserver/index.md)
+    - [MariaDB](../../../databases/mariadb/index.md)
+    - [MySQL](../../../databases/mysql/index.md)
+    - [Oracle](../../../databases/oracle/index.md)
+    - [PostgreSQL](../../../databases/postgresql/index.md)
+    - [SQLite](../../../databases/sqlite/index.md)
+    - [SQL Server](../../../databases/sqlserver/index.md)
 
 ## Creating it
 

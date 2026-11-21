@@ -207,7 +207,7 @@ The executed query is:
         birthday asc
     ```
 
-The parameters are: `[ ' ', 'ohn' ]` (on [MariaDB](../configuration/supported-databases/mariadb/index.md) and [MySQL](../configuration/supported-databases/mysql/index.md) the case-insensitive `order by` writes the concatenated expression again, with its separator bound again, giving `[ ' ', 'ohn', ' ' ]`: inside an `order by` expression these databases would take a column of the table with the same name as the alias before the alias, and they can't repeat a parameter)
+The parameters are: `[ ' ', 'ohn' ]` (on [MariaDB](../databases/mariadb/index.md) and [MySQL](../databases/mysql/index.md) the case-insensitive `order by` writes the concatenated expression again, with its separator bound again, giving `[ ' ', 'ohn', ' ' ]`: inside an `order by` expression these databases would take a column of the table with the same name as the alias before the alias, and they can't repeat a parameter)
 
 The result type is:
 ```tsx

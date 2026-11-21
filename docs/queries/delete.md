@@ -231,7 +231,7 @@ The executed query is:
     where name = @0
     ```
 
-The parameters are: `[ 'ACME' ]` (On [Oracle](../configuration/supported-databases/oracle/index.md), output parameters are added at the corresponding position with the structure `{dir:3003}`)
+The parameters are: `[ 'ACME' ]` (On [Oracle](../databases/oracle/index.md), output parameters are added at the corresponding position with the structure `{dir:3003}`)
 
 The result type is a promise with the information of the deleted rows:
 ```tsx
@@ -329,7 +329,7 @@ const deleteACMECustomers: Promise<number>
 
 ### Using a subquery
 
-`using` isn't offered on [SQLite](../configuration/supported-databases/sqlite/index.md). A subquery in the `where` chooses the rows in the same way, and it works on all the databases:
+`using` isn't offered on [SQLite](../databases/sqlite/index.md). A subquery in the `where` chooses the rows in the same way, and it works on all the databases:
 
 ```ts
 const deleteACMECustomersWithSubquery = connection.deleteFrom(tCustomer)
@@ -409,7 +409,7 @@ const deleteACMECustomersWithSubquery: Promise<number>
 
 After `using` you can add `join`, `innerJoin`, `leftJoin` or `leftOuterJoin`, each one with its `on`. Their `on` relates the tables in the `using` and the joins; the condition that relates them with the table to delete from goes in the `where`. As in a select, the table of a left join is the one returned by [`forUseInLeftJoin`](select.md#select-with-left-join).
 
-[MariaDB](../configuration/supported-databases/mariadb/index.md) and [MySQL](../configuration/supported-databases/mysql/index.md) also offer the join right after `deleteFrom`, with no `using`, and its `on` can use the table to delete from:
+[MariaDB](../databases/mariadb/index.md) and [MySQL](../databases/mysql/index.md) also offer the join right after `deleteFrom`, with no `using`, and its `on` can use the table to delete from:
 
 ```ts
 const deleteACMECustomersWithJoin = connection.deleteFrom(tCustomer)
@@ -482,7 +482,7 @@ const deleteACMECustomersWithJoin: Promise<number>
 
 A bulk delete removes several rows in a single query, when each one is identified by its own values and a simple condition isn't enough, instead of sending one delete per row. To do it, [map the constant values as a view](../configuration/mapping.md#mapping-constant-values-as-view) with `Values`, with one row per row to remove, and use it in `using` like any other table.
 
-On [Oracle](../configuration/supported-databases/oracle/index.md) this isn't possible, not even on Oracle 23ai where `using` is accepted: the query needs a `with` before the `delete`, and Oracle rejects it (`ORA-00928`). Use a `MERGE` or a correlated subquery instead. [SQLite](../configuration/supported-databases/sqlite/index.md) has no `using`.
+On [Oracle](../databases/oracle/index.md) this isn't possible, not even on Oracle 23ai where `using` is accepted: the query needs a `with` before the `delete`, and Oracle rejects it (`ORA-00928`). Use a `MERGE` or a correlated subquery instead. [SQLite](../databases/sqlite/index.md) has no `using`.
 
 ```ts
 class VCustomerForDelete extends Values<DBConnection, 'customerForDelete'> {

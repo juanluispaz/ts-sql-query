@@ -28,7 +28,7 @@ The tests run on each combination of a database, a version and a driver: 76 comb
 | SQL Server | 2019, 2022 and 2025 | `mssql` |
 | SQLite | The SQL for 3.29, 3.30, 3.35, 3.38 and the newest version | `better-sqlite3`, `node:sqlite`, `bun:sqlite`, Bun SQL, sqlite-wasm |
 
-On older versions the tests run with the [`compatibilityVersion`](../configuration/supported-databases/postgresql/index.md#compatibility-version) of that version, so they check the SQL that the library writes for it. The SQLite drivers that can run [without promises](../advanced/running-queries/synchronous-query-runners.md) are tested that way too.
+On older versions the tests run with the [`compatibilityVersion`](../databases/postgresql/index.md#compatibility-version) of that version, so they check the SQL that the library writes for it. The SQLite drivers that can run [without promises](../advanced/running-queries/synchronous-query-runners.md) are tested that way too.
 
 The library is tested on Node.js 22, 24 and 26, and on Bun.
 
@@ -45,12 +45,12 @@ The library is tested on Node.js 22, 24 and 26, and on Bun.
 These are some of the behaviours that the tests check on the real engines. The pages linked explain what you see:
 
 - PostgreSQL keeps the first 63 bytes of a name and drops the rest without an error, so the value of a property with a long path wasn't found in the row. The library writes a long name as its beginning and a hash of the whole name.
-- Oracle reads a null as the empty string when it concatenates: `'x' || null` is `'x'`. The library keeps the null, as the type says, unless you ask for Oracle's behaviour. See [Concatenation and NULL](../configuration/supported-databases/oracle/index.md#concatenation-and-null).
+- Oracle reads a null as the empty string when it concatenates: `'x' || null` is `'x'`. The library keeps the null, as the type says, unless you ask for Oracle's behaviour. See [Concatenation and NULL](../databases/oracle/index.md#concatenation-and-null).
 - The databases don't read a chain of `union`, `intersect` and `except` in the same way. The library groups them, so the result is the same on all of them. See [Compound select](../queries/compound-select.md#combining-more-than-two-selects).
 - SQL Server doesn't accept a page without an `order by`, and MariaDB, MySQL and SQLite don't accept an `offset` without a `limit`. The library completes the query. See [Select page](../queries/select-page.md#limit-and-offset).
 - A deadlock in MariaDB and MySQL rolls back the whole transaction, and the next statement would run outside it. The library rejects it instead. See [When the database rolls back the transaction](../queries/transaction.md#when-the-database-rolls-back-the-transaction).
-- SQLite compares dates stored as text character by character, so they only sort well when all of them have the same width. See [Date and time strategies](../configuration/supported-databases/sqlite/index.md#date-and-time-strategies).
-- SQLite takes the time zone from the operating system when the process starts, and under Bun changing `process.env.TZ` afterwards doesn't reach it. See [The date functions and the time zone](../configuration/supported-databases/sqlite/index.md#the-date-functions-and-the-time-zone).
+- SQLite compares dates stored as text character by character, so they only sort well when all of them have the same width. See [Date and time strategies](../databases/sqlite/index.md#date-and-time-strategies).
+- SQLite takes the time zone from the operating system when the process starts, and under Bun changing `process.env.TZ` afterwards doesn't reach it. See [The date functions and the time zone](../databases/sqlite/index.md#the-date-functions-and-the-time-zone).
 
 ## Behaviours of JavaScript that the library handles
 
@@ -60,4 +60,4 @@ These are some of the behaviours that the tests check on the real engines. The p
 
 ## What isn't supported
 
-What a database or a version can't do is not hidden: the page of each database, like [PostgreSQL](../configuration/supported-databases/postgresql/index.md), and [Limitations](limitations.md) say it. What a database doesn't offer doesn't compile on its connection; on a version older than the one that offers it, the database rejects the query. In the tests, each of those cases is marked with its reason.
+What a database or a version can't do is not hidden: the page of each database, like [PostgreSQL](../databases/postgresql/index.md), and [Limitations](limitations.md) say it. What a database doesn't offer doesn't compile on its connection; on a version older than the one that offers it, the database rejects the query. In the tests, each of those cases is marked with its reason.

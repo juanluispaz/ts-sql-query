@@ -3,7 +3,7 @@
 // breakpoint is enabled, so the emitted SQL is the most modern flavour
 // ts-sql-query produces for sqlite.
 //
-// Connector: `bun:sqlite` (see docs/configuration/query-runners/recommended/bun_sqlite.md).
+// Connector: `bun:sqlite` (see docs/databases/sqlite/query-runners/bun_sqlite.md).
 
 import { createBunSqliteTestContext } from '../../runners.js'
 

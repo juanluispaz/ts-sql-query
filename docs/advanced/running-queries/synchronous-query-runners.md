@@ -9,10 +9,10 @@ A query normally returns a `Promise`. Some drivers run the query synchronously, 
 
 !!! success "Supported query runners that connect to a database"
 
-    - [BetterSqlite3QueryRunner](../../configuration/query-runners/recommended/better-sqlite3.md)
-    - [Sqlite3WasmOO1QueryRunner](../../configuration/query-runners/recommended/sqlite-wasm-OO1.md)
-    - [BunSqliteQueryRunner](../../configuration/query-runners/recommended/bun_sqlite.md)
-    - [NodeSqliteQueryRunner](../../configuration/query-runners/recommended/node_sqlite.md)
+    - [BetterSqlite3QueryRunner](../../databases/sqlite/query-runners/better-sqlite3.md)
+    - [Sqlite3WasmOO1QueryRunner](../../databases/sqlite/query-runners/sqlite-wasm-OO1.md)
+    - [BunSqliteQueryRunner](../../databases/sqlite/query-runners/bun_sqlite.md)
+    - [NodeSqliteQueryRunner](../../databases/sqlite/query-runners/node_sqlite.md)
 
 !!! success "Supported general purposes query runners"
 

@@ -78,8 +78,40 @@ plugins:
         'advanced/query-execution-metadata.md': 'advanced/running-queries/query-execution-metadata.md'
         'advanced/metadata.md': 'advanced/running-queries/metadata.md'
         'about/limimitations.md': 'about/limitations.md'
+        'api/error-management/native-mappings/mariadb.md': 'databases/mariadb/errors.md'
+        'api/error-management/native-mappings/mysql.md': 'databases/mysql/errors.md'
+        'api/error-management/native-mappings/oracle.md': 'databases/oracle/errors.md'
+        'api/error-management/native-mappings/postgresql.md': 'databases/postgresql/errors.md'
+        'api/error-management/native-mappings/sql-server.md': 'databases/sqlserver/errors.md'
+        'api/error-management/native-mappings/sqlite.md': 'databases/sqlite/errors.md'
+        'configuration/query-runners/recommended/better-sqlite3.md': 'databases/sqlite/query-runners/better-sqlite3.md'
+        'configuration/query-runners/recommended/bun_sql_mysql.md': 'databases/mysql/query-runners/bun_sql_mysql.md'
+        'configuration/query-runners/recommended/bun_sql_postgres.md': 'databases/postgresql/query-runners/bun_sql_postgres.md'
+        'configuration/query-runners/recommended/bun_sql_sqlite.md': 'databases/sqlite/query-runners/bun_sql_sqlite.md'
+        'configuration/query-runners/recommended/bun_sqlite.md': 'databases/sqlite/query-runners/bun_sqlite.md'
+        'configuration/query-runners/recommended/mariadb.md': 'databases/mariadb/query-runners/mariadb.md'
+        'configuration/query-runners/recommended/mssql.md': 'databases/sqlserver/query-runners/mssql.md'
+        'configuration/query-runners/recommended/mysql2.md': 'databases/mysql/query-runners/mysql2.md'
+        'configuration/query-runners/recommended/node_sqlite.md': 'databases/sqlite/query-runners/node_sqlite.md'
+        'configuration/query-runners/recommended/oracledb.md': 'databases/oracle/query-runners/oracledb.md'
+        'configuration/query-runners/recommended/pg.md': 'databases/postgresql/query-runners/pg.md'
+        'configuration/query-runners/recommended/pglite.md': 'databases/postgresql/query-runners/pglite.md'
+        'configuration/query-runners/recommended/postgres.md': 'databases/postgresql/query-runners/postgres.md'
+        'configuration/query-runners/recommended/sqlite-wasm-OO1.md': 'databases/sqlite/query-runners/sqlite-wasm-OO1.md'
+        'configuration/supported-databases/mariadb/functions.md': 'databases/mariadb/functions.md'
+        'configuration/supported-databases/mariadb/index.md': 'databases/mariadb/index.md'
+        'configuration/supported-databases/mysql/functions.md': 'databases/mysql/functions.md'
+        'configuration/supported-databases/mysql/index.md': 'databases/mysql/index.md'
+        'configuration/supported-databases/oracle/functions.md': 'databases/oracle/functions.md'
+        'configuration/supported-databases/oracle/index.md': 'databases/oracle/index.md'
+        'configuration/supported-databases/postgresql/functions.md': 'databases/postgresql/functions.md'
+        'configuration/supported-databases/postgresql/index.md': 'databases/postgresql/index.md'
+        'configuration/supported-databases/sqlite/functions.md': 'databases/sqlite/functions.md'
+        'configuration/supported-databases/sqlite/index.md': 'databases/sqlite/index.md'
+        'configuration/supported-databases/sqlserver/functions.md': 'databases/sqlserver/functions.md'
+        'configuration/supported-databases/sqlserver/index.md': 'databases/sqlserver/index.md'
         # The page of each database moved to <db>/index.md, which keeps its address: only sqlite-extensions.md needs a redirect
-        'configuration/supported-databases/sqlite-extensions.md': 'configuration/supported-databases/sqlite/functions.md'
+        'configuration/supported-databases/sqlite-extensions.md': 'databases/sqlite/functions.md'
         'api/type-adpaters.md': 'api/type-adapters.md'
         'keywords/functions-oprators.md': 'keywords/functions-operators.md'
         'about/examples.md': 'queries/basic-query-structure.md'
@@ -202,42 +234,7 @@ nav:
     - Dates and times: configuration/dates-and-times.md
     - Time zones: configuration/time-zones.md
     - Collations: configuration/collations.md
-    - Supported databases:
-      - MariaDB:
-        - Configuration: configuration/supported-databases/mariadb/index.md
-        - Functions: configuration/supported-databases/mariadb/functions.md
-      - MySQL:
-        - Configuration: configuration/supported-databases/mysql/index.md
-        - Functions: configuration/supported-databases/mysql/functions.md
-      - Oracle:
-        - Configuration: configuration/supported-databases/oracle/index.md
-        - Functions: configuration/supported-databases/oracle/functions.md
-      - PostgreSQL:
-        - Configuration: configuration/supported-databases/postgresql/index.md
-        - Functions: configuration/supported-databases/postgresql/functions.md
-      - SQLite:
-        - Configuration: configuration/supported-databases/sqlite/index.md
-        - Functions and extensions: configuration/supported-databases/sqlite/functions.md
-      - SQL Server:
-        - Configuration: configuration/supported-databases/sqlserver/index.md
-        - Functions: configuration/supported-databases/sqlserver/functions.md
     - Query runners: configuration/query-runners/index.md
-    - Recommended query runners: 
-      - better-sqlite3: configuration/query-runners/recommended/better-sqlite3.md
-      - mariadb: configuration/query-runners/recommended/mariadb.md
-      - mssql: configuration/query-runners/recommended/mssql.md
-      - "node:sqlite": configuration/query-runners/recommended/node_sqlite.md
-      - mysql2: configuration/query-runners/recommended/mysql2.md
-      - oracledb: configuration/query-runners/recommended/oracledb.md
-      - pg: configuration/query-runners/recommended/pg.md
-      - postgres: configuration/query-runners/recommended/postgres.md
-      - pglite: configuration/query-runners/recommended/pglite.md
-      - sqlite-wasm OO1: configuration/query-runners/recommended/sqlite-wasm-OO1.md
-    - Bun's recommended query runners:
-      - Bun Sqlite: configuration/query-runners/recommended/bun_sqlite.md
-      - Bun SQL for MySQL: configuration/query-runners/recommended/bun_sql_mysql.md
-      - Bun SQL for SQLite: configuration/query-runners/recommended/bun_sql_sqlite.md
-      - Bun SQL for PostgreSQL: configuration/query-runners/recommended/bun_sql_postgres.md
     - General purpose query runners:
       - InterceptorQueryRunner: configuration/query-runners/general-purpose/InterceptorQueryRunner.md
       - LoggingQueryRunner: configuration/query-runners/general-purpose/LoggingQueryRunner.md
@@ -247,6 +244,54 @@ nav:
         - NoopQueryRunner: configuration/query-runners/general-purpose/NoopQueryRunner.md
         - NoExecutionQueryRunner: configuration/query-runners/general-purpose/NoExecutionQueryRunner.md
     - Combining with another library: configuration/query-runners/combining-with-another-library.md
+  - Databases:
+    - MariaDB:
+      - Configuration: databases/mariadb/index.md
+      - Functions: databases/mariadb/functions.md
+      - Query runners:
+        - mariadb: databases/mariadb/query-runners/mariadb.md
+        - mysql2: databases/mysql/query-runners/mysql2.md
+        - Bun SQL for MySQL: databases/mysql/query-runners/bun_sql_mysql.md
+      - Errors: databases/mariadb/errors.md
+    - MySQL:
+      - Configuration: databases/mysql/index.md
+      - Functions: databases/mysql/functions.md
+      - Query runners:
+        - mysql2: databases/mysql/query-runners/mysql2.md
+        - mariadb: databases/mariadb/query-runners/mariadb.md
+        - Bun SQL for MySQL: databases/mysql/query-runners/bun_sql_mysql.md
+      - Errors: databases/mysql/errors.md
+    - Oracle:
+      - Configuration: databases/oracle/index.md
+      - Functions: databases/oracle/functions.md
+      - Query runners:
+        - oracledb: databases/oracle/query-runners/oracledb.md
+      - Errors: databases/oracle/errors.md
+    - PostgreSQL:
+      - Configuration: databases/postgresql/index.md
+      - Functions: databases/postgresql/functions.md
+      - Query runners:
+        - pg: databases/postgresql/query-runners/pg.md
+        - postgres: databases/postgresql/query-runners/postgres.md
+        - pglite: databases/postgresql/query-runners/pglite.md
+        - Bun SQL for PostgreSQL: databases/postgresql/query-runners/bun_sql_postgres.md
+      - Errors: databases/postgresql/errors.md
+    - SQLite:
+      - Configuration: databases/sqlite/index.md
+      - Functions and extensions: databases/sqlite/functions.md
+      - Query runners:
+        - better-sqlite3: databases/sqlite/query-runners/better-sqlite3.md
+        - "node:sqlite": databases/sqlite/query-runners/node_sqlite.md
+        - "sqlite-wasm OO1": databases/sqlite/query-runners/sqlite-wasm-OO1.md
+        - Bun Sqlite: databases/sqlite/query-runners/bun_sqlite.md
+        - Bun SQL for SQLite: databases/sqlite/query-runners/bun_sql_sqlite.md
+      - Errors: databases/sqlite/errors.md
+    - SQL Server:
+      - Configuration: databases/sqlserver/index.md
+      - Functions: databases/sqlserver/functions.md
+      - Query runners:
+        - mssql: databases/sqlserver/query-runners/mssql.md
+      - Errors: databases/sqlserver/errors.md
   - API: 
     - API Introduction: api/introduction.md
     - Connection API: api/connection.md
@@ -267,13 +312,6 @@ nav:
       - Error types: api/error-management/error-types.md
       - TypeScript types: api/error-management/typescript-types.md
       - Library-raised errors: api/error-management/library-raised-errors.md
-      - Native database mappings:
-        - MariaDB: api/error-management/native-mappings/mariadb.md
-        - MySQL: api/error-management/native-mappings/mysql.md
-        - Oracle: api/error-management/native-mappings/oracle.md
-        - PostgreSQL: api/error-management/native-mappings/postgresql.md
-        - SQLite: api/error-management/native-mappings/sqlite.md
-        - SQL Server: api/error-management/native-mappings/sql-server.md
   - Dynamic:
     - What a dynamic query can do: dynamic/building-blocks.md
     - Optional parts of a query:

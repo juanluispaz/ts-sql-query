@@ -118,7 +118,7 @@ The rest of the reasons come from the configuration, from a mock, or from someth
 | A reason raised by the library, not by the database | [Library-raised errors](library-raised-errors.md): what it means, what causes it, and what to do |
 | A reason, and you want its fields and its subtypes | [Error types](error-types.md) |
 | The declarations of the classes and the reasons, to narrow them | [TypeScript types](typescript-types.md) |
-| A code, a number, an SQLSTATE or a message of the database or the driver | The page of your database: [MariaDB](native-mappings/mariadb.md), [MySQL](native-mappings/mysql.md), [Oracle](native-mappings/oracle.md), [PostgreSQL](native-mappings/postgresql.md), [SQLite](native-mappings/sqlite.md) or [SQL Server](native-mappings/sql-server.md) |
+| A code, a number, an SQLSTATE or a message of the database or the driver | The page of your database: [MariaDB](../../databases/mariadb/errors.md), [MySQL](../../databases/mysql/errors.md), [Oracle](../../databases/oracle/errors.md), [PostgreSQL](../../databases/postgresql/errors.md), [SQLite](../../databases/sqlite/errors.md) or [SQL Server](../../databases/sqlserver/errors.md) |
 
 The error keeps what the database or the driver said in three fields of `errorReason`, when it has them:
 
@@ -163,13 +163,7 @@ Documentation layout:
   - `error-types.md`: reason and subtype catalog from `src/TsSqlError.ts`.
   - `typescript-types.md`: TypeScript-facing declarations copied from `src/TsSqlError.ts`.
   - `library-raised-errors.md`: errors raised by the library outside native database mapper tables.
-- Native mapping pages:
-  - `native-mappings/mariadb.md`
-  - `native-mappings/mysql.md`
-  - `native-mappings/oracle.md`
-  - `native-mappings/postgresql.md`
-  - `native-mappings/sqlite.md`
-  - `native-mappings/sql-server.md`
+- Native mapping pages: `docs/databases/<database>/errors.md`, one per database (`mariadb`, `mysql`, `oracle`, `postgresql`, `sqlite`, `sqlserver`).
 
 Source of truth:
 

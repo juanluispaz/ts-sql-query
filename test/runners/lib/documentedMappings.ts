@@ -1,5 +1,5 @@
 // The native error mappings the documentation promises
-// (docs/api/error-management/native-mappings/<database>.md), read as data:
+// (docs/databases/<database>/errors.md), read as data:
 // one entry per database error code or number listed in a row, with the
 // reason (and subtype) of that row. The raised-error tests (`raised.*`, see
 // raisedErrors.ts) have the engine raise each code and check the library
@@ -22,18 +22,18 @@ export interface DocumentedMapping {
 }
 
 const PAGES: Partial<Record<DatabaseType, string>> = {
-    postgreSql: 'postgresql.md',
-    mySql: 'mysql.md',
-    mariaDB: 'mariadb.md',
-    oracle: 'oracle.md',
-    sqlServer: 'sql-server.md',
-    sqlite: 'sqlite.md',
+    postgreSql: 'postgresql',
+    mySql: 'mysql',
+    mariaDB: 'mariadb',
+    oracle: 'oracle',
+    sqlServer: 'sqlserver',
+    sqlite: 'sqlite',
 }
 
 export function documentedMappings(database: DatabaseType): DocumentedMapping[] {
     const page = PAGES[database]
     if (!page) return []
-    const text = readFileSync(new URL('../../../docs/api/error-management/native-mappings/' + page, import.meta.url), 'utf8')
+    const text = readFileSync(new URL('../../../docs/databases/' + page + '/errors.md', import.meta.url), 'utf8')
     const byNumber = new Map<string, DocumentedMapping[]>()
     for (const line of text.split('\n')) {
         if (!line.startsWith('| ') || line.startsWith('| Category') || line.startsWith('| ---')) continue

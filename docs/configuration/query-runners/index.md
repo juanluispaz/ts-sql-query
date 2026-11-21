@@ -28,23 +28,23 @@ A connection object and its query runner represent one connection to the databas
 
 | Database | Driver | Query runner | Page |
 |---|---|---|---|
-| MariaDB | `mariadb` | `MariaDBPoolQueryRunner`, `MariaDBQueryRunner` | [mariadb](recommended/mariadb.md) |
-| MariaDB | `mysql2` | `MySql2PoolQueryRunner`, `MySql2QueryRunner` | [mysql2](recommended/mysql2.md) |
-| MariaDB | Bun SQL | `BunSqlMySqlQueryRunner` | [Bun SQL for MySQL](recommended/bun_sql_mysql.md) |
-| MySQL | `mysql2` | `MySql2PoolQueryRunner`, `MySql2QueryRunner` | [mysql2](recommended/mysql2.md) |
-| MySQL | `mariadb` | `MariaDBPoolQueryRunner`, `MariaDBQueryRunner` | [mariadb](recommended/mariadb.md) |
-| MySQL | Bun SQL | `BunSqlMySqlQueryRunner` | [Bun SQL for MySQL](recommended/bun_sql_mysql.md) |
-| Oracle | `oracledb` | `OracleDBPoolQueryRunner`, `OracleDBPoolPromiseQueryRunner`, `OracleDBQueryRunner` | [oracledb](recommended/oracledb.md) |
-| PostgreSQL | `pg` | `PgPoolQueryRunner`, `PgQueryRunner` | [pg](recommended/pg.md) |
-| PostgreSQL | `postgres` | `PostgresQueryRunner` | [postgres](recommended/postgres.md) |
-| PostgreSQL | PGlite | `PgLiteQueryRunner` | [pglite](recommended/pglite.md) |
-| PostgreSQL | Bun SQL | `BunSqlPostgresQueryRunner` | [Bun SQL for PostgreSQL](recommended/bun_sql_postgres.md) |
-| SQLite | `better-sqlite3` | `BetterSqlite3QueryRunner` | [better-sqlite3](recommended/better-sqlite3.md) |
-| SQLite | `node:sqlite` | `NodeSqliteQueryRunner` | [node:sqlite](recommended/node_sqlite.md) |
-| SQLite | `bun:sqlite` | `BunSqliteQueryRunner` | [Bun Sqlite](recommended/bun_sqlite.md) |
-| SQLite | Bun SQL | `BunSqlSqliteQueryRunner` | [Bun SQL for SQLite](recommended/bun_sql_sqlite.md) |
-| SQLite | sqlite-wasm | `Sqlite3WasmOO1QueryRunner` | [sqlite-wasm OO1](recommended/sqlite-wasm-OO1.md) |
-| SQL Server | `mssql` | `MssqlPoolQueryRunner`, `MssqlPoolPromiseQueryRunner` | [mssql](recommended/mssql.md) |
+| MariaDB | `mariadb` | `MariaDBPoolQueryRunner`, `MariaDBQueryRunner` | [mariadb](../../databases/mariadb/query-runners/mariadb.md) |
+| MariaDB | `mysql2` | `MySql2PoolQueryRunner`, `MySql2QueryRunner` | [mysql2](../../databases/mysql/query-runners/mysql2.md) |
+| MariaDB | Bun SQL | `BunSqlMySqlQueryRunner` | [Bun SQL for MySQL](../../databases/mysql/query-runners/bun_sql_mysql.md) |
+| MySQL | `mysql2` | `MySql2PoolQueryRunner`, `MySql2QueryRunner` | [mysql2](../../databases/mysql/query-runners/mysql2.md) |
+| MySQL | `mariadb` | `MariaDBPoolQueryRunner`, `MariaDBQueryRunner` | [mariadb](../../databases/mariadb/query-runners/mariadb.md) |
+| MySQL | Bun SQL | `BunSqlMySqlQueryRunner` | [Bun SQL for MySQL](../../databases/mysql/query-runners/bun_sql_mysql.md) |
+| Oracle | `oracledb` | `OracleDBPoolQueryRunner`, `OracleDBPoolPromiseQueryRunner`, `OracleDBQueryRunner` | [oracledb](../../databases/oracle/query-runners/oracledb.md) |
+| PostgreSQL | `pg` | `PgPoolQueryRunner`, `PgQueryRunner` | [pg](../../databases/postgresql/query-runners/pg.md) |
+| PostgreSQL | `postgres` | `PostgresQueryRunner` | [postgres](../../databases/postgresql/query-runners/postgres.md) |
+| PostgreSQL | PGlite | `PgLiteQueryRunner` | [pglite](../../databases/postgresql/query-runners/pglite.md) |
+| PostgreSQL | Bun SQL | `BunSqlPostgresQueryRunner` | [Bun SQL for PostgreSQL](../../databases/postgresql/query-runners/bun_sql_postgres.md) |
+| SQLite | `better-sqlite3` | `BetterSqlite3QueryRunner` | [better-sqlite3](../../databases/sqlite/query-runners/better-sqlite3.md) |
+| SQLite | `node:sqlite` | `NodeSqliteQueryRunner` | [node:sqlite](../../databases/sqlite/query-runners/node_sqlite.md) |
+| SQLite | `bun:sqlite` | `BunSqliteQueryRunner` | [Bun Sqlite](../../databases/sqlite/query-runners/bun_sqlite.md) |
+| SQLite | Bun SQL | `BunSqlSqliteQueryRunner` | [Bun SQL for SQLite](../../databases/sqlite/query-runners/bun_sql_sqlite.md) |
+| SQLite | sqlite-wasm | `Sqlite3WasmOO1QueryRunner` | [sqlite-wasm OO1](../../databases/sqlite/query-runners/sqlite-wasm-OO1.md) |
+| SQL Server | `mssql` | `MssqlPoolQueryRunner`, `MssqlPoolPromiseQueryRunner` | [mssql](../../databases/sqlserver/query-runners/mssql.md) |
 
 The name says what the query runner receives: `Pool` a pool of connections of the driver, from which it takes a connection for each statement or transaction, `PoolPromise` a promise of that pool, and no suffix a single connection you give it. The page of each one shows how to create it.
 

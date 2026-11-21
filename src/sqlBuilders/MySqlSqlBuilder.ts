@@ -288,4 +288,15 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
         }
         super._setSafeTableOrView(context, tableOrView)
     }
+    /**
+     * From MySQL 8.0.19 a text with an offset is converted from it to the zone of the session, the zone of the database
+     * (UTC), so the cast of the text gives the wall clock in UTC of its instant; before it, the offset is ignored and the
+     * instant is computed (see AbstractMySqlMariaDBSqlBuilder)
+     */
+    override _zonedTextUtc(context: SqlBuildContext, valueSource: ToSql): string {
+        if (this._connectionConfiguration.compatibilityVersion >= 8_000_019) {
+            return 'cast(' + this._mySqlZonedTextDateTime(context, valueSource) + ' as datetime(6))'
+        }
+        return super._zonedTextUtc(context, valueSource)
+    }
 }

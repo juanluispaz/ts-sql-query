@@ -212,7 +212,7 @@ describe(ctx.label, () => {
             .where(tZonedValue.zonedAt.greaterThan(zoned[1]!.withTimeZone('UTC')))
             .selectOneColumn(tZonedValue.id)
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as result from zoned_value where (cast(replace(left(substring_index(zoned_at, '[', 1), char_length(substring_index(zoned_at, '[', 1)) - if(substring_index(zoned_at, '[', 1) like '%Z', 1, 6)), 'T', ' ') as datetime(6)) - interval if(substring_index(zoned_at, '[', 1) like '%Z', 0, if(substr(substring_index(zoned_at, '[', 1), -6, 1) = '-', -1, 1) * (substr(substring_index(zoned_at, '[', 1), -5, 2) * 3600 + substr(substring_index(zoned_at, '[', 1), -2, 2) * 60)) second) > ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as result from zoned_value where cast(substring_index(zoned_at, '[', 1) as datetime(6)) > ?"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
             "2024-01-14T09:15:30.123456789Z",
@@ -228,7 +228,7 @@ describe(ctx.label, () => {
             .select({ id: tZonedValue.id, at: tZonedValue.zonedAt })
             .orderBy('at')
             .executeSelectMany()).map(row => row.id)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, zoned_at as at from zoned_value order by (cast(replace(left(substring_index(zoned_at, '[', 1), char_length(substring_index(zoned_at, '[', 1)) - if(substring_index(zoned_at, '[', 1) like '%Z', 1, 6)), 'T', ' ') as datetime(6)) - interval if(substring_index(zoned_at, '[', 1) like '%Z', 0, if(substr(substring_index(zoned_at, '[', 1), -6, 1) = '-', -1, 1) * (substr(substring_index(zoned_at, '[', 1), -5, 2) * 3600 + substr(substring_index(zoned_at, '[', 1), -2, 2) * 60)) second)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, zoned_at as at from zoned_value order by cast(substring_index(zoned_at, '[', 1) as datetime(6))"`)
         expect([later, same, ordered]).toEqual([
             zoned.flatMap((value, i) => Temporal.ZonedDateTime.compare(value, zoned[1]!) > 0 ? [i + 1] : []),
             [2],

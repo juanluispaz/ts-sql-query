@@ -184,8 +184,8 @@ The library then lets the database complete the zone of a `localDateTime` or a `
     | A `localDateTime` compared | `starts_at = cast(:0 as timestamp)`, or `cast(:0 as date)` for a value of whole seconds of a `DATE` column; the index of the column is used | `2024-01-14T09:15:30.123Z` finds `2024-01-14 10:15:30.123` |
     | A `localDateTime` read | `cast(starts_at as timestamp with time zone)` | `2024-01-14 10:15:30.123` is read as `2024-01-14T09:15:30.123Z` |
     | The date functions | `extract(hour from sys_extract_utc(cast(starts_at as timestamp with time zone)))` | `getHours()` gives `9`, the hour of the `Date` in UTC |
-    | A `localTime` sent, as the value of a column or compared | its time of the day on 1970-01-01, the day every `localTime` is kept on: `timestamp '1970-01-01 00:00:00' + (cast(:0 as timestamp) - trunc(cast(:0 as timestamp)))` | `1970-01-01T17:00:00.000Z` is stored as `1970-01-01 18:00:00`, and `1969-12-31T23:30:00.000Z` as `1970-01-01 00:30:00` |
-    | A `localTime` read | completed with a day, the `localTimeReferenceDate`, instead of the day it is stored with: `cast(timestamp '1970-01-01 00:00:00' + (t - trunc(t)) as timestamp with time zone)` | `18:00` is read as `1970-01-01T17:00:00.000Z` |
+    | A `localTime` sent, as the value of a column or compared | its time of the day on the date Oracle stores times on, `dateOfStoredTimes` (see [Oracle](supported-databases/oracle/index.md#a-time-of-the-day)): `timestamp '1972-01-01 00:00:00' + (cast(:0 as timestamp) - trunc(cast(:0 as timestamp)))` | `1970-01-01T17:00:00.000Z` is stored as `1972-01-01 18:00:00`, and `1969-12-31T23:30:00.000Z` as `1972-01-01 00:30:00` |
+    | A `localTime` read | completed with a date, the `dateToConvertTimesBetweenZones`, instead of the date it is stored with: `cast(timestamp '1972-01-01 00:00:00' + (t - trunc(t)) as timestamp with time zone)` | `18:00` is read as `1972-01-01T17:00:00.000Z` |
 
 ===+ "PostgreSQL"
     | | What the library writes | Example, in `Europe/Madrid` |
@@ -194,13 +194,13 @@ The library then lets the database complete the zone of a `localDateTime` or a `
     | A `localDateTime` read | `starts_at::timestamptz` | `2024-01-14 10:15:30.123` is read as `2024-01-14T09:15:30.123Z` |
     | The date functions | `extract(hour from (starts_at::timestamptz at time zone 'UTC'))` | `getHours()` gives `9`, the hour of the `Date` in UTC |
     | A `localTime` sent | `$1::timestamptz::time` (pg, Bun SQL), or the parameter sent as a `timestamptz` and `$1::time` (postgres.js, PGlite): its wall clock | `1970-01-01T17:00:00.000Z` is stored as `18:00` |
-    | A `localTime` read | completed with a day, the `localTimeReferenceDate` | `18:00` is read as `1970-01-01T17:00:00.000Z` |
+    | A `localTime` read | completed with a date, the `dateToConvertTimesBetweenZones` | `18:00` is read as `1972-01-01T17:00:00.000Z` |
 
 On PostgreSQL a `localDateTime` and a `localTime` are sent as a `timestamptz` also when `driverTypeOf` of postgres.js or PGlite gives another type for them: that type would store the instant as UTC digits.
 
 A `localDate` doesn't change: a date has no instant. A column with zone (`timestamptz`, `TIMESTAMP WITH TIME ZONE`) reads the same as before, its instant.
 
-A `localTime` has no day, and its offset depends on the day: 18:00 in Madrid is 17:00 UTC in winter and 16:00 UTC in summer. `localTimeReferenceDate` says which day completes it: `'1970-01-01'` by default, the day of a `localTime`, a date of yours as `'YYYY-MM-DD'`, or `'today'`, the current date of the database, which gives the offset of today. The `Date` read keeps that day, and a `Date` sent is converted with the offset of its own day: send a `localTime` on that same day, like the `Date` you read, so it is stored as the time it is read as (with `'2024-07-14'`, 18:00 in Madrid is `2024-07-14T16:00:00.000Z`). For anything finer, like the day of another column, use a [type adapter](../advanced/data-types/type-adapters.md).
+A `localTime` has no day, and its offset depends on the day: 18:00 in Madrid is 17:00 UTC in winter and 16:00 UTC in summer. `dateToConvertTimesBetweenZones` says which date it is converted between the zone of the database and UTC with: `'1972-01-01'` by default, a date of yours as `'YYYY-MM-DD'`, or `'today'`, the current date of the database, which gives the offset of today. The `Date` read keeps that day, and a `Date` sent is converted with the offset of its own day: send a `localTime` on that same day, like the `Date` you read, so it is stored as the time it is read as (with `'2024-07-14'`, 18:00 in Madrid is `2024-07-14T16:00:00.000Z`). For anything finer, like the day of another column, use a [type adapter](../advanced/data-types/type-adapters.md).
 
 A wall clock the zone repeats when it changes back from summer time (`2024-10-27 02:30` in Madrid) is taken in winter time. One it skips when it changes to summer time (`2024-03-31 02:30`) can't have been written by the library, only by another program: PostgreSQL moves it forward (`03:30`), and Oracle rejects reading it, or a date function of it, with `ORA-01878`.
 

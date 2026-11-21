@@ -412,6 +412,17 @@ A column with zone, like `timestamptz` or `datetimeoffset`, keeps its instant, a
 
 Running the application in UTC (`TZ=UTC`) needs neither `ORA_SDTZ` nor `useUTC`, and is still the advice.
 
+### Oracle: the date of a time of the day
+
+Oracle has no type of a time alone, and a `localTime` is kept in a `TIMESTAMP` or a `DATE` on one date. v1 kept it on 1970-01-01; v2 keeps it on 1972-01-01, the date of `dateOfStoredTimes`. A time v1 wrote is read as it was, but a comparison with a value of v2 doesn't match it, and an order puts it before the ones v2 writes. If your database has times written by v1, or by another program on 1970-01-01, keep that date:
+
+<!-- doc-code-snippet-template: oracle -->
+```ts
+class DBConnection extends OracleConnection<'DBConnection'> {
+    protected override dateOfStoredTimes = '1970-01-01'
+}
+```
+
 ### SQLite: the precision of the dates and times as text
 
 Each strategy of `getDateTimeFormat` as text now says its precision, and the old names don't compile: `'localdate as text'` becomes `'localdate seconds as text'` or `'localdate milliseconds as text'`, `'UTC as text using T separator'` becomes `'UTC seconds as text using T separator'` or `'UTC milliseconds as text using T separator'`, and so on. If you didn't override `getDateTimeFormat`, the default is now `'localdate milliseconds as text'`.

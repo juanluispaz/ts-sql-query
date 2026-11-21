@@ -80,9 +80,19 @@ A column stored the other way is declared with a [custom boolean](../../../advan
 
 ## A time of the day
 
-Oracle has no type of a time alone. A `localTime` is kept in a `TIMESTAMP` column (or a `DATE` one, see below) on the day 1970-01-01: the library writes it on that day, compares a value with it on that day, and gives `currentTime()` on that day, so a comparison is by the time of the day and uses the index of the column. When it reads one, the day is dropped.
+Oracle has no type of a time alone. A `localTime` or a `plainTime` is kept in a `TIMESTAMP` column (or a `DATE` one, see below) on one date, `dateOfStoredTimes` of the connection (`'1972-01-01'` by default): the library writes it on that date, compares a value with it on that date, and gives `currentTime()` on that date, so a comparison and an order are by the time of the day and use the index of the column. When it reads one, the date is dropped.
 
-That day is a convention every program that writes in the column has to keep, the same as JDBC, Hibernate and jOOQ, which keep a time on 1970-01-01 too. A row another program wrote with another day, like `2024-05-07 10:30:00`, is read as `10:30`, but it doesn't match a comparison with `10:30`. To compare only the time of the day of such a column, write it in a fragment, `t - trunc(t)`, with an index on that expression in your schema.
+That date is a convention every program that writes in the column has to keep. A column whose times were written on another date, like the `'1970-01-01'` of version 1 of the library, declares it:
+
+```ts
+import { OracleConnection } from 'ts-sql-query/oracle'
+
+class DBConnection extends OracleConnection<'DBConnection'> {
+    protected override dateOfStoredTimes = '1970-01-01'
+}
+```
+
+A row written with another date, like `2024-05-07 10:30:00`, is read as `10:30`, but it doesn't match a comparison with `10:30`, and it orders by its date first. To compare only the time of the day of such a column, write it in a fragment, `t - trunc(t)`, with an index on that expression in your schema. A `dateOfStoredTimes` that isn't a date `'YYYY-MM-DD'` is rejected with `INVALID_CONFIGURATION`.
 
 ## A date and time in a `DATE` column
 
@@ -155,7 +165,7 @@ const updated = connection.update(tMeeting)
 update meeting set ends_at = starts_at, reminder_time = :0 where id = :1
 ```
 
-And its parameters are: `[ 1970-01-01T08:45:00.000Z, 2 ]`
+And its parameters are: `[ 1972-01-01T08:45:00.000Z, 2 ]`
 
 On a column of any other type, the adapter does nothing. A column stored in a `TIMESTAMP` doesn't need it.
 

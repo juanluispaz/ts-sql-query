@@ -61,6 +61,7 @@ These give other results on purpose. A property of the connection brings back th
 | Oracle | `.concat(...)` is `NULL` when an operand is `NULL`. `startsWith`, `endsWith`, `contains` and their `Insensitive` variants with a `NULL` search term match no row; v1 matched them all | [`ignoreNullInConcat = true`](../../configuration/supported-databases/oracle/index.md#concatenation-and-null), or [`.concatIgnoringNull(...)`](../../configuration/supported-databases/oracle/index.md#concatenation-and-null) for one concatenation |
 | SQL Server, Oracle | `.replaceAll(...)` is case-sensitive even in a case-insensitive database | [`replaceCollation = ''`](../../configuration/collations.md#replacecollation-sql-server-and-oracle) |
 | SQL Server | `.length()` counts trailing blanks | [`excludeTrailingBlanksInLength = true`](../../configuration/supported-databases/sqlserver/index.md#length-and-trailing-blanks) |
+| Oracle | A `localTime` is stored on 1972-01-01, the date Oracle keeps a time of the day on; v1 stored it on 1970-01-01, so a time v1 wrote doesn't match a comparison with one of v2, and orders before it | [`dateOfStoredTimes = '1970-01-01'`](../../configuration/supported-databases/oracle/index.md#a-time-of-the-day) |
 | PostgreSQL, MySQL, MariaDB | `.round()` over a floating-point value breaks ties away from zero | `usePlatformDependentRound = true` ([PostgreSQL](../../configuration/supported-databases/postgresql/index.md#rounding-behavior), [MySQL](../../configuration/supported-databases/mysql/index.md#rounding-behavior), [MariaDB](../../configuration/supported-databases/mariadb/index.md#rounding-behavior)) |
 
 <!-- doc-code-snippet-template: sqlserver -->
@@ -166,7 +167,7 @@ These affect logs, test snapshots, mocks and interceptors that read the SQL. The
 | SQL Server | `substring(x, @0, len(x) - @1)` for `substrToEnd` and `substringToEnd` | `substring(x, @0)` |
 | SQL Server | `string_agg(...)` for the aggregated arrays | `json_arrayagg(...)` |
 | SQL Server | `iif([ln] is null, 1, 0)` in `order by` | `iif(customer.last_name is null, 1, 0)`, with the column |
-| All but SQLite | The parameter of a `localTime`, the string `'05:06:07'` | A `Date` on 1970-01-01 whose UTC getters are the time |
+| All but SQLite | The parameter of a `localTime`, the string `'05:06:07'` | A `Date` on 1970-01-01 whose UTC getters are the time; on Oracle on `dateOfStoredTimes`, the date it stores times on (1972-01-01 by default) |
 | All but MySQL and MariaDB | `group by first_name + @1`, with the parameter twice | `group by first_name + @0`, with the parameter once |
 | All | `with w as (...)` not used in the query | Left out |
 | All | A column in `beforeOrderByItems` and `afterOrderByItems`, bare | With the name of the table |

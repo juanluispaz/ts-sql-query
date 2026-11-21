@@ -237,6 +237,20 @@ interface Connection {
      * ISO 8601 text; the others are truncated. By default, 9
      */
     getDurationFractionDigits(): number
+    /**
+     * Protected property with the zone of the database, an IANA name: the zone of its values without zone and of its
+     * session. 'UTC' by default; another zone is supported on PostgreSQL and Oracle
+     */
+    databaseTimeZone: string
+    /**
+     * Protected property with the date a time of the day (a localTime) is converted between the zone of the database and
+     * UTC with, when the database is outside UTC: a date 'YYYY-MM-DD' or 'today'. By default, '1972-01-01'
+     */
+    dateToConvertTimesBetweenZones: string
+    /** Protected property with the day of the date a month of a year (plainYearMonth) is stored in, from 1 to 28. By default, 1 */
+    dayOfStoredYearMonths: number
+    /** Protected property with the year of the date a day of a month (plainMonthDay) is stored in, a leap year. By default, 1972 */
+    yearOfStoredMonthDays: number
 
     /** Protected method that transforms the values received from the database, as the type requested for them in the context */
     transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext): unknown
@@ -358,6 +372,7 @@ interface OracleConnectionConfiguration {
     replaceCollation: string // Default: 'BINARY'
     replaceInsensitiveCollation: string // Default: 'BINARY_CI'
     temporalFunctions: 'installed' | 'not installed' // Default: 'not installed'
+    dateOfStoredTimes: string // Default: '1972-01-01', the date of a column of a date that stores only a time of the day
 }
 
 interface PostgreSqlConnectionConfiguration {

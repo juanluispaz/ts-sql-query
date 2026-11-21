@@ -11,6 +11,7 @@ a link of docs/AGENTS.md to a page that doesn't exist, or an area that docs/AGEN
 doesn't name.
 """
 import glob
+import shutil
 import os
 import posixpath
 import re
@@ -515,6 +516,12 @@ def main():
         '',
         'Read only the area of the task, and for writing queries only the file of your database. This is the documentation of the installed version.',
     )
+    # The files of SQL the pages link (the functions of the library of each database), next to their pages
+    docs_dir = os.path.join(root, 'docs')
+    for path in glob.glob(os.path.join(docs_dir, '**', '*.sql'), recursive=True):
+        target = os.path.join(dist, 'docs', os.path.relpath(path, docs_dir))
+        os.makedirs(os.path.dirname(target), exist_ok=True)
+        shutil.copyfile(path, target)
     links = re.findall(r'\]\(([^)#\s]+)', agents)
     broken = [link for link in links if link.startswith('http') or not os.path.exists(os.path.join(dist, link))]
     if broken:

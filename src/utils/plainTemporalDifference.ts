@@ -35,7 +35,7 @@ const negatedModes: Record<string, PlainTemporalDifferenceMode | undefined> = {
 }
 
 /** The unit named, in the singular or the plural, if the value has it */
-function unitOf(name: unknown, fields: 'date' | 'time' | 'timestamp'): PlainTemporalDifferenceUnit | undefined | null {
+function unitOf(name: unknown, fields: PlainTemporalDifferenceFields): PlainTemporalDifferenceUnit | undefined | null {
     if (name === undefined) {
         return undefined
     }
@@ -44,19 +44,22 @@ function unitOf(name: unknown, fields: 'date' | 'time' | 'timestamp'): PlainTemp
     }
     const unit = name.endsWith('s') ? name.slice(0, -1) : name
     const order = unitOrder[unit]
-    if (order === undefined || (fields === 'date' && order > 3) || (fields === 'time' && order < 4)) {
+    if (order === undefined || (fields === 'date' && order > 3) || (fields === 'time' && order < 4) || (fields === 'yearMonth' && order > 1)) {
         return null
     }
     return unit as PlainTemporalDifferenceUnit
 }
 
+/** What a difference is of: a date, a time, a date and time, or a month of a year (in years and months) */
+export type PlainTemporalDifferenceFields = 'date' | 'time' | 'timestamp' | 'yearMonth'
+
 /**
- * The difference the options of `until` (or of `since`) of a date ('date'), a time ('time') or a date and time
- * ('timestamp') ask for, as Temporal reads them; undefined when Temporal rejects them. The largest unit 'auto' is the
- * larger of the smallest unit and the default one: the day for a date and time, the hour for a time and for a zoned
- * date and time (its default is given)
+ * The difference the options of `until` (or of `since`) of a date ('date'), a time ('time'), a date and time
+ * ('timestamp') or a month of a year ('yearMonth') ask for, as Temporal reads them; undefined when Temporal rejects
+ * them. The largest unit 'auto' is the larger of the smallest unit and the default one: the day for a date and time,
+ * the hour for a time and for a zoned date and time (its default is given), the year for a month of a year
  */
-export function plainTemporalDifferenceOf(value: unknown, fields: 'date' | 'time' | 'timestamp', since: boolean, defaultLargestUnit?: 'hour'): PlainTemporalDifference | undefined {
+export function plainTemporalDifferenceOf(value: unknown, fields: PlainTemporalDifferenceFields, since: boolean, defaultLargestUnit?: 'hour'): PlainTemporalDifference | undefined {
     if (value !== undefined && (value === null || typeof value !== 'object')) {
         return undefined
     }
@@ -66,8 +69,8 @@ export function plainTemporalDifferenceOf(value: unknown, fields: 'date' | 'time
     if (smallest === null || largestGiven === null) {
         return undefined
     }
-    const smallestUnit = smallest ?? (fields === 'date' ? 'day' : 'nanosecond')
-    const defaultLargest = fields === 'time' ? 'hour' : defaultLargestUnit ?? 'day'
+    const smallestUnit = smallest ?? (fields === 'date' ? 'day' : fields === 'yearMonth' ? 'month' : 'nanosecond')
+    const defaultLargest = fields === 'time' ? 'hour' : fields === 'yearMonth' ? 'year' : defaultLargestUnit ?? 'day'
     const largestUnit = largestGiven ?? (unitOrder[defaultLargest]! <= unitOrder[smallestUnit]! ? defaultLargest : smallestUnit)
     if (unitOrder[largestUnit]! > unitOrder[smallestUnit]!) {
         return undefined

@@ -150,4 +150,130 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from calendar_value order by calendar_value.month_of desc"`)
         expect(byMonth.map(row => row.id)).toEqual([3, 1, 2])
     })
+
+    test('the-facts-of-the-calendar-of-a-month-of-a-year-and-of-a-date', async () => {
+        ctx.mockNext([
+            { id: 1, daysInMonth: 29, daysInYear: 366, monthsInYear: 12, inLeapYear: true, dateDaysInMonth: 29, dateInLeapYear: true },
+            { id: 2, daysInMonth: 31, daysInYear: 365, monthsInYear: 12, inLeapYear: false, dateDaysInMonth: 31, dateInLeapYear: false },
+        ])
+        const rows = await ctx.conn.selectFrom(tCalendarValue)
+            .where(tCalendarValue.id.lessOrEqual(2))
+            .select({
+                id: tCalendarValue.id,
+                daysInMonth: tCalendarValue.monthOf.daysInMonth(),
+                daysInYear: tCalendarValue.monthOf.daysInYear(),
+                monthsInYear: tCalendarValue.monthOf.monthsInYear(),
+                inLeapYear: tCalendarValue.monthOf.inLeapYear(),
+                dateDaysInMonth: tCalendarValue.bornOn.daysInMonth(),
+                dateInLeapYear: tCalendarValue.bornOn.inLeapYear(),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", extract(day from last_day(month_of)) as "daysInMonth", 337 + extract(day from last_day((add_months(date '0001-01-01', (extract(year from month_of) - 1) * 12 + 2 - 1) + 1 - 1))) as "daysInYear", case when month_of is not null then 12 end as "monthsInYear", case when extract(day from last_day((add_months(date '0001-01-01', (extract(year from month_of) - 1) * 12 + 2 - 1) + 1 - 1))) = 29 then 1 else 0 end as "inLeapYear", extract(day from last_day(born_on)) as "dateDaysInMonth", case when extract(day from last_day((add_months(date '0001-01-01', (extract(year from born_on) - 1) * 12 + 2 - 1) + 1 - 1))) = 29 then 1 else 0 end as "dateInLeapYear" from calendar_value where id <= :0 order by "id""`)
+        assertType<Exact<typeof rows, Array<{ id: number; daysInMonth: number; daysInYear: number; monthsInYear: number; inLeapYear: boolean; dateDaysInMonth: number; dateInLeapYear: boolean }>>>()
+        expect(rows).toEqual([
+            { id: 1, daysInMonth: 29, daysInYear: 366, monthsInYear: 12, inLeapYear: true, dateDaysInMonth: 29, dateInLeapYear: true },
+            { id: 2, daysInMonth: 31, daysInYear: 365, monthsInYear: 12, inLeapYear: false, dateDaysInMonth: 31, dateInLeapYear: false },
+        ])
+    })
+
+    test('a-month-of-a-year-plus-years-and-months-and-with-another-year-or-month', async () => {
+        // A month out of its range is taken to the nearest one (13 is December), as in Temporal
+        ctx.mockNext([
+            { id: 1, plus: '2025-01-01', minus: '2023-01-01', lastMonth: '2024-12-01', inYear2000: '2000-02-01' },
+            { id: 2, plus: '2000-11-01', minus: '1998-11-01', lastMonth: '1999-12-01', inYear2000: '2000-12-01' },
+        ])
+        const rows = await ctx.conn.selectFrom(tCalendarValue)
+            .where(tCalendarValue.id.lessOrEqual(2))
+            .select({
+                id: tCalendarValue.id,
+                plus: tCalendarValue.monthOf.add({ months: 11 }),
+                minus: tCalendarValue.monthOf.subtract(Temporal.Duration.from({ years: 1, months: 1 })),
+                lastMonth: tCalendarValue.monthOf.with({ month: 13 }),
+                inYear2000: tCalendarValue.monthOf.with({ year: 2000 }),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", to_char((add_months(month_of, :0) - greatest(0, extract(day from add_months(month_of, :0)) - extract(day from month_of))), 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "plus", to_char((add_months(month_of, :1) - greatest(0, extract(day from add_months(month_of, :1)) - extract(day from month_of))), 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "minus", to_char((add_months(date '0001-01-01', (extract(year from month_of) - 1) * 12 + 12 - 1) + 1 - 1), 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "lastMonth", to_char((add_months(date '0001-01-01', (2000 - 1) * 12 + extract(month from month_of) - 1) + 1 - 1), 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "inYear2000" from calendar_value where id <= :2 order by "id""`)
+        expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
+          [
+            "11",
+            "-13",
+            "2",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; plus: Temporal.PlainYearMonth; minus: Temporal.PlainYearMonth; lastMonth: Temporal.PlainYearMonth; inYear2000: Temporal.PlainYearMonth }>>>()
+        expect(rows.map(row => [row.id, row.plus.toString(), row.minus.toString(), row.lastMonth.toString(), row.inYear2000.toString()])).toEqual([
+            [1, '2025-01', '2023-01', '2024-12', '2000-02'],
+            [2, '2000-11', '1998-11', '1999-12', '2000-12'],
+        ])
+    })
+
+    test('the-years-and-months-from-a-month-of-a-year-to-another', async () => {
+        // In years and months by default; rounded to the year, by the days of the months, as Temporal (since rounds
+        // with the mode inverted, negated). PostgreSQL's interval gives the months as years and months: the months
+        // are compared
+        ctx.mockNext([
+            { id: 1, until: 'P2Y6M', inMonths: 'P30M', sinceInYears: '-P2Y', byFive: 'P30M' },
+            { id: 2, until: 'P26Y8M', inMonths: 'P320M', sinceInYears: '-P27Y', byFive: 'P320M' },
+        ])
+        const august2026 = Temporal.PlainYearMonth.from('2026-08')
+        const rows = await ctx.conn.selectFrom(tCalendarValue)
+            .where(tCalendarValue.id.lessOrEqual(2))
+            .select({
+                id: tCalendarValue.id,
+                until: tCalendarValue.monthOf.until(august2026),
+                inMonths: tCalendarValue.monthOf.until(august2026, { largestUnit: 'month' }),
+                sinceInYears: tCalendarValue.monthOf.since(august2026, { smallestUnit: 'year', roundingMode: 'halfExpand' }),
+                byFive: tCalendarValue.monthOf.until(august2026, { largestUnit: 'month', roundingIncrement: 5 }),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", tsq_duration_text(0, (extract(year from to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')) * 12 + extract(month from to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')) - (extract(year from month_of) * 12 + extract(month from month_of))), 0, 0, 0, 'year') as "until", tsq_duration_text(0, (extract(year from to_date(:1, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')) * 12 + extract(month from to_date(:1, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')) - (extract(year from month_of) * 12 + extract(month from month_of))), 0, 0, 0, 'month') as "inMonths", tsq_duration_round(extract(year from month_of), extract(month from month_of), 1, 0, extract(year from to_date(:2, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), extract(month from to_date(:2, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')), 1, 0, 'year', 'year', 1, 'halfExpand', -1) as "sinceInYears", tsq_duration_text(0, (trunc((extract(year from to_date(:3, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')) * 12 + extract(month from to_date(:3, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')) - (extract(year from month_of) * 12 + extract(month from month_of))) / 5) * 5), 0, 0, 0, 'month') as "byFive" from calendar_value where id <= :4 order by "id""`)
+        expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
+          [
+            "2026-08-01",
+            "2026-08-01",
+            "2026-08-01",
+            "2026-08-01",
+            "2",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; until: Temporal.Duration; inMonths: Temporal.Duration; sinceInYears: Temporal.Duration; byFive: Temporal.Duration }>>>()
+        const months = (duration: Temporal.Duration) => duration.years * 12 + duration.months
+        expect(rows.map(row => [row.id, months(row.until), months(row.inMonths), months(row.sinceInYears), months(row.byFive)])).toEqual([
+            [1, 30, 30, -24, 30],
+            [2, 320, 320, -324, 320],
+        ])
+    })
+
+    test('a-month-of-a-year-and-a-day-of-a-month-taken-to-a-date-or-to-other-fields', async () => {
+        // The day is taken to the last one of the month, February 29 to the 28th in a year without it, as Temporal
+        ctx.mockNext([
+            { id: 1, lastDay: '2024-02-29', in2023: '2023-02-28', inApril: '1972-04-29', day30: '1972-02-29' },
+            { id: 2, lastDay: '1999-12-31', in2023: '2023-12-31', inApril: '1972-04-30', day30: '1972-12-30' },
+        ])
+        const rows = await ctx.conn.selectFrom(tCalendarValue)
+            .where(tCalendarValue.id.lessOrEqual(2))
+            .select({
+                id: tCalendarValue.id,
+                lastDay: tCalendarValue.monthOf.toPlainDate({ day: 31 }),
+                in2023: tCalendarValue.dayOf.toPlainDate({ year: 2023 }),
+                inApril: tCalendarValue.dayOf.with({ month: 4 }),
+                day30: tCalendarValue.dayOf.with({ day: 30 }),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", to_char((add_months(date '0001-01-01', (extract(year from month_of) - 1) * 12 + extract(month from month_of) - 1) + least(31, extract(day from last_day((add_months(date '0001-01-01', (extract(year from month_of) - 1) * 12 + extract(month from month_of) - 1) + 1 - 1)))) - 1), 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "lastDay", to_char((add_months(date '0001-01-01', (2023 - 1) * 12 + extract(month from day_of) - 1) + least(extract(day from day_of), extract(day from last_day((add_months(date '0001-01-01', (2023 - 1) * 12 + extract(month from day_of) - 1) + 1 - 1)))) - 1), 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "in2023", to_char((add_months(date '0001-01-01', (1972 - 1) * 12 + 4 - 1) + least(extract(day from day_of), extract(day from last_day((add_months(date '0001-01-01', (1972 - 1) * 12 + 4 - 1) + 1 - 1)))) - 1), 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "inApril", to_char((add_months(date '0001-01-01', (1972 - 1) * 12 + extract(month from day_of) - 1) + least(30, extract(day from last_day((add_months(date '0001-01-01', (1972 - 1) * 12 + extract(month from day_of) - 1) + 1 - 1)))) - 1), 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "day30" from calendar_value where id <= :0 order by "id""`)
+        expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
+          [
+            "2",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; lastDay: Temporal.PlainDate; in2023: Temporal.PlainDate; inApril: Temporal.PlainMonthDay; day30: Temporal.PlainMonthDay }>>>()
+        expect(rows.map(row => [row.id, row.lastDay.toString(), row.in2023.toString(), row.inApril.toString(), row.day30.toString()])).toEqual([
+            [1, '2024-02-29', '2023-02-28', '04-29', '02-29'],
+            [2, '1999-12-31', '2023-12-31', '04-30', '12-30'],
+        ])
+    })
 })

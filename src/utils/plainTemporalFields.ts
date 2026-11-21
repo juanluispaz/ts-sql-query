@@ -38,9 +38,10 @@ function constrained(value: number | undefined, max: number): number | undefined
  * `with` takes them; undefined when Temporal rejects them: not an object, none of the fields of the type, a field that
  * isn't a number, a month or a day below 1, a month code that isn't of the ISO calendar or that says another month.
  * With reject (overflow 'reject') a field out of its range is rejected too, and a day the month given hasn't, when the
- * year and the month are given; a day the month of the value hasn't is rejected by the query
+ * year and the month are given; a day the month of the value hasn't is rejected by the query. inYear is the year of a
+ * value that doesn't give one (the reference year of a day of a month)
  */
-export function plainTemporalFieldsOf(value: unknown, fields: 'date' | 'time' | 'timestamp', reject: boolean = false): PlainTemporalFields | undefined {
+export function plainTemporalFieldsOf(value: unknown, fields: 'date' | 'time' | 'timestamp', reject: boolean = false, inYear?: number): PlainTemporalFields | undefined {
     if (value === null || typeof value !== 'object') {
         return undefined
     }
@@ -54,7 +55,7 @@ export function plainTemporalFieldsOf(value: unknown, fields: 'date' | 'time' | 
     let month: number | undefined
     let day: number | undefined
     if (hasDate) {
-        year = integerOf(given['year'])
+        year = integerOf(given['year']) ?? inYear
         month = integerOf(given['month'])
         const monthCode = given['monthCode']
         if (monthCode !== undefined) {

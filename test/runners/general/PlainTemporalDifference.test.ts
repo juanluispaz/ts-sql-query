@@ -78,9 +78,11 @@ describe('PlainTemporalDifference', () => {
             [0, 0, 0, 0, 3_600_000_000_000n, 'day'],
             [0, 0, 0, 0, -781_200_000_000_000n, 'week'],
             [0, 0, 0, 10, 0n, 'week'],
+            [0, 30, 0, 0, 0n, 'year'],
+            [0, -30, 0, 0, 0n, 'month'],
         ]
         expect(fields.map(([years, months, weeks, days, nanoseconds, unit]) => durationText(years, months, weeks, days, nanoseconds, unit))).toEqual([
-            'PT0S', 'P1Y2M3W4DT1H23M45.5S', '-P1Y2M4DT1.5S', 'PT90M', 'PT5400.000000123S', 'P3D', 'PT0.0005S', 'P1DT1H', 'PT1H', '-P1W2DT1H', 'P1W3D',
+            'PT0S', 'P1Y2M3W4DT1H23M45.5S', '-P1Y2M4DT1.5S', 'PT90M', 'PT5400.000000123S', 'P3D', 'PT0.0005S', 'P1DT1H', 'PT1H', '-P1W2DT1H', 'P1W3D', 'P2Y6M', '-P30M',
         ])
         expect(durationText(null, 0, 0, 0, 0, 'hour')).toBeNull()
     })

@@ -784,6 +784,10 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         if (d.fields === 'date') {
             return 'make_interval(days => ' + this._differenceWhole(context, d) + ')'
         }
+        if (d.fields === 'yearMonth') {
+            // An interval keeps months: its years are 12 of them
+            return 'make_interval(months => ' + this._differenceWhole(context, d) + ')'
+        }
         const toDays = d.fields === 'timestamp' && (d.difference.largestUnit === 'day' || d.difference.largestUnit === 'week')
         if (!this._differenceIsRounded(d)) {
             const [from, to] = d.difference.negated ? [d.two, d.one] : [d.one, d.two]
@@ -803,7 +807,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
      * (PostgreSQL's interval keeps no more), which / divides as integers
      */
     override _differenceTotal(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
-        if (d.fields === 'date') {
+        if (d.fields === 'date' || d.fields === 'yearMonth') {
             return super._differenceTotal(context, d)
         }
         return '(extract(epoch from ' + this._appendSqlParenthesis(d.two, context, false) + ' - ' + this._appendSqlParenthesis(d.one, context, false) + ') * 1000000)::bigint'

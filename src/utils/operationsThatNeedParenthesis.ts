@@ -34,6 +34,8 @@ export const operationsThatNeedParenthesis: OperationsThatNeedParenthesis = {
     // declares no override of its own). Both of these write a trailing operator (`- 1`, `% 1000`), so they need wrapping
     // when embedded. A dialect whose override is a self-contained call sets these back to false.
     _monthFromZero: true,
+    _daysInYearOf: true,
+    _inLeapYearOf: true,
     _millisecond: true,
     _microsecond: true,
     // A date plus a time of the day (`date + time`)

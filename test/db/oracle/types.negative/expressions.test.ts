@@ -709,6 +709,21 @@ function _typeNegatives() {
     void tCalendarValue.monthOf.equals(tCalendarValue.bornOn)
     // @ts-expect-error a date and time has no month of the year, as in Temporal
     void tColMatrixPlain.mDatetime.toPlainYearMonth()
+    // A month of a year adds years and months, has only a year and a month, and differs in years and months
+    void tCalendarValue.monthOf.add({ years: 1, months: 2 })
+    void tCalendarValue.monthOf.until(tCalendarValue.monthOf, { largestUnit: 'month', roundingMode: 'halfEven' })
+    // @ts-expect-error a month of a year has no days to add, as in Temporal
+    void tCalendarValue.monthOf.add({ days: 1 })
+    // @ts-expect-error a month of a year has no day to replace
+    void tCalendarValue.monthOf.with({ day: 5 })
+    // @ts-expect-error a month of a year differs in years and months
+    void tCalendarValue.monthOf.until(tCalendarValue.monthOf, { smallestUnit: 'day' })
+    // @ts-expect-error a date isn't a month of a year
+    void tCalendarValue.monthOf.until(tCalendarValue.bornOn)
+    // @ts-expect-error a day of a month takes a year to be a date
+    void tCalendarValue.dayOf.toPlainDate({ day: 1 })
+    // @ts-expect-error a day of a month has no arithmetic of durations, as in Temporal
+    void tCalendarValue.dayOf.add({ days: 1 })
 }
 
 test('expressions-negative-types', () => {

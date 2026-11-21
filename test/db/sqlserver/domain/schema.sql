@@ -562,13 +562,14 @@ GO
 
 -- tsq_duration_text: the ISO 8601 text of a duration (Temporal.Duration) of its fields, the function of the library that
 -- writes a duration a query computes (until, since) where it is kept as text: its years, months, weeks and days, and the
--- nanoseconds of its time, balanced up to the largest unit given: the days of the time go to the days ('day'), and the
--- weeks of the days to the weeks too ('week'); the time is written in hours, minutes and seconds ('week', 'day',
--- 'hour'), minutes and seconds ('minute') or seconds ('second'); every field with the sign of the duration. The text is
--- the one of Temporal's toString.
+-- nanoseconds of its time, balanced up to the largest unit given: the months go to the years ('year'), the days of the
+-- time to the days ('day'), and the weeks of the days to the weeks too ('week'); the time is written in hours, minutes
+-- and seconds ('week', 'day', 'hour'), minutes and seconds ('minute') or seconds ('second'); every field with the sign
+-- of the duration. The text is the one of Temporal's toString.
 CREATE OR ALTER FUNCTION dbo.tsq_duration_text(@y BIGINT, @mo BIGINT, @w BIGINT, @d BIGINT, @ns DECIMAL(38, 0), @unit VARCHAR(6)) RETURNS VARCHAR(100) WITH SCHEMABINDING AS
 BEGIN
     IF @y IS NULL OR @mo IS NULL OR @w IS NULL OR @d IS NULL OR @ns IS NULL RETURN NULL;
+    IF @unit = 'year' BEGIN SET @y = @y + @mo / 12; SET @mo = @mo % 12; END
     IF @unit = 'week' OR @unit = 'day'
     BEGIN
         SET @d = @d + CAST(ROUND(@ns / 86400000000000, 0, 1) AS BIGINT);

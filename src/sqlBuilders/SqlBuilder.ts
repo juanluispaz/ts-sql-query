@@ -507,6 +507,11 @@ export interface SqlFunction0 {
     // A month of a year and a day of a month (plainYearMonth, plainMonthDay), kept in a date: the code of its month, and
     // a date taken to them
     _monthCode(context: SqlBuildContext, valueSource: ToSql): string
+    // The facts of the calendar of the date of a value (Temporal's daysInMonth, daysInYear, inLeapYear, monthsInYear)
+    _daysInMonthOf(context: SqlBuildContext, valueSource: ToSql): string
+    _daysInYearOf(context: SqlBuildContext, valueSource: ToSql): string
+    _inLeapYearOf(context: SqlBuildContext, valueSource: ToSql): string
+    _monthsInYearOf(context: SqlBuildContext, valueSource: ToSql): string
     _toPlainYearMonth(context: SqlBuildContext, valueSource: ToSql): string
     _toPlainMonthDay(context: SqlBuildContext, valueSource: ToSql): string
     // An instant: its nanoseconds since the epoch, and its date and time in the zone of the database; and back
@@ -574,6 +579,9 @@ export interface SqlFunction1 {
     _subtractDuration(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
     // A date, a time or a date and time with the fields given, with the semantics of Temporal's with
     _withFields(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
+    _yearMonthWith(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
+    _monthDayWith(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
+    _monthDayWithRejecting(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
     // The same rejecting a day the month hasn't (Temporal's overflow 'reject') as an error of the query
     _addDurationRejecting(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
     _subtractDurationRejecting(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string

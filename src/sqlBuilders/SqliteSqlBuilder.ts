@@ -1291,6 +1291,9 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     override _month(context: SqlBuildContext, valueSource: ToSql): string {
         return "cast(strftime('%m', " + this._dateFunctionArgument(context, valueSource, false) + ") as integer)"
     }
+    override _daysInMonthOf(context: SqlBuildContext, valueSource: ToSql): string {
+        return "cast(strftime('%d', " + this._dateFunctionArgument(context, valueSource, false) + ", 'start of month', '+1 months', '-1 days') as integer)"
+    }
     override _monthCode(context: SqlBuildContext, valueSource: ToSql): string {
         return "'M' || strftime('%m', " + this._dateFunctionArgument(context, valueSource, false) + ')'
     }
@@ -1459,7 +1462,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     }
     /** The whole difference of two times or dates and times: the milliseconds of their Julian days apart */
     override _differenceTotal(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
-        if (d.fields === 'date') {
+        if (d.fields === 'date' || d.fields === 'yearMonth') {
             return super._differenceTotal(context, d)
         }
         return 'cast(round((julianday(' + this._dateFunctionArgument(context, d.two) + ') - julianday(' + this._dateFunctionArgument(context, d.one) + ')) * 86400000) as integer)'

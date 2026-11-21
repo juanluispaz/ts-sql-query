@@ -479,8 +479,8 @@ function bigintArgument(value: unknown): bigint | null {
 /**
  * tsq_duration_text: the ISO 8601 text of a duration of its fields, as Temporal's toString writes it, as the same
  * function of the library on the other databases: the years, months, weeks and days, and the nanoseconds of its time,
- * balanced up to the largest unit given: the days of the time go to the days ('day'), and the weeks of the days to the
- * weeks too ('week'); the time is written in hours, minutes and seconds ('week', 'day', 'hour'), minutes and seconds
+ * balanced up to the largest unit given: the months go to the years ('year'), the days of the time to the days ('day'),
+ * and the weeks of the days to the weeks too ('week'); the time is written in hours, minutes and seconds ('week', 'day', 'hour'), minutes and seconds
  * ('minute') or seconds ('second'); every field with the sign of the duration; null when a field is null
  */
 function durationText(years: unknown, months: unknown, weeks: unknown, days: unknown, nanoseconds: unknown, unit: unknown): string | null {
@@ -489,13 +489,17 @@ function durationText(years: unknown, months: unknown, weeks: unknown, days: unk
         // of more than 292 years) into one, which has lost digits
         throw new Error("tsq_duration_text: the nanoseconds of the time don't fit in the 64-bit integers of SQLite")
     }
-    const y = bigintArgument(years)
-    const mo = bigintArgument(months)
+    let y = bigintArgument(years)
+    let mo = bigintArgument(months)
     let w = bigintArgument(weeks)
     let d = bigintArgument(days)
     let ns = bigintArgument(nanoseconds)
     if (y === null || mo === null || w === null || d === null || ns === null) {
         return null
+    }
+    if (unit === 'year') {
+        y += mo / 12n
+        mo %= 12n
     }
     if (unit === 'week' || unit === 'day') {
         d += ns / 86_400_000_000_000n

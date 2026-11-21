@@ -15,6 +15,8 @@ import { InstantType } from './instants.js'
 import { ZonedDateTimeType, __zonedOfWallClock } from './zonedDateTimes.js'
 import type { operandTypeName } from '../utils/symbols.js'
 import { IntType } from './number.js'
+import { StringType } from './strings.js'
+import { BooleanConditionType, BooleanType } from './logical.js'
 import { PlainMonthDayType, PlainYearMonthType } from './plainYearMonths.js'
 import { __typeClassOf } from '../nodes/dataTypeClassOf.js'
 import { __computedClassOf } from '../nodes/adaptedTypeClass.js'
@@ -98,6 +100,31 @@ export abstract class PlainDatesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME
     dayOfYear(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     dayOfYear(): any {
         return partOf(this, '_dayOfYear')
+    }
+    /** The code of the month, `'M01'` to `'M12'`: Temporal's `monthCode` */
+    monthCode(): ValueSource<SourceOf<this>, StringType, OptionalityOf<this>>
+    monthCode(): any {
+        return __operation0(this as any, '_monthCode', StringType)
+    }
+    /** The days of the month of the date, from 28 to 31, as an int: Temporal's `daysInMonth` */
+    daysInMonth(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
+    daysInMonth(): any {
+        return partOf(this, '_daysInMonthOf')
+    }
+    /** The days of the year, 365 or 366, as an int: Temporal's `daysInYear` */
+    daysInYear(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
+    daysInYear(): any {
+        return partOf(this, '_daysInYearOf')
+    }
+    /** The months of the year, 12, as an int: Temporal's `monthsInYear` */
+    monthsInYear(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
+    monthsInYear(): any {
+        return partOf(this, '_monthsInYearOf')
+    }
+    /** Whether the year is a leap year, with a February 29: Temporal's `inLeapYear` */
+    inLeapYear(): ValueSource<SourceOf<this>, BooleanType, OptionalityOf<this>>
+    inLeapYear(): any {
+        return __operation0(this as any, '_inLeapYearOf', BooleanConditionType)
     }
 
     /** This date at 00:00, a plainDateTime: Temporal's `toPlainDateTime()` */
@@ -317,6 +344,31 @@ export abstract class PlainDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
     dayOfYear(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     dayOfYear(): any {
         return partOf(this, '_dayOfYear')
+    }
+    /** The code of the month, `'M01'` to `'M12'`: Temporal's `monthCode` */
+    monthCode(): ValueSource<SourceOf<this>, StringType, OptionalityOf<this>>
+    monthCode(): any {
+        return __operation0(this as any, '_monthCode', StringType)
+    }
+    /** The days of the month of the date, from 28 to 31, as an int: Temporal's `daysInMonth` */
+    daysInMonth(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
+    daysInMonth(): any {
+        return partOf(this, '_daysInMonthOf')
+    }
+    /** The days of the year, 365 or 366, as an int: Temporal's `daysInYear` */
+    daysInYear(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
+    daysInYear(): any {
+        return partOf(this, '_daysInYearOf')
+    }
+    /** The months of the year, 12, as an int: Temporal's `monthsInYear` */
+    monthsInYear(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
+    monthsInYear(): any {
+        return partOf(this, '_monthsInYearOf')
+    }
+    /** Whether the year is a leap year, with a February 29: Temporal's `inLeapYear` */
+    inLeapYear(): ValueSource<SourceOf<this>, BooleanType, OptionalityOf<this>>
+    inLeapYear(): any {
+        return __operation0(this as any, '_inLeapYearOf', BooleanConditionType)
     }
 
     /** The hour, as an int from 0 to 23: Temporal's `hour` */

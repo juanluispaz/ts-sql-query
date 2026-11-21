@@ -986,6 +986,9 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     override _month(context: SqlBuildContext, valueSource: ToSql): string {
         return 'month(' + this._appendSql(valueSource, context, false) + ')'
     }
+    override _daysInMonthOf(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'day(last_day(' + this._appendSql(valueSource, context, false) + '))'
+    }
     override _monthCode(context: SqlBuildContext, valueSource: ToSql): string {
         return "date_format(" + this._appendSql(valueSource, context, false) + ", 'M%m')"
     }
@@ -995,6 +998,9 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     }
     override _toPlainMonthDay(context: SqlBuildContext, valueSource: ToSql): string {
         return 'cast(date_format(' + this._appendSql(valueSource, context, false) + ", '" + this._temporalReference().year + "-%m-%d') as date)"
+    }
+    override _daysInMonth(context: SqlBuildContext, year: string, month: string): string {
+        return 'day(last_day(' + this._makeDate(context, year, month, '1') + '))'
     }
     override _makeDate(_context: SqlBuildContext, year: string, month: string, day: string): string {
         // The first day of the year, plus the months, plus the days: in the order of the text, as the parameters
@@ -1070,9 +1076,9 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
      * The value with the fields given (see AbstractSqlBuilder._withFields). The parameters are positional: each part of
      * the value is written again, with its parameters, each time it appears, in the order of the text
      */
-    override _appendWithFields(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass, reject: boolean): string {
+    override _appendWithFields(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass, reject: boolean, inYear?: number): string {
         const fields = this._temporalFieldsOfDurationOperation(typeClass)
-        const given = plainTemporalFieldsOf(value, fields, reject)
+        const given = plainTemporalFieldsOf(value, fields, reject, inYear)
         if (!given) {
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: typeClass.type }, 'Invalid fields to put in a ' + typeClass.type + ': ' + JSON.stringify(value))
         }

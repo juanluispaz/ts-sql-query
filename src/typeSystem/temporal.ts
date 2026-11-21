@@ -112,6 +112,13 @@ export interface TemporalPlainYearMonthFields {
     readonly month?: number | undefined
     readonly monthCode?: string | undefined
 }
+/** The fields of a duration a Temporal.PlainYearMonth adds or subtracts: years and months, integers of one sign */
+export interface TemporalYearMonthDurationLike {
+    readonly years?: number | undefined
+    readonly months?: number | undefined
+}
+/** A unit of a difference of months of a year, as Temporal names it, in the singular or the plural */
+export type TemporalYearMonthUnit = 'year' | 'month' | 'years' | 'months'
 /** The fields `with` of a Temporal.PlainMonthDay takes: integers; the month also as its code (`'M02'`) */
 export interface TemporalPlainMonthDayFields {
     readonly month?: number | undefined

@@ -31,7 +31,7 @@ import { plainTemporalFieldsOf, type PlainTemporalFields } from '../utils/plainT
 import { temporalReferenceOf, type TemporalReference } from '../utils/temporalReference.js'
 import { plainTemporalRoundingOf, type PlainTemporalRounding } from '../utils/plainTemporalRounding.js'
 import type { ZonedInterpretation } from '../utils/zonedOptions.js'
-import { plainTemporalDifferenceOf, type PlainTemporalDifference } from '../utils/plainTemporalDifference.js'
+import { plainTemporalDifferenceOf, type PlainTemporalDifference, type PlainTemporalDifferenceFields } from '../utils/plainTemporalDifference.js'
 import { __reusedConstOf } from '../nodes/constants.js'
 import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, __AggregatedArrayColumns } from '../typeSystem/valueSource.js'
 import { __getValueSourceOfObject, __isBooleanValueSource, __isStringValueSource } from '../typeSystem/valueSource.js'
@@ -41,7 +41,7 @@ import type { BooleanType } from '../typeSystem/logical.js'
 import type { EqualableType } from '../typeSystem/equalable.js'
 import { UuidTextType } from '../typeSystem/uuidText.js'
 import { __classOf, __adaptedTypeClassOf, __unadaptedClassOf, __sqlDataTypeOf } from '../nodes/adaptedTypeClass.js'
-import { __isIntClass } from '../typeSystem/dataTypeQuestions.js'
+import { __isIntClass, __isPlainYearMonthClass } from '../typeSystem/dataTypeQuestions.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
 import { __arithmeticOperandClassOf, __valueOperandClassOf } from '../typeSystem/dataTypeClasses.js'
 import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
@@ -4017,6 +4017,22 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _monthCode(context: SqlBuildContext, valueSource: ToSql): string {
         return "to_char(" + this._appendSqlForDatePartArgument(valueSource, context) + ", '\"M\"MM')"
     }
+    /** The days of the month of the date of a value */
+    _daysInMonthOf(context: SqlBuildContext, valueSource: ToSql): string {
+        return "extract(day from date_trunc('month', " + this._appendSqlForDatePartArgument(valueSource, context) + ") + interval '1 month - 1 day')::integer"
+    }
+    /** The days of the year of the date of a value: the days of its February plus the 337 of the other months */
+    _daysInYearOf(context: SqlBuildContext, valueSource: ToSql): string {
+        return '337 + ' + this._daysInMonth(context, this._integerPart(this._year(context, valueSource)), '2')
+    }
+    /** Whether the year of the date of a value is a leap year: its February has 29 days */
+    _inLeapYearOf(context: SqlBuildContext, valueSource: ToSql): string {
+        return this._daysInMonth(context, this._integerPart(this._year(context, valueSource)), '2') + ' = 29'
+    }
+    /** The months of the year of the date of a value: 12 (null for a null value) */
+    _monthsInYearOf(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'case when ' + this._appendSqlForDatePartArgument(valueSource, context) + ' is not null then 12 end'
+    }
     /** The month of the year of a date, kept in the date of its reference day (see _temporalReference) */
     _toPlainYearMonth(context: SqlBuildContext, valueSource: ToSql): string {
         const year = this._integerPart(this._year(context, valueSource))
@@ -4483,13 +4499,33 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _withFields(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         return this._appendWithFields(context, valueSource, value, typeClass, false)
     }
+    /**
+     * with of a month of a year (its year, its month or its code; checked when the operation is made): the date of the
+     * year and the month, given or of the value, on the reference day, which every month has
+     */
+    _yearMonthWith(context: SqlBuildContext, valueSource: ToSql, value: any, _typeClass: DataTypeClass): string {
+        const given = plainTemporalFieldsOf(value, 'date')!
+        const year = given.year === undefined ? this._integerPart(this._year(context, valueSource)) : String(given.year)
+        const month = given.month === undefined ? this._integerPart(this._month(context, valueSource)) : String(given.month)
+        return this._makeDate(context, year, month, String(this._temporalReference().day))
+    }
+    /**
+     * with of a day of a month without a year (its month or its code and its day): the date in the reference year, a
+     * leap year, with the fields, the day taken to the last one of the month or rejected
+     */
+    _monthDayWith(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
+        return this._appendWithFields(context, valueSource, value, typeClass, false, this._temporalReference().year)
+    }
+    _monthDayWithRejecting(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
+        return this._appendWithFields(context, valueSource, value, typeClass, true, this._temporalReference().year)
+    }
     _withFieldsRejecting(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
         return this._appendWithFields(context, valueSource, value, typeClass, true)
     }
     /** with, taking a day the month hasn't to its last day, or rejecting it (reject) as an error of the query */
-    _appendWithFields(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass, reject: boolean): string {
+    _appendWithFields(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass, reject: boolean, inYear?: number): string {
         const fields = this._temporalFieldsOfDurationOperation(typeClass)
-        const given = plainTemporalFieldsOf(value, fields, reject)
+        const given = plainTemporalFieldsOf(value, fields, reject, inYear)
         if (!given) {
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: typeClass.type }, 'Invalid fields to put in a ' + typeClass.type + ': ' + JSON.stringify(value))
         }
@@ -4762,16 +4798,22 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     /** The difference to write of two values with the options of until (or since) */
     _differenceSqlOf(valueSource: ToSql, other: ToSql, options: unknown, since: boolean): PlainTemporalDifferenceSql {
-        const fields = __temporalFieldsOf(__classOf(valueSource as object)) ?? 'timestamp'
+        const typeClass = __classOf(valueSource as object)
+        const fields = __isPlainYearMonthClass(typeClass) ? 'yearMonth' : __temporalFieldsOf(typeClass) ?? 'timestamp'
         const difference = plainTemporalDifferenceOf(options, fields, since)
         if (!difference) {
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value: options, typeName: 'duration' }, 'Invalid options of ' + (since ? 'since' : 'until') + ': ' + JSON.stringify(options))
+        }
+        if (fields === 'yearMonth') {
+            // Counted in months: a year is 12 of them
+            const step = (difference.smallestUnit === 'year' ? 12n : 1n) * BigInt(difference.increment)
+            return { one: this._temporalOperand(valueSource), two: this._temporalOperand(other), fields, difference, step, tick: 1n, inNanoseconds: false }
         }
         const unit = nanosecondsOfUnit[difference.smallestUnit]
         const step = unit === undefined ? 0n : unit * BigInt(difference.increment)
         const databaseTick = fields === 'date' ? nanosecondsOfUnit['day']! : this._temporalTick()
         const tick = step === 0n || databaseTick % step === 0n || step % databaseTick === 0n ? databaseTick : 1n
-        return { one: this._temporalOperand(valueSource), two: this._temporalOperand(other), fields, difference, step, tick }
+        return { one: this._temporalOperand(valueSource), two: this._temporalOperand(other), fields, difference, step, tick, inNanoseconds: tick === 1n && databaseTick !== 1n }
     }
     /**
      * An operand of a computation of dates and times, which writes it several times: a const is written once, and its
@@ -4805,6 +4847,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         const whole = this._differenceWhole(context, d)
         const unit = "'" + this._differenceBalanceUnit(d) + "'"
+        if (d.fields === 'yearMonth') {
+            return this._durationTextFunctionName() + '(0, ' + whole + ', 0, 0, 0, ' + unit + ')'
+        }
         if (d.fields === 'date') {
             return this._durationTextFunctionName() + '(0, 0, 0, ' + whole + ', 0, ' + unit + ')'
         }
@@ -4844,6 +4889,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * reaches the next one gives it
      */
     _differenceIsRoundedToTheCalendar(d: PlainTemporalDifferenceSql): boolean {
+        if (d.fields === 'yearMonth') {
+            // Unrounded, its months; rounded only in months (largest and smallest unit), in a mode that isn't half way,
+            // its months rounded as integers. Otherwise Temporal rounds with the days from the start of the step to the
+            // value and to its end (the length of the months): the function, on the 1st of each month
+            const difference = d.difference
+            return this._differenceIsRounded(d) && (difference.largestUnit === 'year' || difference.smallestUnit === 'year' || difference.mode.startsWith('half'))
+        }
         const largest = unitIndex[d.difference.largestUnit]!
         return largest <= 1 || (largest === 2 && this._differenceIsRounded(d))
     }
@@ -4861,8 +4913,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     /** The year, the month, the day and the nanoseconds of the day of a value, as arguments of a function */
     _differencePartsForFunction(context: SqlBuildContext, d: PlainTemporalDifferenceSql, valueSource: ToSql): string {
-        let result = this._integerPart(this._year(context, valueSource)) + ', ' + this._integerPart(this._month(context, valueSource)) + ', ' + this._integerPart(this._day(context, valueSource)) + ', '
-        result += d.fields === 'date' ? '0' : this._nanosecondsSinceMidnight(context, valueSource)
+        let result = this._integerPart(this._year(context, valueSource)) + ', ' + this._integerPart(this._month(context, valueSource)) + ', '
+        // A month of a year is counted from its 1st, as Temporal does
+        result += d.fields === 'yearMonth' ? '1, ' : this._integerPart(this._day(context, valueSource)) + ', '
+        result += d.fields === 'date' || d.fields === 'yearMonth' ? '0' : this._nanosecondsSinceMidnight(context, valueSource)
         return result
     }
     /** The name of the function of the library that rounds a difference to the calendar */
@@ -4944,11 +4998,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
      */
     _differenceTotalInTicks(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
         const total = this._differenceTotal(context, d)
-        if (d.fields === 'date' || d.tick !== 1n) {
-            return total
-        }
-        const databaseTick = this._temporalTick()
-        return databaseTick === 1n ? total : this._nanosecondsOfDatabaseTicks(total, databaseTick)
+        return d.inNanoseconds ? this._nanosecondsOfDatabaseTicks(total, this._temporalTick()) : total
     }
     /**
      * A whole difference in the smallest unit the database keeps as nanoseconds, to round it to a step that isn't a
@@ -4969,11 +5019,19 @@ export class AbstractSqlBuilder implements SqlBuilder {
         switch (d.fields) {
             case 'date':
                 return this._differenceDays(context, d)
+            case 'yearMonth':
+                return this._differenceMonths(context, d)
             case 'time':
                 return this._differenceTime(context, d)
             default:
                 return '(' + this._differenceDays(context, d) + ' * ' + this._bigintLiteral(nanosecondsOfUnit['day']! / this._temporalTick()) + ' + ' + this._differenceTime(context, d) + ')'
         }
+    }
+    /** The months from the month of the year of the first value to the one of the second */
+    _differenceMonths(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
+        const two = this._integerPart(this._year(context, d.two)) + ' * 12 + ' + this._integerPart(this._month(context, d.two))
+        const one = this._integerPart(this._year(context, d.one)) + ' * 12 + ' + this._integerPart(this._month(context, d.one))
+        return '(' + two + ' - (' + one + '))'
     }
     /** The time from the time of the day of the first value to the one of the second, in the unit of the database */
     _differenceTime(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
@@ -5138,6 +5196,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (!this._differenceIsRoundedToTheCalendar(d)) {
                 // A difference gives its fields, not the duration made of them: its weeks when they are its largest
                 // unit (a duration with weeks needs a date of reference), and the rest as days (of a date) or as its time
+                if (d.fields === 'yearMonth') {
+                    return this._differenceWhole(context, d) + ', 0, 0, 0, 0'
+                }
                 if (d.difference.largestUnit !== 'week') {
                     return d.fields === 'date' ? '0, 0, ' + this._differenceWhole(context, d) + ', 0, 0' : '0, 0, 0, ' + this._differenceTimeForTotal(context, d, false)
                 }
@@ -6114,7 +6175,7 @@ export function __durationComputedFrom(valueSource: ToSql): ToSql | undefined {
 export interface PlainTemporalDifferenceSql {
     readonly one: ToSql
     readonly two: ToSql
-    readonly fields: 'date' | 'time' | 'timestamp'
+    readonly fields: PlainTemporalDifferenceFields
     readonly difference: PlainTemporalDifference
     /**
      * The nanoseconds of the step of the rounding (the smallest unit times the increment); 0 for weeks, months and years,
@@ -6126,6 +6187,8 @@ export interface PlainTemporalDifferenceSql {
      * the smallest unit the database keeps (see _temporalTick), or a nanosecond for a step that isn't a multiple of it
      */
     readonly tick: bigint
+    /** Whether the whole difference is counted in nanoseconds, for a step that isn't a multiple of the unit of the database */
+    readonly inNanoseconds: boolean
 }
 
 /** The position of each unit, from the year */

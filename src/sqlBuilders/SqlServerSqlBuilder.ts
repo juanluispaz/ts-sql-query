@@ -1099,6 +1099,9 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _month(context: SqlBuildContext, valueSource: ToSql): string {
         return 'datepart(month, ' + this._appendDateTimeInUtc(context, valueSource) + ')'
     }
+    override _daysInMonthOf(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'day(eomonth(' + this._appendDateTimeInUtc(context, valueSource) + '))'
+    }
     override _monthCode(context: SqlBuildContext, valueSource: ToSql): string {
         return "concat('M', right(concat('0', datepart(month, " + this._appendDateTimeInUtc(context, valueSource) + ')), 2))'
     }
@@ -1221,7 +1224,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     }
     override _differenceDivision(d: PlainTemporalDifferenceSql, dividend: string, divisor: string): string {
         // In nanoseconds, a division of decimals, which keeps a fraction: truncated
-        return d.tick === 1n ? 'round(' + dividend + ' / ' + divisor + ', 0, 1)' : this._truncatedDivision(dividend, divisor)
+        return d.inNanoseconds ? 'round(' + dividend + ' / ' + divisor + ', 0, 1)' : this._truncatedDivision(dividend, divisor)
     }
     /** Of dates and times, in decimals: the nanoseconds of more than 292 years overflow a bigint, an error */
     override _nanosecondsOfDifference(ticks: string, d: PlainTemporalDifferenceSql): string {

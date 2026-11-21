@@ -2,12 +2,24 @@ import type { SqlDataType } from '../TypeAdapter.js'
 import { ComparableType } from './comparable.js'
 import { EqualableType } from './equalable.js'
 import { localDateSqlDataType } from './localDates.js'
-import type { TemporalPlainMonthDay, TemporalPlainYearMonth } from './temporal.js'
-import type { OptionalityOf, SourceOf, ValueSource } from './base.js'
+import type { TemporalDifferenceOptions, TemporalDuration, TemporalOverflowOptions, TemporalPlainMonthDay, TemporalPlainMonthDayFields, TemporalPlainYearMonth, TemporalPlainYearMonthFields, TemporalYearMonthDurationLike, TemporalYearMonthUnit } from './temporal.js'
+import type { DataTypeOf, IValueWithType, OptionalityOf, SourceOf, ValueSource } from './base.js'
+import type { CombinedOptionality } from './valueSource.js'
 import type { SqlFunction0 } from '../sqlBuilders/SqlBuilder.js'
-import { __operation0 } from '../nodes/operations.js'
+import { __newSqlOperation2ValueSource, __operation0, __operation1 } from '../nodes/operations.js'
+import { __newSqlOperationConstValueSource } from '../nodes/constants.js'
+import { getOptionalType2 } from '../nodes/operands.js'
+import { isValueSource } from '../nodes/NodeStrategy.js'
+import { __typeClassOf } from '../nodes/dataTypeClassOf.js'
+import { __computedClassOf } from '../nodes/adaptedTypeClass.js'
+import { TsSqlProcessingError } from '../TsSqlError.js'
+import { plainTemporalFieldsOf } from '../utils/plainTemporalFields.js'
+import type { operandTypeName } from '../utils/symbols.js'
+import { DurationType } from './durations.js'
+import { PlainDateType } from './plainDates.js'
 import { IntType } from './number.js'
 import { StringType } from './strings.js'
+import { BooleanConditionType, BooleanType } from './logical.js'
 
 /*
  * A month of a year (plainYearMonth, a Temporal.PlainYearMonth) and a day of a month (plainMonthDay, a
@@ -15,6 +27,44 @@ import { StringType } from './strings.js'
  * reference, as Temporal keeps it inside (the 1st of the month for a month of a year, the year 1972, a leap year, for a
  * day of a month), so the database compares, orders and computes with its own dates.
  */
+
+/** The class of the result of an operation on the value that gives a value of its data type */
+function sameClassOf(valueSource: unknown): any {
+    return __computedClassOf(valueSource as object, __typeClassOf(valueSource as any))
+}
+
+/** Whether the options of Temporal ask to reject a field out of its range (overflow 'reject'); an error for another option */
+function isRejecting(options: unknown): boolean {
+    const overflow = options === undefined || options === null ? undefined : (options as { overflow?: unknown }).overflow
+    if (overflow !== undefined && overflow !== 'constrain' && overflow !== 'reject') {
+        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value: overflow, typeName: 'overflow' }, 'Invalid overflow option, it must be constrain or reject: ' + String(overflow))
+    }
+    return overflow === 'reject'
+}
+
+/** An error for a value given to an operation that Temporal rejects */
+function invalid(typeName: string, value: unknown, message: string): TsSqlProcessingError {
+    return new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName }, message + ': ' + JSON.stringify(value))
+}
+
+/**
+ * The month of the year plus or minus a duration of years and months (a Temporal.Duration or its fields): the date of
+ * its reference day plus the months, which a month always has. Temporal rejects a duration with smaller units
+ */
+function yearMonthWithDuration(valueSource: unknown, operation: '_addDuration' | '_subtractDuration', duration: unknown, options: unknown): any {
+    isRejecting(options)
+    const fields = duration as Record<string, unknown> | null
+    if (isValueSource(duration) || fields === null || typeof fields !== 'object' || ['weeks', 'days', 'hours', 'minutes', 'seconds', 'milliseconds', 'microseconds', 'nanoseconds'].some(name => fields[name] !== undefined && fields[name] !== 0)) {
+        throw invalid('duration', duration, 'A month of a year adds a duration of years and months, given as a Temporal.Duration or its fields')
+    }
+    return __operation1(valueSource as any, operation, duration, sameClassOf(valueSource))
+}
+
+/** The duration from the value to the other one (until), or from the other one to the value (since), with the options of Temporal */
+function difference(valueSource: unknown, operation: '_until' | '_since', other: unknown, options: unknown): any {
+    const operand = isValueSource(other) ? other : __newSqlOperationConstValueSource(other, sameClassOf(valueSource), 'required')
+    return __newSqlOperation2ValueSource(operation, valueSource as any, operand, options, DurationType, getOptionalType2(valueSource as any, operand))
+}
 
 /** A part of the date of the value: an int */
 function partOf(valueSource: unknown, operation: keyof SqlFunction0): any {
@@ -44,6 +94,75 @@ export abstract class PlainYearMonthsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE
     monthCode(): any {
         return __operation0(this as any, '_monthCode', StringType)
     }
+    /** The days of the month, from 28 to 31, as an int: Temporal's `daysInMonth` */
+    daysInMonth(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
+    daysInMonth(): any {
+        return partOf(this, '_daysInMonthOf')
+    }
+    /** The days of the year, 365 or 366, as an int: Temporal's `daysInYear` */
+    daysInYear(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
+    daysInYear(): any {
+        return partOf(this, '_daysInYearOf')
+    }
+    /** The months of the year, 12, as an int: Temporal's `monthsInYear` */
+    monthsInYear(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
+    monthsInYear(): any {
+        return partOf(this, '_monthsInYearOf')
+    }
+    /** Whether the year is a leap year, with a February 29: Temporal's `inLeapYear` */
+    inLeapYear(): ValueSource<SourceOf<this>, BooleanType, OptionalityOf<this>>
+    inLeapYear(): any {
+        return __operation0(this as any, '_inLeapYearOf', BooleanConditionType)
+    }
+
+    /** The month of the year plus the duration of years and months given, as Temporal's `add` (a Temporal.Duration or its fields) */
+    add(duration: TemporalDuration | TemporalYearMonthDurationLike, options?: TemporalOverflowOptions): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    add(duration: unknown, options?: unknown): any {
+        return yearMonthWithDuration(this, '_addDuration', duration, options)
+    }
+    /** The month of the year minus the duration of years and months given, as Temporal's `subtract` */
+    subtract(duration: TemporalDuration | TemporalYearMonthDurationLike, options?: TemporalOverflowOptions): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    subtract(duration: unknown, options?: unknown): any {
+        return yearMonthWithDuration(this, '_subtractDuration', duration, options)
+    }
+    /**
+     * The month of the year with the year or the month given in place of its own, as Temporal's `with`: a month out of
+     * its range is taken to the nearest one (13 is December), or rejected with `{ overflow: 'reject' }`
+     */
+    with(fields: TemporalPlainYearMonthFields, options?: TemporalOverflowOptions): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    with(fields: unknown, options?: unknown): any {
+        const given = plainTemporalFieldsOf(fields, 'date', isRejecting(options))
+        if (!given || given.day !== undefined || (given.year === undefined && given.month === undefined)) {
+            throw invalid(__typeClassOf(this as any).type, fields, 'Invalid fields of a month of a year')
+        }
+        return __operation1(this as any, '_yearMonthWith', fields, sameClassOf(this))
+    }
+    /**
+     * The duration from this month of the year to the other one, as Temporal's `until`: in years and months by default;
+     * `largestUnit: 'month'` gives only months, and `smallestUnit`, `roundingIncrement` and `roundingMode` round it
+     */
+    until(other: VALUE_TYPE, options?: TemporalDifferenceOptions<TemporalYearMonthUnit>): ValueSource<SourceOf<this>, DurationType, OptionalityOf<this>>
+    /** The duration from this month of the year to the other one, as Temporal's `until` */
+    until<VALUE extends IValueWithType<this[typeof operandTypeName]>>(other: VALUE, options?: TemporalDifferenceOptions<TemporalYearMonthUnit>): ValueSource<SourceOf<this> | SourceOf<VALUE>, DurationType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    until(other: unknown, options?: unknown): any {
+        return difference(this, '_until', other, options)
+    }
+    /** The duration from the other month of the year to this one, as Temporal's `since`: `until` with the mode inverted, negated */
+    since(other: VALUE_TYPE, options?: TemporalDifferenceOptions<TemporalYearMonthUnit>): ValueSource<SourceOf<this>, DurationType, OptionalityOf<this>>
+    /** The duration from the other month of the year to this one, as Temporal's `since` */
+    since<VALUE extends IValueWithType<this[typeof operandTypeName]>>(other: VALUE, options?: TemporalDifferenceOptions<TemporalYearMonthUnit>): ValueSource<SourceOf<this> | SourceOf<VALUE>, DurationType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    since(other: unknown, options?: unknown): any {
+        return difference(this, '_since', other, options)
+    }
+    /** The date of the day given in this month, a plainDate: Temporal's `toPlainDate({ day })`, the day taken to the last one of the month */
+    toPlainDate(fields: { readonly day: number }): ValueSource<SourceOf<this>, PlainDateType, OptionalityOf<this>>
+    toPlainDate(fields: unknown): any {
+        const day = (fields as { day?: unknown } | null)?.day
+        if (typeof day !== 'number' || !Number.isInteger(day) || day < 1) {
+            throw invalid('plainDate', fields, 'The day of toPlainDate must be a positive integer')
+        }
+        return __operation1(this as any, '_withFields', { day }, PlainDateType)
+    }
 }
 
 /**
@@ -63,6 +182,35 @@ export abstract class PlainMonthDaysType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
     day(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     day(): any {
         return partOf(this, '_day')
+    }
+    /**
+     * The day of the month with the fields given in place of its own, as Temporal's `with`: the month (or its code) and
+     * the day, the day taken to the last one of the month (in the year given, or in a leap year), or rejected with
+     * `{ overflow: 'reject' }`
+     */
+    with(fields: TemporalPlainMonthDayFields & { readonly year?: number | undefined }, options?: TemporalOverflowOptions): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    with(fields: unknown, options?: unknown): any {
+        const reject = isRejecting(options)
+        const given = plainTemporalFieldsOf(fields, 'date', reject)
+        if (!given) {
+            throw invalid(__typeClassOf(this as any).type, fields, 'Invalid fields of a day of a month')
+        }
+        if (given.year === undefined) {
+            // The date in the reference year, a leap year, with the fields
+            return __operation1(this as any, reject ? '_monthDayWithRejecting' : '_monthDayWith', fields, sameClassOf(this))
+        }
+        // The date in the year given, with the fields, taken to the reference
+        const date = __operation1(this as any, reject ? '_withFieldsRejecting' : '_withFields', fields, PlainDateType)
+        return __operation0(date, '_toPlainMonthDay', sameClassOf(this))
+    }
+    /** The date of this day of the month in the year given, a plainDate: Temporal's `toPlainDate({ year })` (February 29 is the 28th in a year without it) */
+    toPlainDate(fields: { readonly year: number }): ValueSource<SourceOf<this>, PlainDateType, OptionalityOf<this>>
+    toPlainDate(fields: unknown): any {
+        const year = (fields as { year?: unknown } | null)?.year
+        if (typeof year !== 'number' || !Number.isInteger(year)) {
+            throw invalid('plainDate', fields, 'The year of toPlainDate must be an integer')
+        }
+        return __operation1(this as any, '_withFields', { year }, PlainDateType)
     }
 }
 

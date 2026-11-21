@@ -1694,6 +1694,9 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     override _month(context: SqlBuildContext, valueSource: ToSql): string {
         return 'extract(month from ' + (this._appendZonedUtcTimestamp(context, valueSource) ?? this._appendSql(valueSource, context, false)) + ')'
     }
+    override _daysInMonthOf(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'extract(day from last_day(' + this._appendSql(valueSource, context, false) + '))'
+    }
     override _monthCode(context: SqlBuildContext, valueSource: ToSql): string {
         return "to_char(" + this._appendSql(valueSource, context, false) + ", '\"M\"MM')"
     }

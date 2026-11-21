@@ -1257,6 +1257,8 @@ export const tZonedValue = new class TZonedValue extends Table<DBConnection, 'TZ
     wallAt    = this.optionalColumn('wall_at', 'plainDateTime')
     zoneName  = this.optionalColumn('zone_name', 'string')
     zonedAt   = this.optionalColumn('zoned_at', 'zonedDateTime')
+    // The same moment declared kept as its RFC 9557 text by its SQL data type
+    zonedText = this.optionalColumn('zoned_at', 'zonedDateTime', withSqlDataType({ family: 'character string', length: 100 }))
     constructor() { super('zoned_value') }
 }()
 

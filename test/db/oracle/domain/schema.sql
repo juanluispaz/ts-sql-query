@@ -404,13 +404,14 @@ CREATE TABLE instant_value (
     session_at TIMESTAMP(9) WITH LOCAL TIME ZONE
 );
 
--- zoned_value: exact moments in a time zone (Temporal.ZonedDateTime), zoned_at keeping the region of its zone; wall_at a
--- wall clock to take to a zone, zone_name the name of a zone.
+-- zoned_value: exact moments in a time zone (Temporal.ZonedDateTime), zoned_at keeping the region of its zone, zoned_text
+-- the same moment as its RFC 9557 text; wall_at a wall clock to take to a zone, zone_name the name of a zone.
 CREATE TABLE zoned_value (
     id NUMBER PRIMARY KEY,
     zoned_at TIMESTAMP(9) WITH TIME ZONE NOT NULL,
     wall_at TIMESTAMP(9),
-    zone_name VARCHAR2(40)
+    zone_name VARCHAR2(40),
+    zoned_text VARCHAR2(100)
 );
 
 CREATE OR REPLACE VIEW col_matrix_view AS

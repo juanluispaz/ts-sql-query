@@ -421,6 +421,34 @@ describe(ctx.label, () => {
     })
     */
 
+    test('a-zoned-date-and-time-in-a-column-of-text', async () => {
+        // A column declared to keep its RFC 9557 text by its SQL data type: a value sent is the text of Temporal's
+        // toString; it is read, compared and ordered by its instant
+        const summer = Temporal.ZonedDateTime.from('2024-07-01T12:00:00.987654321+02:00[Europe/Madrid]')
+        const since = Temporal.ZonedDateTime.from('2024-01-01T00:00:00+00:00[UTC]')
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tZonedValue).set({ zonedText: summer }).where(tZonedValue.id.equals(3)).executeUpdate()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update zoned_value set zoned_at = @0 where id = @1"`)
+            expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
+              [
+                "2024-07-01T12:00:00.987654321+02:00[Europe/Madrid]",
+                "3",
+              ]
+            `)
+            const values = [zoned[0]!, zoned[1]!, summer]
+            const ordered = values.map((value, i) => ({ id: i + 1, value })).filter(entry => Temporal.ZonedDateTime.compare(entry.value, since) >= 0).sort((a, b) => Temporal.ZonedDateTime.compare(a.value, b.value))
+            ctx.mockNext(ordered.map(({ id, value }) => ({ id, zonedText: value.toString() })))
+            const rows = await ctx.conn.selectFrom(tZonedValue)
+                .where(tZonedValue.zonedText.greaterOrEqual(since))
+                .select({ id: tZonedValue.id, zonedText: tZonedValue.zonedText })
+                .orderBy('zonedText')
+                .executeSelectMany()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, zoned_at as zonedText from zoned_value where cast(switchoffset(convert(datetimeoffset(7), left(zoned_at, charindex('[', zoned_at) - 1), 127), 0) as datetime2(7)) >= @0 order by cast(switchoffset(convert(datetimeoffset(7), left(zoned_at, charindex('[', zoned_at) - 1), 127), 0) as datetime2(7))"`)
+            expect(rows.map(row => [row.id, row.zonedText?.toString()])).toEqual(ordered.map(({ id, value }) => [id, value.toString()]))
+        })
+    })
+
     // NOT-APPLICABLE: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA: what needs them is not offered here
     /*
     test('a-zoned-date-and-time-needs-a-database-with-zones', async () => {

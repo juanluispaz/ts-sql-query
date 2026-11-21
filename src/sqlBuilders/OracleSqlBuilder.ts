@@ -25,6 +25,9 @@ import { isZeroDuration } from '../utils/durationValues.js'
 import { plainTemporalDifferenceOf } from '../utils/plainTemporalDifference.js'
 import { isPlainTemporalClass } from '../utils/plainTemporalValues.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
+import { __isZonedDateTimeClass } from '../typeSystem/dataTypeQuestions.js'
+import { isZonedDateTimeValue } from '../utils/instantValues.js'
+import { zonedDateTimeText } from '../utils/plainDateTimeText.js'
 import { __arithmeticOperandClassOf, __valueOperandClassOf } from '../typeSystem/dataTypeClasses.js'
 import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
 
@@ -458,7 +461,37 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         }
         return this._appendParam(value, context, typeClass, forceTypeCast)
     }
+    /**
+     * A column of a zoned date and time whose SQL data type is a text keeps its RFC 9557 text, the one of Temporal's
+     * toString (a TIMESTAMP WITH TIME ZONE keeps it otherwise)
+     */
+    _isOracleZonedTextColumn(column: DBColumn): boolean {
+        const typeClass = __classOf(__asNodeValueSource(column as unknown as AnyValueSource))
+        return __isZonedDateTimeClass(typeClass) && __sqlDataTypeOf(typeClass)?.family === 'character string'
+    }
+    /**
+     * The value of a column of a zoned date and time kept as its text: of a value, the text of Temporal's toString; of a
+     * value computed in the query, its wall clock with its offset and its zone in brackets (the region in capitals)
+     */
+    override _appendValueForColumn(column: DBColumn, value: any, context: SqlBuildContext, forceTypeCast: boolean): string {
+        if (!this._isOracleZonedTextColumn(column)) {
+            return super._appendValueForColumn(column, value, context, forceTypeCast)
+        }
+        if (isZonedDateTimeValue(value)) {
+            return this._appendValue(zonedDateTimeText(value), context, __registeredDataType('string'), forceTypeCast)
+        }
+        if (!isValueSource(value)) {
+            return super._appendValueForColumn(column, value, context, forceTypeCast)
+        }
+        return "to_char(" + this._appendSql(value as unknown as ToSql, context, false) + ", 'YYYY-MM-DD\"T\"HH24:MI:SS.FF9TZH:TZM\"[\"TZR\"]\"', 'NLS_DATE_LANGUAGE=AMERICAN')"
+    }
     override _appendColumnName(column: DBColumn, context: SqlBuildContext): string {
+        if (this._isOracleZonedTextColumn(column)) {
+            // In the query, the TIMESTAMP WITH TIME ZONE of its text in its zone (a Z is the offset +00:00)
+            const raw = this._appendRawColumnName(column, context)
+            const text = "replace(" + raw + ", 'Z[', '+00:00[')"
+            return "(to_timestamp_tz(substr(" + text + ", 1, instr(" + text + ", '[') - 1), 'YYYY-MM-DD\"T\"HH24:MI:SS.FFTZH:TZM') at time zone substr(" + text + ", instr(" + text + ", '[') + 1, length(" + text + ") - instr(" + text + ", '[') - 1))"
+        }
         if (this._nativeBoolean()) {
             return super._appendColumnName(column, context)
         }

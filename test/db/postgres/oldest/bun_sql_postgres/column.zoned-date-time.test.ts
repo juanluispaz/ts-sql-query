@@ -450,6 +450,38 @@ describe(ctx.label, () => {
         })
     })
 
+    test('a-zoned-date-and-time-in-a-column-of-text', async () => {
+        // A column declared to keep its RFC 9557 text by its SQL data type: a value sent is the text of Temporal's
+        // toString, one computed in the query its instant in UTC with a Z and its zone; it is read, compared and
+        // ordered by its instant (PostgreSQL reads it through its instant, to the microsecond)
+        const summer = Temporal.ZonedDateTime.from('2024-07-01T12:00:00.987654+02:00[Europe/Madrid]')
+        const since = Temporal.ZonedDateTime.from('2024-01-01T00:00:00+00:00[UTC]')
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tZonedValue).set({ zonedText: summer }).where(tZonedValue.id.equals(3)).executeUpdate()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update zoned_value set zoned_at = $1 where id = $2"`)
+            expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
+              [
+                "2024-07-01T12:00:00.987654+02:00[Europe/Madrid]",
+                "3",
+              ]
+            `)
+            ctx.mockNext(1)
+            await ctx.conn.update(tZonedValue).set({ zonedText: tZonedValue.zonedText.withTimeZone('Asia/Tokyo') }).where(tZonedValue.id.equals(1)).executeUpdate()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update zoned_value set zoned_at = (to_char(split_part(zoned_at, '[', 1)::timestamptz at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') || '[Asia/Tokyo]') where id = $1"`)
+            const values = [zoned[0]!.withTimeZone('Asia/Tokyo'), zoned[1]!, summer]
+            const ordered = values.map((value, i) => ({ id: i + 1, value })).filter(entry => Temporal.ZonedDateTime.compare(entry.value, since) >= 0).sort((a, b) => Temporal.ZonedDateTime.compare(a.value, b.value))
+            ctx.mockNext(ordered.map(({ id, value }) => ({ id, zonedText: value.toInstant().toString() + ' AD[' + value.timeZoneId + ']' })))
+            const rows = await ctx.conn.selectFrom(tZonedValue)
+                .where(tZonedValue.zonedText.greaterOrEqual(since))
+                .select({ id: tZonedValue.id, zonedText: tZonedValue.zonedText })
+                .orderBy('zonedText')
+                .executeSelectMany()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, to_char((split_part(zoned_at, '[', 1)::timestamptz) at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z" BC') || '[' || rtrim(split_part(zoned_at, '[', 2), ']') || ']' as "zonedText" from zoned_value where split_part(zoned_at, '[', 1)::timestamptz >= $1 order by split_part(zoned_value.zoned_at, '[', 1)::timestamptz"`)
+            expect(rows.map(row => [row.id, row.zonedText?.toString()])).toEqual(ordered.map(({ id, value }) => [id, value.toString()]))
+        })
+    })
+
     test('a-zoned-date-and-time-needs-a-database-with-zones', async () => {
         // PostgreSQL computes a zoned date and time in the query: the query is built
         ctx.mockNext([{ id: 1, at: '2024-01-14T09:15:30.123456Z AD[EUROPE/MADRID]' }])

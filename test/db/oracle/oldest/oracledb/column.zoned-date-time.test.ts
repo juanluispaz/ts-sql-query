@@ -452,6 +452,38 @@ describe(ctx.label, () => {
         })
     })
 
+    test('a-zoned-date-and-time-in-a-column-of-text', async () => {
+        // A column declared to keep its RFC 9557 text by its SQL data type: a value sent is the text of Temporal's
+        // toString, one computed in the query its wall clock with its offset and its zone; it is read, compared and
+        // ordered by its instant
+        const summer = Temporal.ZonedDateTime.from('2024-07-01T12:00:00.987654321+02:00[Europe/Madrid]')
+        const since = Temporal.ZonedDateTime.from('2024-01-01T00:00:00+00:00[UTC]')
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tZonedValue).set({ zonedText: summer }).where(tZonedValue.id.equals(3)).executeUpdate()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update zoned_value set zoned_text = :0 where id = :1"`)
+            expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
+              [
+                "2024-07-01T12:00:00.987654321+02:00[Europe/Madrid]",
+                "3",
+              ]
+            `)
+            ctx.mockNext(1)
+            await ctx.conn.update(tZonedValue).set({ zonedText: tZonedValue.zonedText.withTimeZone('Asia/Tokyo') }).where(tZonedValue.id.equals(1)).executeUpdate()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update zoned_value set zoned_text = to_char(from_tz(sys_extract_utc(cast((to_timestamp_tz(substr(replace(zoned_text, 'Z[', '+00:00['), 1, instr(replace(zoned_text, 'Z[', '+00:00['), '[') - 1), 'YYYY-MM-DD"T"HH24:MI:SS.FFTZH:TZM') at time zone substr(replace(zoned_text, 'Z[', '+00:00['), instr(replace(zoned_text, 'Z[', '+00:00['), '[') + 1, length(replace(zoned_text, 'Z[', '+00:00[')) - instr(replace(zoned_text, 'Z[', '+00:00['), '[') - 1)) as timestamp(9) with time zone)), '+00:00') at time zone 'Asia/Tokyo', 'YYYY-MM-DD"T"HH24:MI:SS.FF9TZH:TZM"["TZR"]"', 'NLS_DATE_LANGUAGE=AMERICAN') where id = :0"`)
+            const values = [zoned[0]!.withTimeZone('Asia/Tokyo'), zoned[1]!, summer]
+            const ordered = values.map((value, i) => ({ id: i + 1, value })).filter(entry => Temporal.ZonedDateTime.compare(entry.value, since) >= 0).sort((a, b) => Temporal.ZonedDateTime.compare(a.value, b.value))
+            ctx.mockNext(ordered.map(({ id, value }) => ({ id, zonedText: value.toInstant().toString() + ' AD[' + value.timeZoneId.toUpperCase() + ']' })))
+            const rows = await ctx.conn.selectFrom(tZonedValue)
+                .where(tZonedValue.zonedText.greaterOrEqual(since))
+                .select({ id: tZonedValue.id, zonedText: tZonedValue.zonedText })
+                .orderBy('zonedText')
+                .executeSelectMany()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", to_char((to_timestamp_tz(substr(replace(zoned_text, 'Z[', '+00:00['), 1, instr(replace(zoned_text, 'Z[', '+00:00['), '[') - 1), 'YYYY-MM-DD"T"HH24:MI:SS.FFTZH:TZM') at time zone substr(replace(zoned_text, 'Z[', '+00:00['), instr(replace(zoned_text, 'Z[', '+00:00['), '[') + 1, length(replace(zoned_text, 'Z[', '+00:00[')) - instr(replace(zoned_text, 'Z[', '+00:00['), '[') - 1)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9TZH:TZM BC"["TZR"]"', 'NLS_DATE_LANGUAGE=AMERICAN') as "zonedText" from zoned_value where (to_timestamp_tz(substr(replace(zoned_text, 'Z[', '+00:00['), 1, instr(replace(zoned_text, 'Z[', '+00:00['), '[') - 1), 'YYYY-MM-DD"T"HH24:MI:SS.FFTZH:TZM') at time zone substr(replace(zoned_text, 'Z[', '+00:00['), instr(replace(zoned_text, 'Z[', '+00:00['), '[') + 1, length(replace(zoned_text, 'Z[', '+00:00[')) - instr(replace(zoned_text, 'Z[', '+00:00['), '[') - 1)) >= (from_tz(to_timestamp(:0, 'YYYY-MM-DD HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN'), '+00:00') at time zone 'UTC') order by (to_timestamp_tz(substr(replace(zoned_value.zoned_text, 'Z[', '+00:00['), 1, instr(replace(zoned_value.zoned_text, 'Z[', '+00:00['), '[') - 1), 'YYYY-MM-DD"T"HH24:MI:SS.FFTZH:TZM') at time zone substr(replace(zoned_value.zoned_text, 'Z[', '+00:00['), instr(replace(zoned_value.zoned_text, 'Z[', '+00:00['), '[') + 1, length(replace(zoned_value.zoned_text, 'Z[', '+00:00[')) - instr(replace(zoned_value.zoned_text, 'Z[', '+00:00['), '[') - 1))"`)
+            expect(rows.map(row => [row.id, row.zonedText?.toString()])).toEqual(ordered.map(({ id, value }) => [id, value.toString()]))
+        })
+    })
+
     test('a-zoned-date-and-time-needs-a-database-with-zones', async () => {
         // Oracle keeps a zone with each value: the query is built
         ctx.mockNext([{ id: 1, at: '2024-01-14T09:15:30.123456Z AD[EUROPE/MADRID]' }])

@@ -88,6 +88,7 @@ GO
 CREATE OR ALTER FUNCTION dbo.tsq_duration_text(@y BIGINT, @mo BIGINT, @w BIGINT, @d BIGINT, @ns DECIMAL(38, 0), @unit VARCHAR(6)) RETURNS VARCHAR(100) WITH SCHEMABINDING AS
 BEGIN
     IF @y IS NULL OR @mo IS NULL OR @w IS NULL OR @d IS NULL OR @ns IS NULL RETURN NULL;
+    IF @unit = 'year' BEGIN SET @y = @y + @mo / 12; SET @mo = @mo % 12; END
     IF @unit = 'week' OR @unit = 'day'
     BEGIN
         SET @d = @d + CAST(ROUND(@ns / 86400000000000, 0, 1) AS BIGINT);

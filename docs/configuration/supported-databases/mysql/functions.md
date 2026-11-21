@@ -97,6 +97,7 @@ BEGIN
     DECLARE neg BOOLEAN;
     DECLARE f BIGINT;
     IF y IS NULL OR mo IS NULL OR w IS NULL OR d IS NULL OR ns IS NULL THEN RETURN NULL; END IF;
+    IF unit = 'year' THEN SET y = y + mo DIV 12, mo = mo MOD 12; END IF;
     IF unit = 'week' OR unit = 'day' THEN
         SET d = d + ns DIV 86400000000000, ns = ns MOD 86400000000000;
         IF unit = 'week' THEN SET w = w + d DIV 7, d = d MOD 7; END IF;

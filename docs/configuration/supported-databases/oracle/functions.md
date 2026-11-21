@@ -91,6 +91,8 @@ END;
 CREATE OR REPLACE FUNCTION tsq_duration_text(y IN NUMBER, mo IN NUMBER, w IN NUMBER, d IN NUMBER, ns IN NUMBER, unit IN VARCHAR2) RETURN VARCHAR2 DETERMINISTIC IS
     r VARCHAR2(100);
     t VARCHAR2(100);
+    v_y NUMBER := y;
+    v_mo NUMBER := mo;
     v_w NUMBER := w;
     v_d NUMBER := d;
     v_ns NUMBER := ns;
@@ -98,13 +100,14 @@ CREATE OR REPLACE FUNCTION tsq_duration_text(y IN NUMBER, mo IN NUMBER, w IN NUM
     f NUMBER;
 BEGIN
     IF y IS NULL OR mo IS NULL OR w IS NULL OR d IS NULL OR ns IS NULL THEN RETURN NULL; END IF;
+    IF unit = 'year' THEN v_y := v_y + TRUNC(v_mo / 12); v_mo := MOD(v_mo, 12); END IF;
     IF unit IN ('week', 'day') THEN
         v_d := v_d + TRUNC(v_ns / 86400000000000);
         v_ns := MOD(v_ns, 86400000000000);
         IF unit = 'week' THEN v_w := v_w + TRUNC(v_d / 7); v_d := MOD(v_d, 7); END IF;
     END IF;
-    IF y <> 0 THEN r := r || TO_CHAR(ABS(y)) || 'Y'; END IF;
-    IF mo <> 0 THEN r := r || TO_CHAR(ABS(mo)) || 'M'; END IF;
+    IF v_y <> 0 THEN r := r || TO_CHAR(ABS(v_y)) || 'Y'; END IF;
+    IF v_mo <> 0 THEN r := r || TO_CHAR(ABS(v_mo)) || 'M'; END IF;
     IF v_w <> 0 THEN r := r || TO_CHAR(ABS(v_w)) || 'W'; END IF;
     IF v_d <> 0 THEN r := r || TO_CHAR(ABS(v_d)) || 'D'; END IF;
     rest := ABS(v_ns);
@@ -117,7 +120,7 @@ BEGIN
         t := t || 'S';
     END IF;
     IF r IS NULL AND t IS NULL THEN RETURN 'PT0S'; END IF;
-    RETURN CASE WHEN y < 0 OR mo < 0 OR v_w < 0 OR v_d < 0 OR v_ns < 0 THEN '-' END || 'P' || r || CASE WHEN t IS NOT NULL THEN 'T' || t END;
+    RETURN CASE WHEN v_y < 0 OR v_mo < 0 OR v_w < 0 OR v_d < 0 OR v_ns < 0 THEN '-' END || 'P' || r || CASE WHEN t IS NOT NULL THEN 'T' || t END;
 END;
 ```
 

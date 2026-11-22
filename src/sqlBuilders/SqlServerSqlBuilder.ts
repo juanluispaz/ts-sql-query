@@ -1095,10 +1095,19 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         return "datediff_big(microsecond, '1970-01-01 00:00:00', " + value + ') * 1000 + datepart(nanosecond, ' + value + ') % 1000'
     }
     override _instantInUtc(context: SqlBuildContext, valueSource: ToSql): string {
+        if (this._isDeclaredWithoutZone(valueSource)) {
+            // Its arithmetic keeps every digit Temporal has in a datetime2(7): a datetime, a smalldatetime or a datetime2
+            // of fewer digits is converted to it first
+            const sqlDataType = __sqlDataTypeOf(__classOf(valueSource as object))
+            const sql = this._appendSql(valueSource, context, false)
+            return sqlDataType?.family === 'datetime' && sqlDataType.precision === 7 ? sql : 'cast(' + sql + ' as datetime2)'
+        }
         return this._instantToPlainDateTime(context, valueSource)
     }
     override _instantToPlainDateTime(context: SqlBuildContext, valueSource: ToSql): string {
-        if (this._isDateTime2InUtc(valueSource)) {
+        // A value declared without zone is its own wall clock (a datetime stays one: converted to a datetime2 it would
+        // compare unequal to the column it was taken from)
+        if (this._isDateTime2InUtc(valueSource) || this._isDeclaredWithoutZone(valueSource)) {
             return this._appendSql(valueSource, context, false)
         }
         // The database is in UTC: the wall clock in UTC, of a datetimeoffset too, whatever offset it was stored with
@@ -1503,14 +1512,14 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     /**
      * Whether a value of a date and time may be a datetimeoffset, taken to UTC where it is used: not an instant the query
      * computes, nor the date and time of an instant, which are already a datetime2 of the wall clock in UTC, nor a value
-     * sent, which is sent in UTC
+     * sent, which is sent in UTC, nor a column declared without zone (a datetime2, a datetime, a smalldatetime)
      */
     _mayHaveAnOffset(valueSource: ToSql): boolean {
         if (!isValueSource(valueSource)) {
             return false
         }
         const nodeValueSource = __asNodeValueSource(valueSource)
-        return __isLocalDateTimeValueSource(nodeValueSource) && !nodeValueSource.isConstValue() && !this._isDateTime2InUtc(valueSource)
+        return __isLocalDateTimeValueSource(nodeValueSource) && !nodeValueSource.isConstValue() && !this._isDateTime2InUtc(valueSource) && !this._isDeclaredWithoutZone(valueSource)
     }
     override _second(context: SqlBuildContext, valueSource: ToSql): string {
         return 'datepart(second, ' + this._appendSql(valueSource, context, false) + ')'

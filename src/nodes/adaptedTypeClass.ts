@@ -142,6 +142,47 @@ export function __isComputedTextClass(typeClass: DataTypeClass): boolean {
     return (typeClass as AdaptableClass)[typeAdapterOfClass] instanceof ComputedTextAdapter
 }
 
+/**
+ * The class of a value whose SQL is a date and time declared without zone (see the SQL builder's
+ * _isDeclaredWithoutZone), in another data type of the same value (a localDateTime as an instant, an instant as its date
+ * and time): with that declaration, so the operations on it write it as it is too; the class of the data type otherwise.
+ * Without the type adapter of the value, whose conversions are of its own data type
+ */
+export function __wallClockClassOf(valueSource: object, typeClass: DataTypeClass): DataTypeClass {
+    const sqlDataType = __sqlDataTypeOf(valueSource.constructor as unknown as DataTypeClass)
+    if (sqlDataType?.family !== 'datetime' || sqlDataType.fields !== 'timestamp' || sqlDataType.timeZone !== 'none') {
+        return typeClass
+    }
+    const precision = sqlDataType.precision
+    // By its digits of the fraction of a second, 0 to 9, or unknown (10)
+    const index = precision === undefined ? 10 : precision
+    if (!Number.isInteger(index) || index < 0 || index > 10) {
+        return typeClass
+    }
+    let adapter = wallClockAdapters[index]
+    if (!adapter) {
+        adapter = wallClockAdapters[index] = new WallClockAdapter({ family: 'datetime', fields: 'timestamp', precision, timeZone: 'none' })
+    }
+    return __adaptedTypeClassOf(typeClass, adapter)
+}
+
+/** The adapters of the dates and times declared without zone, by their digits of the fraction of a second (10: unknown) */
+const wallClockAdapters: Array<WallClockAdapter | undefined> = []
+
+/** The SQL data type of a date and time without zone, without conversions */
+class WallClockAdapter implements TypeAdapter {
+    readonly sqlDataType: SqlDataType
+    constructor(sqlDataType: SqlDataType) {
+        this.sqlDataType = sqlDataType
+    }
+    transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
+        return next.transformValueFromDB(value, context)
+    }
+    transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
+        return next.transformValueToDB(value, context)
+    }
+}
+
 /** The adapters of the computed texts, by large object (1) and national (2): created the first time each is needed */
 const computedTextAdapters: Array<ComputedTextAdapter | undefined> = []
 

@@ -8,6 +8,7 @@ import { type AnyType } from './base.js'
 import { localDateSqlDataType, localDateTimeSqlDataType, localTimeSqlDataType } from './dateTimeSqlDataTypes.js'
 import { PlainDateTimeType, PlainDateType, PlainTimeType } from './plainDates.js'
 import { InstantType } from './instants.js'
+import { __wallClockClassOf } from '../nodes/adaptedTypeClass.js'
 
 /*
  * The dates and times without a zone: a date (localDate), a time of the day (localTime), and both (localDateTime).
@@ -22,7 +23,7 @@ function datePartOf(valueSource: AnyType, operation: keyof SqlFunction0): any {
 
 /** The date and time of a localDateTime, a plainDateTime: of its instant, in the zone of the database */
 function plainDateTimeOf(valueSource: unknown): any {
-    return __operation0(valueSource as any, '_instantToPlainDateTime', PlainDateTimeType)
+    return __operation0(valueSource as any, '_instantToPlainDateTime', __wallClockClassOf(valueSource as object, PlainDateTimeType))
 }
 
 /**
@@ -189,7 +190,7 @@ export abstract class LocalDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
      */
     toInstant(): ValueSource<SourceOf<this>, InstantType, OptionalityOf<this>>
     toInstant(): any {
-        return __operation0(this as any, '_toInstant', InstantType)
+        return __operation0(this as any, '_toInstant', __wallClockClassOf(this, InstantType))
     }
     /**
      * The date and time as a plainDateTime, with all the digits the database keeps: the UTC getters of the Date read,

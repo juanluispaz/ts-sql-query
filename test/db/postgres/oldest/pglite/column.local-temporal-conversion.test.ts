@@ -6,12 +6,26 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tColMatrixColumn, tColMatrixPlain, tInstantValue, tZonedValue } from '../../domain/connection.js'
+import { tColMatrixColumn, tColMatrixPlain, tInstantValue, tZonedValue, type DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+import { withSqlDataType } from '../../../../../src/exports/v2/index.js'
+import { Table } from '../../../../../src/Table.js'
 
 const plain = tColMatrixPlain.as('plain')
 
 const deployed = Temporal.Instant.from('2024-01-14T09:15:30.123456Z')
+
+// The same columns declared without zone (timeZone 'none'): each one is its own date and time in the zone of the database
+const tColMatrixWithoutZone = new class TColMatrixWithoutZone extends Table<DBConnection, 'TColMatrixWithoutZone'> {
+    id = this.primaryKey('id', 'int')
+    mDatetime = this.column('m_datetime', 'localDateTime', withSqlDataType({ family: 'datetime', fields: 'timestamp', timeZone: 'none' }))
+    constructor() { super('col_matrix') }
+}()
+const tInstantValueWithoutZone = new class TInstantValueWithoutZone extends Table<DBConnection, 'TInstantValueWithoutZone'> {
+    id = this.primaryKey('id', 'int')
+    wallAt = this.optionalColumn('wall_at', 'instant', withSqlDataType({ family: 'datetime', fields: 'timestamp', timeZone: 'none' }))
+    constructor() { super('instant_value') }
+}()
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -101,6 +115,47 @@ describe(ctx.label, () => {
             const expected = rows[0]!.direct.since(Temporal.PlainDateTime.from('2024-01-14T12:30:00'), { largestUnit: 'month', smallestUnit: 'nanosecond' }).toString()
             expect([withFunctions.toString(), withoutFunctions.toString()]).toEqual([expected, expected])
         })
+    })
+
+    test('a-date-and-time-declared-without-zone-is-its-own-wall-clock', async () => {
+        // Declared without zone, a column is written as it is where a column with zone would be taken to the zone of
+        // the database or to UTC: the conversion, the parts and the arithmetic give the same values
+        ctx.mockNext([{ moment: '2024-01-14 12:30:00', hour: 12, day: 0, epoch: 1705235400000 }])
+        const rows = await ctx.conn.selectFrom(tColMatrixWithoutZone)
+            .join(plain).on(plain.id.equals(tColMatrixWithoutZone.id))
+            .where(tColMatrixWithoutZone.mDatetime.toPlainDateTime().equals(plain.mDatetime))
+            .select({
+                moment: tColMatrixWithoutZone.mDatetime.toPlainDateTime(),
+                hour: tColMatrixWithoutZone.mDatetime.getHours(),
+                day: tColMatrixWithoutZone.mDatetime.getDay(),
+                epoch: tColMatrixWithoutZone.mDatetime.getTime(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select col_matrix.m_datetime as moment, extract(hour from col_matrix.m_datetime) as hour, extract(dow from col_matrix.m_datetime) as day, floor(extract(epoch from col_matrix.m_datetime) * 1000) as epoch from col_matrix join col_matrix as plain on plain.id = col_matrix.id where col_matrix.m_datetime = plain.m_datetime"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ moment: Temporal.PlainDateTime; hour: number; day: number; epoch: number }>>>()
+        expect(rows.map(row => [row.moment.toString(), row.hour, row.day, row.epoch])).toEqual([['2024-01-14T12:30:00', 12, 0, Date.UTC(2024, 0, 14, 12, 30)]])
+
+        ctx.mockNext([{ wall: '2024-01-14 09:15:30.123456', later: '2024-01-14 10:15:30.123456', milliseconds: 1705223730123 }])
+        const instants = await ctx.conn.selectFrom(tInstantValueWithoutZone)
+            .where(tInstantValueWithoutZone.id.equals(1))
+            .select({
+                wall: tInstantValueWithoutZone.wallAt.toPlainDateTime(),
+                later: tInstantValueWithoutZone.wallAt.add({ hours: 1 }),
+                milliseconds: tInstantValueWithoutZone.wallAt.epochMilliseconds(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select wall_at as wall, wall_at + $1 as later, floor(extract(epoch from wall_at) * 1000) as milliseconds from instant_value where id = $2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            Duration {},
+            1,
+          ]
+        `)
+        assertType<Exact<typeof instants, Array<{ wall?: Temporal.PlainDateTime; later?: Temporal.Instant; milliseconds?: number }>>>()
+        expect(instants.map(row => [row.wall?.toString(), row.later?.toString(), row.milliseconds])).toEqual([
+            [deployed.toZonedDateTimeISO('UTC').toPlainDateTime().toString(), deployed.add({ hours: 1 }).toString(), deployed.epochMilliseconds],
+        ])
     })
 
     test('a-temporal-value-as-the-date-value-of-its-column', async () => {

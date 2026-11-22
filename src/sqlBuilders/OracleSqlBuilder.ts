@@ -1449,11 +1449,24 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     override _epochNanoseconds(context: SqlBuildContext, valueSource: ToSql): string {
         // Its wall clock in UTC with all its digits (a value without zone, a DATE too, is completed with the zone of the
         // session): the whole days, the seconds since midnight and the nanoseconds ('SSSSSFF9'), always forward
-        const utc = this._oracleUtcOf(this._appendSql(valueSource, context, false))
+        const utc = this._oracleDeclaredUtcWallClock(context, valueSource) ?? this._oracleUtcOf(this._appendSql(valueSource, context, false))
         return "(trunc(" + utc + ") - date '1970-01-01') * 86400000000000 + to_number(to_char(" + utc + ", 'SSSSSFF9'))"
     }
     override _instantInUtc(context: SqlBuildContext, valueSource: ToSql): string {
-        return this._oracleUtcOf(this._appendSql(valueSource, context, false))
+        return this._oracleDeclaredUtcWallClock(context, valueSource) ?? this._oracleUtcOf(this._appendSql(valueSource, context, false))
+    }
+    /**
+     * A value declared without zone (see _isDeclaredWithoutZone), its wall clock as a timestamp: the value itself, and a
+     * DATE (no fraction of a second) as a timestamp, whose parts extract and to_char read
+     */
+    _oracleDeclaredWallClock(context: SqlBuildContext, valueSource: ToSql): string {
+        const sql = this._appendSql(valueSource, context, false)
+        const sqlDataType = __sqlDataTypeOf(__classOf(valueSource as object))
+        return sqlDataType?.family === 'datetime' && sqlDataType.precision === 0 ? 'cast(' + sql + ' as timestamp(9))' : sql
+    }
+    /** The wall clock in UTC of a value declared without zone of a database in UTC (see _oracleDeclaredWallClock); undefined otherwise */
+    _oracleDeclaredUtcWallClock(context: SqlBuildContext, valueSource: ToSql): string | undefined {
+        return !this._isDatabaseOutsideUtc() && this._isDeclaredWithoutZone(valueSource) ? this._oracleDeclaredWallClock(context, valueSource) : undefined
     }
     /**
      * The date and time in UTC of the SQL of an instant: of one the query computed in UTC, that date and time (see
@@ -1762,6 +1775,10 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return this._appendValue(value, context, __registeredDataType('string'), false)
     }
     override _instantToPlainDateTime(context: SqlBuildContext, valueSource: ToSql): string {
+        if (this._isDeclaredWithoutZone(valueSource)) {
+            // It is the wall clock of the zone of the database
+            return this._oracleDeclaredWallClock(context, valueSource)
+        }
         // The wall clock of the session (the zone of the database), with all its digits: a value without zone, a DATE
         // too, is completed with it first (`at local` rejects a DATE, ORA-30084)
         return 'cast(cast(' + this._appendSql(valueSource, context, false) + ' as timestamp(9) with time zone) at local as timestamp(9))'
@@ -2210,6 +2227,10 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
      * is compared with the epoch in the session zone, the zone of the database (see oracleSessionTimeZone), which gives its instant
      */
     _appendUtcTimestamp(context: SqlBuildContext, valueSource: ToSql): string {
+        const declared = this._oracleDeclaredUtcWallClock(context, valueSource)
+        if (declared !== undefined) {
+            return declared
+        }
         const sql = this._appendSql(valueSource, context, false)
         // An instant the query computed in UTC is that date and time (see oracleUtcOfInstantOfUtc)
         return oracleUtcOfInstantOfUtc(sql) ?? "timestamp '1970-01-01 00:00:00' + (" + sql + " - timestamp '1970-01-01 00:00:00')"

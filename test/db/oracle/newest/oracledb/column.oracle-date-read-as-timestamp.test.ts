@@ -8,8 +8,17 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tStandupMeeting } from '../../domain/connection.js'
+import { tStandupMeeting, type DBConnection } from '../../domain/connection.js'
+import { Table } from '../../../../../src/Table.js'
+import { withSqlDataType } from '../../../../../src/exports/v2/index.js'
 import { ctx } from './setup.js'
+
+// The DATE starts_at declared as such (timeZone 'none', no fraction of a second), without the type adapter
+const tStandupMeetingDeclared = new class TStandupMeetingDeclared extends Table<DBConnection, 'TStandupMeetingDeclared'> {
+    id = this.primaryKey('id', 'int')
+    startsAt = this.column('starts_at', 'localDateTime', withSqlDataType({ family: 'datetime', fields: 'timestamp', precision: 0, timeZone: 'none' }))
+    constructor() { super('standup_meeting') }
+}()
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -449,5 +458,29 @@ describe(ctx.label, () => {
             time:         number
         }>>>()
         expect(result).toEqual(expected)
+    })
+
+    test('a-date-declared-without-zone-as-a-temporal-value', async () => {
+        // Its wall clock is the DATE as a timestamp, whose time extract reads: its date and time, its hour, and its
+        // instant plus an hour
+        ctx.mockNext([{ startsAt: '2024-03-15T09:05:07.000000000 AD', hour: 9, later: '2024-03-15T10:05:07.000000000Z AD', milliseconds: 1710493507000 }])
+        const rows = await ctx.conn.selectFrom(tStandupMeetingDeclared)
+            .where(tStandupMeetingDeclared.id.equals(1))
+            .select({
+                startsAt: tStandupMeetingDeclared.startsAt.toPlainDateTime(),
+                hour: tStandupMeetingDeclared.startsAt.toPlainDateTime().hour(),
+                later: tStandupMeetingDeclared.startsAt.toInstant().add({ hours: 1 }),
+                milliseconds: tStandupMeetingDeclared.startsAt.toInstant().epochMilliseconds(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select to_char(cast(starts_at as timestamp(9)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "startsAt", extract(hour from cast(starts_at as timestamp(9))) as "hour", to_char(cast(starts_at as timestamp(9)) + numtodsinterval(:0, 'second'), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "later", (trunc(cast(starts_at as timestamp(9))) - date '1970-01-01') * 86400000 + to_number(to_char(cast(starts_at as timestamp(9)), 'SSSSSFF3')) as "milliseconds" from standup_meeting where id = :1"`)
+        expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
+          [
+            "3600",
+            "1",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ startsAt: Temporal.PlainDateTime; hour: number; later: Temporal.Instant; milliseconds: number }>>>()
+        expect(rows.map(row => [row.startsAt.toString(), row.hour, row.later.toString(), row.milliseconds])).toEqual([['2024-03-15T09:05:07', 9, '2024-03-15T10:05:07Z', Date.UTC(2024, 2, 15, 9, 5, 7)]])
     })
 })

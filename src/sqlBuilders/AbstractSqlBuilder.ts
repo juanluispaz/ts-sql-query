@@ -4192,7 +4192,23 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * zone of the session (the zone of the database), and is the value itself for a column without zone
      */
     _instantToPlainDateTime(context: SqlBuildContext, valueSource: ToSql): string {
+        if (this._isDeclaredWithoutZone(valueSource)) {
+            return this._appendSql(valueSource, context, false)
+        }
         return this._appendSqlParenthesis(valueSource, context, false) + '::timestamp'
+    }
+    /**
+     * Whether the SQL data type the value declares (withSqlDataType on its column) says that it keeps a wall clock, without
+     * a zone (`timeZone: 'none'`: a PostgreSQL timestamp, a SQL Server datetime2, an Oracle TIMESTAMP): it is its own date
+     * and time in the zone of the database, and nothing takes it from another zone. Without a declaration the column may
+     * keep an instant or an offset
+     */
+    _isDeclaredWithoutZone(valueSource: ToSql): boolean {
+        if (!isValueSource(valueSource)) {
+            return false
+        }
+        const sqlDataType = __sqlDataTypeOf(__classOf(valueSource as object))
+        return sqlDataType?.family === 'datetime' && sqlDataType.timeZone === 'none'
     }
     /**
      * The instant of a date and time, a wall clock of the zone of the database: the same value, which the database

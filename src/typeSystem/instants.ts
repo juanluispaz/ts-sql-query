@@ -9,7 +9,7 @@ import { __newSqlOperationConstValueSource } from '../nodes/constants.js'
 import { getOptionalType2 } from '../nodes/operands.js'
 import { isValueSource } from '../nodes/NodeStrategy.js'
 import { __typeClassOf } from '../nodes/dataTypeClassOf.js'
-import { __computedClassOf } from '../nodes/adaptedTypeClass.js'
+import { __computedClassOf, __wallClockClassOf } from '../nodes/adaptedTypeClass.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import type { operandTypeName } from '../utils/symbols.js'
 import { instantDifferenceOptionsOf } from '../utils/instantOptions.js'
@@ -22,7 +22,7 @@ import { ZonedDateTimeType, __zonedOfInstant, type OfDatabaseWithZoneRules } fro
 
 /** The date and time of the instant in the zone of the database: a plainDateTime */
 function plainDateTimeOf(valueSource: unknown): any {
-    return __operation0(valueSource as any, '_instantToPlainDateTime', PlainDateTimeType)
+    return __operation0(valueSource as any, '_instantToPlainDateTime', __wallClockClassOf(valueSource as object, PlainDateTimeType))
 }
 
 /** The wall clock of the instant in UTC, a plainDateTime: where Temporal computes the arithmetic of an instant */
@@ -134,7 +134,7 @@ export abstract class InstantsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME e
      */
     toLocalDateTime(): ValueSource<SourceOf<this>, LocalDateTimeType, OptionalityOf<this>>
     toLocalDateTime(): any {
-        return __operation0(this as any, '_toDateValue', LocalDateTimeType)
+        return __operation0(this as any, '_toDateValue', __wallClockClassOf(this, LocalDateTimeType))
     }
 
     /**

@@ -23,7 +23,7 @@ import { StringType } from './strings.js'
 import { BooleanConditionType, BooleanType } from './logical.js'
 import { PlainMonthDayType, PlainYearMonthType } from './plainYearMonths.js'
 import { __typeClassOf } from '../nodes/dataTypeClassOf.js'
-import { __computedClassOf } from '../nodes/adaptedTypeClass.js'
+import { __computedClassOf, __wallClockClassOf } from '../nodes/adaptedTypeClass.js'
 
 /** The value plus or minus a duration, of the same data type */
 function withDuration(valueSource: unknown, operation: '_addDuration' | '_subtractDuration', duration: unknown, options: unknown): any {
@@ -451,7 +451,7 @@ export abstract class PlainDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
      */
     toLocalDateTime(): ValueSource<SourceOf<this>, LocalDateTimeType, OptionalityOf<this>>
     toLocalDateTime(): any {
-        return __operation0(this as any, '_toDateValue', LocalDateTimeType)
+        return __operation0(this as any, '_toDateValue', __wallClockClassOf(this, LocalDateTimeType))
     }
     /** The date of this date and time, a plainDate: Temporal's `toPlainDate()` */
     toPlainDate(): ValueSource<SourceOf<this>, PlainDateType, OptionalityOf<this>>
@@ -469,7 +469,7 @@ export abstract class PlainDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
      */
     toInstant(): ValueSource<SourceOf<this>, InstantType, OptionalityOf<this>>
     toInstant(): any {
-        return __operation0(this as any, '_toInstant', InstantType)
+        return __operation0(this as any, '_toInstant', __wallClockClassOf(this, InstantType))
     }
     /**
      * This date and time as a wall clock of the zone given (an IANA name or an offset), a zonedDateTime: Temporal's

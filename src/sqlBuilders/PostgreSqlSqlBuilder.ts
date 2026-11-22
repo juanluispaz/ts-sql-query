@@ -980,7 +980,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         if (this._libraryFunctionsInstalled() && (parts.months !== undefined || parts.days !== undefined)) {
             // The function of the library adds the months and the days to the wall clock in its zone and takes it back
             // to the zone, writing the value once; the value itself without them; then the time to that instant
-            const added = 'tsq_zoned_plus_date(' + this._pgZonedSql(context, valueSource) + ', ' + this._pgZoneText(this._pgZoneOf(context, valueSource)) + ', ' + (parts.months ?? '0') + ', ' + (parts.days ?? '0') + ', ' + (reject ? '1' : '0') + ')'
+            const added = 'tsq_zoned_plus_date(' + this._pgZonedArgument(context, valueSource) + ', ' + this._pgZoneText(this._pgZoneOf(context, valueSource)) + ', ' + (parts.months ?? '0') + ', ' + (parts.days ?? '0') + ', ' + (reject ? '1' : '0') + ')'
             return this._zonedComputedOnce(context, parts.seconds === undefined ? added : '(' + added + ' + ' + parts.seconds + ')', undefined, 'x', value, 'd')
         }
         // The value is used once, unless a duration of the query may have no date (then it is computed once)
@@ -1001,7 +1001,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     /** The hours from the start of its day to the start of the next one, in its zone: Temporal's `hoursInDay` */
     override _zonedHoursInDay(context: SqlBuildContext, valueSource: ToSql): string {
         if (this._libraryFunctionsInstalled()) {
-            return 'tsq_zoned_hours_in_day(' + this._pgZonedSql(context, valueSource) + ', ' + this._pgZoneText(this._pgZoneOf(context, valueSource)) + ')'
+            return 'tsq_zoned_hours_in_day(' + this._pgZonedArgument(context, valueSource) + ', ' + this._pgZoneText(this._pgZoneOf(context, valueSource)) + ')'
         }
         const zoned = this._zonedOperandSql(context, valueSource, 'x')
         const zone = this._pgZoneOf(context, valueSource)
@@ -1011,7 +1011,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     /** Rounded to a day, as Temporal's `round('day')`: the start of its day or of the next one in its zone, the nearer one by the length of the day */
     override _zonedRoundToDay(context: SqlBuildContext, valueSource: ToSql, value: any, _typeClass: DataTypeClass): string {
         if (this._libraryFunctionsInstalled()) {
-            return 'tsq_zoned_round_day(' + this._pgZonedSql(context, valueSource) + ', ' + this._pgZoneText(this._pgZoneOf(context, valueSource)) + ", '" + value + "')"
+            return 'tsq_zoned_round_day(' + this._pgZonedArgument(context, valueSource) + ', ' + this._pgZoneText(this._pgZoneOf(context, valueSource)) + ", '" + value + "')"
         }
         const zoned = this._zonedOperandSql(context, valueSource, 'x')
         const zone = this._pgZoneOf(context, valueSource)
@@ -1088,6 +1088,10 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     _pgZonedSql(context: SqlBuildContext, valueSource: ToSql): string {
         return this._appendSqlParenthesis(valueSource, context, this._isConstOperand(valueSource))
     }
+    /** The instant of a zoned date and time as an argument of a function: without a parenthesis */
+    _pgZonedArgument(context: SqlBuildContext, valueSource: ToSql): string {
+        return this._appendSql(valueSource, context, this._isConstOperand(valueSource))
+    }
     /** A zoned date and time is its instant, a timestamptz */
     override _zonedToInstant(context: SqlBuildContext, valueSource: ToSql): string {
         return this._pgZonedSql(context, valueSource)
@@ -1101,11 +1105,11 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     }
     /** Its offset at its instant, as Temporal writes it: `+01:00`, with its seconds when it has them (`-00:14:44`) */
     override _zonedOffset(context: SqlBuildContext, valueSource: ToSql): string {
-        const zoned = this._pgZonedSql(context, valueSource)
         const zone = this._pgZoneOf(context, valueSource)
         if (this._libraryFunctionsInstalled()) {
-            return 'tsq_zoned_offset(' + zoned + ', ' + this._pgZoneText(zone) + ')'
+            return 'tsq_zoned_offset(' + this._pgZonedArgument(context, valueSource) + ', ' + this._pgZoneText(zone) + ')'
         }
+        const zoned = this._pgZonedSql(context, valueSource)
         let result = "(select case when o.s < 0 then '-' else '+' end || lpad((abs(o.s) / 3600)::text, 2, '0') || ':' || lpad((abs(o.s) / 60 % 60)::text, 2, '0')"
         result += " || case when abs(o.s) % 60 <> 0 then ':' || lpad((abs(o.s) % 60)::text, 2, '0') else '' end"
         return result + ' from (select extract(epoch from ' + this._pgWallAt(zoned, zone) + ' - ' + this._zonedUtcOf(zoned) + ')::integer as s) o)'
@@ -1141,8 +1145,8 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         if (!difference) {
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value: options, typeName: 'duration' }, 'Invalid options of ' + (since ? 'since' : 'until') + ': ' + JSON.stringify(options))
         }
-        let result = 'tsq_zoned_until(' + this._pgZonedSql(context, valueSource) + ', ' + this._pgZoneText(this._pgZoneOf(context, valueSource)) + ', '
-        result += this._pgZonedSql(context, other) + ', ' + this._pgZoneText(this._pgZoneOf(context, other)) + ', '
+        let result = 'tsq_zoned_until(' + this._pgZonedArgument(context, valueSource) + ', ' + this._pgZoneText(this._pgZoneOf(context, valueSource)) + ', '
+        result += this._pgZonedArgument(context, other) + ', ' + this._pgZoneText(this._pgZoneOf(context, other)) + ', '
         return result + "'" + difference.largestUnit + "', '" + difference.smallestUnit + "', " + difference.increment + ", '" + difference.mode + "', " + (difference.negated ? '-1' : '1') + ')'
     }
     /**

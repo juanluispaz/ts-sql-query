@@ -17,6 +17,7 @@ import { DurationType, __durationArgument, timeDurationFieldNames } from './dura
 import { IntType } from './number.js'
 import { BigintType } from './bigint.js'
 import { PlainDateTimeType, PlainDateType, PlainTimeType } from './plainDates.js'
+import { LocalDateTimeType } from './localDates.js'
 import { ZonedDateTimeType, __zonedOfInstant, type OfDatabaseWithZoneRules } from './zonedDateTimes.js'
 
 /** The date and time of the instant in the zone of the database: a plainDateTime */
@@ -125,6 +126,15 @@ export abstract class InstantsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME e
     toPlainTime(): ValueSource<SourceOf<this>, PlainTimeType, OptionalityOf<this>>
     toPlainTime(): any {
         return __operation0(plainDateTimeOf(this), '_toPlainTime', PlainTimeType)
+    }
+
+    /**
+     * The instant as a localDateTime, a Date, which stops at the millisecond: `new Date(epochMilliseconds)`, what the
+     * same column gives declared as a localDateTime
+     */
+    toLocalDateTime(): ValueSource<SourceOf<this>, LocalDateTimeType, OptionalityOf<this>>
+    toLocalDateTime(): any {
+        return __operation0(this as any, '_toDateValue', LocalDateTimeType)
     }
 
     /**

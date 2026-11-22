@@ -1,7 +1,7 @@
 import type { SqlDataType } from '../TypeAdapter.js'
 import { ComparableType } from './comparable.js'
 import { EqualableType } from './equalable.js'
-import { localDateSqlDataType } from './localDates.js'
+import { localDateSqlDataType } from './dateTimeSqlDataTypes.js'
 import type { TemporalDifferenceOptions, TemporalDuration, TemporalOverflowOptions, TemporalPlainMonthDay, TemporalPlainMonthDayFields, TemporalPlainYearMonth, TemporalPlainYearMonthFields, TemporalYearMonthDurationLike, TemporalYearMonthUnit, IntOfQuery, TemporalYearMonthDurationLikeOfQuery, TemporalPlainMonthDayFieldsOfQuery, TemporalPlainYearMonthFieldsOfQuery } from './temporal.js'
 import type { DataTypeOf, IValueWithType, OptionalityOf, SourceOf, ValueSource } from './base.js'
 import type { CombinedOptionality, CombinedOptionalityOfUnion, OptionalType } from './valueSource.js'

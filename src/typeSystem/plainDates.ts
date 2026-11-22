@@ -1,6 +1,7 @@
 import type { SqlDataType } from '../TypeAdapter.js'
 import { ComparableType } from './comparable.js'
-import { localDateSqlDataType, localDateTimeSqlDataType, localTimeSqlDataType } from './localDates.js'
+import { localDateSqlDataType, localDateTimeSqlDataType, localTimeSqlDataType } from './dateTimeSqlDataTypes.js'
+import { LocalDateTimeType, LocalDateType, LocalTimeType } from './localDates.js'
 import type { TemporalDateUnit, TemporalDifferenceOptions, TemporalDisambiguationOptions, TemporalDuration, TemporalDurationLike, TemporalPlainDate, TemporalPlainDateFields, TemporalPlainDateTime, TemporalPlainTime, TemporalPlainTimeFields, TemporalOverflowOptions, TemporalRoundingOptions, TemporalTimeUnit, IntOfQuery, TemporalDurationLikeOfQuery, TemporalPlainDateFieldsOfQuery, TemporalPlainTimeFieldsOfQuery } from './temporal.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import type { DataTypeOf, IValueWithType, OptionalityOf, SourceOf, ValueSource } from './base.js'
@@ -154,6 +155,14 @@ export abstract class PlainDatesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME
         }
         return __operation1(this as any, '_toPlainDateTimeAt', time, PlainDateTimeType)
     }
+    /**
+     * This date as a localDate, a Date at 10:00 UTC of the day, whose UTC getters give it: what the same column gives
+     * declared as a localDate
+     */
+    toLocalDate(): ValueSource<SourceOf<this>, LocalDateType, OptionalityOf<this>>
+    toLocalDate(): any {
+        return __operation0(this as any, '_toDateValue', LocalDateType)
+    }
     /** The month of the year of this date, a plainYearMonth: Temporal's `toPlainYearMonth()` */
     toPlainYearMonth(): ValueSource<SourceOf<this>, PlainYearMonthType, OptionalityOf<this>>
     toPlainYearMonth(): any {
@@ -236,6 +245,15 @@ export abstract class PlainDatesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME
  */
 export abstract class PlainTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends ComparableType<VALUE_TYPE, TYPE_NAME> {
     static override readonly sqlDataType: SqlDataType | undefined = localTimeSqlDataType
+
+    /**
+     * This time of the day as a localTime, a Date on 1970-01-01, which stops at the millisecond, whose UTC getters give
+     * it: what the same column gives declared as a localTime
+     */
+    toLocalTime(): ValueSource<SourceOf<this>, LocalTimeType, OptionalityOf<this>>
+    toLocalTime(): any {
+        return __operation0(this as any, '_toDateValue', LocalTimeType)
+    }
 
     /** The hour, as an int from 0 to 23: Temporal's `hour` */
     hour(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
@@ -427,6 +445,14 @@ export abstract class PlainDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
         return partOf(this, '_microsecond')
     }
 
+    /**
+     * This date and time as a localDateTime, a Date, which stops at the millisecond: in a database in UTC, its UTC
+     * getters give it; what the same column gives declared as a localDateTime
+     */
+    toLocalDateTime(): ValueSource<SourceOf<this>, LocalDateTimeType, OptionalityOf<this>>
+    toLocalDateTime(): any {
+        return __operation0(this as any, '_toDateValue', LocalDateTimeType)
+    }
     /** The date of this date and time, a plainDate: Temporal's `toPlainDate()` */
     toPlainDate(): ValueSource<SourceOf<this>, PlainDateType, OptionalityOf<this>>
     toPlainDate(): any {

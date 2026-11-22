@@ -536,6 +536,10 @@ export interface SqlFunction0 {
     _zonedHoursInDay(context: SqlBuildContext, valueSource: ToSql): string
     // A zoned date and time where a computation of its wall clock refers to it (see _zonedOfWallClockIn)
     _zonedOperandReference(context: SqlBuildContext, valueSource: ToSql): string
+    // A value with a Date as the Temporal value kept in the same column, and back: a localDate as a plainDate, a
+    // localTime as a plainTime; a Temporal value as the one with a Date
+    _toTemporalValue(context: SqlBuildContext, valueSource: ToSql): string
+    _toDateValue(context: SqlBuildContext, valueSource: ToSql): string
     // Uuid
     _asString(context: SqlBuildContext, valueSource: ToSql): string
     // Oracle recursive

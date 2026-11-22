@@ -5,6 +5,9 @@ import { __operation0 } from '../nodes/operations.js'
 import type { SqlFunction0 } from '../sqlBuilders/SqlBuilder.js'
 import { IntType } from './number.js'
 import { type AnyType } from './base.js'
+import { localDateSqlDataType, localDateTimeSqlDataType, localTimeSqlDataType } from './dateTimeSqlDataTypes.js'
+import { PlainDateTimeType, PlainDateType, PlainTimeType } from './plainDates.js'
+import { InstantType } from './instants.js'
 
 /*
  * The dates and times without a zone: a date (localDate), a time of the day (localTime), and both (localDateTime).
@@ -16,12 +19,11 @@ function datePartOf(valueSource: AnyType, operation: keyof SqlFunction0): any {
     return __operation0(valueSource, operation, IntType)
 }
 
-/** The type in the database of a localDate: a date without a time and without a zone */
-export const localDateSqlDataType: SqlDataType = { family: 'datetime', fields: 'date' }
-/** The type in the database of a localTime: a time of the day without a date and without a zone */
-export const localTimeSqlDataType: SqlDataType = { family: 'datetime', fields: 'time' }
-/** The type in the database of a localDateTime: a date and a time of the day without a zone */
-export const localDateTimeSqlDataType: SqlDataType = { family: 'datetime', fields: 'timestamp' }
+
+/** The date and time of a localDateTime, a plainDateTime: of its instant, in the zone of the database */
+function plainDateTimeOf(valueSource: unknown): any {
+    return __operation0(valueSource as any, '_instantToPlainDateTime', PlainDateTimeType)
+}
 
 /**
  * The family of a date without a zone. A data type of the user extends it with its type name, sent and read as one:
@@ -55,6 +57,15 @@ export abstract class LocalDatesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME
     getMonth(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getMonth(): any {
         return datePartOf(this, '_monthFromZero')
+    }
+
+    /**
+     * The date as a plainDate: the day of the UTC getters of the Date read, what the same column gives declared as a
+     * plainDate
+     */
+    toPlainDate(): ValueSource<SourceOf<this>, PlainDateType, OptionalityOf<this>>
+    toPlainDate(): any {
+        return __operation0(this as any, '_toTemporalValue', PlainDateType)
     }
 }
 
@@ -91,6 +102,15 @@ export abstract class LocalTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME
     getSeconds(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getSeconds(): any {
         return datePartOf(this, '_second')
+    }
+
+    /**
+     * The time of the day as a plainTime, with all the digits the database keeps: what the same column gives declared
+     * as a plainTime
+     */
+    toPlainTime(): ValueSource<SourceOf<this>, PlainTimeType, OptionalityOf<this>>
+    toPlainTime(): any {
+        return __operation0(this as any, '_toTemporalValue', PlainTimeType)
     }
 }
 
@@ -161,6 +181,33 @@ export abstract class LocalDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
     getTime(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
     getTime(): any {
         return datePartOf(this, '_epochMilliseconds')
+    }
+
+    /**
+     * The instant of the Date read, an instant, with all the digits the database keeps: JavaScript's
+     * `toTemporalInstant()`, what the same column gives declared as an instant
+     */
+    toInstant(): ValueSource<SourceOf<this>, InstantType, OptionalityOf<this>>
+    toInstant(): any {
+        return __operation0(this as any, '_toInstant', InstantType)
+    }
+    /**
+     * The date and time as a plainDateTime, with all the digits the database keeps: the UTC getters of the Date read,
+     * in a database in UTC; what the same column gives declared as a plainDateTime, as `toInstant().toPlainDateTime()`
+     */
+    toPlainDateTime(): ValueSource<SourceOf<this>, PlainDateTimeType, OptionalityOf<this>>
+    toPlainDateTime(): any {
+        return plainDateTimeOf(this)
+    }
+    /** The date as a plainDate, as `toPlainDateTime().toPlainDate()` */
+    toPlainDate(): ValueSource<SourceOf<this>, PlainDateType, OptionalityOf<this>>
+    toPlainDate(): any {
+        return __operation0(plainDateTimeOf(this), '_toPlainDate', PlainDateType)
+    }
+    /** The time of the day as a plainTime, as `toPlainDateTime().toPlainTime()` */
+    toPlainTime(): ValueSource<SourceOf<this>, PlainTimeType, OptionalityOf<this>>
+    toPlainTime(): any {
+        return __operation0(plainDateTimeOf(this), '_toPlainTime', PlainTimeType)
     }
 }
 

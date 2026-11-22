@@ -797,6 +797,26 @@ function _typeNegatives() {
     void tCalendarValue.dayOf.toPlainDate({ day: 1 })
     // @ts-expect-error a day of a month has no arithmetic of durations, as in Temporal
     void tCalendarValue.dayOf.add({ days: 1 })
+    // A value with a Date as the Temporal value kept in the same column, and back, keeping its optionality
+    void t.mDate.toPlainDate().equals(tColMatrixPlain.mDate)
+    void t.mTime.toPlainTime().equals(tColMatrixPlain.mTime)
+    void t.mDatetime.toPlainDateTime().equals(tColMatrixPlain.mDatetime)
+    void tColMatrixPlain.mDatetime.toLocalDateTime().equals(t.mDatetime)
+    void tInstantValue.instantAt.toLocalDateTime().toInstant().equals(tInstantValue.instantAt)
+    const optionalDate = tInstantValue.wallAt.toLocalDateTime()
+    assertType<Exact<OptionalityOf<typeof optionalDate>, 'optional'>>()
+    // @ts-expect-error a value with a Date isn't the Temporal value of its column without a conversion
+    void t.mDate.equals(tColMatrixPlain.mDate)
+    // @ts-expect-error a date has no instant: it has no time of the day nor zone
+    void t.mDate.toInstant()
+    // @ts-expect-error a time of the day has no instant: it has no date nor zone
+    void t.mTime.toInstant()
+    // @ts-expect-error a date isn't a date and time: it takes a time of the day first, as in Temporal
+    void tColMatrixPlain.mDate.toLocalDateTime()
+    // @ts-expect-error a month of a year has no value with a Date
+    void tCalendarValue.monthOf.toLocalDate()
+    // @ts-expect-error a duration has no value with a Date
+    void tDurationValue.spanCalendar.toLocalDateTime()
 }
 
 test('expressions-negative-types', () => {

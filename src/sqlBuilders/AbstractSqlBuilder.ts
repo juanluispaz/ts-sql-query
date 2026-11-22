@@ -4202,6 +4202,20 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return this._appendSql(valueSource, context, false)
     }
     /**
+     * A localDate as a plainDate, or a localTime as a plainTime: the same value, kept in the same columns, whose digits
+     * are the ones the Temporal value has
+     */
+    _toTemporalValue(context: SqlBuildContext, valueSource: ToSql): string {
+        return this._appendSql(valueSource, context, false)
+    }
+    /**
+     * A Temporal value as the one with a Date kept in the same columns (a plainDate as a localDate, a plainTime as a
+     * localTime, a plainDateTime or an instant as a localDateTime): the same value, which is read as a Date
+     */
+    _toDateValue(context: SqlBuildContext, valueSource: ToSql): string {
+        return this._appendSql(valueSource, context, false)
+    }
+    /**
      * The wall clock in UTC of an instant, where Temporal computes its arithmetic: a value without zone of a database in
      * UTC is it, and so is a timestamptz in a session in UTC
      */

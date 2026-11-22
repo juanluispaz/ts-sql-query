@@ -26,6 +26,7 @@ import { BigintType } from './bigint.js'
 import { StringType } from './strings.js'
 import { InstantType } from './instants.js'
 import { PlainDateTimeType, PlainDateType, PlainTimeType } from './plainDates.js'
+import { LocalDateTimeType } from './localDates.js'
 
 /*
  * An exact moment in a time zone as Temporal has it: a zoned date and time (a Temporal.ZonedDateTime), an instant with
@@ -148,6 +149,11 @@ export abstract class ZonedDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
     toInstant(): ValueSource<SourceOf<this>, InstantType, OptionalityOf<this>>
     toInstant(): any {
         return __operation0(this as any, '_zonedToInstant', InstantType)
+    }
+    /** The instant of the zoned date and time as a localDateTime, a Date, which stops at the millisecond */
+    toLocalDateTime(): ValueSource<SourceOf<this>, LocalDateTimeType, OptionalityOf<this>>
+    toLocalDateTime(): any {
+        return __operation0(__operation0(this as any, '_zonedToInstant', InstantType), '_toDateValue', LocalDateTimeType)
     }
     /** The date and time in its zone, a plainDateTime: Temporal's `toPlainDateTime` */
     toPlainDateTime(): ValueSource<SourceOf<this>, PlainDateTimeType, OptionalityOf<this>>

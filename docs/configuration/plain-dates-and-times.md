@@ -623,6 +623,18 @@ The fields are integers (a fraction is dropped), as Temporal reads them. A field
 
 As in Temporal, a month or a day below 1, a month code of another month, or an object without any field of the type, like `{}` or `{ hour: 0 }` for a date, are rejected with `INVALID_VALUE_TO_SEND_TO_DATABASE` before the query is sent.
 
+A field can also be an `int` of the query, like a column, which puts in each row the day (or the field) of that row (the month code is a text, always given as a value). The database takes it to its range as above, with the value of each row; where Temporal throws, a month or a day below 1, and with `{ overflow: 'reject' }` any field out of its range or a day the month hasn't, the query fails, with the same errors as `add` with `reject`. The result is optional when a field is, and the column is of a table of the query, as in [A field of the duration from the query](#a-field-of-the-duration-from-the-query). With the int 42 of the row:
+
+| Value | Operation | Result |
+|---|---|---|
+| `2024-03-04` | `with({ day: 42 })` | `2024-03-31` |
+| `2024-03-04` | `with({ month: 42 })` | `2024-12-04` |
+| `09:15:00` | `with({ hour: 42 })` | `23:15:00` |
+| `2024-01-14T12:30` | `with({ day: 42, hour: -42 })`, the int negated as the hour | `2024-01-31T00:30:00` |
+| `2024-03-04` | `with({ day: 42 }, { overflow: 'reject' })` | the query fails |
+
+A month of a year, a day of a month and a zoned date and time take fields of the query in their `with` in the same way.
+
 ### The options of `round`
 
 | Option | What it is |

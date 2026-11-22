@@ -49,7 +49,7 @@ Start with the file of the area of your task. These files are written for you: o
 | To | Read | Tokens |
 |---|---|---|
 | Connect a driver | [`llms-connect.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-connect.txt), or only the page of your driver, listed in `llms.txt` | 35k |
-| Declare the connection, the tables and the types of their columns | [`llms-configuration-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-configuration-postgresql.txt), with `<database>` being `mariadb`, `mysql`, `oracle`, `postgresql`, `sqlite` or `sqlserver` | 57k |
+| Declare the connection, the tables and the types of their columns | [`llms-configuration-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-configuration-postgresql.txt), with `<database>` being `mariadb`, `mysql`, `oracle`, `postgresql`, `sqlite` or `sqlserver` | 58k |
 | Look up a method of a table or a view | [`llms-api-mapping.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-api-mapping.txt) | 3k |
 
 **Write queries**
@@ -60,7 +60,7 @@ Start with the file of the area of your task. These files are written for you: o
 | Go into the detail of a dynamic query: order and page from a request, optional joins, booleans and null, or a condition built with `if`s | [`llms-dynamic-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-dynamic-postgresql.txt) | 10k |
 | Use a select inside another, combine several, or walk a hierarchy | [`llms-queries-advanced-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-queries-advanced-postgresql.txt) | 12k |
 | Aggregate and group | [`llms-aggregates-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-aggregates-postgresql.txt) | 11k |
-| Write data | [`llms-mutations-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-mutations-postgresql.txt) | 24k |
+| Write data | [`llms-mutations-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-mutations-postgresql.txt) | 25k |
 | Use a transaction | [`llms-transactions.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-transactions.txt) | 13k |
 | Look up a method of the connection, a select, a value or a dynamic condition | [`llms-api-queries.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-api-queries.txt) | 25k |
 | Look up a method of an insert, an update or a delete | [`llms-api-mutations.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-api-mutations.txt) | 11k |

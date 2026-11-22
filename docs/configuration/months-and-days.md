@@ -125,7 +125,7 @@ What each one has, with the meaning and the name it has in Temporal:
 | `day()` | The day of the month, from 1 to 31, as an `int` | `plainMonthDay` |
 | `monthCode()` | The code of the month, `'M01'` to `'M12'`, a `string` (a `Temporal.PlainMonthDay` has no `month`) | both |
 | `daysInMonth()`, `daysInYear()`, `monthsInYear()`, `inLeapYear()` | The days of its month and of its year, its months, and whether its year has February 29 | `plainYearMonth` |
-| `add`, `subtract` | Plus or minus a duration of years and months, a `Temporal.Duration` or its fields (`{ months: 1 }`); one with days, weeks or a time is rejected, as in Temporal | `plainYearMonth` |
+| `add`, `subtract` | Plus or minus a duration of years and months: a `Temporal.Duration` or its fields (`{ months: 1 }`), where a field can be an `int` of the query (`{ months: tRelease.supportMonths }`, see [A field of the duration from the query](plain-dates-and-times.md#a-field-of-the-duration-from-the-query)), or a value of the type `duration`, like a column. One with days, weeks or a time is rejected, as in Temporal: a value before the query is sent, a duration of the query by the database, which makes the query fail | `plainYearMonth` |
 | `with` | Another `year` or `month` (or `monthCode`); a month out of its range is taken to the nearest one (13 is December), or rejected with `{ overflow: 'reject' }` | `plainYearMonth` |
 | `with` | Another `month` (or `monthCode`) or `day`, the day taken to the last one of the month in a leap year, or in the `year` given (February 29 in 2023 is the 28th), or rejected with `{ overflow: 'reject' }` | `plainMonthDay` |
 | `until`, `since` | The duration to or from another month of a year, in years and months (see below) | `plainYearMonth` |

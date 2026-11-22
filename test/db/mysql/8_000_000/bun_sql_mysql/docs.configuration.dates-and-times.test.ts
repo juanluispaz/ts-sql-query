@@ -461,6 +461,35 @@ describe(ctx.label, () => {
         ])
     })
 
+    test('docs:dates-and-times/a-field-of-the-duration-from-the-query', async () => {
+        ctx.mockNext([
+            { version: '0.9.0', supportMonths: null, supportEndsOn: null },
+            { version: '1.2.0', supportMonths: 18, supportEndsOn: '2025-07-15' },
+            { version: '1.3.0-beta.1', supportMonths: 3, supportEndsOn: '2024-05-20' },
+        ])
+        const connection = ctx.conn
+
+        // doc-start
+        const releases = await connection.selectFrom(tRelease)
+            .select({
+                version: tRelease.version,
+                supportMonths: tRelease.supportMonths,
+                supportEndsOn: tRelease.releasedOn.add({ months: tRelease.supportMonths }),
+            })
+            .orderBy('version')
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as version, support_months as supportMonths, date_add(released_on, interval support_months month) as supportEndsOn from project_release order by version"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof releases, Array<{ version: string; supportMonths?: number; supportEndsOn?: Temporal.PlainDate }>>>()
+        expect(releases.map(release => [release.version, release.supportMonths, release.supportEndsOn?.toString()])).toEqual([
+            ['0.9.0', undefined, undefined],
+            ['1.2.0', 18, '2025-07-15'],
+            ['1.3.0-beta.1', 3, '2024-05-20'],
+        ])
+    })
+
     test('docs:dates-and-times/the-duration-between-two-values', async () => {
         ctx.mockNext([
             { version: '0.9.0', toPublication: 'P1D', publishedAfter: 'PT35H', untilEndOfJune: 'P3M29D' },

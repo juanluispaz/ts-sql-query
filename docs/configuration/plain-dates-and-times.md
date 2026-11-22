@@ -125,6 +125,8 @@ The conversions between the three types are the ones of Temporal:
 | `toPlainTime()` | `plainDateTime` | Its time of the day, a `plainTime` |
 | `toPlainDateTime()` | `plainDate` | The date at 00:00, a `plainDateTime` |
 | `toPlainDateTime(time)` | `plainDate` | The date at the time given, a `Temporal.PlainTime` or a `plainTime` of the query |
+| `withPlainTime()` | `plainDateTime` | Its date at 00:00, a `plainDateTime` |
+| `withPlainTime(time)` | `plainDateTime` | Its date at the time given, a `Temporal.PlainTime` or a `plainTime` of the query |
 
 Here the deadline of each release is its date at its cutoff time, and the query finds the releases published after it:
 
@@ -306,6 +308,94 @@ The rules are the ones of Temporal, and the result is the same on every database
 | `2024-02-28T23:00` (`plainDateTime`) | `add({ days: 1, hours: 2, minutes: 30 })` | `2024-03-01T01:30` | |
 
 The fields of a duration given as a value must be integers with one sign, as `Temporal.Duration.from` asks: `{ days: 1, hours: -1 }`, `{ days: 1.5 }` or `{}` are rejected with `INVALID_VALUE_TO_SEND_TO_DATABASE` before the query is sent. The result keeps the digits of the fraction of a second the database keeps (see [The digits each database keeps](../advanced/dates-and-times/storage.md#the-digits-each-database-keeps)); SQLite computes with milliseconds.
+
+### A field of the duration from the query
+
+Where Temporal takes a number for a field of a duration, the query also takes an `int` of the query, like a column: `{ months: tRelease.supportMonths }` adds to each row the months of that row. The other fields are numbers, as always, or other `int`s of the query. Here the day the support of each release ends, as many months after its release as its row says:
+
+```ts
+const releases = await connection.selectFrom(tRelease)
+    .select({
+        version: tRelease.version,
+        supportMonths: tRelease.supportMonths,
+        supportEndsOn: tRelease.releasedOn.add({ months: tRelease.supportMonths }),
+    })
+    .orderBy('version')
+    .executeSelectMany()
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        version as version, 
+        support_months as supportMonths, 
+        date_add(released_on, interval support_months month) as supportEndsOn 
+    from project_release 
+    order by version
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        version as version, 
+        support_months as supportMonths, 
+        date_add(released_on, interval support_months month) as supportEndsOn 
+    from project_release 
+    order by version
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        version as "version", 
+        support_months as "supportMonths", 
+        tsq_text_of_date((add_months(released_on, support_months) - greatest(0, extract(day from add_months(released_on, support_months)) - extract(day from released_on)))) as "supportEndsOn" 
+    from project_release 
+    order by "version"
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        version as version, 
+        support_months as "supportMonths", 
+        cast(released_on + make_interval(months => support_months) as date) as "supportEndsOn" 
+    from project_release 
+    order by version
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        version as version, 
+        support_months as supportMonths, 
+        date(date(released_on, 'start of month', (support_months) || ' months'), (min(cast(strftime('%d', released_on) as integer), cast(strftime('%d', date(released_on, 'start of month', (support_months) || ' months'), '+1 months', '-1 days') as integer)) - 1) || ' days') as supportEndsOn 
+    from project_release 
+    order by version
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        version as version, 
+        support_months as supportMonths, 
+        dateadd(month, support_months, released_on) as supportEndsOn 
+    from project_release 
+    order by version
+    ```
+
+The parameters are: `[]`
+
+| version | supportMonths | supportEndsOn |
+|---|---|---|
+| `'0.9.0'` | | |
+| `'1.2.0'` | `18` | `2025-07-15` |
+| `'1.3.0-beta.1'` | `3` | `2024-05-20` |
+
+The rules are the ones of Temporal for the numbers of each row, as above. What changes is when they are checked:
+
+- The result is optional when a field is: `supportEndsOn` has no value for `'0.9.0'`, which has no months of support.
+- Each field is an `int`: a `double`, a `bigint` or a text of the query don't compile, as Temporal takes integers. An instant takes only the fields of the time, and a month of a year only years and months, also from the query.
+- The numbers given are checked before the query is sent, as above. The sign of a field of the query is only known by the database: when the fields may have different signs, a field of the query next to numbers that aren't 0 (`{ months: tRelease.supportMonths, days: -1 }`) or two fields of the query, the query fails for a row where they have them, as Temporal throws a `RangeError`, with the same errors as `{ overflow: 'reject' }` below. A field of the query alone adds no check.
+- A field of the query is written in the SQL where the operation uses it: each part of the duration (its months, its days, its time) that the fields give, and nothing for the ones they don't.
+- The column is of a table of the query, as any other value: one of a table that isn't in the query doesn't compile.
 
 ### Rejecting a day the month hasn't
 

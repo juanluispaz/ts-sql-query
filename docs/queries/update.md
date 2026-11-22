@@ -85,7 +85,7 @@ Only the columns in `set` are written; computed and virtual columns can't be. If
 The value of a column can be:
 
 - A value of the type of the column.
-- An expression, to compute the new value from the current row, like `tCustomer.lastName.concat(' Jr.')`.
+- An expression, to compute the new value from the current row, like `tCustomer.lastName.concat(' Jr.')`, or `tRelease.releasedOn.add({ months: tRelease.supportMonths })`, a date plus a number of months of the same row. Every expression reads the values the row had before the update, also on MariaDB and MySQL, which compute the assignments one after the other: the library writes first the ones that read a column the update changes.
 - `null` or `undefined`, on an optional column: the column ends up with no value.
 - `connection.default()`, on a column with a default value: the column goes back to its default. It's not offered on [SQLite](../databases/sqlite/index.md).
 

@@ -383,6 +383,8 @@ interface PlainDateValueSource extends ComparableValueSource<Temporal.PlainDate,
     until(other: Temporal.PlainDate | PlainDateValueSource, options?: DifferenceOptions<DateUnit>): DurationValueSource
     /** The duration from the other date to this one, as Temporal's since: until with the rounding mode negated, negated */
     since(other: Temporal.PlainDate | PlainDateValueSource, options?: DifferenceOptions<DateUnit>): DurationValueSource
+    /** The same day with a Date, a localDate */
+    toLocalDate(): LocalDateValueSource
 }
 ```
 
@@ -413,6 +415,8 @@ interface PlainTimeValueSource extends ComparableValueSource<Temporal.PlainTime,
     until(other: Temporal.PlainTime | PlainTimeValueSource, options?: DifferenceOptions<TimeUnit>): DurationValueSource
     /** The duration from the other time to this one, as Temporal's since: until with the rounding mode negated, negated */
     since(other: Temporal.PlainTime | PlainTimeValueSource, options?: DifferenceOptions<TimeUnit>): DurationValueSource
+    /** The same time of the day with a Date, a localTime */
+    toLocalTime(): LocalTimeValueSource
 }
 ```
 
@@ -461,6 +465,8 @@ interface PlainDateTimeValueSource extends ComparableValueSource<Temporal.PlainD
     until(other: Temporal.PlainDateTime | PlainDateTimeValueSource, options?: DifferenceOptions<DateUnit | TimeUnit>): DurationValueSource
     /** The duration from the other date and time to this one, as Temporal's since: until with the rounding mode negated, negated */
     since(other: Temporal.PlainDateTime | PlainDateTimeValueSource, options?: DifferenceOptions<DateUnit | TimeUnit>): DurationValueSource
+    /** The same date and time with a Date, a localDateTime */
+    toLocalDateTime(): LocalDateTimeValueSource
 }
 ```
 
@@ -529,6 +535,8 @@ interface InstantValueSource extends ComparableValueSource<Temporal.Instant, 'in
     since(other: Temporal.Instant | InstantValueSource, options?: DifferenceOptions<TimeUnit>): DurationValueSource
     /** The instant in the zone given (an IANA name or an offset), as Temporal's toZonedDateTimeISO; only Oracle has zones */
     toZonedDateTimeISO(timeZone: string | StringValueSource): ZonedDateTimeValueSource
+    /** The same instant with a Date, a localDateTime */
+    toLocalDateTime(): LocalDateTimeValueSource
 }
 
 /**
@@ -582,6 +590,8 @@ interface ZonedDateTimeValueSource extends ComparableValueSource<Temporal.ZonedD
      */
     until(other: Temporal.ZonedDateTime | ZonedDateTimeValueSource, options?: DifferenceOptions<DateUnit | TimeUnit>): DurationValueSource
     since(other: Temporal.ZonedDateTime | ZonedDateTimeValueSource, options?: DifferenceOptions<DateUnit | TimeUnit>): DurationValueSource
+    /** Its instant with a Date, a localDateTime */
+    toLocalDateTime(): LocalDateTimeValueSource
 }
 ```
 
@@ -599,6 +609,8 @@ interface LocalDateValueSource extends ComparableValueSource<Date, 'localDate'> 
     getDate(): NumberValueSource
     /** Gets the day of the week (0 represents Sunday) */
     getDay(): NumberValueSource
+    /** The same day as a Temporal value, a plainDate */
+    toPlainDate(): PlainDateValueSource
 }
 ```
 
@@ -616,6 +628,8 @@ interface LocalTimeValueSource extends ComparableValueSource<Date, 'localTime'> 
     getSeconds(): NumberValueSource
     /** Gets the milliseconds */
     getMilliseconds(): NumberValueSource
+    /** The same time of the day as a Temporal value, a plainTime */
+    toPlainTime(): PlainTimeValueSource
 }
 ```
 
@@ -643,6 +657,12 @@ interface LocalDateTimeValueSource extends ComparableValueSource<Date, 'localDat
     getMilliseconds(): NumberValueSource
     /** Gets the time value in milliseconds */
     getTime(): NumberValueSource
+    /** Its instant as a Temporal value (as toTemporalInstant of the Date) */
+    toInstant(): InstantValueSource
+    /** The date and time, date or time of the day of its instant in the zone of the database, as toInstant().toPlainDateTime() */
+    toPlainDateTime(): PlainDateTimeValueSource
+    toPlainDate(): PlainDateValueSource
+    toPlainTime(): PlainTimeValueSource
 }
 ```
 
@@ -856,6 +876,8 @@ interface LocalDatesValueSource<T, TYPE_NAME extends string> extends ComparableV
     getDate(): NumberValueSource
     /** Gets the day of the week (0 represents Sunday) */
     getDay(): NumberValueSource
+    /** The same day as a Temporal value, a plainDate */
+    toPlainDate(): PlainDateValueSource
 }
 ```
 
@@ -873,6 +895,8 @@ interface LocalTimesValueSource<T, TYPE_NAME extends string> extends ComparableV
     getSeconds(): NumberValueSource
     /** Gets the milliseconds */
     getMilliseconds(): NumberValueSource
+    /** The same time of the day as a Temporal value, a plainTime */
+    toPlainTime(): PlainTimeValueSource
 }
 ```
 
@@ -900,6 +924,12 @@ interface LocalDateTimesValueSource<T, TYPE_NAME extends string> extends Compara
     getMilliseconds(): NumberValueSource
     /** Gets the time value in milliseconds */
     getTime(): NumberValueSource
+    /** Its instant as a Temporal value (as toTemporalInstant of the Date) */
+    toInstant(): InstantValueSource
+    /** The date and time, date or time of the day of its instant in the zone of the database, as toInstant().toPlainDateTime() */
+    toPlainDateTime(): PlainDateTimeValueSource
+    toPlainDate(): PlainDateValueSource
+    toPlainTime(): PlainTimeValueSource
 }
 ```
 

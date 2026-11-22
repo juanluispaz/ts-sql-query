@@ -27,15 +27,15 @@ A data type of yours extends one of these classes, with two generic arguments: t
 | `DivisibleType<VALUE_TYPE, TYPE_NAME>` | `MultipliableType` | `divide` |
 | `RealsType<VALUE_TYPE, TYPE_NAME>` | `DivisibleType` | Rounding and the mathematical functions; its values converted as `double` |
 | `UuidsType<VALUE_TYPE, TYPE_NAME>` | `ComparableType` | The operations of a text on its text; its values converted as `uuid` |
-| `PlainDatesType<VALUE_TYPE, TYPE_NAME>` | `ComparableType` | The parts of a date with the names of Temporal, like `month` (from 1), and `toPlainDateTime`; its values converted as `plainDate` |
-| `PlainTimesType<VALUE_TYPE, TYPE_NAME>` | `ComparableType` | The parts of a time with the names of Temporal, up to `microsecond`; its values converted as `plainTime` |
-| `PlainDateTimesType<VALUE_TYPE, TYPE_NAME>` | `ComparableType` | The parts of a date and a time, `toPlainDate` and `toPlainTime`; its values converted as `plainDateTime` |
-| `InstantsType<VALUE_TYPE, TYPE_NAME>` | `ComparableType` | Nothing more: compared and ordered by its moment; its values converted as `instant` |
-| `ZonedDateTimesType<VALUE_TYPE, TYPE_NAME>` | `ComparableType` | Its parts in its zone, its instant, its zone and its offset; compared and ordered by its instant; its values converted as `zonedDateTime` (Oracle only) |
+| `PlainDatesType<VALUE_TYPE, TYPE_NAME>` | `ComparableType` | The parts of a date with the names of Temporal, like `month` (from 1), `toPlainDateTime` and `toLocalDate`; its values converted as `plainDate` |
+| `PlainTimesType<VALUE_TYPE, TYPE_NAME>` | `ComparableType` | The parts of a time with the names of Temporal, up to `microsecond`, and `toLocalTime`; its values converted as `plainTime` |
+| `PlainDateTimesType<VALUE_TYPE, TYPE_NAME>` | `ComparableType` | The parts of a date and a time, `toPlainDate`, `toPlainTime` and `toLocalDateTime`; its values converted as `plainDateTime` |
+| `InstantsType<VALUE_TYPE, TYPE_NAME>` | `ComparableType` | Its epoch, its date and time in the zone of the database, and `toLocalDateTime`; compared and ordered by its moment; its values converted as `instant` |
+| `ZonedDateTimesType<VALUE_TYPE, TYPE_NAME>` | `ComparableType` | Its parts in its zone, its instant (also as `toLocalDateTime`), its zone and its offset; compared and ordered by its instant; its values converted as `zonedDateTime` (Oracle only) |
 | `DurationsType<VALUE_TYPE, TYPE_NAME>` | `EqualableType` | Nothing more: compared for equality; its values converted as `duration` |
-| `LocalDatesType<VALUE_TYPE, TYPE_NAME>` | `ComparableType` | The parts of a date, like `getFullYear`; its values converted as `localDate` |
-| `LocalTimesType<VALUE_TYPE, TYPE_NAME>` | `ComparableType` | The parts of a time; its values converted as `localTime` |
-| `LocalDateTimesType<VALUE_TYPE, TYPE_NAME>` | `ComparableType` | The parts of a date and a time; its values converted as `localDateTime` |
+| `LocalDatesType<VALUE_TYPE, TYPE_NAME>` | `ComparableType` | The parts of a date, like `getFullYear`, and `toPlainDate`; its values converted as `localDate` |
+| `LocalTimesType<VALUE_TYPE, TYPE_NAME>` | `ComparableType` | The parts of a time and `toPlainTime`; its values converted as `localTime` |
+| `LocalDateTimesType<VALUE_TYPE, TYPE_NAME>` | `ComparableType` | The parts of a date and a time, `toInstant` and `toPlainDateTime`; its values converted as `localDateTime` |
 
 The methods of each family, with their signatures, are in the [Value expressions API](value-expressions.md); what each family is for, in [The families](../advanced/data-types/own-data-types.md#the-families).
 

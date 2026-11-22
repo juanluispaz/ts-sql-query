@@ -30,7 +30,7 @@ rolloutTime = this.optionalColumn('rollout_time', 'duration')
 deployedAt = this.optionalColumn('deployed_at', 'instant')
 ```
 
-What a query does with each one is in its page: [Dates and times without zone](plain-dates-and-times.md), [Instants](instants.md), [Zoned dates and times](zoned-dates-and-times.md), [Durations](durations.md), and [Months of a year and days of a month](months-and-days.md). The `local…` types, with `Date`, are in [Dates as `Date`](dates-as-date.md).
+What a query does with each one is in its page: [Dates and times without zone](plain-dates-and-times.md), [Instants](instants.md), [Zoned dates and times](zoned-dates-and-times.md), [Durations](durations.md), and [Months of a year and days of a month](months-and-days.md). The `local…` types, with `Date`, are in [Dates as `Date`](dates-as-date.md). A query converts a value from one to the other where the table has both: a `localDate` to a `plainDate` with `toPlainDate()`, a `plainDate` to a `localDate` with `toLocalDate()`, and so on (see [From a `Date` to Temporal and back](dates-as-date.md#from-a-date-to-temporal-and-back)).
 
 ## Why Temporal
 

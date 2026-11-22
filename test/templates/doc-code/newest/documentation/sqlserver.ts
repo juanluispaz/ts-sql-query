@@ -181,6 +181,7 @@ const tRelease = new class TRelease extends Table<DBConnection, 'TRelease'> {
     releasedOn = this.column('released_on', 'plainDate')
     cutoffTime = this.column('cutoff_time', 'plainTime')
     publishedAt = this.column('published_at', 'plainDateTime')
+    signedOffAt = this.optionalColumn('signed_off_at', 'localDateTime')
     rolloutTime = this.optionalColumn('rollout_time', 'duration')
     deployedAt = this.optionalColumn('deployed_at', 'instant')
     supportMonths = this.optionalColumn('support_months', 'int')

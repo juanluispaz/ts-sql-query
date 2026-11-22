@@ -184,8 +184,17 @@ export abstract class PlainYearMonthsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE
     }
     /** The date of the day given in this month, a plainDate: Temporal's `toPlainDate({ day })`, the day taken to the last one of the month */
     toPlainDate(fields: { readonly day: number }): ValueSource<SourceOf<this>, PlainDateType, OptionalityOf<this>>
+    /**
+     * The date of the day of the query given in this month, a plainDate: Temporal's `toPlainDate({ day })` with an int of
+     * the query, like a column: the day taken to the last one of the month, and the query failing for a day below 1, as
+     * Temporal throws
+     */
+    toPlainDate<SOURCE2 extends NSource, OPTIONAL_TYPE2 extends OptionalType>(fields: { readonly day: IntOfQuery<SOURCE2, OPTIONAL_TYPE2> }): ValueSource<SourceOf<this> | SOURCE2, PlainDateType, CombinedOptionality<OptionalityOf<this>, CombinedOptionalityOfUnion<OPTIONAL_TYPE2>>>
     toPlainDate(fields: unknown): any {
         const day = (fields as { day?: unknown } | null)?.day
+        if (isValueSource(day)) {
+            return __operation1(this as any, '_withFields', __withFieldsArgument({ day }, PlainDateType), PlainDateType)
+        }
         if (typeof day !== 'number' || !Number.isInteger(day) || day < 1) {
             throw invalid('plainDate', fields, 'The day of toPlainDate must be a positive integer')
         }
@@ -240,8 +249,16 @@ export abstract class PlainMonthDaysType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
     }
     /** The date of this day of the month in the year given, a plainDate: Temporal's `toPlainDate({ year })` (February 29 is the 28th in a year without it) */
     toPlainDate(fields: { readonly year: number }): ValueSource<SourceOf<this>, PlainDateType, OptionalityOf<this>>
+    /**
+     * The date of this day of the month in the year of the query given, a plainDate: Temporal's `toPlainDate({ year })`
+     * with an int of the query, like a column (February 29 is the 28th in a year without it)
+     */
+    toPlainDate<SOURCE2 extends NSource, OPTIONAL_TYPE2 extends OptionalType>(fields: { readonly year: IntOfQuery<SOURCE2, OPTIONAL_TYPE2> }): ValueSource<SourceOf<this> | SOURCE2, PlainDateType, CombinedOptionality<OptionalityOf<this>, CombinedOptionalityOfUnion<OPTIONAL_TYPE2>>>
     toPlainDate(fields: unknown): any {
         const year = (fields as { year?: unknown } | null)?.year
+        if (isValueSource(year)) {
+            return __operation1(this as any, '_withFields', __withFieldsArgument({ year }, PlainDateType), PlainDateType)
+        }
         if (typeof year !== 'number' || !Number.isInteger(year)) {
             throw invalid('plainDate', fields, 'The year of toPlainDate must be an integer')
         }

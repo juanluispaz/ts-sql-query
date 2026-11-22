@@ -768,6 +768,13 @@ function _typeNegatives() {
     void tCalendarValue.monthOf.subtract(tDurationValue.spanCalendar)
     // @ts-expect-error a month of a year has no days to add, as in Temporal
     void tCalendarValue.monthOf.add({ days: tColMatrixPlain.mInt })
+    // A month of a year and a day of a month taken to a date with a day or a year of the query
+    void tCalendarValue.monthOf.toPlainDate({ day: tColMatrixPlain.mInt })
+    void tCalendarValue.dayOf.toPlainDate({ year: tColMatrixPlain.mInt })
+    // @ts-expect-error the day of toPlainDate is an integer: a double isn't one, as in Temporal
+    void tCalendarValue.monthOf.toPlainDate({ day: tColMatrixPlain.mInt.divide(2) })
+    // @ts-expect-error a month of a year is taken to a date with a day, not a year
+    void tCalendarValue.monthOf.toPlainDate({ year: tColMatrixPlain.mInt })
     // A date and time at another time of the day: a Temporal.PlainTime or a value of the type plainTime
     void tColMatrixPlain.mDatetime.withPlainTime(tColMatrixPlain.mTime)
     // @ts-expect-error a date isn't a time of the day

@@ -543,7 +543,7 @@ interface PlainYearMonthValueSource extends ComparableValueSource<Temporal.Plain
     until(other: Temporal.PlainYearMonth | PlainYearMonthValueSource, options?: DifferenceOptions<'year' | 'month'>): DurationValueSource
     since(other: Temporal.PlainYearMonth | PlainYearMonthValueSource, options?: DifferenceOptions<'year' | 'month'>): DurationValueSource
     /** The date of that day of the month, taken to the last one (as Temporal's toPlainDate) */
-    toPlainDate(fields: { day: number }): PlainDateValueSource
+    toPlainDate(fields: { day: number | NumberValueSource }): PlainDateValueSource
 }
 
 /**
@@ -557,7 +557,7 @@ interface PlainMonthDayValueSource extends EqualableValueSource<Temporal.PlainMo
     /** With another month or day, the day taken to the last one of the month in a leap year or the year given, as Temporal's with */
     with(fields: { month?: number | NumberValueSource, monthCode?: string, day?: number | NumberValueSource, year?: number | NumberValueSource }, options?: { overflow?: 'constrain' | 'reject' }): PlainMonthDayValueSource
     /** The date in the year given, February 29 taken to the 28th (as Temporal's toPlainDate) */
-    toPlainDate(fields: { year: number }): PlainDateValueSource
+    toPlainDate(fields: { year: number | NumberValueSource }): PlainDateValueSource
 }
 
 /**

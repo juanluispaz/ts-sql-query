@@ -328,6 +328,45 @@ describe(ctx.label, () => {
         expect(rows.map(row => [row.plus.toString(), row.minus.toString()])).toEqual([[february.add({ months: 42 }).toString(), february.subtract({ years: 1, months: 42 }).toString()]])
     })
 
+    test('a-month-of-a-year-and-a-day-of-a-month-taken-to-a-date-of-the-query', async () => {
+        // calendar_value row 1 is 2024-02 and 02-29; the int 42 of col_matrix row 1 as the day is the last one of February,
+        // plus 1981 as the year is 2023, which has no February 29, plus 1982 is 2024; a day below 1 fails, as Temporal throws
+        const yearMonth = Temporal.PlainYearMonth.from('2024-02')
+        const monthDay = Temporal.PlainMonthDay.from('02-29')
+        const expected = { lastDay: yearMonth.toPlainDate({ day: 29 }), in2023: monthDay.toPlainDate({ year: 2023 }), in2024: monthDay.toPlainDate({ year: 2024 }) }
+        ctx.mockNext([{ lastDay: expected.lastDay.toString(), in2023: expected.in2023.toString(), in2024: expected.in2024.toString() }])
+        const rows = await ctx.conn.selectFrom(tCalendarValue)
+            .join(tColMatrixPlain).on(tColMatrixPlain.id.equals(1))
+            .where(tCalendarValue.id.equals(1))
+            .select({
+                lastDay: tCalendarValue.monthOf.toPlainDate({ day: tColMatrixPlain.mInt }),
+                in2023: tCalendarValue.dayOf.toPlainDate({ year: tColMatrixPlain.mInt.add(ctx.conn.const(1981, 'int')) }),
+                in2024: tCalendarValue.dayOf.toPlainDate({ year: tColMatrixPlain.mInt.add(ctx.conn.const(1982, 'int')) }),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date_add(date_add(date_add(makedate(year(calendar_value.month_of), 1), interval month(calendar_value.month_of) - 1 month), interval least(col_matrix.m_int, day(last_day(date_add(makedate(year(calendar_value.month_of), 1), interval month(calendar_value.month_of) - 1 month)))) - 1 day), interval case when col_matrix.m_int < 1 then (select 1 union all select 1) else 0 end day) as lastDay, date_add(date_add(makedate((col_matrix.m_int + ?), 1), interval month(calendar_value.day_of) - 1 month), interval least(day(calendar_value.day_of), day(last_day(date_add(makedate((col_matrix.m_int + ?), 1), interval month(calendar_value.day_of) - 1 month)))) - 1 day) as in2023, date_add(date_add(makedate((col_matrix.m_int + ?), 1), interval month(calendar_value.day_of) - 1 month), interval least(day(calendar_value.day_of), day(last_day(date_add(makedate((col_matrix.m_int + ?), 1), interval month(calendar_value.day_of) - 1 month)))) - 1 day) as in2024 from calendar_value join col_matrix on col_matrix.id = ? where calendar_value.id = ?"`)
+        expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
+          [
+            "1981",
+            "1981",
+            "1982",
+            "1982",
+            "1",
+            "1",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ lastDay: Temporal.PlainDate; in2023: Temporal.PlainDate; in2024: Temporal.PlainDate }>>>()
+        expect(rows.map(row => [row.lastDay.toString(), row.in2023.toString(), row.in2024.toString()])).toEqual([[expected.lastDay.toString(), expected.in2023.toString(), expected.in2024.toString()]])
+        ctx.mockNext([{ value: '2024-02-01' }])
+        const failed = await failureOf(ctx.conn.selectFrom(tCalendarValue)
+            .join(tColMatrixPlain).on(tColMatrixPlain.id.equals(1))
+            .where(tCalendarValue.id.equals(1))
+            .select({ value: tCalendarValue.monthOf.toPlainDate({ day: ctx.conn.const(0, 'int').subtract(tColMatrixPlain.mInt) }) })
+            .executeSelectMany())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date_add(date_add(date_add(makedate(year(calendar_value.month_of), 1), interval month(calendar_value.month_of) - 1 month), interval least((? - col_matrix.m_int), day(last_day(date_add(makedate(year(calendar_value.month_of), 1), interval month(calendar_value.month_of) - 1 month)))) - 1 day), interval case when (? - col_matrix.m_int) < 1 then (select 1 union all select 1) else 0 end day) as value from calendar_value join col_matrix on col_matrix.id = ? where calendar_value.id = ?"`)
+        expect(failed).toBe(ctx.realDbEnabled)
+    })
+
     test('the-years-and-months-from-a-month-of-a-year-to-another', async () => {
         // In years and months by default; rounded to the year, by the days of the months, as Temporal (since rounds
         // with the mode inverted, negated). PostgreSQL's interval gives the months as years and months: the months

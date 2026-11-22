@@ -252,6 +252,7 @@ nav:
         - NoExecutionQueryRunner: configuration/query-runners/general-purpose/NoExecutionQueryRunner.md
     - Combining with another library: configuration/query-runners/combining-with-another-library.md
   - Databases:
+    - Introduction: databases/index.md
     - MariaDB:
       - Configuration: databases/mariadb/index.md
       - Functions: databases/mariadb/functions.md

@@ -66,6 +66,8 @@ No extra query is sent to find anything out, and a value from a request never be
 
 ## Supported Databases
 
+What is particular to each one, its connection and its drivers are in [Databases](databases/index.md):
+
 - [MariaDB](databases/mariadb/index.md)
 - [MySQL](databases/mysql/index.md)
 - [Oracle](databases/oracle/index.md)

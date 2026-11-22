@@ -36,7 +36,7 @@ AREAS = [
         'configuration/query-runners/combining-with-another-library.md',
     ], False),
     ('configuration', 'Mapping and configuration', 'the connection, tables and views, the types of the columns, dates and times (Temporal), time zones, collations and each database', [
-        'configuration/*.md', 'databases/*/index.md',
+        'configuration/*.md', 'databases/index.md', 'databases/*/index.md',
         'advanced/data-types/custom-booleans-values.md',
     ], True),
     ('api-mapping', 'API of the tables and views', 'the methods to declare tables, views and constant values as a view, to look up', [

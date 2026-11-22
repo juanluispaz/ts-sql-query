@@ -330,7 +330,7 @@ The executed query is:
         version as version, 
         dbo.tsq_duration_total_of(rollout_time, 0, 0, 0, 'hour') as hours, 
         dbo.tsq_duration_total_of(rollout_time, datepart(year, released_on), datepart(month, released_on), datepart(day, released_on), 'month') as months, 
-        dbo.tsq_duration_total(0, 0, 0, -dbo.tsq_ticks_between(published_at, cast(released_on as datetime2)) / 10000000, (-dbo.tsq_ticks_between(published_at, cast(released_on as datetime2)) % 10000000) * 100, 0, 0, 0, 'day') as daysToPublication 
+        dbo.tsq_duration_total(0, 0, 0, -dbo.tsq_ticks_between(switchoffset(published_at, '+00:00'), cast(released_on as datetime2)) / 10000000, (-dbo.tsq_ticks_between(switchoffset(published_at, '+00:00'), cast(released_on as datetime2)) % 10000000) * 100, 0, 0, 0, 'day') as daysToPublication 
     from project_release 
     order by version
     ```

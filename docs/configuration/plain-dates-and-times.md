@@ -478,8 +478,8 @@ The executed query is:
     select 
         version as version, 
         dbo.tsq_duration_text(0, 0, 0, datediff(day, released_on, cast(switchoffset(published_at, '+00:00') as date)), 0, 0, 0, 'day') as toPublication, 
-        dbo.tsq_duration_text(0, 0, 0, 0, 0, 0, cast(-dbo.tsq_ticks_between(published_at, cast(released_on as datetime2)) as decimal(38)) * 100, 'hour') as publishedAfter, 
-        dbo.tsq_duration_round_of(switchoffset(released_on, '+00:00'), switchoffset(@0, '+00:00'), 'month', 'day', 1, 'trunc', 1) as untilEndOfJune 
+        dbo.tsq_duration_text(0, 0, 0, 0, 0, 0, cast(-dbo.tsq_ticks_between(switchoffset(published_at, '+00:00'), cast(released_on as datetime2)) as decimal(38)) * 100, 'hour') as publishedAfter, 
+        dbo.tsq_duration_round_of(released_on, @0, 'month', 'day', 1, 'trunc', 1) as untilEndOfJune 
     from project_release 
     order by version
     ```

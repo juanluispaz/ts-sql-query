@@ -110,6 +110,7 @@ export class TypeAdapterContextImpl implements TypeAdapterValueToDBContext, Type
         this.projector = projector
         this.pendingProjection = projector ? value : undefined
         this.pendingOutput = output
+        this.output = output
     }
 
     private startConversion(originalType: DataTypeClass): void {

@@ -89,6 +89,7 @@ class AdapterContext implements TypeAdapterValueFromDBContext, TypeAdapterValueT
     resetRequestedType(): void {
         this.requestedType = this.originalType
     }
+    readonly output = 'resultColumn' as const
     readonly originalSqlDataType: SqlDataType | undefined = undefined
     requestedSqlDataType: SqlDataType | undefined = undefined
     setRequestedSqlDataType(sqlDataType: SqlDataType | undefined): void {

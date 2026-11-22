@@ -7,7 +7,7 @@ import type { UpdateExpression, UpdateExpressionAllowingNoWhere } from '../expre
 import type { DeleteExpression, DeleteExpressionAllowingNoWhere } from '../expressions/delete.js'
 import type { NoTableOrViewRequired, ITableOrView, ITable, SameDB, HasSource, ForUseInLeftJoin, AnyTableOrView } from '../utils/ITableOrView.js'
 import type { SelectExpression, SelectExpressionFromNoTable, SelectExpressionSubquery } from '../expressions/select.js'
-import type { SqlDataType, TypeAdapter, DefaultTypeAdapter, TypeAdapterPlaceholderContext, TypeAdapterProjectionContext, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
+import type { ProjectionOutput, SqlDataType, TypeAdapter, DefaultTypeAdapter, TypeAdapterPlaceholderContext, TypeAdapterProjectionContext, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import type { IConnection } from '../utils/IConnection.js'
 import type { FragmentBuilder0, FragmentBuilder1, FragmentBuilder2, FragmentBuilder3, FragmentBuilder4, FragmentBuilder5, FragmentBuilder0IfValue, FragmentBuilder1IfValue, FragmentBuilder2IfValue, FragmentBuilder3IfValue, FragmentBuilder4IfValue, FragmentBuilder5IfValue, FragmentBuilderMaybeOptional0, FragmentBuilderMaybeOptional1, FragmentBuilderMaybeOptional2, FragmentBuilderMaybeOptional3, FragmentBuilderMaybeOptional4, FragmentBuilderMaybeOptional5 } from '../expressions/fragment.js'
@@ -1070,6 +1070,14 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         return value
     }
     /** Converts a value received from the database as the requested type */
+    /**
+     * Whether the text of an exact decimal received from that output lacks the decimals the database gives the value,
+     * so the ones of its SQL data type complete it: the database writes them in the text (MariaDB, MySQL, PostgreSQL,
+     * SQL Server)
+     */
+    protected __exactDecimalTextLacksTheDecimalsOfTheDatabase(_output: ProjectionOutput): boolean {
+        return false
+    }
     protected transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext): unknown {
         const type = context.requestedType.type
         if (value === undefined) {
@@ -1233,11 +1241,14 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             } else {
                 throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid decimal value received from the db: ' + String(value))
             }
-            // The decimals the SQL data type says (the scale of a `numeric(18, 4)`) win over the ones received; a digit
-            // other than a zero beyond them is never removed
-            const decimals = decimalsOfSqlDataType(context.requestedSqlDataType)
-            if (decimals !== undefined) {
-                text = exactDecimalTextWithDecimals(text, decimals)
+            // The decimals of the value are the ones the database gives; where it doesn't give them, the ones the SQL
+            // data type says (the scale of a `numeric(18, 4)`), and without them, the ones of the value received. A
+            // digit other than a zero beyond them is never removed
+            if (this.__exactDecimalTextLacksTheDecimalsOfTheDatabase(context.output)) {
+                const decimals = decimalsOfSqlDataType(context.requestedSqlDataType)
+                if (decimals !== undefined) {
+                    text = exactDecimalTextWithDecimals(text, decimals)
+                }
             }
             if (__isDnumDecimalClass(context.requestedType)) {
                 return dnumOfText(text)

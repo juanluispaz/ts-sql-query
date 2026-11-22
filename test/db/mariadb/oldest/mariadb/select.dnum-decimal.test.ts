@@ -194,9 +194,9 @@ describe(ctx.label, () => {
         })
     })
 
-    test('dnum-decimal/the-decimals-of-the-sql-data-type-are-the-ones-of-the-value', async () => {
-        // The SQL data type declared says 2 decimals for amount and 3 for price: the value has them, also as a
-        // stringDecimal; the digits of the amount of row 1 beyond its 2 decimals aren't zeros, so they are kept
+    test('dnum-decimal/the-sql-data-type-gives-the-decimals-the-database-does-not-give', async () => {
+        // The SQL data type declared says 2 decimals for amount and 3 for price, but the database gives the decimals of
+        // the columns, 10 and 2, which are the ones of the value, also as a stringDecimal
         ctx.mockNext([
             { id: 1, amount: '12345678901234567890.1234567891', price: '1.50', priceText: '1.50' },
             { id: 3, amount: '0.0000000000', price: '0.00', priceText: '0.00' },
@@ -214,10 +214,48 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, amount as amount, price as price, price as priceText from exact_amount where id in (?, ?) order by id"`)
         assertType<Exact<typeof rows, { id: number; amount?: Dnum; price?: Dnum; priceText?: string }[]>>()
         expect(rows).toEqual([
-            { id: 1, amount: [123456789012345678901234567891n, 10], price: [1500n, 3], priceText: '1.500' },
-            { id: 3, amount: [0n, 2], price: [0n, 3], priceText: '0.000' },
+            { id: 1, amount: [123456789012345678901234567891n, 10], price: [150n, 2], priceText: '1.50' },
+            { id: 3, amount: [0n, 10], price: [0n, 2], priceText: '0.00' },
         ])
     })
+
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092), newer than this tier's engine.
+    /*
+    test('dnum-decimal/a-returning-clause-has-the-decimals-of-the-database-or-of-the-sql-data-type', async () => {
+        // The price is sent as 1.7 and kept by the column with its 2 decimals, which the database gives
+        ctx.mockNext({ price: '1.70', priceText: '1.70' })
+        await ctx.withRollback(async () => {
+            const row = await ctx.conn.update(tDeclaredExactAmount)
+                .set({ price: [17n, 1] })
+                .where(tDeclaredExactAmount.id.equals(1))
+                .returning({ price: tDeclaredExactAmount.price, priceText: tDeclaredExactAmount.priceText })
+                .executeUpdateOne()
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof row, { price?: Dnum; priceText?: string }>>()
+            expect(row).toEqual({ price: [170n, 2], priceText: '1.70' })
+        })
+    })
+    */
+
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — json_arrayagg (aggregateAsArray / JSON array projection) requires MariaDB 10.5+; earlier releases have no json_arrayagg function.
+    /*
+    test('dnum-decimal/an-array-aggregate-has-the-decimals-of-the-database-or-of-the-sql-data-type', async () => {
+        // The JSON has the price with the 2 decimals of its column
+        ctx.mockNext([{ id: 1, prices: '[1.50]' }])
+        const rows = await ctx.conn.selectFrom(tDeclaredExactAmount)
+            .where(tDeclaredExactAmount.id.equals(1))
+            .select({
+                id: tDeclaredExactAmount.id,
+                prices: ctx.conn.aggregateAsArrayOfOneColumn(tDeclaredExactAmount.price),
+            })
+            .groupBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        assertType<Exact<typeof rows, { id: number; prices: Dnum[] }[]>>()
+        expect(rows).toEqual([{ id: 1, prices: [[150n, 2]] }])
+    })
+    */
 
     test('dnum-decimal/a-dynamic-condition-filters-with-a-dnum-filter', async () => {
         ctx.mockNext([1])

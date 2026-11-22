@@ -12,7 +12,7 @@ import { source, valueType } from '../utils/symbols.js'
 import { __createAggregateFunction1, __createAggregateFunction1or2, __createAggregateValueAsArray, __asNodeValueSource } from '../typeSystem/valueSourceFactory.js'
 import type { QueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import type { SameDB } from '../utils/ITableOrView.js'
-import type { SqlDataType, SqlDataTypeNative, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
+import type { ProjectionOutput, SqlDataType, SqlDataTypeNative, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
 import { __isBigintClass, __isInstantClass, __isLocalDateClass, __isLocalDateTimeClass, __isLocalTimeClass, __isPlainTimeClass } from '../typeSystem/dataTypeQuestions.js'
 import { isKeptInADateClass, isPlainTemporalClass } from '../utils/plainTemporalValues.js'
 import { parseInstantText, plainDateText } from '../utils/plainDateTimeText.js'
@@ -210,6 +210,13 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
     protected treatUnexpectedStringDateTimeAsUTC: boolean = false
     protected unexpectedUnixDateTimeAreMilliseconds: boolean = false
 
+    /**
+     * SQLite has no exact decimal type: the text of an exact decimal is the one stored, and the decimals of its value are
+     * the ones its SQL data type says
+     */
+    protected override __exactDecimalTextLacksTheDecimalsOfTheDatabase(_output: ProjectionOutput): boolean {
+        return true
+    }
     protected override transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext): unknown {
         if (value === undefined || value == null || (value === '' && !this.allowEmptyString)) {
             return super.transformValueFromDB(value, context)

@@ -186,6 +186,8 @@ export interface TypeAdapterProjectionContext extends TypeAdapterContext {
  * requests that one before calling the next, which converts the value by it.
  */
 export interface TypeAdapterValueFromDBContext extends TypeAdapterContext {
+    /** Where the value left the database: a column of the result, or a value inside an aggregated array */
+    readonly output: ProjectionOutput
     /**
      * Requests a type, by the name of a built-in one or by its class, like `setRequestedType('string')` or
      * `setRequestedType(ReleaseDayType)`: the next type adapter and the conversion of the library decide by it. It can

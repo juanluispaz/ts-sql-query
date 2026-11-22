@@ -1,4 +1,4 @@
-import type { BeginTransactionOpts, CommitOpts, DatabaseType, RollbackOpts } from './QueryRunner.js'
+import type { BeginTransactionOpts, CommitOpts, DatabaseType, QueryResultColumn, RollbackOpts } from './QueryRunner.js'
 import type { Connection, DbType, ExecuteOptions, FetchTypeResponse, Metadata } from 'oracledb'
 import oracleDb from 'oracledb'
 import { DelegatedSetTransactionQueryRunner } from './DelegatedSetTransactionQueryRunner.js'
@@ -11,11 +11,11 @@ import type { DataTypeClass, SqlDataType } from '../TypeAdapter.js'
 import { __sqlDataTypeDescribes, __temporalFieldsOf, __typeSqlDataTypeOf } from '../typeSystem/dataTypes.js'
 import { isOracleZonedParam, oraclePlainTemporalFormOfParam, oracleTemporalBind } from '../utils/oracle/oracleParamTypes.js'
 import { durationIsoTextWithoutWeeks, isDurationValue } from '../utils/durationValues.js'
-import { exactDecimalTextWithDecimals } from '../utils/exactDecimalValues.js'
+import { decimalsOfSqlDataType, exactDecimalTextWithDecimals } from '../utils/exactDecimalValues.js'
 import { isPlainTemporalClass } from '../utils/plainTemporalValues.js'
 import { __isInstantClass, __isZonedDateTimeClass } from '../typeSystem/dataTypeQuestions.js'
 import { oracleDateParam } from '../utils/metadataSymbols.js'
-import type { QueryParamContext } from '../QueryContext.js'
+import type { QueryContext, QueryParamContext } from '../QueryContext.js'
 import { existingParamContextOf, existingQueryContextOf } from '../internal/QueryContextImpl.js'
 import { getQueryContext } from '../QueryContext.js'
 import type { DataTypeName } from '../typeSystem/dataTypeNames.js'
@@ -109,8 +109,9 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
      * - a column expected as an exact decimal, a bigint or an integer of the user wider than a number is fetched as text, with all
      *   its digits (oracledb gives a NUMBER as a JavaScript number, which loses digits and the scale). The column is the
      *   one with the name expected, or the only column of a query that returns one value without a name. Oracle writes
- *   the text of a NUMBER without the zeros at the end of its decimals (`1.5` in a NUMBER(10, 2)): when the column says
- *   its scale, they are added (`1.50`), so the value has the decimals of its column;
+     *   the text of a NUMBER without the zeros at the end of its decimals (`1.5` in a NUMBER(10, 2)): they are added up
+     *   to the decimals the database says (the scale of a NUMBER(10, 2) column, `1.50`) or, where it doesn't say them
+     *   (a computed value), up to the ones the SQL data type of the column says;
      * - a DATE or a TIMESTAMP is the Date whose UTC getters are its digits, the values in the database being in UTC:
      *   oracledb builds it with the zone of the process, and the converter takes its local getters back (see
      *   utcDateOfLocalGetters);
@@ -120,17 +121,20 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
     protected fetchTypeHandlerFor(query: string, params: any[]): (metadata: Metadata<any>, rowsetMetaData: ReadonlyArray<Metadata<any>>) => FetchTypeResponse {
         const columns = getQueryContext(query, params).resultColumns
         let unnamed = false
-        let names: Set<string> | undefined
+        let unnamedDecimals: number | undefined
+        // The columns read as text, by name, with the decimals their SQL data type says
+        let names: Map<string, number | undefined> | undefined
         if (columns) {
             for (const column of columns) {
-                const declared = column.requestedSqlDataType
-                if (!isReadAsText(declared !== undefined && __sqlDataTypeDescribes(declared, column.requestedType) ? declared : __typeSqlDataTypeOf(column.requestedType))) {
+                const sqlDataType = sqlDataTypeOfColumn(column)
+                if (!isReadAsText(sqlDataType)) {
                     continue
                 }
                 if (column.name) {
-                    (names ??= new Set<string>()).add(column.name)
+                    (names ??= new Map<string, number | undefined>()).set(column.name, decimalsOfSqlDataType(sqlDataType))
                 } else {
                     unnamed = true
+                    unnamedDecimals = decimalsOfSqlDataType(sqlDataType)
                 }
             }
         }
@@ -138,8 +142,11 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
             return oracleFetchTypeHandler
         }
         return (metadata, rowsetMetaData) => {
-            if (names?.has(metadata.name) || (unnamed && rowsetMetaData.length === 1)) {
-                return textFetchTypeOf(metadata)
+            if (names?.has(metadata.name)) {
+                return textFetchTypeOf(metadata, names.get(metadata.name))
+            }
+            if (unnamed && rowsetMetaData.length === 1) {
+                return textFetchTypeOf(metadata, unnamedDecimals)
             }
             return oracleFetchTypeHandler(metadata)
         }
@@ -361,13 +368,24 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
         const rows: any[][] = []
         let current: any[] = []
         rows.push(current)
+        const queryContext = existingQueryContextOf(params)
         for (let i = 0, length = params.length; i < length; i++) {
             const param = params[i]
             if (!param || typeof param !== 'object' || param.dir !== oracleDb.BIND_OUT) {
                 continue
             }
             const name: string = param.as || ''
-            const value = outBinds[i]
+            let value = outBinds[i]
+            const decimals = decimalsOfOutBind(queryContext, name)
+            if (decimals !== undefined) {
+                if (Array.isArray(value)) {
+                    for (let j = 0, length2 = value.length; j < length2; j++) {
+                        value[j] = textWithDecimals(value[j], decimals)
+                    }
+                } else {
+                    value = textWithDecimals(value, decimals)
+                }
+            }
 
             if (current.length > 0 && name in current[0]) {
                 current = []
@@ -586,29 +604,60 @@ function utcDateOfLocalGetters(value: unknown): unknown {
     return result
 }
 
+/** The SQL data type a column of the result is read with: the one requested for it, or the one of its type */
+function sqlDataTypeOfColumn(column: QueryResultColumn): SqlDataType | undefined {
+    const declared = column.requestedSqlDataType
+    return declared !== undefined && __sqlDataTypeDescribes(declared, column.requestedType) ? declared : __typeSqlDataTypeOf(column.requestedType)
+}
+
 /**
- * The fetch type of a column expected as text (see fetchTypeHandlerFor): a NUMBER that says its scale (NUMBER(10, 2);
- * not an expression, whose scale Oracle doesn't know) gets the zeros at the end of its decimals that Oracle doesn't write
+ * The fetch type of a column expected as text (see fetchTypeHandlerFor). Its text gets the zeros at the end of its
+ * decimals that Oracle doesn't write, up to the decimals the database says: the scale of a NUMBER(10, 2); a NUMBER
+ * without a precision (a computed value) doesn't say them, and then they are the ones its SQL data type says
  */
-function textFetchTypeOf(metadata: Metadata<any>): FetchTypeResponse {
+function textFetchTypeOf(metadata: Metadata<any>, decimalsOfSqlDataType: number | undefined): FetchTypeResponse {
+    const precision = metadata.precision
     const scale = metadata.scale
-    if (metadata.dbType === oracleDb.DB_TYPE_NUMBER && scale !== undefined && Number.isSafeInteger(scale) && scale > 0 && scale <= 127) {
-        return { type: oracleDb.DB_TYPE_VARCHAR, converter: decimalsTextConverterOf(scale) }
+    const decimals = metadata.dbType === oracleDb.DB_TYPE_NUMBER && precision !== undefined && precision > 0 && scale !== undefined && Number.isSafeInteger(scale) && scale >= 0 ? scale : decimalsOfSqlDataType
+    if (decimals !== undefined && decimals > 0) {
+        return { type: oracleDb.DB_TYPE_VARCHAR, converter: decimalsTextConverterOf(decimals) }
     }
     return { type: oracleDb.DB_TYPE_VARCHAR }
 }
 
-/** The converters of the text of a NUMBER with a scale, by its scale: one for each, created the first time */
+/** The converters of the text of a number with decimals, by the number of decimals: one for each, created the first time */
 const decimalsTextConverters: Array<((value: unknown) => unknown) | undefined> = []
 
-/** The converter that gives the text of a NUMBER the decimals of its scale (`.5` with 2 is `.50`) */
-function decimalsTextConverterOf(scale: number): (value: unknown) => unknown {
-    let converter = decimalsTextConverters[scale]
+/** The converter that gives the text of a number those decimals (`.5` with 2 is `.50`) */
+function decimalsTextConverterOf(decimals: number): (value: unknown) => unknown {
+    let converter = decimalsTextConverters[decimals]
     if (!converter) {
-        converter = (value: unknown): unknown => typeof value === 'string' && /^-?(\d+(\.\d+)?|\.\d+)$/.test(value) ? exactDecimalTextWithDecimals(value, scale) : value
-        decimalsTextConverters[scale] = converter
+        converter = (value: unknown): unknown => textWithDecimals(value, decimals)
+        decimalsTextConverters[decimals] = converter
     }
     return converter
+}
+
+/** The text of an exact decimal with those decimals, as exactDecimalTextWithDecimals; any other value as it is */
+function textWithDecimals(value: unknown, decimals: number): unknown {
+    return typeof value === 'string' && /^-?(\d+(\.\d+)?|\.\d+)$/.test(value) ? exactDecimalTextWithDecimals(value, decimals) : value
+}
+
+/**
+ * The decimals of the value of a RETURNING OUT bind of that column: an OUT bind doesn't say the scale of its column, so
+ * they are the ones its SQL data type says, for a column read as text; undefined when there are none to add
+ */
+function decimalsOfOutBind(queryContext: QueryContext | undefined, name: string): number | undefined {
+    const column = queryContext?.getResultColumn(name)
+    if (!column) {
+        return undefined
+    }
+    const sqlDataType = sqlDataTypeOfColumn(column)
+    if (!isReadAsText(sqlDataType)) {
+        return undefined
+    }
+    const decimals = decimalsOfSqlDataType(sqlDataType)
+    return decimals !== undefined && decimals > 0 ? decimals : undefined
 }
 
 /** The fetch type of every column that is not expected as text (see fetchTypeHandlerFor) */

@@ -13,7 +13,7 @@ import { __createAggregateFunction1, __createAggregateFunction1or2, __asNodeValu
 import type { SameDB } from '../utils/ITableOrView.js'
 import type { Default } from '../expressions/Default.js'
 import { DefaultImpl } from '../expressions/Default.js'
-import type { SqlDataType, SqlDataTypeNative, TypeAdapterProjectionContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
+import type { ProjectionOutput, SqlDataType, SqlDataTypeNative, TypeAdapterProjectionContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
 import { __isBooleanClass, __isDurationClass, __isInstantClass, __isLocalDateTimeClass, __isLocalTimeClass, __isPlainDateTimeClass, __isPlainTimeClass, __isZonedDateTimeClass } from '../typeSystem/dataTypeQuestions.js'
 import { __durationSqlDataTypeOf } from '../typeSystem/dataTypes.js'
 import { isDurationValue } from '../utils/durationValues.js'
@@ -220,6 +220,15 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
      * localDateTime or a localTime parameter goes as a TIMESTAMP WITH LOCAL TIME ZONE of its instant, which the database
      * converts with its session (the zone of the database) into the wall clock it stores or compares with
      */
+    /**
+     * Oracle writes the text of a number without the zeros at the end of its decimals. A column of the result is read
+     * by the query runner, which gives it the decimals the database says (the scale of a NUMBER(10, 2) column) or, when
+     * it doesn't say them (a computed value, a returning), the ones of its SQL data type; a value inside an aggregated
+     * array is the text Oracle writes in the JSON, which the decimals of its SQL data type complete
+     */
+    protected override __exactDecimalTextLacksTheDecimalsOfTheDatabase(output: ProjectionOutput): boolean {
+        return output === 'aggregatedArrayValue'
+    }
     protected override transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext): unknown {
         if ((__isLocalDateTimeClass(context.requestedType) || __isLocalTimeClass(context.requestedType) || __isInstantClass(context.requestedType)) && this.isDatabaseOutsideUtc()) {
             context.setMetadata(oracleZonedParam, true)

@@ -192,9 +192,10 @@ describe(ctx.label, () => {
         })
     })
 
-    test('dnum-decimal/the-decimals-of-the-sql-data-type-are-the-ones-of-the-value', async () => {
-        // The SQL data type declared says 2 decimals for amount and 3 for price: the value has them, also as a
-        // stringDecimal; the digits of the amount of row 1 beyond its 2 decimals aren't zeros, so they are kept
+    test('dnum-decimal/the-sql-data-type-gives-the-decimals-the-database-does-not-give', async () => {
+        // SQLite gives the text stored, in its canonical text, without the decimals of a column: they are the ones the
+        // SQL data type declared says, 2 for amount and 3 for price, also as a stringDecimal; the digits of the amount
+        // of row 1 beyond its 2 decimals aren't zeros, so they are kept
         ctx.mockNext([
             { id: 1, amount: '12345678901234567890.1234567891', price: '1.5', priceText: '1.5' },
             { id: 3, amount: '0', price: '0', priceText: '0' },
@@ -215,6 +216,43 @@ describe(ctx.label, () => {
             { id: 1, amount: [123456789012345678901234567891n, 10], price: [1500n, 3], priceText: '1.500' },
             { id: 3, amount: [0n, 2], price: [0n, 3], priceText: '0.000' },
         ])
+    })
+
+    test('dnum-decimal/a-returning-clause-has-the-decimals-of-the-database-or-of-the-sql-data-type', async () => {
+        // The price is kept in its canonical text, 1.7: its decimals are the 3 of its SQL data type
+        ctx.mockNext({ price: '1.7', priceText: '1.7' })
+        await ctx.withRollback(async () => {
+            const row = await ctx.conn.update(tDeclaredExactAmount)
+                .set({ price: [17n, 1] })
+                .where(tDeclaredExactAmount.id.equals(1))
+                .returning({ price: tDeclaredExactAmount.price, priceText: tDeclaredExactAmount.priceText })
+                .executeUpdateOne()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update exact_amount set price = ?1 where id = ?2 returning price as price, price as priceText"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "1.7",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, { price?: Dnum; priceText?: string }>>()
+            expect(row).toEqual({ price: [1700n, 3], priceText: '1.700' })
+        })
+    })
+
+    test('dnum-decimal/an-array-aggregate-has-the-decimals-of-the-database-or-of-the-sql-data-type', async () => {
+        // The JSON has the price in its canonical text, 1.5: its decimals are the 3 of its SQL data type
+        ctx.mockNext([{ id: 1, prices: '[1.5]' }])
+        const rows = await ctx.conn.selectFrom(tDeclaredExactAmount)
+            .where(tDeclaredExactAmount.id.equals(1))
+            .select({
+                id: tDeclaredExactAmount.id,
+                prices: ctx.conn.aggregateAsArrayOfOneColumn(tDeclaredExactAmount.price),
+            })
+            .groupBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, json_group_array(price) as prices from exact_amount where id = ?1 group by id"`)
+        assertType<Exact<typeof rows, { id: number; prices: Dnum[] }[]>>()
+        expect(rows).toEqual([{ id: 1, prices: [[1500n, 3]] }])
     })
 
     test('dnum-decimal/a-dynamic-condition-filters-with-a-dnum-filter', async () => {

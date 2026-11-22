@@ -42,7 +42,7 @@ import type { BooleanType } from '../typeSystem/logical.js'
 import type { EqualableType } from '../typeSystem/equalable.js'
 import { UuidTextType } from '../typeSystem/uuidText.js'
 import { __classOf, __adaptedTypeClassOf, __unadaptedClassOf, __sqlDataTypeOf } from '../nodes/adaptedTypeClass.js'
-import { __isIntClass, __isPlainYearMonthClass, __isZonedDateTimeClass } from '../typeSystem/dataTypeQuestions.js'
+import { __isDurationClass, __isIntClass, __isPlainYearMonthClass, __isZonedDateTimeClass } from '../typeSystem/dataTypeQuestions.js'
 import { __durationFieldsOf, __withFieldsOf, type DurationFieldsGiven } from '../nodes/durationOfFields.js'
 import { isZonedDateTimeValue } from '../utils/instantValues.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
@@ -2429,6 +2429,14 @@ export class AbstractSqlBuilder implements SqlBuilder {
             return sql
         }
         const nodeColumn = __asDBColumnValueSource(column)
+        if (isValueSource(value) && __isDurationClass(__classOf(nodeColumn)) && __isDurationClass(__classOf(__asNodeValueSource(value)))) {
+            // A duration of the query kept another way than the column keeps it: in the way of the column
+            const columnText = this._isDurationKeptAsText(column as unknown as ToSql)
+            const duration = __asNodeValueSource(value) as unknown as ToSql
+            if (columnText !== this._isDurationKeptAsText(duration)) {
+                return columnText ? this._durationIntervalAsText(context, duration) : this._durationTextAsInterval(context, duration, column as unknown as ToSql)
+            }
+        }
         // A value given for a column of a table takes the type of the column, not the one of its parameter: its parameter
         // is marked so (isValueForColumn in the context of the parameter), which a query runner may use not to cast it
         if (hasToSql(value) || hasWithData(nodeColumn.__tableOrView) && isWithValuesData(nodeColumn.__tableOrView)) {
@@ -6067,6 +6075,27 @@ export class AbstractSqlBuilder implements SqlBuilder {
      */
     _durationOperandForFunction(context: SqlBuildContext, valueSource: ToSql): string {
         return this._appendSql(valueSource, context, false)
+    }
+    /**
+     * A duration of the query kept in an interval of the database, written in a column that keeps its ISO 8601 text: the
+     * text, as the library writes a duration it sends (only a database with intervals has both)
+     */
+    _durationIntervalAsText(context: SqlBuildContext, valueSource: ToSql): string {
+        return this._durationOperandForFunction(context, valueSource)
+    }
+    /**
+     * A duration of the query kept as its ISO 8601 text, written in a column that keeps it in an interval of the database:
+     * the interval of its parts (only a database with intervals has both)
+     */
+    _durationTextAsInterval(context: SqlBuildContext, valueSource: ToSql, _column: ToSql): string {
+        return this._appendSql(valueSource, context, false)
+    }
+    /**
+     * The value (of any type), or an error of the query when the condition holds, as Temporal throws: the value when the
+     * day 28 of February 2001 is valid, the day 29 checked when the condition holds. A null condition is no error
+     */
+    _anyValueOrErrorWhen(context: SqlBuildContext, value: string, condition: string): string {
+        return 'case when ' + this._validDayOrError(context, '2001', '2', 'case when ' + condition + ' then 29 else 28 end') + ' = 28 then ' + value + ' end'
     }
     /** The ISO 8601 text of a duration given as a value, written in the query: a text of the library, of digits and letters */
     _durationTextLiteral(text: string): string {

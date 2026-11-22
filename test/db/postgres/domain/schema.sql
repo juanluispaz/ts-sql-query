@@ -1024,6 +1024,41 @@ BEGIN
 END
 $$;
 
+-- tsq_interval_text: the ISO 8601 text of an interval, as the library writes a duration in a column that keeps its text:
+-- its years and months, its days and its time in hours, minutes and seconds, as PostgreSQL keeps them, with the sign of
+-- the duration; an interval with parts of different signs, which a Temporal.Duration can't hold, is an error. The
+-- function of the library that writes a duration of the query in a column of text (docs/databases/postgresql/functions)
+CREATE OR REPLACE FUNCTION tsq_interval_text(value interval) RETURNS text LANGUAGE plpgsql IMMUTABLE STRICT AS $$
+DECLARE
+    years bigint := extract(year FROM value)::bigint;
+    months bigint := extract(month FROM value)::bigint;
+    days bigint := extract(day FROM value)::bigint;
+    t numeric := extract(epoch FROM value - make_interval(years => years::integer, months => months::integer, days => days::integer));
+    negative boolean := years < 0 OR months < 0 OR days < 0 OR t < 0;
+    h numeric;
+    m numeric;
+    r text := '';
+    s text := '';
+BEGIN
+    IF negative AND (years > 0 OR months > 0 OR days > 0 OR t > 0) THEN
+        RAISE EXCEPTION 'tsq_interval_text: an interval with parts of different signs isn''t a duration';
+    END IF;
+    t := abs(t);
+    IF years <> 0 THEN r := r || abs(years) || 'Y'; END IF;
+    IF months <> 0 THEN r := r || abs(months) || 'M'; END IF;
+    IF days <> 0 THEN r := r || abs(days) || 'D'; END IF;
+    h := trunc(t / 3600);
+    t := t - h * 3600;
+    m := trunc(t / 60);
+    t := t - m * 60;
+    IF h <> 0 THEN s := s || h || 'H'; END IF;
+    IF m <> 0 THEN s := s || m || 'M'; END IF;
+    IF t <> 0 THEN s := s || trim(trailing '.' FROM trim(trailing '0' FROM to_char(t, 'FM999999999999990.000000'))) || 'S'; END IF;
+    IF r = '' AND s = '' THEN RETURN 'PT0S'; END IF;
+    RETURN CASE WHEN negative THEN '-' ELSE '' END || 'P' || r || CASE WHEN s = '' THEN '' ELSE 'T' || s END;
+END
+$$;
+
 -- tsq_zone: a zone of Temporal (a name, or an offset like '+05:30') as `at time zone` takes it, which reads a text like
 -- '+05:30' as a POSIX zone, west of UTC: the sign of an offset inverted; the function of the library that writes the
 -- zone of a value of the query once (libraryFunctions installed).

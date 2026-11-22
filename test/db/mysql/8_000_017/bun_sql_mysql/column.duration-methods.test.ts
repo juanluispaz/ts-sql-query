@@ -894,4 +894,41 @@ describe(ctx.label, () => {
         `)
         expect([row.years, row.months, row.days, row.sign]).toEqual([1, 1, 30, -1])
     })
+
+    test('a-duration-of-the-query-is-written-as-the-column-keeps-it', async () => {
+        // span written in span_text is kept there as its ISO 8601 text, as Temporal writes the duration read from span,
+        // so the database reads its fields; span_text written in span is kept as span keeps a duration. Row 3 has PT90M
+        // in span_text, which keeps the 90 minutes; in span it is read as span keeps it
+        const span = [Temporal.Duration.from('P3DT4H5M6.789S'), Temporal.Duration.from('-P1DT2H')]
+        await ctx.withRollback(async () => {
+            ctx.mockNext(2)
+            await ctx.conn.update(tDurationValue).set({ spanText: tDurationValue.span }).where(tDurationValue.id.in([1, 2])).executeUpdate()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update duration_value set span_text = span where id in (?, ?)"`)
+            ctx.mockNext(1)
+            await ctx.conn.update(tDurationValue).set({ span: tDurationValue.spanText.valueWhenNull(Temporal.Duration.from('PT0S')) }).where(tDurationValue.id.equals(3)).executeUpdate()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update duration_value set span = ifnull(span_text, ?) where id = ?"`)
+            ctx.mockNext([
+                { id: 1, spanText: 'P3DT4H5M6.789S', days: 3, hours: 4, minutes: 5, span: 'P3DT4H5M6.789S' },
+                { id: 2, spanText: '-P1DT2H', days: -1, hours: -2, minutes: 0, span: '-P1DT2H' },
+                { id: 3, spanText: 'PT90M', days: 0, hours: 0, minutes: 90, span: 'PT90M' },
+            ])
+            const rows = await ctx.conn.selectFrom(tDurationValue)
+                .select({
+                    id: tDurationValue.id,
+                    spanText: tDurationValue.spanText,
+                    days: tDurationValue.spanText.days(),
+                    hours: tDurationValue.spanText.hours(),
+                    minutes: tDurationValue.spanText.minutes(),
+                    span: tDurationValue.span,
+                })
+                .orderBy('id')
+                .executeSelectMany()
+            expect(rows.map(row => [row.id, row.spanText?.toString(), row.days, row.hours, row.minutes])).toEqual([
+                [1, span[0]!.toString(), span[0]!.days, span[0]!.hours, span[0]!.minutes],
+                [2, span[1]!.toString(), span[1]!.days, span[1]!.hours, span[1]!.minutes],
+                [3, 'PT90M', 0, 0, 90],
+            ])
+            expect(Temporal.Duration.compare(rows[2]!.span, Temporal.Duration.from('PT90M'))).toBe(0)
+        })
+    })
 })

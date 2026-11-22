@@ -80,6 +80,7 @@ describe('DurationPartFunctionDocs', () => {
         expect(documented('mysql', 'tsq_duration_add')).toBe(tested('mysql', 'tsq_duration_add'))
         expect(documented('oracle', 'tsq_duration_add')).toBe(tested('oracle', 'tsq_duration_add'))
         expect(documented('postgresql', 'tsq_duration_add')).toBe(tested('postgres', 'tsq_duration_add'))
+        expect(documented('postgresql', 'tsq_interval_text')).toBe(tested('postgres', 'tsq_interval_text'))
         expect(documented('sqlserver', 'tsq_duration_add')).toBe(tested('sqlserver', 'tsq_duration_add'))
     })
 

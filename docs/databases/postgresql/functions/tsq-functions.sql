@@ -278,6 +278,38 @@ BEGIN
 END
 $$;
 
+-- ===== tsq_interval_text =====
+CREATE OR REPLACE FUNCTION tsq_interval_text(value interval) RETURNS text LANGUAGE plpgsql IMMUTABLE STRICT AS $$
+DECLARE
+    years bigint := extract(year FROM value)::bigint;
+    months bigint := extract(month FROM value)::bigint;
+    days bigint := extract(day FROM value)::bigint;
+    t numeric := extract(epoch FROM value - make_interval(years => years::integer, months => months::integer, days => days::integer));
+    negative boolean := years < 0 OR months < 0 OR days < 0 OR t < 0;
+    h numeric;
+    m numeric;
+    r text := '';
+    s text := '';
+BEGIN
+    IF negative AND (years > 0 OR months > 0 OR days > 0 OR t > 0) THEN
+        RAISE EXCEPTION 'tsq_interval_text: an interval with parts of different signs isn''t a duration';
+    END IF;
+    t := abs(t);
+    IF years <> 0 THEN r := r || abs(years) || 'Y'; END IF;
+    IF months <> 0 THEN r := r || abs(months) || 'M'; END IF;
+    IF days <> 0 THEN r := r || abs(days) || 'D'; END IF;
+    h := trunc(t / 3600);
+    t := t - h * 3600;
+    m := trunc(t / 60);
+    t := t - m * 60;
+    IF h <> 0 THEN s := s || h || 'H'; END IF;
+    IF m <> 0 THEN s := s || m || 'M'; END IF;
+    IF t <> 0 THEN s := s || trim(trailing '.' FROM trim(trailing '0' FROM to_char(t, 'FM999999999999990.000000'))) || 'S'; END IF;
+    IF r = '' AND s = '' THEN RETURN 'PT0S'; END IF;
+    RETURN CASE WHEN negative THEN '-' ELSE '' END || 'P' || r || CASE WHEN s = '' THEN '' ELSE 'T' || s END;
+END
+$$;
+
 -- ===== tsq_zoned_of_wall =====
 CREATE OR REPLACE FUNCTION tsq_zoned_of_wall(wall timestamp, zone text, disambiguation text, preferred_offset interval DEFAULT NULL) RETURNS timestamptz LANGUAGE plpgsql IMMUTABLE AS $$
 DECLARE

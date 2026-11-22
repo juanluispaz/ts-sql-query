@@ -2056,6 +2056,24 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         // An interval as its ISO 8601 text
         return (this._isYearToMonthDuration(valueSource) ? 'tsq_ym_interval_text(' : 'tsq_ds_interval_text(') + this._appendSql(valueSource, context, false) + ')'
     }
+    override _durationIntervalAsText(context: SqlBuildContext, valueSource: ToSql): string {
+        // The text of the fields of the interval, each with the sign of the duration, by tsq_duration_text, which every
+        // query of durations needs (tsq_ds_interval_text is one of the optional functions)
+        const interval = this._appendSqlParenthesis(valueSource, context, false)
+        if (this._isYearToMonthDuration(valueSource)) {
+            return 'tsq_duration_text(extract(year from ' + interval + '), extract(month from ' + interval + "), 0, 0, 0, 0, 0, 'second')"
+        }
+        return 'tsq_duration_text(0, 0, 0, extract(day from ' + interval + '), extract(hour from ' + interval + '), extract(minute from ' + interval + '), extract(second from ' + interval + ") * 1000000000, 'second')"
+    }
+    override _durationTextAsInterval(context: SqlBuildContext, valueSource: ToSql, column: ToSql): string {
+        // The interval of its parts the column keeps; the query fails, as the value would be rejected, when it has others
+        if (this._isYearToMonthDuration(column)) {
+            const others = this._durationTextPart(context, valueSource, 'D') + ' <> 0 or ' + this._durationTextPart(context, valueSource, 'S') + ' <> 0 or ' + this._durationTextPart(context, valueSource, 'N') + ' <> 0'
+            return this._anyValueOrErrorWhen(context, "numtoyminterval(" + this._durationTextPart(context, valueSource, 'M') + ", 'month')", others)
+        }
+        const interval = "numtodsinterval(" + this._durationTextPart(context, valueSource, 'D') + ", 'day') + numtodsinterval(" + this._durationTextPart(context, valueSource, 'S') + ' + ' + this._durationTextPart(context, valueSource, 'N') + " / 1000000000, 'second')"
+        return this._anyValueOrErrorWhen(context, interval, this._durationTextPart(context, valueSource, 'M') + ' <> 0')
+    }
     override _durationPartsForSum(context: SqlBuildContext, valueSource: ToSql): string {
         if (this._isDurationKeptAsText(valueSource)) {
             return super._durationPartsForSum(context, valueSource)

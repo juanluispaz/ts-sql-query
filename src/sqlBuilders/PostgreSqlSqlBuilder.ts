@@ -1100,6 +1100,15 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         // An interval that is its months (else the query fails): added as it is, the day kept in the month
         return 'cast(' + this._appendSqlParenthesis(valueSource, context, false) + (sign < 0 ? ' - ' : ' + ') + this._appendSqlParenthesis(duration, context, false) + ' as date)'
     }
+    override _durationIntervalAsText(context: SqlBuildContext, valueSource: ToSql): string {
+        // The text the library writes for a duration it sends, of the function of the library
+        return 'tsq_interval_text(' + this._appendSql(valueSource, context, false) + ')'
+    }
+    override _durationTextAsInterval(context: SqlBuildContext, valueSource: ToSql, _column: ToSql): string {
+        // The interval of its parts, each with its sign (PostgreSQL reads no sign before the P of an ISO 8601 text)
+        return 'make_interval(months => ' + this._durationTextPart(context, valueSource, 'M') + '::integer, days => ' + this._durationTextPart(context, valueSource, 'D')
+            + '::integer, secs => ' + this._durationTextPart(context, valueSource, 'S') + ' + ' + this._durationTextPart(context, valueSource, 'N') + ' / 1000000000.0)'
+    }
     /** The SQL of a zoned date and time, its instant: a value with its type (a timestamptz) */
     _pgZonedSql(context: SqlBuildContext, valueSource: ToSql): string {
         return this._appendSqlParenthesis(valueSource, context, this._isConstOperand(valueSource))

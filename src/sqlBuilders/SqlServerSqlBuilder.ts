@@ -1097,8 +1097,34 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         return this._instantToPlainDateTime(context, valueSource)
     }
     override _instantToPlainDateTime(context: SqlBuildContext, valueSource: ToSql): string {
+        if (this._isDateTime2InUtc(valueSource)) {
+            return this._appendSql(valueSource, context, false)
+        }
         // The database is in UTC: the wall clock in UTC, of a datetimeoffset too, whatever offset it was stored with
         return 'cast(' + this._appendDateTimeInUtc(context, valueSource) + ' as datetime2)'
+    }
+    /**
+     * Whether the value is a datetime2 of a wall clock in UTC the query computes: an instant computed by the library
+     * (rounded, plus or minus a duration, of an epoch, of a zoned date and time) or the wall clock in UTC of an instant.
+     * A column, a parameter or any other value of an instant may be a datetimeoffset, taken to UTC where it is used
+     */
+    _isDateTime2InUtc(valueSource: ToSql): boolean {
+        if (!isValueSource(valueSource)) {
+            return false
+        }
+        switch ((__asNodeValueSource(valueSource) as Partial<HasOperation>).__operation) {
+            case '_instantToPlainDateTime':
+            case '_instantInUtc':
+            case '_roundInstant':
+            case '_instantAddDuration':
+            case '_instantSubtractDuration':
+            case '_instantFromEpochMilliseconds':
+            case '_instantFromEpochNanoseconds':
+            case '_zonedToInstant':
+                return true
+            default:
+                return false
+        }
     }
     override _year(context: SqlBuildContext, valueSource: ToSql): string {
         return 'datepart(year, ' + this._appendDateTimeInUtc(context, valueSource) + ')'
@@ -1425,8 +1451,8 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
      * the seconds and milliseconds don't depend on one (offsets are whole minutes): they are written as they are
      */
     _appendDateTimeInUtc(context: SqlBuildContext, valueSource: ToSql): string {
-        // The date and time of an instant is already a datetime2 of its wall clock in UTC
-        if (isValueSource(valueSource) && __isLocalDateTimeValueSource(__asNodeValueSource(valueSource)) && (__asNodeValueSource(valueSource) as Partial<HasOperation>).__operation !== '_instantToPlainDateTime') {
+        // An instant the query computes, and the date and time of an instant, are already a datetime2 of the wall clock in UTC
+        if (isValueSource(valueSource) && __isLocalDateTimeValueSource(__asNodeValueSource(valueSource)) && !this._isDateTime2InUtc(valueSource)) {
             return 'switchoffset(' + this._appendSql(valueSource, context, false) + ", '+00:00')"
         }
         return this._appendSql(valueSource, context, false)

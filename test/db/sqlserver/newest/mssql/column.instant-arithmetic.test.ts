@@ -234,26 +234,31 @@ describe(ctx.label, () => {
 
     test('an-instant-computed-as-a-date-and-time-of-the-database', async () => {
         // An instant rounded, plus a duration, or of its epoch, taken to its date and time in the zone of the database (UTC)
-        ctx.mockNext([{ hour: '2024-01-14 09:00:00', later: '2024-01-14 10:15:30.123456', day: '2024-01-14' }])
+        ctx.mockNext([{ hour: '2024-01-14 09:00:00', later: '2024-01-14 10:15:30.123456', earlier: '2024-01-14', day: '2024-01-14', dayOfNanoseconds: '2024-01-14' }])
         const rows = await ctx.conn.selectFrom(tInstantValue)
             .where(tInstantValue.id.equals(1))
             .select({
                 hour: tInstantValue.instantAt.round('hour').toPlainDateTime(),
                 later: tInstantValue.instantAt.add({ hours: 1 }).toPlainDateTime(),
+                earlier: tInstantValue.instantAt.subtract({ minutes: 30 }).toPlainDate(),
                 day: ctx.conn.instantFromEpochMilliseconds(tInstantValue.instantAt.epochMilliseconds()).toPlainDate(),
+                dayOfNanoseconds: ctx.conn.instantFromEpochNanoseconds(tInstantValue.instantAt.epochNanoseconds()).toPlainDate(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(switchoffset(dateadd(nanosecond, ((2 * (datediff_big(nanosecond, cast('00:00' as time), cast(cast(switchoffset(instant_at, '+00:00') as datetime2) as time)) / 100) + cast(36000000000 as bigint)) / cast(72000000000 as bigint) * cast(36000000000 as bigint)) % 10000000 * 100, dateadd(second, ((2 * (datediff_big(nanosecond, cast('00:00' as time), cast(cast(switchoffset(instant_at, '+00:00') as datetime2) as time)) / 100) + cast(36000000000 as bigint)) / cast(72000000000 as bigint) * cast(36000000000 as bigint)) / 10000000, cast(cast(cast(switchoffset(instant_at, '+00:00') as datetime2) as date) as datetime2))), '+00:00') as datetime2) as hour, cast(switchoffset(dateadd(second, @0, cast(switchoffset(instant_at, '+00:00') as datetime2)), '+00:00') as datetime2) as later, cast(cast(switchoffset(dateadd(nanosecond, (((cast(datediff_big(millisecond, '1970-01-01 00:00:00', instant_at) as bigint) % 86400000 + 86400000) % 86400000) * 1000000) % 1000000000, dateadd(second, (((cast(datediff_big(millisecond, '1970-01-01 00:00:00', instant_at) as bigint) % 86400000 + 86400000) % 86400000) * 1000000) / 1000000000, cast(dateadd(day, (cast(datediff_big(millisecond, '1970-01-01 00:00:00', instant_at) as bigint) - ((cast(datediff_big(millisecond, '1970-01-01 00:00:00', instant_at) as bigint) % 86400000 + 86400000) % 86400000)) / 86400000, cast('1970-01-01' as date)) as datetime2))), '+00:00') as datetime2) as date) as day from instant_value where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select dateadd(nanosecond, ((2 * (datediff_big(nanosecond, cast('00:00' as time), cast(cast(switchoffset(instant_at, '+00:00') as datetime2) as time)) / 100) + cast(36000000000 as bigint)) / cast(72000000000 as bigint) * cast(36000000000 as bigint)) % 10000000 * 100, dateadd(second, ((2 * (datediff_big(nanosecond, cast('00:00' as time), cast(cast(switchoffset(instant_at, '+00:00') as datetime2) as time)) / 100) + cast(36000000000 as bigint)) / cast(72000000000 as bigint) * cast(36000000000 as bigint)) / 10000000, cast(cast(cast(switchoffset(instant_at, '+00:00') as datetime2) as date) as datetime2))) as hour, dateadd(second, @0, cast(switchoffset(instant_at, '+00:00') as datetime2)) as later, cast(dateadd(second, @1, cast(switchoffset(instant_at, '+00:00') as datetime2)) as date) as earlier, cast(dateadd(nanosecond, (((cast(datediff_big(millisecond, '1970-01-01 00:00:00', instant_at) as bigint) % 86400000 + 86400000) % 86400000) * 1000000) % 1000000000, dateadd(second, (((cast(datediff_big(millisecond, '1970-01-01 00:00:00', instant_at) as bigint) % 86400000 + 86400000) % 86400000) * 1000000) / 1000000000, cast(dateadd(day, (cast(datediff_big(millisecond, '1970-01-01 00:00:00', instant_at) as bigint) - ((cast(datediff_big(millisecond, '1970-01-01 00:00:00', instant_at) as bigint) % 86400000 + 86400000) % 86400000)) / 86400000, cast('1970-01-01' as date)) as datetime2))) as date) as day, cast(dateadd(nanosecond, ((((datediff_big(microsecond, '1970-01-01 00:00:00', instant_at) * 1000 + datepart(nanosecond, instant_at) % 1000) % cast(86400000000000 as bigint) + cast(86400000000000 as bigint)) % cast(86400000000000 as bigint))) % 1000000000, dateadd(second, ((((datediff_big(microsecond, '1970-01-01 00:00:00', instant_at) * 1000 + datepart(nanosecond, instant_at) % 1000) % cast(86400000000000 as bigint) + cast(86400000000000 as bigint)) % cast(86400000000000 as bigint))) / 1000000000, cast(dateadd(day, ((datediff_big(microsecond, '1970-01-01 00:00:00', instant_at) * 1000 + datepart(nanosecond, instant_at) % 1000) - (((datediff_big(microsecond, '1970-01-01 00:00:00', instant_at) * 1000 + datepart(nanosecond, instant_at) % 1000) % cast(86400000000000 as bigint) + cast(86400000000000 as bigint)) % cast(86400000000000 as bigint))) / cast(86400000000000 as bigint), cast('1970-01-01' as date)) as datetime2))) as date) as dayOfNanoseconds from instant_value where id = @2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3600,
+            -1800,
             1,
           ]
         `)
-        assertType<Exact<typeof rows, Array<{ hour: Temporal.PlainDateTime; later: Temporal.PlainDateTime; day: Temporal.PlainDate }>>>()
-        expect(rows.map(row => [row.hour.toString(), row.later.toString(), row.day.toString()])).toEqual([[
+        assertType<Exact<typeof rows, Array<{ hour: Temporal.PlainDateTime; later: Temporal.PlainDateTime; earlier: Temporal.PlainDate; day: Temporal.PlainDate; dayOfNanoseconds: Temporal.PlainDate }>>>()
+        expect(rows.map(row => [row.hour.toString(), row.later.toString(), row.earlier.toString(), row.day.toString(), row.dayOfNanoseconds.toString()])).toEqual([[
             deployed.round('hour').toZonedDateTimeISO('UTC').toPlainDateTime().toString(),
             deployed.add({ hours: 1 }).toZonedDateTimeISO('UTC').toPlainDateTime().toString(),
+            deployed.subtract({ minutes: 30 }).toZonedDateTimeISO('UTC').toPlainDate().toString(),
+            deployed.toZonedDateTimeISO('UTC').toPlainDate().toString(),
             deployed.toZonedDateTimeISO('UTC').toPlainDate().toString(),
         ]])
     })

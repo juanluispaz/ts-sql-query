@@ -221,26 +221,31 @@ describe(ctx.label, () => {
 
     test('an-instant-computed-as-a-date-and-time-of-the-database', async () => {
         // An instant rounded, plus a duration, or of its epoch, taken to its date and time in the zone of the database (UTC)
-        ctx.mockNext([{ hour: '2024-01-14 09:00:00', later: '2024-01-14 10:15:30.123456', day: '2024-01-14' }])
+        ctx.mockNext([{ hour: '2024-01-14 09:00:00', later: '2024-01-14 10:15:30.123456', earlier: '2024-01-14', day: '2024-01-14', dayOfNanoseconds: '2024-01-14' }])
         const rows = await ctx.conn.selectFrom(tInstantValue)
             .where(tInstantValue.id.equals(1))
             .select({
                 hour: tInstantValue.instantAt.round('hour').toPlainDateTime(),
                 later: tInstantValue.instantAt.add({ hours: 1 }).toPlainDateTime(),
+                earlier: tInstantValue.instantAt.subtract({ minutes: 30 }).toPlainDate(),
                 day: ctx.conn.instantFromEpochMilliseconds(tInstantValue.instantAt.epochMilliseconds()).toPlainDate(),
+                dayOfNanoseconds: ctx.conn.instantFromEpochNanoseconds(tInstantValue.instantAt.epochNanoseconds()).toPlainDate(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (date_bin(interval '1 hours', instant_at + interval '30 minutes', date_trunc('day', instant_at)))::timestamp as hour, (instant_at + $1)::timestamp as later, cast(((date '1970-01-01' + cast(((cast(floor(extract(epoch from instant_at) * 1000) as bigint) - ((cast(floor(extract(epoch from instant_at) * 1000) as bigint) % 86400000 + 86400000) % 86400000)) / 86400000) as integer)) + make_interval(secs => (((cast(floor(extract(epoch from instant_at) * 1000) as bigint) % 86400000 + 86400000) % 86400000) * 1000000) / 1000000000.0))::timestamp as date) as day from instant_value where id = $2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (date_bin(interval '1 hours', instant_at + interval '30 minutes', date_trunc('day', instant_at)))::timestamp as hour, (instant_at + $1)::timestamp as later, cast((instant_at + $2)::timestamp as date) as earlier, cast(((date '1970-01-01' + cast(((cast(floor(extract(epoch from instant_at) * 1000) as bigint) - ((cast(floor(extract(epoch from instant_at) * 1000) as bigint) % 86400000 + 86400000) % 86400000)) / 86400000) as integer)) + make_interval(secs => (((cast(floor(extract(epoch from instant_at) * 1000) as bigint) % 86400000 + 86400000) % 86400000) * 1000000) / 1000000000.0))::timestamp as date) as day, cast(((date '1970-01-01' + cast(((trunc(extract(epoch from instant_at) * 1000000000) - ((trunc(extract(epoch from instant_at) * 1000000000) % 86400000000000 + 86400000000000) % 86400000000000)) / 86400000000000) as integer)) + make_interval(secs => (((trunc(extract(epoch from instant_at) * 1000000000) % 86400000000000 + 86400000000000) % 86400000000000)) / 1000000000.0))::timestamp as date) as "dayOfNanoseconds" from instant_value where id = $3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
+            Duration {},
             Duration {},
             1,
           ]
         `)
-        assertType<Exact<typeof rows, Array<{ hour: Temporal.PlainDateTime; later: Temporal.PlainDateTime; day: Temporal.PlainDate }>>>()
-        expect(rows.map(row => [row.hour.toString(), row.later.toString(), row.day.toString()])).toEqual([[
+        assertType<Exact<typeof rows, Array<{ hour: Temporal.PlainDateTime; later: Temporal.PlainDateTime; earlier: Temporal.PlainDate; day: Temporal.PlainDate; dayOfNanoseconds: Temporal.PlainDate }>>>()
+        expect(rows.map(row => [row.hour.toString(), row.later.toString(), row.earlier.toString(), row.day.toString(), row.dayOfNanoseconds.toString()])).toEqual([[
             deployed.round('hour').toZonedDateTimeISO('UTC').toPlainDateTime().toString(),
             deployed.add({ hours: 1 }).toZonedDateTimeISO('UTC').toPlainDateTime().toString(),
+            deployed.subtract({ minutes: 30 }).toZonedDateTimeISO('UTC').toPlainDate().toString(),
+            deployed.toZonedDateTimeISO('UTC').toPlainDate().toString(),
             deployed.toZonedDateTimeISO('UTC').toPlainDate().toString(),
         ]])
     })

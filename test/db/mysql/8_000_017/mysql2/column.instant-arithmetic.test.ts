@@ -221,26 +221,31 @@ describe(ctx.label, () => {
 
     test('an-instant-computed-as-a-date-and-time-of-the-database', async () => {
         // An instant rounded, plus a duration, or of its epoch, taken to its date and time in the zone of the database (UTC)
-        ctx.mockNext([{ hour: '2024-01-14 09:00:00', later: '2024-01-14 10:15:30.123456', day: '2024-01-14' }])
+        ctx.mockNext([{ hour: '2024-01-14 09:00:00', later: '2024-01-14 10:15:30.123456', earlier: '2024-01-14', day: '2024-01-14', dayOfNanoseconds: '2024-01-14' }])
         const rows = await ctx.conn.selectFrom(tInstantValue)
             .where(tInstantValue.id.equals(1))
             .select({
                 hour: tInstantValue.instantAt.round('hour').toPlainDateTime(),
                 later: tInstantValue.instantAt.add({ hours: 1 }).toPlainDateTime(),
+                earlier: tInstantValue.instantAt.subtract({ minutes: 30 }).toPlainDate(),
                 day: ctx.conn.instantFromEpochMilliseconds(tInstantValue.instantAt.epochMilliseconds()).toPlainDate(),
+                dayOfNanoseconds: ctx.conn.instantFromEpochNanoseconds(tInstantValue.instantAt.epochNanoseconds()).toPlainDate(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date_add(date(instant_at), interval (2 * (floor(time_to_sec(instant_at)) * 1000000 + microsecond(instant_at)) + 3600000000) div 7200000000 * 3600000000 microsecond) as hour, date_add(instant_at, interval ? microsecond) as later, date(date_add(date_add(date '1970-01-01', interval (floor(timestampdiff(microsecond, '1970-01-01 00:00:00', instant_at) / 1000) - ((floor(timestampdiff(microsecond, '1970-01-01 00:00:00', instant_at) / 1000) % 86400000 + 86400000) % 86400000)) div 86400000 day), interval (((floor(timestampdiff(microsecond, '1970-01-01 00:00:00', instant_at) / 1000) % 86400000 + 86400000) % 86400000) * 1000000) div 1000 microsecond)) as day from instant_value where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date_add(date(instant_at), interval (2 * (floor(time_to_sec(instant_at)) * 1000000 + microsecond(instant_at)) + 3600000000) div 7200000000 * 3600000000 microsecond) as hour, date_add(instant_at, interval ? microsecond) as later, date(date_add(instant_at, interval ? microsecond)) as earlier, date(date_add(date_add(date '1970-01-01', interval (floor(timestampdiff(microsecond, '1970-01-01 00:00:00', instant_at) / 1000) - ((floor(timestampdiff(microsecond, '1970-01-01 00:00:00', instant_at) / 1000) % 86400000 + 86400000) % 86400000)) div 86400000 day), interval (((floor(timestampdiff(microsecond, '1970-01-01 00:00:00', instant_at) / 1000) % 86400000 + 86400000) % 86400000) * 1000000) div 1000 microsecond)) as day, date(date_add(date_add(date '1970-01-01', interval ((cast(timestampdiff(microsecond, '1970-01-01 00:00:00', instant_at) as decimal(30)) * 1000) - (((cast(timestampdiff(microsecond, '1970-01-01 00:00:00', instant_at) as decimal(30)) * 1000) % 86400000000000 + 86400000000000) % 86400000000000)) div 86400000000000 day), interval ((((cast(timestampdiff(microsecond, '1970-01-01 00:00:00', instant_at) as decimal(30)) * 1000) % 86400000000000 + 86400000000000) % 86400000000000)) div 1000 microsecond)) as dayOfNanoseconds from instant_value where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3600000000n,
+            -1800000000n,
             1,
           ]
         `)
-        assertType<Exact<typeof rows, Array<{ hour: Temporal.PlainDateTime; later: Temporal.PlainDateTime; day: Temporal.PlainDate }>>>()
-        expect(rows.map(row => [row.hour.toString(), row.later.toString(), row.day.toString()])).toEqual([[
+        assertType<Exact<typeof rows, Array<{ hour: Temporal.PlainDateTime; later: Temporal.PlainDateTime; earlier: Temporal.PlainDate; day: Temporal.PlainDate; dayOfNanoseconds: Temporal.PlainDate }>>>()
+        expect(rows.map(row => [row.hour.toString(), row.later.toString(), row.earlier.toString(), row.day.toString(), row.dayOfNanoseconds.toString()])).toEqual([[
             deployed.round('hour').toZonedDateTimeISO('UTC').toPlainDateTime().toString(),
             deployed.add({ hours: 1 }).toZonedDateTimeISO('UTC').toPlainDateTime().toString(),
+            deployed.subtract({ minutes: 30 }).toZonedDateTimeISO('UTC').toPlainDate().toString(),
+            deployed.toZonedDateTimeISO('UTC').toPlainDate().toString(),
             deployed.toZonedDateTimeISO('UTC').toPlainDate().toString(),
         ]])
     })

@@ -214,21 +214,25 @@ describe(ctx.label, () => {
     /*
     test('an-instant-computed-as-a-date-and-time-of-the-database', async () => {
         // An instant rounded, plus a duration, or of its epoch, taken to its date and time in the zone of the database (UTC)
-        ctx.mockNext([{ hour: '2024-01-14 09:00:00', later: '2024-01-14 10:15:30.123456', day: '2024-01-14' }])
+        ctx.mockNext([{ hour: '2024-01-14 09:00:00', later: '2024-01-14 10:15:30.123456', earlier: '2024-01-14', day: '2024-01-14', dayOfNanoseconds: '2024-01-14' }])
         const rows = await ctx.conn.selectFrom(tInstantValue)
             .where(tInstantValue.id.equals(1))
             .select({
                 hour: tInstantValue.instantAt.round('hour').toPlainDateTime(),
                 later: tInstantValue.instantAt.add({ hours: 1 }).toPlainDateTime(),
+                earlier: tInstantValue.instantAt.subtract({ minutes: 30 }).toPlainDate(),
                 day: ctx.conn.instantFromEpochMilliseconds(tInstantValue.instantAt.epochMilliseconds()).toPlainDate(),
+                dayOfNanoseconds: ctx.conn.instantFromEpochNanoseconds(tInstantValue.instantAt.epochNanoseconds()).toPlainDate(),
             })
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot()
         expect(ctx.lastParams).toMatchInlineSnapshot()
-        assertType<Exact<typeof rows, Array<{ hour: Temporal.PlainDateTime; later: Temporal.PlainDateTime; day: Temporal.PlainDate }>>>()
-        expect(rows.map(row => [row.hour.toString(), row.later.toString(), row.day.toString()])).toEqual([[
+        assertType<Exact<typeof rows, Array<{ hour: Temporal.PlainDateTime; later: Temporal.PlainDateTime; earlier: Temporal.PlainDate; day: Temporal.PlainDate; dayOfNanoseconds: Temporal.PlainDate }>>>()
+        expect(rows.map(row => [row.hour.toString(), row.later.toString(), row.earlier.toString(), row.day.toString(), row.dayOfNanoseconds.toString()])).toEqual([[
             deployed.round('hour').toZonedDateTimeISO('UTC').toPlainDateTime().toString(),
             deployed.add({ hours: 1 }).toZonedDateTimeISO('UTC').toPlainDateTime().toString(),
+            deployed.subtract({ minutes: 30 }).toZonedDateTimeISO('UTC').toPlainDate().toString(),
+            deployed.toZonedDateTimeISO('UTC').toPlainDate().toString(),
             deployed.toZonedDateTimeISO('UTC').toPlainDate().toString(),
         ]])
     })

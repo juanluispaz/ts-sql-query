@@ -207,26 +207,31 @@ describe(ctx.label, () => {
 
     test('an-instant-computed-as-a-date-and-time-of-the-database', async () => {
         // An instant rounded, plus a duration, or of its epoch, taken to its date and time in the zone of the database (UTC)
-        ctx.mockNext([{ hour: '2024-01-14 09:00:00.000', later: '2024-01-14 10:15:30.123', day: '2024-01-14' }])
+        ctx.mockNext([{ hour: '2024-01-14 09:00:00.000', later: '2024-01-14 10:15:30.123', earlier: '2024-01-14', day: '2024-01-14', dayOfNanoseconds: '2024-01-14' }])
         const rows = await ctx.conn.selectFrom(tInstantValue)
             .where(tInstantValue.id.equals(1))
             .select({
                 hour: tInstantValue.instantAt.round('hour').toPlainDateTime(),
                 later: tInstantValue.instantAt.add({ hours: 1 }).toPlainDateTime(),
+                earlier: tInstantValue.instantAt.subtract({ minutes: 30 }).toPlainDate(),
                 day: ctx.conn.instantFromEpochMilliseconds(tInstantValue.instantAt.epochMilliseconds()).toPlainDate(),
+                dayOfNanoseconds: ctx.conn.instantFromEpochNanoseconds(tInstantValue.instantAt.epochNanoseconds()).toPlainDate(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select strftime('%Y-%m-%d %H:%M:%f', date(instant_at), ((cast((2 * cast(round((julianday(instant_at) - julianday(date(instant_at))) * 86400000) as integer) + 3600000) / 7200000 as integer) * 3600000) / 1000.0) || ' seconds') as hour, strftime('%Y-%m-%d %H:%M:%f', instant_at, ?1) as later, date(strftime('%Y-%m-%d %H:%M:%f', date('1970-01-01', (cast((round((julianday(instant_at) - 2440587.5) * 86400000.0) - ((round((julianday(instant_at) - 2440587.5) * 86400000.0) % 86400000 + 86400000) % 86400000)) / 86400000 as integer)) || ' days'), ((((round((julianday(instant_at) - 2440587.5) * 86400000.0) % 86400000 + 86400000) % 86400000) * 1000000) / 1000000000.0) || ' seconds')) as day from instant_value where id = ?2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select strftime('%Y-%m-%d %H:%M:%f', date(instant_at), ((cast((2 * cast(round((julianday(instant_at) - julianday(date(instant_at))) * 86400000) as integer) + 3600000) / 7200000 as integer) * 3600000) / 1000.0) || ' seconds') as hour, strftime('%Y-%m-%d %H:%M:%f', instant_at, ?1) as later, date(strftime('%Y-%m-%d %H:%M:%f', instant_at, ?2)) as earlier, date(strftime('%Y-%m-%d %H:%M:%f', date('1970-01-01', (cast((round((julianday(instant_at) - 2440587.5) * 86400000.0) - ((round((julianday(instant_at) - 2440587.5) * 86400000.0) % 86400000 + 86400000) % 86400000)) / 86400000 as integer)) || ' days'), ((((round((julianday(instant_at) - 2440587.5) * 86400000.0) % 86400000 + 86400000) % 86400000) * 1000000) / 1000000000.0) || ' seconds')) as day, date(strftime('%Y-%m-%d %H:%M:%f', date('1970-01-01', (cast(((cast(round((julianday(instant_at) - 2440587.5) * 86400000.0) as integer) * 1000000) - (((cast(round((julianday(instant_at) - 2440587.5) * 86400000.0) as integer) * 1000000) % 86400000000000 + 86400000000000) % 86400000000000)) / 86400000000000 as integer)) || ' days'), (((((cast(round((julianday(instant_at) - 2440587.5) * 86400000.0) as integer) * 1000000) % 86400000000000 + 86400000000000) % 86400000000000)) / 1000000000.0) || ' seconds')) as dayOfNanoseconds from instant_value where id = ?3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "3600 seconds",
+            "-1800 seconds",
             1,
           ]
         `)
-        assertType<Exact<typeof rows, Array<{ hour: Temporal.PlainDateTime; later: Temporal.PlainDateTime; day: Temporal.PlainDate }>>>()
-        expect(rows.map(row => [row.hour.toString(), row.later.toString(), row.day.toString()])).toEqual([[
+        assertType<Exact<typeof rows, Array<{ hour: Temporal.PlainDateTime; later: Temporal.PlainDateTime; earlier: Temporal.PlainDate; day: Temporal.PlainDate; dayOfNanoseconds: Temporal.PlainDate }>>>()
+        expect(rows.map(row => [row.hour.toString(), row.later.toString(), row.earlier.toString(), row.day.toString(), row.dayOfNanoseconds.toString()])).toEqual([[
             deployed.round('hour').toZonedDateTimeISO('UTC').toPlainDateTime().toString(),
             deployed.add({ hours: 1 }).toZonedDateTimeISO('UTC').toPlainDateTime().toString(),
+            deployed.subtract({ minutes: 30 }).toZonedDateTimeISO('UTC').toPlainDate().toString(),
+            deployed.toZonedDateTimeISO('UTC').toPlainDate().toString(),
             deployed.toZonedDateTimeISO('UTC').toPlainDate().toString(),
         ]])
     })

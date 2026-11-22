@@ -103,6 +103,28 @@ describe(ctx.label, () => {
 
     // NOT-SUPPORTED: Bun SQL delivers a timestamp or a datetime as a Date, without the digits below the millisecond, and has no option to read its text
     /*
+    test('an-instant-plus-and-minus-a-duration-of-fields-of-the-query', async () => {
+        // The int 42 of col_matrix row 1 as hours and as milliseconds: an instant adds the fields of the time alone
+        const rowsOfTemporal = [deployed, landed].map((instant, i) => ({ id: i + 1, plus: instant.add({ hours: 42, minutes: 30 }), minus: instant.subtract({ milliseconds: 42 }) }))
+        ctx.mockNext(rowsOfTemporal.map(row => ({ id: row.id, plus: row.plus.toString(), minus: row.minus.toString() })))
+        const rows = await ctx.conn.selectFrom(tInstantValue)
+            .join(tColMatrixPlain).on(tColMatrixPlain.id.equals(1))
+            .select({
+                id: tInstantValue.id,
+                plus: tInstantValue.instantAt.add({ hours: tColMatrixPlain.mInt, minutes: 30 }),
+                minus: tInstantValue.instantAt.subtract({ milliseconds: tColMatrixPlain.mInt }),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams).toMatchInlineSnapshot()
+        assertType<Exact<typeof rows, Array<{ id: number; plus: Temporal.Instant; minus: Temporal.Instant }>>>()
+        expect(rows.map(row => [row.id, row.plus.toString(), row.minus.toString()])).toEqual(rowsOfTemporal.map(row => [row.id, row.plus.toString(), row.minus.toString()]))
+    })
+    */
+
+    // NOT-SUPPORTED: Bun SQL delivers a timestamp or a datetime as a Date, without the digits below the millisecond, and has no option to read its text
+    /*
     test('a-duration-of-a-column-with-days-makes-the-query-fail', async () => {
         // As Temporal: duration_value row 1 has 3 days, row 2 is -PT26H, kept in span as -1 day -2 hours where it is an
         // interval, and as it is in span_text

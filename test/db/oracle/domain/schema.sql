@@ -188,6 +188,7 @@ CREATE TABLE project_release (
     is_signed NUMBER(1),
     download_count NUMBER(19),
     avg_rating BINARY_DOUBLE,
+    support_months NUMBER(10),
     notes VARCHAR2(255) GENERATED ALWAYS AS ('release-' || version) VIRTUAL,
     CONSTRAINT fk_release_project FOREIGN KEY (project_id) REFERENCES project(id),
     CONSTRAINT uk_release_version UNIQUE (project_id, version)

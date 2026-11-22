@@ -1,16 +1,18 @@
 import type { SqlDataType } from '../TypeAdapter.js'
 import { ComparableType } from './comparable.js'
 import { localDateSqlDataType, localDateTimeSqlDataType, localTimeSqlDataType } from './localDates.js'
-import type { TemporalDateUnit, TemporalDifferenceOptions, TemporalDisambiguationOptions, TemporalDuration, TemporalDurationLike, TemporalPlainDate, TemporalPlainDateFields, TemporalPlainDateTime, TemporalPlainTime, TemporalPlainTimeFields, TemporalOverflowOptions, TemporalRoundingOptions, TemporalTimeUnit } from './temporal.js'
+import type { TemporalDateUnit, TemporalDifferenceOptions, TemporalDisambiguationOptions, TemporalDuration, TemporalDurationLike, TemporalPlainDate, TemporalPlainDateFields, TemporalPlainDateTime, TemporalPlainTime, TemporalPlainTimeFields, TemporalOverflowOptions, TemporalRoundingOptions, TemporalTimeUnit, IntOfQuery, TemporalDurationLikeOfQuery } from './temporal.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import type { DataTypeOf, IValueWithType, OptionalityOf, SourceOf, ValueSource } from './base.js'
-import type { CombinedOptionality } from './valueSource.js'
+import type { CombinedOptionality, CombinedOptionalityOfUnion, OptionalType } from './valueSource.js'
+import type { NSource } from '../utils/sourceName.js'
 import type { SqlFunction0 } from '../sqlBuilders/SqlBuilder.js'
 import { __newSqlOperation2ValueSource, __operation0, __operation1 } from '../nodes/operations.js'
 import { __newSqlOperationConstValueSource } from '../nodes/constants.js'
 import { getOptionalType2 } from '../nodes/operands.js'
 import { isValueSource } from '../nodes/NodeStrategy.js'
-import { DurationType } from './durations.js'
+import { DurationType, __durationArgument } from './durations.js'
+import { durationFieldNames } from '../nodes/durationOfFields.js'
 import { InstantType } from './instants.js'
 import { ZonedDateTimeType, __zonedOfWallClock, type OfDatabaseWithZoneRules } from './zonedDateTimes.js'
 import type { operandTypeName } from '../utils/symbols.js'
@@ -24,7 +26,7 @@ import { __computedClassOf } from '../nodes/adaptedTypeClass.js'
 /** The value plus or minus a duration, of the same data type */
 function withDuration(valueSource: unknown, operation: '_addDuration' | '_subtractDuration', duration: unknown, options: unknown): any {
     const rejecting = isRejecting(options)
-    return __operation1(valueSource as any, rejecting ? (operation === '_addDuration' ? '_addDurationRejecting' : '_subtractDurationRejecting') : operation, duration, __computedClassOf(valueSource as object, __typeClassOf(valueSource as any)))
+    return __operation1(valueSource as any, rejecting ? (operation === '_addDuration' ? '_addDurationRejecting' : '_subtractDurationRejecting') : operation, __durationArgument(duration, durationFieldNames), __computedClassOf(valueSource as object, __typeClassOf(valueSource as any)))
 }
 
 /** Whether the options of Temporal ask to reject a day the month hasn't (overflow 'reject'); an error for another option */
@@ -160,6 +162,8 @@ export abstract class PlainDatesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME
      * Temporal.Duration, its fields (`{ days: 3 }`), or a value of the type duration
      */
     add<VALUE extends IValueWithType<'type:duration:'>>(duration: VALUE, options?: TemporalOverflowOptions): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    /** The value plus the duration of the fields given, as Temporal's `add`, where a field is an integer or an int of the query, like a column (`{ days: tInvoice.graceDays }`): the database knows its value. The query fails, as Temporal throws, when the fields have different signs */
+    add<SOURCE2 extends NSource, OPTIONAL_TYPE2 extends OptionalType>(duration: TemporalDurationLikeOfQuery<IntOfQuery<SOURCE2, OPTIONAL_TYPE2>>, options?: TemporalOverflowOptions): ValueSource<SourceOf<this> | SOURCE2, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, CombinedOptionalityOfUnion<OPTIONAL_TYPE2>>>
     add(duration: unknown, options?: unknown): any {
         return withDuration(this, '_addDuration', duration, options)
     }
@@ -167,6 +171,8 @@ export abstract class PlainDatesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME
     subtract(duration: TemporalDuration | TemporalDurationLike, options?: TemporalOverflowOptions): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     /** The date minus the duration given, with the semantics of Temporal's `subtract`: the duration negated, added. With `{ overflow: 'reject' }` a day the month hasn't is rejected, as an error of the query */
     subtract<VALUE extends IValueWithType<'type:duration:'>>(duration: VALUE, options?: TemporalOverflowOptions): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    /** The value minus the duration of the fields given, as Temporal's `subtract`, where a field is an integer or an int of the query, like a column (`{ days: tInvoice.graceDays }`). The query fails, as Temporal throws, when the fields have different signs */
+    subtract<SOURCE2 extends NSource, OPTIONAL_TYPE2 extends OptionalType>(duration: TemporalDurationLikeOfQuery<IntOfQuery<SOURCE2, OPTIONAL_TYPE2>>, options?: TemporalOverflowOptions): ValueSource<SourceOf<this> | SOURCE2, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, CombinedOptionalityOfUnion<OPTIONAL_TYPE2>>>
     subtract(duration: unknown, options?: unknown): any {
         return withDuration(this, '_subtractDuration', duration, options)
     }
@@ -255,6 +261,8 @@ export abstract class PlainTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME
      * Temporal.Duration, its fields (`{ days: 3 }`), or a value of the type duration
      */
     add<VALUE extends IValueWithType<'type:duration:'>>(duration: VALUE, options?: TemporalOverflowOptions): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    /** The value plus the duration of the fields given, as Temporal's `add`, where a field is an integer or an int of the query, like a column (`{ days: tInvoice.graceDays }`): the database knows its value. The query fails, as Temporal throws, when the fields have different signs */
+    add<SOURCE2 extends NSource, OPTIONAL_TYPE2 extends OptionalType>(duration: TemporalDurationLikeOfQuery<IntOfQuery<SOURCE2, OPTIONAL_TYPE2>>, options?: TemporalOverflowOptions): ValueSource<SourceOf<this> | SOURCE2, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, CombinedOptionalityOfUnion<OPTIONAL_TYPE2>>>
     add(duration: unknown, options?: unknown): any {
         return withDuration(this, '_addDuration', duration, options)
     }
@@ -262,6 +270,8 @@ export abstract class PlainTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME
     subtract(duration: TemporalDuration | TemporalDurationLike, options?: TemporalOverflowOptions): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     /** The time minus the duration given, with the semantics of Temporal's `subtract`: the duration negated, added. With `{ overflow: 'reject' }` a day the month hasn't is rejected, as an error of the query */
     subtract<VALUE extends IValueWithType<'type:duration:'>>(duration: VALUE, options?: TemporalOverflowOptions): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    /** The value minus the duration of the fields given, as Temporal's `subtract`, where a field is an integer or an int of the query, like a column (`{ days: tInvoice.graceDays }`). The query fails, as Temporal throws, when the fields have different signs */
+    subtract<SOURCE2 extends NSource, OPTIONAL_TYPE2 extends OptionalType>(duration: TemporalDurationLikeOfQuery<IntOfQuery<SOURCE2, OPTIONAL_TYPE2>>, options?: TemporalOverflowOptions): ValueSource<SourceOf<this> | SOURCE2, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, CombinedOptionalityOfUnion<OPTIONAL_TYPE2>>>
     subtract(duration: unknown, options?: unknown): any {
         return withDuration(this, '_subtractDuration', duration, options)
     }
@@ -441,6 +451,8 @@ export abstract class PlainDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
      * Temporal.Duration, its fields (`{ days: 3 }`), or a value of the type duration
      */
     add<VALUE extends IValueWithType<'type:duration:'>>(duration: VALUE, options?: TemporalOverflowOptions): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    /** The value plus the duration of the fields given, as Temporal's `add`, where a field is an integer or an int of the query, like a column (`{ days: tInvoice.graceDays }`): the database knows its value. The query fails, as Temporal throws, when the fields have different signs */
+    add<SOURCE2 extends NSource, OPTIONAL_TYPE2 extends OptionalType>(duration: TemporalDurationLikeOfQuery<IntOfQuery<SOURCE2, OPTIONAL_TYPE2>>, options?: TemporalOverflowOptions): ValueSource<SourceOf<this> | SOURCE2, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, CombinedOptionalityOfUnion<OPTIONAL_TYPE2>>>
     add(duration: unknown, options?: unknown): any {
         return withDuration(this, '_addDuration', duration, options)
     }
@@ -448,6 +460,8 @@ export abstract class PlainDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
     subtract(duration: TemporalDuration | TemporalDurationLike, options?: TemporalOverflowOptions): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     /** The date and time minus the duration given, with the semantics of Temporal's `subtract`: the duration negated, added. With `{ overflow: 'reject' }` a day the month hasn't is rejected, as an error of the query */
     subtract<VALUE extends IValueWithType<'type:duration:'>>(duration: VALUE, options?: TemporalOverflowOptions): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    /** The value minus the duration of the fields given, as Temporal's `subtract`, where a field is an integer or an int of the query, like a column (`{ days: tInvoice.graceDays }`). The query fails, as Temporal throws, when the fields have different signs */
+    subtract<SOURCE2 extends NSource, OPTIONAL_TYPE2 extends OptionalType>(duration: TemporalDurationLikeOfQuery<IntOfQuery<SOURCE2, OPTIONAL_TYPE2>>, options?: TemporalOverflowOptions): ValueSource<SourceOf<this> | SOURCE2, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, CombinedOptionalityOfUnion<OPTIONAL_TYPE2>>>
     subtract(duration: unknown, options?: unknown): any {
         return withDuration(this, '_subtractDuration', duration, options)
     }
@@ -457,6 +471,17 @@ export abstract class PlainDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
     with(fields: TemporalPlainDateFields & TemporalPlainTimeFields, options?: TemporalOverflowOptions): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     with(fields: unknown, options?: unknown): any {
         return withFields(this, fields, options)
+    }
+    /** The date of this date and time at 00:00, as Temporal's `withPlainTime()` */
+    withPlainTime(): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    /** The date of this date and time at the time of the day given, as Temporal's `withPlainTime(time)` */
+    withPlainTime(time: TemporalPlainTime): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    /** The date of this date and time at the time of the day of the plainTime given, as Temporal's `withPlainTime(time)` */
+    withPlainTime<VALUE extends IValueWithType<'type:plainTime:'>>(time: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    withPlainTime(time?: unknown): any {
+        const date = __operation0(this as any, '_toPlainDate', PlainDateType)
+        const sameClass = __computedClassOf(this, __typeClassOf(this as any))
+        return time === undefined ? __operation0(date, '_toPlainDateTime', sameClass) : __operation1(date, '_toPlainDateTimeAt', time, sameClass)
     }
     /**
      * The date and time rounded, as Temporal's `round`: to the unit given (`'minute'`), or with options, to multiples of

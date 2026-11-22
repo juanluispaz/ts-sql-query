@@ -183,6 +183,7 @@ CREATE TABLE project_release (
     is_signed BIT,
     download_count BIGINT,
     avg_rating FLOAT,
+    support_months INT,
     notes AS ('release-' + version),
     FOREIGN KEY (project_id) REFERENCES project(id),
     CONSTRAINT uk_release_version UNIQUE (project_id, version)

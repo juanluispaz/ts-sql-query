@@ -173,6 +173,7 @@ CREATE TABLE project_release (
     is_signed TINYINT(1),
     download_count BIGINT,
     avg_rating DOUBLE,
+    support_months INT,
     notes VARCHAR(255) GENERATED ALWAYS AS (CONCAT('release-', version)) STORED,
     FOREIGN KEY (project_id) REFERENCES project(id),
     UNIQUE (project_id, version)

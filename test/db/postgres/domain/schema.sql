@@ -178,6 +178,7 @@ CREATE TABLE project_release (
     is_signed BOOLEAN,
     download_count BIGINT,
     avg_rating DOUBLE PRECISION,
+    support_months INTEGER,
     notes VARCHAR(255) GENERATED ALWAYS AS ('release-' || version) STORED,
     UNIQUE (project_id, version)
 );

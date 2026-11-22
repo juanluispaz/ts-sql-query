@@ -2,9 +2,10 @@ import type { SqlDataType } from '../TypeAdapter.js'
 import { ComparableType } from './comparable.js'
 import { EqualableType } from './equalable.js'
 import { localDateSqlDataType } from './localDates.js'
-import type { TemporalDifferenceOptions, TemporalDuration, TemporalOverflowOptions, TemporalPlainMonthDay, TemporalPlainMonthDayFields, TemporalPlainYearMonth, TemporalPlainYearMonthFields, TemporalYearMonthDurationLike, TemporalYearMonthUnit } from './temporal.js'
+import type { TemporalDifferenceOptions, TemporalDuration, TemporalOverflowOptions, TemporalPlainMonthDay, TemporalPlainMonthDayFields, TemporalPlainYearMonth, TemporalPlainYearMonthFields, TemporalYearMonthDurationLike, TemporalYearMonthUnit, IntOfQuery, TemporalYearMonthDurationLikeOfQuery } from './temporal.js'
 import type { DataTypeOf, IValueWithType, OptionalityOf, SourceOf, ValueSource } from './base.js'
-import type { CombinedOptionality } from './valueSource.js'
+import type { CombinedOptionality, CombinedOptionalityOfUnion, OptionalType } from './valueSource.js'
+import type { NSource } from '../utils/sourceName.js'
 import type { SqlFunction0 } from '../sqlBuilders/SqlBuilder.js'
 import { __newSqlOperation2ValueSource, __operation0, __operation1 } from '../nodes/operations.js'
 import { __newSqlOperationConstValueSource } from '../nodes/constants.js'
@@ -16,7 +17,7 @@ import { __computedClassOf } from '../nodes/adaptedTypeClass.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import { plainTemporalFieldsOf } from '../utils/plainTemporalFields.js'
 import type { operandTypeName } from '../utils/symbols.js'
-import { DurationType } from './durations.js'
+import { DurationType, __durationArgument, yearMonthDurationFieldNames } from './durations.js'
 import { PlainDateType } from './plainDates.js'
 import { IntType } from './number.js'
 import { StringType } from './strings.js'
@@ -54,8 +55,13 @@ function invalid(typeName: string, value: unknown, message: string): TsSqlProces
  */
 function yearMonthWithDuration(valueSource: unknown, operation: '_addDuration' | '_subtractDuration', duration: unknown, options: unknown): any {
     isRejecting(options)
+    duration = __durationArgument(duration, yearMonthDurationFieldNames)
     const fields = duration as Record<string, unknown> | null
-    if (isValueSource(duration) || fields === null || typeof fields !== 'object' || ['weeks', 'days', 'hours', 'minutes', 'seconds', 'milliseconds', 'microseconds', 'nanoseconds'].some(name => fields[name] !== undefined && fields[name] !== 0)) {
+    if (isValueSource(duration)) {
+        // A duration of the query: the query fails when it has smaller units, as Temporal throws
+        return __operation1(valueSource as any, operation, duration, sameClassOf(valueSource))
+    }
+    if (fields === null || typeof fields !== 'object' || ['weeks', 'days', 'hours', 'minutes', 'seconds', 'milliseconds', 'microseconds', 'nanoseconds'].some(name => fields[name] !== undefined && fields[name] !== 0)) {
         throw invalid('duration', duration, 'A month of a year adds a duration of years and months, given as a Temporal.Duration or its fields')
     }
     return __operation1(valueSource as any, operation, duration, sameClassOf(valueSource))
@@ -118,11 +124,25 @@ export abstract class PlainYearMonthsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE
 
     /** The month of the year plus the duration of years and months given, as Temporal's `add` (a Temporal.Duration or its fields) */
     add(duration: TemporalDuration | TemporalYearMonthDurationLike, options?: TemporalOverflowOptions): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    /**
+     * The month of the year plus the duration of the query given, as Temporal's `add`: its years and months; the query
+     * fails when it has weeks, days or a time, as Temporal throws
+     */
+    add<VALUE extends IValueWithType<'type:duration:'>>(duration: VALUE, options?: TemporalOverflowOptions): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    /** The value plus the duration of the fields given, as Temporal's `add`, where a field is an integer or an int of the query, like a column (`{ months: tPlan.months }`): the database knows its value. The query fails, as Temporal throws, when the fields have different signs */
+    add<SOURCE2 extends NSource, OPTIONAL_TYPE2 extends OptionalType>(duration: TemporalYearMonthDurationLikeOfQuery<IntOfQuery<SOURCE2, OPTIONAL_TYPE2>>, options?: TemporalOverflowOptions): ValueSource<SourceOf<this> | SOURCE2, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, CombinedOptionalityOfUnion<OPTIONAL_TYPE2>>>
     add(duration: unknown, options?: unknown): any {
         return yearMonthWithDuration(this, '_addDuration', duration, options)
     }
     /** The month of the year minus the duration of years and months given, as Temporal's `subtract` */
     subtract(duration: TemporalDuration | TemporalYearMonthDurationLike, options?: TemporalOverflowOptions): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    /**
+     * The month of the year minus the duration of the query given, as Temporal's `subtract`: its years and months; the
+     * query fails when it has weeks, days or a time, as Temporal throws
+     */
+    subtract<VALUE extends IValueWithType<'type:duration:'>>(duration: VALUE, options?: TemporalOverflowOptions): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    /** The value minus the duration of the fields given, as Temporal's `subtract`, where a field is an integer or an int of the query, like a column (`{ months: tPlan.months }`). The query fails, as Temporal throws, when the fields have different signs */
+    subtract<SOURCE2 extends NSource, OPTIONAL_TYPE2 extends OptionalType>(duration: TemporalYearMonthDurationLikeOfQuery<IntOfQuery<SOURCE2, OPTIONAL_TYPE2>>, options?: TemporalOverflowOptions): ValueSource<SourceOf<this> | SOURCE2, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, CombinedOptionalityOfUnion<OPTIONAL_TYPE2>>>
     subtract(duration: unknown, options?: unknown): any {
         return yearMonthWithDuration(this, '_subtractDuration', duration, options)
     }

@@ -14,6 +14,8 @@
 // enforces. DESIGN §6.
 
 import { test, expect } from '../../../lib/testRunner.js'
+import { assertType, type Exact } from '../../../lib/assertType.js'
+import type { OptionalityOf } from '../../../../src/typeSystem/base.js'
 import { MariaDBConnection } from '../../../../src/connections/MariaDBConnection.js'
 import { Table } from '../../../../src/Table.js'
 import type { DBConnection } from '../domain/connection.js'
@@ -590,6 +592,19 @@ function _typeNegatives() {
     void tColMatrixPlain.mDatetime.add(tColMatrixPlain.mTime)
     // @ts-expect-error a field a duration doesn't have
     void tColMatrixPlain.mDate.subtract({ decades: 1 })
+    // A field of a duration may be an int of the query, as Temporal's Duration.from takes numbers; the result is
+    // optional when one of them is
+    void tColMatrixPlain.mDate.add({ days: tColMatrixPlain.mInt, hours: 1 })
+    const optionalDays = tColMatrixPlain.mDatetime.add({ days: tColMatrixPlain.mInt, hours: connection.optionalConst(1, 'int') })
+    assertType<Exact<OptionalityOf<typeof optionalDays>, 'optional'>>()
+    const requiredDays = tColMatrixPlain.mDatetime.add({ days: tColMatrixPlain.mInt, hours: 1 })
+    assertType<Exact<OptionalityOf<typeof requiredDays>, 'required'>>()
+    // @ts-expect-error a field of a duration is an integer: a double isn't one, as in Temporal
+    void tColMatrixPlain.mDate.add({ days: tColMatrixPlain.mInt.divide(2) })
+    // @ts-expect-error a field of a duration is a number: a text isn't one
+    void tColMatrixPlain.mDate.add({ days: connection.const('3', 'string') })
+    // @ts-expect-error a field of a duration is a number: a duration isn't one
+    void tColMatrixPlain.mDate.add({ days: tDurationValue.span })
     // with takes the fields of the type
     void tColMatrixPlain.mDate.with({ day: 1 })
     void tColMatrixPlain.mDatetime.with({ month: 2, hour: 0 })
@@ -666,6 +681,10 @@ function _typeNegatives() {
     void tInstantValue.instantAt.round({ smallestUnit: 'minute', roundingIncrement: 90 })
     // @ts-expect-error days aren't added to an instant, as in Temporal
     void tInstantValue.instantAt.add({ days: 1 })
+    // The time of the query added to an instant; days aren't, also of the query
+    void tInstantValue.instantAt.add({ hours: tColMatrixPlain.mInt })
+    // @ts-expect-error days aren't added to an instant, as in Temporal
+    void tInstantValue.instantAt.add({ days: tColMatrixPlain.mInt })
     // A duration of a column: the query fails when it has days
     void tInstantValue.instantAt.add(tDurationValue.span)
     // @ts-expect-error a difference of two instants has no days
@@ -731,6 +750,15 @@ function _typeNegatives() {
     void tCalendarValue.monthOf.until(tCalendarValue.monthOf, { largestUnit: 'month', roundingMode: 'halfEven' })
     // @ts-expect-error a month of a year has no days to add, as in Temporal
     void tCalendarValue.monthOf.add({ days: 1 })
+    // Months of the query and a duration of the query added to a month of a year; days aren't, also of the query
+    void tCalendarValue.monthOf.add({ months: tColMatrixPlain.mInt })
+    void tCalendarValue.monthOf.subtract(tDurationValue.spanCalendar)
+    // @ts-expect-error a month of a year has no days to add, as in Temporal
+    void tCalendarValue.monthOf.add({ days: tColMatrixPlain.mInt })
+    // A date and time at another time of the day: a Temporal.PlainTime or a value of the type plainTime
+    void tColMatrixPlain.mDatetime.withPlainTime(tColMatrixPlain.mTime)
+    // @ts-expect-error a date isn't a time of the day
+    void tColMatrixPlain.mDatetime.withPlainTime(tColMatrixPlain.mDate)
     // @ts-expect-error a month of a year has no day to replace
     void tCalendarValue.monthOf.with({ day: 5 })
     // @ts-expect-error a month of a year differs in years and months

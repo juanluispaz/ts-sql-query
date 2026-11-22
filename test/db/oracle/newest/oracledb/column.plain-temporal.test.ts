@@ -242,6 +242,30 @@ describe(ctx.label, () => {
             .toEqual([['2024-01-14', '12:30:00', '2024-03-04T00:00:00', '2024-03-04T09:15:00', '2024-03-04T23:59:58.5']])
     })
 
+    test('a-plain-date-time-at-another-time-of-the-day', async () => {
+        // col_matrix row 1 has the date and time 2024-01-14 12:30:00 and the time 09:15:00
+        ctx.mockNext([{ midnight: '2024-01-14 00:00:00', atColumn: '2024-01-14 09:15:00', atValue: '2024-01-14 23:59:58.5' }])
+        const rows = await ctx.conn.selectFrom(tColMatrixPlain)
+            .where(tColMatrixPlain.id.equals(1))
+            .select({
+                midnight: tColMatrixPlain.mDatetime.withPlainTime(),
+                atColumn: tColMatrixPlain.mDatetime.withPlainTime(tColMatrixPlain.mTime),
+                atValue: tColMatrixPlain.mDatetime.withPlainTime(Temporal.PlainTime.from('23:59:58.5')),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select to_char(cast(trunc(m_datetime) as timestamp(9)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "midnight", to_char(cast(cast(trunc(m_datetime) as timestamp(9)) + to_dsinterval('0 ' || to_char(cast(m_time as timestamp(9)), 'HH24:MI:SS.FF9')) as timestamp(9)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "atColumn", to_char(cast(cast(trunc(m_datetime) as timestamp(9)) + to_dsinterval('0 ' || to_char(cast(to_timestamp(:0, 'YYYY-MM-DD HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN') as timestamp(9)), 'HH24:MI:SS.FF9')) as timestamp(9)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "atValue" from col_matrix where id = :1"`)
+        expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
+          [
+            "23:59:58.5",
+            "1",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ midnight: Temporal.PlainDateTime; atColumn: Temporal.PlainDateTime; atValue: Temporal.PlainDateTime }>>>()
+        const at = Temporal.PlainDateTime.from('2024-01-14T12:30')
+        expect(rows.map(row => [row.midnight.toString(), row.atColumn.toString(), row.atValue.toString()]))
+            .toEqual([[at.withPlainTime().toString(), at.withPlainTime('09:15').toString(), at.withPlainTime('23:59:58.5').toString()]])
+    })
+
     test('a-part-and-a-conversion-in-a-condition', async () => {
         ctx.mockNext([{ id: 1 }])
         const rows = await ctx.conn.selectFrom(tColMatrixPlain)

@@ -576,6 +576,8 @@ export interface SqlFunction1 {
     _durationField(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
     _durationAdd(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
     _durationSubtract(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
+    // A duration of fields of the query written by itself (only the operations that add it take one)
+    _durationOfFields(context: SqlBuildContext, valueSource: ToSql): string
     // A date, a time or a date and time plus or minus a duration, with the semantics of Temporal
     _addDuration(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
     _subtractDuration(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string

@@ -1,3 +1,4 @@
+import { __durationFieldsOf } from '../nodes/durationOfFields.js'
 import { isPlainTemporalClass } from '../utils/plainTemporalValues.js'
 import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import type { ToSql, SelectData, WithValuesData, OrderByEntry, FlatQueryColumns } from './SqlBuilder.js'
@@ -1072,6 +1073,14 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
             }
         }
         const duration = __asNodeValueSource(value as AnyValueSource) as unknown as ToSql
+        if (__durationFieldsOf(duration)) {
+            const parts = this._zonedDurationOfFieldsParts(context, duration, sign)
+            const time = parts.seconds === undefined ? (parts.nanoseconds === undefined ? undefined : parts.nanoseconds + ' / 1000000000.0') : parts.nanoseconds === undefined ? parts.seconds : parts.seconds + ' + ' + parts.nanoseconds + ' / 1000000000.0'
+            if (parts.months === undefined && parts.days === undefined && time === undefined) {
+                return undefined
+            }
+            return { months: parts.months, days: parts.days, seconds: time === undefined ? undefined : 'make_interval(secs => ' + time + ')', hasDate: parts.hasDate }
+        }
         const sql = this._isZonedOperandWrittenInPlace(duration) ? this._appendSqlParenthesis(duration, context, false) : 'tsq_z.d'
         const negative = sign < 0 ? '-' : ''
         if (this._isDurationKeptAsText(duration)) {
@@ -1083,6 +1092,13 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         const months = '(extract(year from ' + sql + ') * 12 + extract(month from ' + sql + '))::integer'
         const days = 'extract(day from ' + sql + ')::integer'
         return { months: negative + months, days: negative + days, seconds: negative + '(' + sql + " - date_trunc('day', " + sql + '))', hasDate: months + ' <> 0 or ' + days + ' <> 0' }
+    }
+    override _datePlusDurationMonths(context: SqlBuildContext, valueSource: ToSql, duration: ToSql, sign: 1 | -1): string {
+        if (this._isDurationKeptAsText(duration)) {
+            return super._datePlusDurationMonths(context, valueSource, duration, sign)
+        }
+        // An interval that is its months (else the query fails): added as it is, the day kept in the month
+        return 'cast(' + this._appendSqlParenthesis(valueSource, context, false) + (sign < 0 ? ' - ' : ' + ') + this._appendSqlParenthesis(duration, context, false) + ' as date)'
     }
     /** The SQL of a zoned date and time, its instant: a value with its type (a timestamptz) */
     _pgZonedSql(context: SqlBuildContext, valueSource: ToSql): string {

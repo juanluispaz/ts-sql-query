@@ -10,6 +10,8 @@ import { durationTotalOf } from '../utils/durationTotal.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import { __typeClassOf } from '../nodes/dataTypeClassOf.js'
 import { __computedClassOf } from '../nodes/adaptedTypeClass.js'
+import { isValueSource } from '../nodes/NodeStrategy.js'
+import { durationFieldNames, __hasFieldOfTheQuery, __newDurationOfFieldsValueSource, type DurationFieldName, type DurationFieldsGiven } from '../nodes/durationOfFields.js'
 
 /** A field of a duration: an int */
 function fieldOf(valueSource: unknown, field: string): any {
@@ -24,6 +26,48 @@ function sameDuration(valueSource: unknown, operation: '_durationNegated' | '_du
 /** The duration plus or minus another one: a duration of the same data type */
 function sumOf(valueSource: unknown, operation: '_durationAdd' | '_durationSubtract', other: unknown): any {
     return __operation1(valueSource as any, operation, other, __computedClassOf(valueSource as object, __typeClassOf(valueSource as any)))
+}
+
+/** The fields a duration of the time alone has, the only ones Temporal adds to an instant */
+export const timeDurationFieldNames: readonly DurationFieldName[] = ['hours', 'minutes', 'seconds', 'milliseconds', 'microseconds', 'nanoseconds']
+/** The fields of a duration a month of a year adds */
+export const yearMonthDurationFieldNames: readonly DurationFieldName[] = ['years', 'months']
+
+/**
+ * The duration given to an operation that adds it: the value given, or, for fields with a value of the query (an int,
+ * like a column), a duration of those fields (see durationOfFields). Its numbers are checked as Temporal checks them
+ * (integers of one sign), and its fields are among the ones given (allowed)
+ */
+export function __durationArgument(duration: unknown, allowed: readonly DurationFieldName[]): unknown {
+    if (duration === null || typeof duration !== 'object' || isValueSource(duration) || !__hasFieldOfTheQuery(duration as DurationFieldsGiven)) {
+        return duration
+    }
+    const fields = duration as DurationFieldsGiven
+    let sign = 0
+    for (let i = 0, length = durationFieldNames.length; i < length; i++) {
+        const name = durationFieldNames[i]!
+        const field = fields[name]
+        if (field === undefined) {
+            continue
+        }
+        if (!allowed.includes(name)) {
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value: name, typeName: 'duration' }, 'Invalid field of the duration to add or subtract: ' + name)
+        }
+        if (isValueSource(field)) {
+            continue
+        }
+        if (typeof field !== 'number' || !Number.isInteger(field)) {
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value: field, typeName: 'duration' }, 'Invalid ' + name + ' of the duration to add or subtract, it must be an integer: ' + String(field))
+        }
+        if (field !== 0) {
+            const fieldSign = field < 0 ? -1 : 1
+            if (sign !== 0 && sign !== fieldSign) {
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value: field, typeName: 'duration' }, 'Invalid ' + name + ' of the duration to add or subtract, the fields must have one sign: ' + String(field))
+            }
+            sign = fieldSign
+        }
+    }
+    return __newDurationOfFieldsValueSource(fields, DurationType)
 }
 
 /** The duration in a unit, as Temporal's `total`: a double */

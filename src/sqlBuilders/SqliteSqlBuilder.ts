@@ -1,3 +1,4 @@
+import { __durationFieldsOf } from '../nodes/durationOfFields.js'
 import type { PlainTemporalFields } from '../utils/plainTemporalFields.js'
 import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import type { ToSql, SelectData, InsertData, UpdateData, FlatQueryColumns, OrderByEntry, PlainSelectData, CompoundSelectData } from './SqlBuilder.js'
@@ -1412,13 +1413,35 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
             seconds = constant.seconds === 0 && constant.nanoseconds === 0 ? undefined : this._appendValue(secondsModifier(constant.seconds, constant.nanoseconds), context, text, false)
         } else {
             const duration = __asNodeValueSource(value)
-            if (fields !== 'time') {
-                months = '(' + this._signedDurationTextPart(context, duration, 'M', sign) + ") || ' months'"
-                const wholeDays = fields === 'date' ? ' + ' + this._truncatedDivision(this._signedDurationTextPart(context, duration, 'S', sign), '86400') : ''
-                days = '(' + this._signedDurationTextPart(context, duration, 'D', sign) + wholeDays + ") || ' days'"
-            }
-            if (fields !== 'date') {
-                seconds = '(' + this._signedDurationTextPart(context, duration, 'S', sign) + ' + ' + this._signedDurationTextPart(context, duration, 'N', sign) + " / 1000000000.0) || ' seconds'"
+            if (__durationFieldsOf(duration)) {
+                // Only the parts its fields give
+                if (fields !== 'time' && this._durationHasPart(duration, 'M')) {
+                    months = '(' + this._signedDurationTextPart(context, duration, 'M', sign) + ") || ' months'"
+                }
+                const hasSeconds = this._durationHasPart(duration, 'S')
+                if (fields !== 'time') {
+                    const allDays = fields === 'date' ? this._signedDurationOfFieldsWholeDays(context, duration, sign) : this._durationHasPart(duration, 'D') ? this._signedDurationTextPart(context, duration, 'D', sign) : undefined
+                    days = allDays === undefined ? undefined : '(' + allDays + ") || ' days'"
+                }
+                if (fields !== 'date') {
+                    const hasNanoseconds = this._durationHasPart(duration, 'N')
+                    const secondsPart = hasSeconds ? this._signedDurationTextPart(context, duration, 'S', sign) : undefined
+                    const fraction = hasNanoseconds ? this._signedDurationTextPart(context, duration, 'N', sign) + ' / 1000000000.0' : undefined
+                    const allSeconds = secondsPart === undefined ? fraction : fraction === undefined ? secondsPart : secondsPart + ' + ' + fraction
+                    seconds = allSeconds === undefined ? undefined : '(' + allSeconds + ") || ' seconds'"
+                }
+                if (months === undefined && days === undefined && seconds === undefined) {
+                    return this._appendSql(valueSource, context, false)
+                }
+            } else {
+                if (fields !== 'time') {
+                    months = '(' + this._signedDurationTextPart(context, duration, 'M', sign) + ") || ' months'"
+                    const wholeDays = fields === 'date' ? ' + ' + this._truncatedDivision(this._signedDurationTextPart(context, duration, 'S', sign), '86400') : ''
+                    days = '(' + this._signedDurationTextPart(context, duration, 'D', sign) + wholeDays + ") || ' days'"
+                }
+                if (fields !== 'date') {
+                    seconds = '(' + this._signedDurationTextPart(context, duration, 'S', sign) + ' + ' + this._signedDurationTextPart(context, duration, 'N', sign) + " / 1000000000.0) || ' seconds'"
+                }
             }
         }
         const argument = this._dateFunctionArgument(context, valueSource)
@@ -1484,6 +1507,10 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     }
     override _daysInMonth(_context: SqlBuildContext, year: string, month: string): string {
         return "cast(strftime('%d', printf('%04d-%02d-01', " + year + ', ' + month + "), '+1 months', '-1 days') as integer)"
+    }
+    override _datePlusMonths(context: SqlBuildContext, valueSource: ToSql, months: string): string {
+        // From the first of the month: SQLite's `+N months` moves a day the month reached hasn't to the next one
+        return this._sqliteTemporalIn('date', this._dateFunctionArgument(context, valueSource) + ", 'start of month', (" + months + ") || ' months'")
     }
     override _makeDate(_context: SqlBuildContext, year: string, month: string, day: string): string {
         return this._sqliteTemporalIn('date', "printf('%04d-%02d-%02d', " + year + ', ' + month + ', ' + day + ')')
@@ -1566,9 +1593,9 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         // SQLite has no date that fails: an integer overflow is the error
         return 'case when ' + day + ' > ' + this._daysInMonth(context, year, month) + ' then abs(-9223372036854775807 - 1) else ' + day + ' end'
     }
-    override _valueOrErrorWhenDurationHasDays(context: SqlBuildContext, value: string, duration: ToSql): string {
+    override _valueOrErrorWhen(_context: SqlBuildContext, value: string, condition: string, _fields: 'date' | 'time' | 'timestamp'): string {
         // SQLite has no date that fails: an integer overflow is the error
-        return 'case when ' + this._durationHasDaysSql(context, duration) + ' then abs(-9223372036854775807 - 1) else ' + value + ' end'
+        return 'case when ' + condition + ' then abs(-9223372036854775807 - 1) else ' + value + ' end'
     }
     override _bigintOfInteger(sql: string): string {
         // An integer is of 64 bits

@@ -306,6 +306,38 @@ describe(ctx.label, () => {
 
     // NOT-APPLICABLE: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA: what needs them is not offered here
     /*
+    test('a-zoned-date-and-time-plus-a-duration-of-fields-of-the-query', async () => {
+        // The int 42 of col_matrix row 1 as days, months and hours: the date added to the wall clock in its zone, the
+        // time to the instant, as Temporal; with and without the functions of the library (the mock answers no rows:
+        // there it is the SQL that is checked)
+        const query = (conn: typeof ctx.conn) => conn.selectFrom(tZonedValue)
+            .join(tColMatrixPlain).on(tColMatrixPlain.id.equals(1))
+            .select({
+                id: tZonedValue.id,
+                plusDays: zonedAt.add({ days: tColMatrixPlain.mInt }),
+                minusHours: zonedAt.subtract({ hours: tColMatrixPlain.mInt, minutes: 30 }),
+                monthsAndHour: zonedAt.add({ months: tColMatrixPlain.mInt, hours: 1 }),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        ctx.mockNext([])
+        const withFunctions = await query(ctx.withLibraryFunctions())
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        ctx.mockNext([])
+        const withoutFunctions = await query(ctx.conn)
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        assertType<Exact<typeof withFunctions, Array<{ id: number; plusDays: Temporal.ZonedDateTime; minusHours: Temporal.ZonedDateTime; monthsAndHour: Temporal.ZonedDateTime }>>>()
+        expect(withFunctions.length).toBe(ctx.realDbEnabled ? 3 : 0)
+        const ofTemporal = zoned.map((value, i) => [i + 1, value.add({ days: 42 }).toString(), value.subtract({ hours: 42, minutes: 30 }).toString(), value.add({ months: 42, hours: 1 }).toString()])
+        type Row = (typeof withFunctions)[number]
+        const read = (row: Row) => [row.id, row.plusDays.toString(), row.minusHours.toString(), row.monthsAndHour.toString()]
+        expect(withFunctions.map(read)).toEqual(ofTemporal.slice(0, withFunctions.length))
+        expect(withoutFunctions.map(read)).toEqual(ofTemporal.slice(0, withoutFunctions.length))
+    })
+    */
+
+    // NOT-APPLICABLE: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA: what needs them is not offered here
+    /*
     test('a-zoned-date-and-time-with-other-fields-rounded-and-at-the-start-of-its-day', async () => {
         // Row 1 is in the first 02:30 of a day Madrid repeats, with 25 hours: with keeps its offset when the zone still
         // has it, round rounds its wall clock, round to a day takes the start of its day or of the next one

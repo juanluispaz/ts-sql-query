@@ -43,6 +43,7 @@ import type { EqualableType } from '../typeSystem/equalable.js'
 import { UuidTextType } from '../typeSystem/uuidText.js'
 import { __classOf, __adaptedTypeClassOf, __unadaptedClassOf, __sqlDataTypeOf } from '../nodes/adaptedTypeClass.js'
 import { __isIntClass, __isPlainYearMonthClass, __isZonedDateTimeClass } from '../typeSystem/dataTypeQuestions.js'
+import { __durationFieldsOf, type DurationFieldsGiven } from '../nodes/durationOfFields.js'
 import { isZonedDateTimeValue } from '../utils/instantValues.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
 import { __arithmeticOperandClassOf, __valueOperandClassOf } from '../typeSystem/dataTypeClasses.js'
@@ -4366,7 +4367,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * names it (see _zonedComputedOnce)
      */
     _isZonedOperandWrittenInPlace(operand: unknown): boolean {
-        return !isValueSource(operand) || __isColumn(__asNodeValueSource(operand as AnyValueSource))
+        // A duration of fields of the query is written by its parts, each where it is used
+        return !isValueSource(operand) || __isColumn(__asNodeValueSource(operand as AnyValueSource)) || __durationFieldsOf(operand) !== undefined
     }
     /** The SQL of an operand of a computation of zones where it is used: the operand, or its name in the scalar subquery that computes it */
     _zonedOperandSql(context: SqlBuildContext, operand: ToSql, name: string): string {
@@ -4428,6 +4430,30 @@ export class AbstractSqlBuilder implements SqlBuilder {
     /** A wall clock plus the months and the days of the date of a duration (see ZonedDurationPartsSql), with Temporal's overflow */
     _zonedWallPlusDate(_context: SqlBuildContext, _wall: string, _months: string | undefined, _days: string | undefined, _reject: boolean): string {
         return this._zonedDateTimeUnsupported()
+    }
+    /**
+     * The parts of a duration of fields of the query (multiplied by sign) a zoned date and time adds, as
+     * ZonedDurationPartsSql has them but its time: the seconds and the nanoseconds apart, each undefined when its fields
+     * give nothing. It may have no date only when a field of the query gives it: then the date is added when it isn't 0
+     */
+    _zonedDurationOfFieldsParts(context: SqlBuildContext, duration: ToSql, sign: 1 | -1): { months: string | undefined, days: string | undefined, seconds: string | undefined, nanoseconds: string | undefined, hasDate: string | undefined } {
+        const fields = __durationFieldsOf(duration)!
+        const hasMonths = this._durationHasPart(duration, 'M')
+        const hasDays = this._durationHasPart(duration, 'D')
+        const months = hasMonths ? this._signedDurationTextPart(context, duration, 'M', sign) : undefined
+        const days = hasDays ? this._signedDurationTextPart(context, duration, 'D', sign) : undefined
+        const seconds = this._durationHasPart(duration, 'S') ? this._signedDurationTextPart(context, duration, 'S', sign) : undefined
+        const nanoseconds = this._durationHasPart(duration, 'N') ? this._signedDurationTextPart(context, duration, 'N', sign) : undefined
+        // A date given by numbers alone is always a date
+        const numberMonths = hasMonths && typeof (fields.years ?? 0) === 'number' && typeof (fields.months ?? 0) === 'number'
+        const numberDays = hasDays && typeof (fields.weeks ?? 0) === 'number' && typeof (fields.days ?? 0) === 'number'
+        let hasDate: string | undefined
+        // With the functions of the library the date is added by the function, which takes no date as no date: the
+        // condition isn't written (its parameters would be sent without their place in the SQL)
+        if ((hasMonths || hasDays) && !numberMonths && !numberDays && !this._libraryFunctionsInstalled()) {
+            hasDate = (hasMonths ? this._durationTextPart(context, duration, 'M') + ' <> 0' : '') + (hasMonths && hasDays ? ' or ' : '') + (hasDays ? this._durationTextPart(context, duration, 'D') + ' <> 0' : '')
+        }
+        return { months, days, seconds, nanoseconds, hasDate }
     }
     /** The parts of a duration (multiplied by sign) a zoned date and time adds; undefined when it adds nothing */
     _zonedDurationParts(_context: SqlBuildContext, _value: unknown, _sign: 1 | -1): ZonedDurationPartsSql | undefined {
@@ -4494,16 +4520,16 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return this._zonedComputedOnce(context, this._zonedOfUtc(utc, zone), value, 'x')
     }
     _zonedAddDuration(context: SqlBuildContext, valueSource: ToSql, value: any, _typeClass: DataTypeClass): string {
-        return this._appendZonedWithDuration(context, valueSource, value, 1, false)
+        return this._withSignOfDurationFieldsChecked(context, this._appendZonedWithDuration(context, valueSource, value, 1, false), value, 'timestamp')
     }
     _zonedSubtractDuration(context: SqlBuildContext, valueSource: ToSql, value: any, _typeClass: DataTypeClass): string {
-        return this._appendZonedWithDuration(context, valueSource, value, -1, false)
+        return this._withSignOfDurationFieldsChecked(context, this._appendZonedWithDuration(context, valueSource, value, -1, false), value, 'timestamp')
     }
     _zonedAddDurationRejecting(context: SqlBuildContext, valueSource: ToSql, value: any, _typeClass: DataTypeClass): string {
-        return this._appendZonedWithDuration(context, valueSource, value, 1, true)
+        return this._withSignOfDurationFieldsChecked(context, this._appendZonedWithDuration(context, valueSource, value, 1, true), value, 'timestamp')
     }
     _zonedSubtractDurationRejecting(context: SqlBuildContext, valueSource: ToSql, value: any, _typeClass: DataTypeClass): string {
-        return this._appendZonedWithDuration(context, valueSource, value, -1, true)
+        return this._withSignOfDurationFieldsChecked(context, this._appendZonedWithDuration(context, valueSource, value, -1, true), value, 'timestamp')
     }
     /** A zoned date and time plus a duration (multiplied by sign), as Temporal adds it */
     _appendZonedWithDuration(_context: SqlBuildContext, _valueSource: ToSql, _value: unknown, _sign: 1 | -1, _reject: boolean): string {
@@ -4561,6 +4587,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (!isValueSource(value)) {
             return this._instantOfUtc(context, sum)
         }
+        if (__durationFieldsOf(value)) {
+            // Its fields are of the time alone
+            return this._instantOfUtc(context, this._withSignOfDurationFieldsChecked(context, sum, value, 'timestamp'))
+        }
         return this._instantOfUtc(context, this._valueOrErrorWhenDurationHasDays(context, sum, __asNodeValueSource(value as AnyValueSource) as unknown as ToSql))
     }
     /**
@@ -4569,8 +4599,16 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * 28. A null duration is no error
      */
     _valueOrErrorWhenDurationHasDays(context: SqlBuildContext, value: string, duration: ToSql): string {
-        const day = 'case when ' + this._durationHasDaysSql(context, duration) + ' then 29 else 28 end'
-        return this._shiftDays(context, value, '(' + this._validDayOrError(context, '2001', '2', day) + ' - 28)', 'timestamp')
+        return this._valueOrErrorWhen(context, value, this._durationHasDaysSql(context, duration), 'timestamp')
+    }
+    /**
+     * The value (a date, a time or a date and time, as fields says), or an error of the query when the condition holds,
+     * as Temporal throws: the value plus no day, the day 28 of February 2001 checked (or the 29, which it hasn't, when
+     * the condition holds) minus 28. A null condition is no error
+     */
+    _valueOrErrorWhen(context: SqlBuildContext, value: string, condition: string, fields: 'date' | 'time' | 'timestamp'): string {
+        const day = 'case when ' + condition + ' then 29 else 28 end'
+        return this._shiftDays(context, value, '(' + this._validDayOrError(context, '2001', '2', day) + ' - 28)', fields)
     }
     /** The condition that a duration has days, weeks, months or years: of its ISO 8601 text, its months or days aren't 0 */
     _durationHasDaysSql(context: SqlBuildContext, duration: ToSql): string {
@@ -4590,10 +4628,46 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return this._appendValueParenthesis(value, context, __registeredDataType('plainTime'), true)
     }
     _addDuration(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        return this._appendPlusDuration(context, valueSource, value, this._temporalFieldsOfDurationOperation(typeClass), 1) ?? this._appendWithDuration(context, valueSource, value, typeClass, 1)
+        if (__isPlainYearMonthClass(typeClass) && isValueSource(value)) {
+            return this._appendYearMonthWithDurationOfQuery(context, valueSource, __asNodeValueSource(value) as unknown as ToSql, 1)
+        }
+        const fields = this._temporalFieldsOfDurationOperation(typeClass)
+        return this._withSignOfDurationFieldsChecked(context, this._appendPlusDuration(context, valueSource, value, fields, 1) ?? this._appendWithDuration(context, valueSource, value, typeClass, 1), value, fields)
     }
     _subtractDuration(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        return this._appendPlusDuration(context, valueSource, value, this._temporalFieldsOfDurationOperation(typeClass), -1) ?? this._appendWithDuration(context, valueSource, value, typeClass, -1)
+        if (__isPlainYearMonthClass(typeClass) && isValueSource(value)) {
+            return this._appendYearMonthWithDurationOfQuery(context, valueSource, __asNodeValueSource(value) as unknown as ToSql, -1)
+        }
+        const fields = this._temporalFieldsOfDurationOperation(typeClass)
+        return this._withSignOfDurationFieldsChecked(context, this._appendPlusDuration(context, valueSource, value, fields, -1) ?? this._appendWithDuration(context, valueSource, value, typeClass, -1), value, fields)
+    }
+    /**
+     * A month of a year plus a duration of the query (multiplied by sign), as Temporal adds it: its date plus the months
+     * of the duration (with its years), in the month they reach; the query fails, as Temporal throws, when the duration
+     * has weeks, days or a time
+     */
+    _appendYearMonthWithDurationOfQuery(context: SqlBuildContext, valueSource: ToSql, duration: ToSql, sign: 1 | -1): string {
+        const yearMonth = __registeredDataType('plainYearMonth')
+        const date = this._hasDurationMonths(duration, yearMonth, 'date', sign)
+            ? this._datePlusDurationMonths(context, valueSource, duration, sign)
+            : this._appendSql(valueSource, context, false)
+        const belowMonths = this._durationHasUnitsBelowMonthsSql(context, duration)
+        return this._withSignOfDurationFieldsChecked(context, belowMonths === undefined ? date : this._valueOrErrorWhen(context, date, belowMonths, 'date'), duration, 'date')
+    }
+    /**
+     * The condition that a duration has weeks, days or a time, which a month of a year doesn't add; undefined when it
+     * can't have them: of its ISO 8601 text, its days or its time aren't 0; an interval isn't its months
+     */
+    _durationHasUnitsBelowMonthsSql(context: SqlBuildContext, duration: ToSql): string | undefined {
+        if (__durationFieldsOf(duration)) {
+            // Its fields are years and months
+            return undefined
+        }
+        if (this._isDurationKeptAsText(duration)) {
+            return this._durationTextPart(context, duration, 'D') + ' <> 0 or ' + this._durationTextPart(context, duration, 'S') + ' <> 0 or ' + this._durationTextPart(context, duration, 'N') + ' <> 0'
+        }
+        const interval = this._appendSqlParenthesis(duration, context, false)
+        return "date_trunc('month', " + interval + ') <> ' + interval
     }
     /**
      * A value plus a duration of the query (multiplied by sign) with the function of the library that takes the duration
@@ -4601,7 +4675,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * functions, or where the database has no such function for that value and that duration (see _plusDurationFunction)
      */
     _appendPlusDuration(context: SqlBuildContext, valueSource: ToSql, value: unknown, fields: 'date' | 'time' | 'timestamp' | 'instant', sign: 1 | -1): string | undefined {
-        if (!this._libraryFunctionsInstalled() || !isValueSource(value)) {
+        if (!this._libraryFunctionsInstalled() || !isValueSource(value) || __durationFieldsOf(value)) {
+            // A duration of fields of the query is written by its parts, where each one is used
             return undefined
         }
         const duration = __asNodeValueSource(value as AnyValueSource) as unknown as ToSql
@@ -4660,6 +4735,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
             const days = '(extract(day from ' + interval + ') + trunc(extract(epoch from ' + interval + " - date_trunc('day', " + interval + ')) / 86400))::integer'
             return 'cast(' + this._appendSqlParenthesis(valueSource, context, typed) + operator + 'make_interval(months => ' + months + ', days => ' + days + ') as date)'
         }
+        if (__durationFieldsOf(duration)) {
+            return this._appendWithDurationOfFields(context, valueSource, duration, fields, operator, typed)
+        }
         const months = this._durationTextPart(context, duration, 'M')
         const days = this._durationTextPart(context, duration, 'D')
         const seconds = this._durationTextPart(context, duration, 'S')
@@ -4670,6 +4748,39 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const time = 'secs => ' + seconds + ' + ' + nanoseconds + ' / 1000000000.0'
         const interval = fields === 'time' ? 'make_interval(' + time + ')' : 'make_interval(months => ' + months + '::integer, days => ' + days + '::integer, ' + time + ')'
         return this._appendSqlParenthesis(valueSource, context, typed) + operator + interval
+    }
+    /**
+     * A date, a time or a date and time plus a duration of fields of the query (the operator its sign), with only the
+     * parts its fields give: a date plus whole days is a date; an interval of the months, the days (with the whole days
+     * of the time, for a date) and the seconds otherwise
+     */
+    _appendWithDurationOfFields(context: SqlBuildContext, valueSource: ToSql, duration: ToSql, fields: 'date' | 'time' | 'timestamp', operator: string, typed: boolean): string {
+        const value = this._appendSqlParenthesis(valueSource, context, typed)
+        const hasMonths = fields !== 'time' && this._durationHasPart(duration, 'M')
+        const hasDays = fields !== 'time' && this._durationHasPart(duration, 'D')
+        const hasSeconds = this._durationHasPart(duration, 'S')
+        const hasNanoseconds = fields !== 'date' && this._durationHasPart(duration, 'N')
+        if (fields === 'date') {
+            const days = this._durationOfFieldsWholeDays(context, duration)
+            if (!hasMonths) {
+                return days === undefined ? this._appendSql(valueSource, context, false) : value + operator + days
+            }
+            const interval = 'make_interval(months => ' + this._durationTextPart(context, duration, 'M') + (days === undefined ? '' : ', days => ' + days) + ')'
+            return 'cast(' + value + operator + interval + ' as date)'
+        }
+        let interval = ''
+        if (hasMonths) {
+            interval += 'months => ' + this._durationTextPart(context, duration, 'M')
+        }
+        if (hasDays) {
+            interval += (interval === '' ? '' : ', ') + 'days => ' + this._durationTextPart(context, duration, 'D')
+        }
+        if (hasSeconds || hasNanoseconds) {
+            const seconds = hasSeconds ? this._durationTextPart(context, duration, 'S') : undefined
+            const nanoseconds = hasNanoseconds ? this._durationTextPart(context, duration, 'N') + ' / 1000000000.0' : undefined
+            interval += (interval === '' ? '' : ', ') + 'secs => ' + (seconds === undefined ? nanoseconds : nanoseconds === undefined ? seconds : seconds + ' + ' + nanoseconds)
+        }
+        return interval === '' ? this._appendSql(valueSource, context, false) : value + operator + 'make_interval(' + interval + ')'
     }
     /**
      * The parts of a duration (multiplied by sign) as SQL, in the order months, days, seconds, nanoseconds, each
@@ -4697,6 +4808,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
         }
         const duration = __asNodeValueSource(value as AnyValueSource)
+        if (__durationFieldsOf(duration)) {
+            return this._durationOfFieldsPartsSql(context, duration, fields, sign, timeInMicroseconds)
+        }
         if (fields === 'date') {
             const months = this._signedDurationTextPart(context, duration, 'M', sign)
             const days = '(' + this._signedDurationTextPart(context, duration, 'D', sign) + ' + ' + this._truncatedDivision(this._signedDurationTextPart(context, duration, 'S', sign), '86400') + ')'
@@ -4710,9 +4824,194 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return { months, days, seconds: this._signedDurationTextPart(context, duration, 'S', sign), nanoseconds: this._signedDurationTextPart(context, duration, 'N', sign), constant: undefined }
     }
+    /**
+     * The parts of a duration of fields of the query (multiplied by sign) as _durationPartsSql gives them: only the ones
+     * its fields give (undefined the others)
+     */
+    _durationOfFieldsPartsSql(context: SqlBuildContext, duration: ToSql, fields: 'date' | 'time' | 'timestamp', sign: 1 | -1, timeInMicroseconds: boolean): DurationPartsSql {
+        const months = fields !== 'time' && this._durationHasPart(duration, 'M') ? this._signedDurationTextPart(context, duration, 'M', sign) : undefined
+        if (fields === 'date') {
+            return { months: groupedSql(months), days: groupedSql(this._signedDurationOfFieldsWholeDays(context, duration, sign)), seconds: undefined, nanoseconds: undefined, constant: undefined }
+        }
+        const days = fields !== 'time' && this._durationHasPart(duration, 'D') ? this._signedDurationTextPart(context, duration, 'D', sign) : undefined
+        const hasSeconds = this._durationHasPart(duration, 'S')
+        const hasNanoseconds = this._durationHasPart(duration, 'N')
+        let seconds = hasSeconds ? this._signedDurationTextPart(context, duration, 'S', sign) : undefined
+        let nanoseconds = hasNanoseconds ? this._signedDurationTextPart(context, duration, 'N', sign) : undefined
+        if (timeInMicroseconds) {
+            const microseconds = nanoseconds === undefined ? undefined : this._truncatedDivision(nanoseconds, '1000')
+            seconds = seconds === undefined ? microseconds : microseconds === undefined ? seconds + ' * 1000000' : '(' + seconds + ' * 1000000 + ' + microseconds + ')'
+            nanoseconds = undefined
+        }
+        // Each part grouped: it is written inside another expression (as `interval <part> day` of MySQL)
+        return { months: groupedSql(months), days: groupedSql(days), seconds: groupedSql(seconds), nanoseconds: groupedSql(nanoseconds), constant: undefined }
+    }
     /** A part of the ISO 8601 text of a duration (see _durationTextPart), negated when sign is -1 */
     _signedDurationTextPart(context: SqlBuildContext, valueSource: ToSql, part: 'M' | 'D' | 'S' | 'N', sign: 1 | -1): string {
-        return (sign < 0 ? '-' : '') + this._durationTextPart(context, valueSource, part)
+        const sql = this._durationTextPart(context, valueSource, part)
+        return sign < 0 ? negatedSql(sql) : sql
+    }
+    /**
+     * Whether a duration of the query may add something in the part given (see _durationTextPart): one of fields of the
+     * query only when one of its fields gives it, another one always. It writes nothing
+     */
+    _durationHasPart(duration: ToSql, part: 'M' | 'D' | 'S' | 'N'): boolean {
+        const fields = __durationFieldsOf(duration)
+        return fields === undefined || durationOfFieldsHasPart(fields, part)
+    }
+    /**
+     * A duration written by itself, of fields of the query: no operation writes it whole, each writes the parts it uses
+     * (see _durationOfFieldsPart)
+     */
+    _durationOfFields(_context: SqlBuildContext, _valueSource: ToSql): string {
+        throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid value source' }, 'A duration of fields of the query is written by the operation that adds it')
+    }
+    /**
+     * A part of a duration of fields of the query, as tsq_duration_part reads one of a text, or undefined when no field
+     * gives it: 'M' the months with the years, 'D' the days with the weeks, 'S' the whole seconds of the time, 'N' the
+     * nanoseconds below the second. The numbers given are added as one; a field of the query is written where it is used
+     * (each part writes it again, with its parameters). The milliseconds, microseconds and nanoseconds give whole
+     * seconds to 'S'; more than one of them is added as a bigint, in nanoseconds
+     */
+    _durationOfFieldsPart(context: SqlBuildContext, fields: DurationFieldsGiven, part: 'M' | 'D' | 'S' | 'N'): string | undefined {
+        switch (part) {
+            case 'M':
+                return this._sumOfDurationFields(context, fields.years, 12, fields.months, 1, undefined, 0, undefined)
+            case 'D':
+                return this._sumOfDurationFields(context, fields.weeks, 7, fields.days, 1, undefined, 0, undefined)
+            case 'S': {
+                const fraction = this._durationFractionSql(context, fields, true)
+                return this._sumOfDurationFields(context, fields.hours, 3600, fields.minutes, 60, fields.seconds, 1, fraction)
+            }
+            default:
+                return this._durationFractionSql(context, fields, false)
+        }
+    }
+    /**
+     * The sum of up to three fields, each multiplied by its factor, and of a term in SQL: the numbers added as one, a
+     * field of the query written with its factor; undefined when it adds nothing
+     */
+    _sumOfDurationFields(context: SqlBuildContext, a: unknown, factorA: number, b: unknown, factorB: number, c: unknown, factorC: number, term: string | number | undefined): string | undefined {
+        let constant = typeof term === 'number' ? term : 0
+        let sql = ''
+        let terms = 0
+        if (typeof a === 'number') { constant += a * factorA } else if (a !== undefined) { sql += this._durationFieldTerm(context, a, factorA); terms++ }
+        if (typeof b === 'number') { constant += b * factorB } else if (b !== undefined) { sql += (terms > 0 ? ' + ' : '') + this._durationFieldTerm(context, b, factorB); terms++ }
+        if (typeof c === 'number') { constant += c * factorC } else if (c !== undefined) { sql += (terms > 0 ? ' + ' : '') + this._durationFieldTerm(context, c, factorC); terms++ }
+        if (typeof term === 'string') { sql += (terms > 0 ? ' + ' : '') + term; terms++ }
+        if (constant !== 0) { sql += (terms > 0 ? ' + ' : '') + constant; terms++ }
+        if (terms === 0) {
+            return undefined
+        }
+        return terms === 1 && !sql.endsWith(' * ' + factorA) && !sql.endsWith(' * ' + factorB) && !sql.endsWith(' * ' + factorC) ? sql : '(' + sql + ')'
+    }
+    /**
+     * The days a duration of fields of the query adds to a date, as Temporal adds it: its days (with its weeks) and the
+     * whole days of its time (computed here when the time is of numbers alone); undefined when it adds none
+     */
+    _durationOfFieldsWholeDays(context: SqlBuildContext, duration: ToSql): string | undefined {
+        const fields = __durationFieldsOf(duration)!
+        if (!timeOfDurationFieldsIsOfTheQuery(fields)) {
+            return this._sumOfDurationFields(context, fields.weeks, 7, fields.days, 1, undefined, 0, Math.trunc(secondsOfNumberFields(fields) / 86400))
+        }
+        const days = this._durationOfFieldsPart(context, fields, 'D')
+        const wholeDays = this._truncatedDivision(this._durationOfFieldsPart(context, fields, 'S')!, '86400')
+        return days === undefined ? wholeDays : '(' + days + ' + ' + wholeDays + ')'
+    }
+    /** _durationOfFieldsWholeDays negated when sign is -1 */
+    _signedDurationOfFieldsWholeDays(context: SqlBuildContext, duration: ToSql, sign: 1 | -1): string | undefined {
+        const days = this._durationOfFieldsWholeDays(context, duration)
+        return days === undefined || sign > 0 ? days : negatedSql(days)
+    }
+    /** A field of the query multiplied by its factor */
+    _durationFieldTerm(context: SqlBuildContext, field: unknown, factor: number): string {
+        const sql = this._appendSqlParenthesis(field as ToSql, context, false)
+        return factor === 1 ? sql : sql + ' * ' + factor
+    }
+    /**
+     * Of the milliseconds, microseconds and nanoseconds of a duration of fields of the query, the whole seconds (seconds)
+     * or the nanoseconds below the second: a number when they are all numbers, SQL otherwise; undefined (or 0) when
+     * they add nothing
+     */
+    _durationFractionSql(context: SqlBuildContext, fields: DurationFieldsGiven, seconds: true): string | number | undefined
+    _durationFractionSql(context: SqlBuildContext, fields: DurationFieldsGiven, seconds: false): string | undefined
+    _durationFractionSql(context: SqlBuildContext, fields: DurationFieldsGiven, seconds: boolean): string | number | undefined {
+        const ms = fields.milliseconds
+        const us = fields.microseconds
+        const ns = fields.nanoseconds
+        let constant = 0
+        let ofTheQuery = 0
+        let field: unknown = undefined
+        let unit = 1
+        if (typeof ms === 'number') { constant += ms * 1_000_000 } else if (ms !== undefined) { ofTheQuery++; field = ms; unit = 1000 }
+        if (typeof us === 'number') { constant += us * 1000 } else if (us !== undefined) { ofTheQuery++; field = us; unit = 1_000_000 }
+        if (typeof ns === 'number') { constant += ns } else if (ns !== undefined) { ofTheQuery++; field = ns; unit = 1_000_000_000 }
+        if (ofTheQuery === 0) {
+            if (seconds) {
+                return Math.trunc(constant / 1_000_000_000)
+            }
+            const rest = constant % 1_000_000_000
+            return rest === 0 ? undefined : String(rest)
+        }
+        if (ofTheQuery === 1 && constant === 0) {
+            // Its whole seconds, and the rest in nanoseconds
+            const sql = this._appendSqlParenthesis(field as ToSql, context, false)
+            if (seconds) {
+                return this._truncatedDivision(sql, String(unit))
+            }
+            const rest = this._integerRemainder(sql, String(unit))
+            return unit === 1_000_000_000 ? '(' + rest + ')' : '(' + rest + ') * ' + (1_000_000_000 / unit)
+        }
+        // Their nanoseconds, as a bigint: its whole seconds, and the rest
+        let total = ''
+        if (ms !== undefined && typeof ms !== 'number') { total += this._bigintOfInteger(this._appendSqlParenthesis(ms as ToSql, context, false)) + ' * 1000000' }
+        if (us !== undefined && typeof us !== 'number') { total += (total === '' ? '' : ' + ') + this._bigintOfInteger(this._appendSqlParenthesis(us as ToSql, context, false)) + ' * 1000' }
+        if (ns !== undefined && typeof ns !== 'number') { total += (total === '' ? '' : ' + ') + this._bigintOfInteger(this._appendSqlParenthesis(ns as ToSql, context, false)) }
+        if (constant !== 0) { total += ' + ' + constant }
+        total = '(' + total + ')'
+        return seconds ? this._truncatedDivision(total, '1000000000') : '(' + this._integerRemainder(total, '1000000000') + ')'
+    }
+    /**
+     * The value computed with a duration of fields of the query, or an error of the query when its fields have different
+     * signs, as Temporal throws (see _valueOrErrorWhen); the value as it is for another duration, or when the fields
+     * can't have different signs: one field of the query and no number, or numbers of one sign known
+     */
+    _withSignOfDurationFieldsChecked(context: SqlBuildContext, value: string, duration: unknown, fields: 'date' | 'time' | 'timestamp'): string {
+        const given = __durationFieldsOf(duration)
+        if (!given) {
+            return value
+        }
+        let numberSign = 0
+        let ofTheQuery = 0
+        for (let i = 0, length = durationFieldNamesInOrder.length; i < length; i++) {
+            const field = given[durationFieldNamesInOrder[i]!]
+            if (typeof field === 'number') {
+                if (field !== 0) {
+                    numberSign = field < 0 ? -1 : 1
+                }
+            } else if (field !== undefined) {
+                ofTheQuery++
+            }
+        }
+        if (numberSign === 0 && ofTheQuery < 2) {
+            return value
+        }
+        let positive = ''
+        let negative = ''
+        for (let i = 0, length = durationFieldNamesInOrder.length; i < length; i++) {
+            const field = given[durationFieldNamesInOrder[i]!]
+            if (field === undefined || typeof field === 'number' || isFieldGivenBefore(given, field, i)) {
+                continue
+            }
+            if (numberSign <= 0) {
+                positive += (positive === '' ? '' : ' or ') + this._appendSqlParenthesis(field as ToSql, context, false) + ' > 0'
+            }
+            if (numberSign >= 0) {
+                negative += (negative === '' ? '' : ' or ') + this._appendSqlParenthesis(field as ToSql, context, false) + ' < 0'
+            }
+        }
+        const condition = numberSign > 0 ? negative : numberSign < 0 ? positive : '(' + positive + ') and (' + negative + ')'
+        return this._valueOrErrorWhen(context, value, condition, fields)
     }
     /** An integer division that truncates toward zero, as Temporal balances a time into days: a division of integers */
     _truncatedDivision(dividend: string, divisor: string): string {
@@ -4970,6 +5269,14 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _leastOf(value: string, other: string): string {
         return 'least(' + value + ', ' + other + ')'
     }
+    /** A date plus the months of a duration of the query (multiplied by sign), with its years */
+    _datePlusDurationMonths(context: SqlBuildContext, valueSource: ToSql, duration: ToSql, sign: 1 | -1): string {
+        return this._datePlusMonths(context, valueSource, this._durationMonthsSql(context, duration, __registeredDataType('plainYearMonth'), 'date', sign))
+    }
+    /** A date plus a number of months, a date in the month they reach (its day taken to the last one of that month when it has fewer) */
+    _datePlusMonths(context: SqlBuildContext, valueSource: ToSql, months: string): string {
+        return 'cast(' + this._appendSqlParenthesis(valueSource, context, false) + ' + make_interval(months => ' + months + ') as date)'
+    }
     /** The days of the month of the year */
     _daysInMonth(_context: SqlBuildContext, year: string, month: string): string {
         return 'extract(day from make_date(' + year + ', ' + month + ", 1) + interval '1 month - 1 day')::integer"
@@ -4991,10 +5298,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return 'make_timestamp(' + year + ', ' + month + ', ' + day + ', ' + hour + ', ' + minute + ', ' + secondsWithFraction(second, nanoseconds) + ')'
     }
     _addDurationRejecting(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        return this._appendWithDurationRejecting(context, valueSource, value, typeClass, 1)
+        return this._withSignOfDurationFieldsChecked(context, this._appendWithDurationRejecting(context, valueSource, value, typeClass, 1), value, this._temporalFieldsOfDurationOperation(typeClass))
     }
     _subtractDurationRejecting(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string {
-        return this._appendWithDurationRejecting(context, valueSource, value, typeClass, -1)
+        return this._withSignOfDurationFieldsChecked(context, this._appendWithDurationRejecting(context, valueSource, value, typeClass, -1), value, this._temporalFieldsOfDurationOperation(typeClass))
     }
     /**
      * A date or a date and time plus a duration rejecting, as an error of the query, a day the month it reaches hasn't
@@ -5026,7 +5333,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     /** Whether the duration may have months: a constant with them, or a value source (an interval of days to seconds of Oracle has none) */
     _hasDurationMonths(value: unknown, typeClass: DataTypeClass, fields: 'date' | 'time' | 'timestamp', sign: 1 | -1): boolean {
         const parts = this._constantDurationParts(value, typeClass, fields, sign)
-        return parts ? parts.months !== 0 : true
+        return parts ? parts.months !== 0 : this._durationHasPart(__asNodeValueSource(value as AnyValueSource) as unknown as ToSql, 'M')
     }
     /** The months of a duration (multiplied by sign), with its years */
     _durationMonthsSql(context: SqlBuildContext, value: unknown, typeClass: DataTypeClass, fields: 'date' | 'time' | 'timestamp', sign: 1 | -1): string {
@@ -5418,7 +5725,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     /** Whether a duration value source is kept as its ISO 8601 text: on a database without intervals, or a text column */
     _isDurationKeptAsText(valueSource: ToSql): boolean {
-        if (!this._supportNativeDurations()) {
+        if (!this._supportNativeDurations() || __durationFieldsOf(valueSource)) {
+            // A duration of fields of the query is read by its parts, as a text (see _durationTextPart)
             return true
         }
         if (__isDurationSum(valueSource)) {
@@ -5437,6 +5745,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * second; each with the sign of the duration
      */
     _durationTextPart(context: SqlBuildContext, valueSource: ToSql, part: 'M' | 'D' | 'S' | 'N' | 'sign' | 'largest' | 'years' | 'months' | 'weeks' | 'days' | 'hours' | 'minutes' | 'seconds'): string {
+        const fields = __durationFieldsOf(valueSource)
+        if (fields) {
+            if (part !== 'M' && part !== 'D' && part !== 'S' && part !== 'N') {
+                throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid value source' }, 'A duration of fields of the query has no part ' + part)
+            }
+            return this._durationOfFieldsPart(context, fields, part) ?? '0'
+        }
         return this._durationPartFunctionName() + '(' + this._appendSql(valueSource, context, false) + ", '" + part + "')"
     }
     /**
@@ -6547,6 +6862,87 @@ function secondsWithFraction(seconds: string, nanoseconds: string): string {
 export type DurationField = 'years' | 'months' | 'weeks' | 'days' | 'hours' | 'minutes' | 'seconds' | 'milliseconds' | 'microseconds' | 'nanoseconds'
 
 /** Whether a value source is a duration plus or minus another one */
+/** The names of the fields of a duration, from the largest */
+const durationFieldNamesInOrder = ['years', 'months', 'weeks', 'days', 'hours', 'minutes', 'seconds', 'milliseconds', 'microseconds', 'nanoseconds'] as const
+
+/** The SQL in parentheses, unless it is a name, a number or a parameter (with its sign), or it is in parentheses already */
+function groupedSql(sql: string | undefined): string | undefined {
+    if (sql === undefined || /^-?[\w.$?@:"`]+$/.test(sql)) {
+        return sql
+    }
+    if (sql.startsWith('(') && sql.endsWith(')')) {
+        // In parentheses already when the first one closes at the end
+        let depth = 0
+        for (let i = 0, length = sql.length; i < length; i++) {
+            const char = sql[i]
+            if (char === '(') {
+                depth++
+            } else if (char === ')') {
+                depth--
+                if (depth === 0) {
+                    if (i === length - 1) {
+                        return sql
+                    }
+                    break
+                }
+            }
+        }
+    }
+    return '(' + sql + ')'
+}
+
+/** Whether the field of the query is given too in a field before the one in the position given */
+function isFieldGivenBefore(fields: DurationFieldsGiven, field: unknown, position: number): boolean {
+    for (let i = 0; i < position; i++) {
+        if (fields[durationFieldNamesInOrder[i]!] === field) {
+            return true
+        }
+    }
+    return false
+}
+
+/** Whether a field of the time of a duration (its hours ... nanoseconds) is of the query */
+function timeOfDurationFieldsIsOfTheQuery(fields: DurationFieldsGiven): boolean {
+    for (let i = 4, length = durationFieldNamesInOrder.length; i < length; i++) {
+        const field = fields[durationFieldNamesInOrder[i]!]
+        if (field !== undefined && typeof field !== 'number') {
+            return true
+        }
+    }
+    return false
+}
+
+/** The whole seconds of the time of a duration of fields that are numbers */
+function secondsOfNumberFields(fields: DurationFieldsGiven): number {
+    const number = (field: unknown, factor: number): number => typeof field === 'number' ? field * factor : 0
+    return number(fields.hours, 3600) + number(fields.minutes, 60) + number(fields.seconds, 1)
+        + Math.trunc((number(fields.milliseconds, 1_000_000) + number(fields.microseconds, 1000) + number(fields.nanoseconds, 1)) / 1_000_000_000)
+}
+
+/** Whether a field given adds something: a field of the query, or a number that isn't 0 */
+function addsSomething(field: unknown): boolean {
+    return field !== undefined && field !== 0
+}
+
+/** Whether a duration of fields of the query adds something in the part given (see AbstractSqlBuilder._durationOfFieldsPart) */
+function durationOfFieldsHasPart(fields: DurationFieldsGiven, part: 'M' | 'D' | 'S' | 'N'): boolean {
+    const ms = fields.milliseconds
+    const us = fields.microseconds
+    const ns = fields.nanoseconds
+    const fractionOfTheQuery = (ms !== undefined && typeof ms !== 'number') || (us !== undefined && typeof us !== 'number') || (ns !== undefined && typeof ns !== 'number')
+    const fractionNumber = (typeof ms === 'number' ? ms * 1_000_000 : 0) + (typeof us === 'number' ? us * 1000 : 0) + (typeof ns === 'number' ? ns : 0)
+    switch (part) {
+        case 'M':
+            return addsSomething(fields.years) || addsSomething(fields.months)
+        case 'D':
+            return addsSomething(fields.weeks) || addsSomething(fields.days)
+        case 'S':
+            return addsSomething(fields.hours) || addsSomething(fields.minutes) || addsSomething(fields.seconds) || fractionOfTheQuery || Math.trunc(fractionNumber / 1_000_000_000) !== 0
+        default:
+            return fractionOfTheQuery || fractionNumber % 1_000_000_000 !== 0
+    }
+}
+
 export function __isDurationSum(valueSource: ToSql): boolean {
     if (!isValueSource(valueSource)) {
         return false

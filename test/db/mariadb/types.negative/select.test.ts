@@ -11,7 +11,7 @@
 import { test, expect } from '../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../lib/assertType.js'
 import type { DBConnection } from '../domain/connection.js'
-import { tAppUser, tCountry, tIssue, tIssueWorklog, tOrganization, tProject, tProjectRelease, tProjectReview } from '../domain/connection.js'
+import { tAppUser, tColMatrixPlain, tCountry, tIssue, tIssueWorklog, tOrganization, tProject, tProjectRelease, tProjectReview } from '../domain/connection.js'
 import { ComparableType, EqualableType, IntegersType, LocalDateTimesType, LocalDatesType, LocalTimesType, RealsType, UuidsType } from '../../../../src/exports/v2/index.js'
 
 // The data types of the values of the user, each one a class of the family of its values
@@ -73,6 +73,18 @@ function _typeNegatives() {
     void connection.selectFrom(tProject)
         // @ts-expect-error tIssue.id is not reachable from tProject alone
         .select({ hit: tProject.id.notInN(1, tIssue.id) })
+
+    // Rule: a field of a duration that add or subtract take may be an int of the query, an operand like any other: a
+    // column of a table that was never joined must not compile, the fields are not an escape from the FROM clause.
+    // Positive control: a column of the table of the query.
+    void connection.selectFrom(tColMatrixPlain)
+        .select({ due: tColMatrixPlain.mDate.add({ months: 1, days: tColMatrixPlain.mInt }) })
+    void connection.selectFrom(tColMatrixPlain)
+        // @ts-expect-error tIssue.priority is not reachable from tColMatrixPlain alone
+        .select({ due: tColMatrixPlain.mDate.add({ months: 1, days: tIssue.priority }) })
+    void connection.selectFrom(tColMatrixPlain)
+        // @ts-expect-error tIssue.priority is not reachable from tColMatrixPlain alone
+        .select({ earlier: tColMatrixPlain.mDatetime.subtract({ hours: tIssue.priority }) })
 
     // Rule: an `inN`/`notInN` element must carry the receiver's data type —
     // both as a scalar and as a value source.

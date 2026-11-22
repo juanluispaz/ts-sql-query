@@ -1,8 +1,9 @@
 import type { DataTypeClass, SqlDataType } from '../TypeAdapter.js'
 import { ComparableType } from './comparable.js'
-import { __temporal, type TemporalDateUnit, type TemporalDifferenceOptions, type TemporalDisambiguation, type TemporalDuration, type TemporalDurationLike, type TemporalOffsetOption, type TemporalOverflowOptions, type TemporalPlainDateFields, type TemporalPlainTime, type TemporalPlainTimeFields, type TemporalRoundingOptions, type TemporalTimeUnit, type TemporalZonedDateTime } from './temporal.js'
+import { __temporal, type TemporalDateUnit, type TemporalDifferenceOptions, type TemporalDisambiguation, type TemporalDuration, type TemporalDurationLike, type TemporalOffsetOption, type TemporalOverflowOptions, type TemporalPlainDateFields, type TemporalPlainTime, type TemporalPlainTimeFields, type TemporalRoundingOptions, type TemporalTimeUnit, type TemporalZonedDateTime, type IntOfQuery, type TemporalDurationLikeOfQuery } from './temporal.js'
 import type { DataTypeOf, IValueWithType, OptionalityOf, SourceOf, ValueSource } from './base.js'
-import type { CombinedOptionality } from './valueSource.js'
+import type { CombinedOptionality, CombinedOptionalityOfUnion, OptionalType } from './valueSource.js'
+import type { NSource } from '../utils/sourceName.js'
 import type { HasSource } from '../utils/ITableOrView.js'
 import type { NDBWithType } from '../utils/sourceName.js'
 import { __newSqlOperation2ValueSource, __operation0, __operation1 } from '../nodes/operations.js'
@@ -19,7 +20,8 @@ import { instantDifferenceOptionsOf } from '../utils/instantOptions.js'
 import { __typeClassOf } from '../nodes/dataTypeClassOf.js'
 import { __computedClassOf } from '../nodes/adaptedTypeClass.js'
 import { DoubleType, IntType } from './number.js'
-import { DurationType } from './durations.js'
+import { DurationType, __durationArgument } from './durations.js'
+import { durationFieldNames } from '../nodes/durationOfFields.js'
 import { BigintType } from './bigint.js'
 import { StringType } from './strings.js'
 import { InstantType } from './instants.js'
@@ -75,7 +77,7 @@ function withDuration(valueSource: unknown, operation: '_zonedAddDuration' | '_z
         throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value: overflow, typeName: 'overflow' }, 'Invalid overflow option, it must be constrain or reject: ' + String(overflow))
     }
     const rejecting = overflow === 'reject' ? (operation === '_zonedAddDuration' ? '_zonedAddDurationRejecting' : '_zonedSubtractDurationRejecting') : operation
-    return __operation1(valueSource as any, rejecting, duration, sameClassOf(valueSource))
+    return __operation1(valueSource as any, rejecting, __durationArgument(duration, durationFieldNames), sameClassOf(valueSource))
 }
 
 /**
@@ -255,6 +257,8 @@ export abstract class ZonedDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
     add(this: OfDatabaseWithZoneRules, duration: TemporalDuration | TemporalDurationLike, options?: TemporalOverflowOptions): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     /** The zoned date and time plus the duration given, as Temporal's `add`, a duration value source */
     add<VALUE extends IValueWithType<'type:duration:'>>(this: OfDatabaseWithZoneRules, duration: VALUE, options?: TemporalOverflowOptions): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    /** The value plus the duration of the fields given, as Temporal's `add`, where a field is an integer or an int of the query, like a column (`{ days: tInvoice.graceDays }`): the database knows its value. The query fails, as Temporal throws, when the fields have different signs */
+    add<SOURCE2 extends NSource, OPTIONAL_TYPE2 extends OptionalType>(this: OfDatabaseWithZoneRules, duration: TemporalDurationLikeOfQuery<IntOfQuery<SOURCE2, OPTIONAL_TYPE2>>, options?: TemporalOverflowOptions): ValueSource<SourceOf<this> | SOURCE2, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, CombinedOptionalityOfUnion<OPTIONAL_TYPE2>>>
     add(duration: unknown, options?: unknown): any {
         return withDuration(this, '_zonedAddDuration', duration, options)
     }
@@ -262,6 +266,8 @@ export abstract class ZonedDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
     subtract(this: OfDatabaseWithZoneRules, duration: TemporalDuration | TemporalDurationLike, options?: TemporalOverflowOptions): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     /** The zoned date and time minus the duration given, as Temporal's `subtract`, a duration value source */
     subtract<VALUE extends IValueWithType<'type:duration:'>>(this: OfDatabaseWithZoneRules, duration: VALUE, options?: TemporalOverflowOptions): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    /** The value minus the duration of the fields given, as Temporal's `subtract`, where a field is an integer or an int of the query, like a column (`{ days: tInvoice.graceDays }`). The query fails, as Temporal throws, when the fields have different signs */
+    subtract<SOURCE2 extends NSource, OPTIONAL_TYPE2 extends OptionalType>(this: OfDatabaseWithZoneRules, duration: TemporalDurationLikeOfQuery<IntOfQuery<SOURCE2, OPTIONAL_TYPE2>>, options?: TemporalOverflowOptions): ValueSource<SourceOf<this> | SOURCE2, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, CombinedOptionalityOfUnion<OPTIONAL_TYPE2>>>
     subtract(duration: unknown, options?: unknown): any {
         return withDuration(this, '_zonedSubtractDuration', duration, options)
     }

@@ -1,3 +1,4 @@
+import { __durationFieldsOf } from '../nodes/durationOfFields.js'
 import type { PlainTemporalFields } from '../utils/plainTemporalFields.js'
 import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import { sqlServerOperationsThatNeedParenthesis } from '../utils/sqlServer/sqlServerOperationsThatNeedParenthesis.js'
@@ -1205,13 +1206,27 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             nanoseconds = constant.nanoseconds === 0 ? undefined : this._appendValue(constant.nanoseconds, context, int, false)
         } else {
             const duration = __asNodeValueSource(value)
-            if (fields !== 'time') {
-                months = this._signedDurationTextPart(context, duration, 'M', sign)
-                days = '(' + this._signedDurationTextPart(context, duration, 'D', sign) + ' + ' + this._signedDurationTextPart(context, duration, 'S', sign) + ' / 86400)'
-            }
-            if (fields !== 'date') {
-                seconds = this._signedDurationTextPart(context, duration, 'S', sign) + ' % 86400'
-                nanoseconds = this._signedDurationTextPart(context, duration, 'N', sign)
+            if (__durationFieldsOf(duration)) {
+                // Only the parts its fields give
+                const hasSeconds = this._durationHasPart(duration, 'S')
+                if (fields !== 'time') {
+                    months = this._durationHasPart(duration, 'M') ? this._signedDurationTextPart(context, duration, 'M', sign) : undefined
+                    // dateadd takes an int: the whole days of the time are added as days
+                    days = this._signedDurationOfFieldsWholeDays(context, duration, sign)
+                }
+                if (fields !== 'date') {
+                    seconds = hasSeconds ? this._signedDurationTextPart(context, duration, 'S', sign) + ' % 86400' : undefined
+                    nanoseconds = this._durationHasPart(duration, 'N') ? this._signedDurationTextPart(context, duration, 'N', sign) : undefined
+                }
+            } else {
+                if (fields !== 'time') {
+                    months = this._signedDurationTextPart(context, duration, 'M', sign)
+                    days = '(' + this._signedDurationTextPart(context, duration, 'D', sign) + ' + ' + this._signedDurationTextPart(context, duration, 'S', sign) + ' / 86400)'
+                }
+                if (fields !== 'date') {
+                    seconds = this._signedDurationTextPart(context, duration, 'S', sign) + ' % 86400'
+                    nanoseconds = this._signedDurationTextPart(context, duration, 'N', sign)
+                }
             }
         }
         if (months !== undefined) {
@@ -1274,6 +1289,9 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     }
     override _daysInMonth(_context: SqlBuildContext, year: string, month: string): string {
         return 'day(eomonth(datefromparts(' + year + ', ' + month + ', 1)))'
+    }
+    override _datePlusMonths(context: SqlBuildContext, valueSource: ToSql, months: string): string {
+        return 'dateadd(month, ' + months + ', ' + this._appendSql(valueSource, context, false) + ')'
     }
     override _makeDate(_context: SqlBuildContext, year: string, month: string, day: string): string {
         return 'datefromparts(' + year + ', ' + month + ', ' + day + ')'
@@ -1415,6 +1433,14 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     }
     override _shiftDays(_context: SqlBuildContext, value: string, days: string): string {
         return 'dateadd(day, ' + days + ', ' + value + ')'
+    }
+    override _valueOrErrorWhen(context: SqlBuildContext, value: string, condition: string, fields: 'date' | 'time' | 'timestamp'): string {
+        if (fields !== 'time') {
+            return super._valueOrErrorWhen(context, value, condition, fields)
+        }
+        // dateadd takes no days on a time: no second
+        const day = 'case when ' + condition + ' then 29 else 28 end'
+        return 'dateadd(second, ' + this._validDayOrError(context, '2001', '2', day) + ' - 28, ' + value + ')'
     }
     override _epochDate(): string {
         return "cast('1970-01-01' as date)"

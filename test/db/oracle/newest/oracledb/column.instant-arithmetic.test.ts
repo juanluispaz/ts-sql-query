@@ -5,7 +5,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tInstantValue, tDurationValue } from '../../domain/connection.js'
+import { tInstantValue, tDurationValue, tColMatrixPlain } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import { TsSqlError } from '../../../../../src/exports/v2/index.js'
 
@@ -97,6 +97,29 @@ describe(ctx.label, () => {
         expect(rows.map(row => [row.id, row.plus.toString(), row.minus?.toString()])).toEqual([deployed, landed].map((instant, i) => [
             i + 1, instant.add(span).toString(), instant.subtract(span).toString(),
         ]))
+    })
+
+    test('an-instant-plus-and-minus-a-duration-of-fields-of-the-query', async () => {
+        // The int 42 of col_matrix row 1 as hours and as milliseconds: an instant adds the fields of the time alone
+        const rowsOfTemporal = [deployed, landed].map((instant, i) => ({ id: i + 1, plus: instant.add({ hours: 42, minutes: 30 }), minus: instant.subtract({ milliseconds: 42 }) }))
+        ctx.mockNext(rowsOfTemporal.map(row => ({ id: row.id, plus: row.plus.toString(), minus: row.minus.toString() })))
+        const rows = await ctx.conn.selectFrom(tInstantValue)
+            .join(tColMatrixPlain).on(tColMatrixPlain.id.equals(1))
+            .select({
+                id: tInstantValue.id,
+                plus: tInstantValue.instantAt.add({ hours: tColMatrixPlain.mInt, minutes: 30 }),
+                minus: tInstantValue.instantAt.subtract({ milliseconds: tColMatrixPlain.mInt }),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select instant_value.id as "id", to_char(sys_extract_utc(cast(instant_value.instant_at as timestamp(9) with time zone)) + numtodsinterval((col_matrix.m_int * 3600 + 1800), 'second') + numtodsinterval((extract(day from to_date((2001) || '-' || (2) || '-' || (case when col_matrix.m_int < 0 then 29 else 28 end), 'YYYY-MM-DD')) - 28), 'day'), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "plus", to_char(sys_extract_utc(cast(instant_value.instant_at as timestamp(9) with time zone)) + numtodsinterval((-trunc(col_matrix.m_int / 1000) + -(mod(col_matrix.m_int, 1000)) * 1000000 / 1000000000), 'second'), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "minus" from instant_value join col_matrix on col_matrix.id = :0 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; plus: Temporal.Instant; minus: Temporal.Instant }>>>()
+        expect(rows.map(row => [row.id, row.plus.toString(), row.minus.toString()])).toEqual(rowsOfTemporal.map(row => [row.id, row.plus.toString(), row.minus.toString()]))
     })
 
     test('a-duration-of-a-column-with-days-makes-the-query-fail', async () => {

@@ -194,6 +194,7 @@ const tRelease = new class TRelease extends Table<DBConnection, 'TRelease'> {
     publishedAt = this.column('published_at', 'plainDateTime')
     rolloutTime = this.optionalColumn('rollout_time', 'duration')
     deployedAt = this.optionalColumn('deployed_at', 'instant')
+    supportMonths = this.optionalColumn('support_months', 'int')
     constructor() {
         super('project_release')
     }

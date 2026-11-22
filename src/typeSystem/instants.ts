@@ -1,8 +1,9 @@
 import type { SqlDataType } from '../TypeAdapter.js'
 import { ComparableType } from './comparable.js'
-import { __temporal, type TemporalDifferenceOptions, type TemporalDuration, type TemporalInstant, type TemporalRoundingOptions, type TemporalTimeDurationLike, type TemporalTimeUnit } from './temporal.js'
+import { __temporal, type TemporalDifferenceOptions, type TemporalDuration, type TemporalInstant, type TemporalRoundingOptions, type TemporalTimeDurationLike, type TemporalTimeUnit, type IntOfQuery, type TemporalTimeDurationLikeOfQuery } from './temporal.js'
 import type { DataTypeOf, IValueWithType, OptionalityOf, SourceOf, ValueSource } from './base.js'
-import type { CombinedOptionality } from './valueSource.js'
+import type { CombinedOptionality, CombinedOptionalityOfUnion, OptionalType } from './valueSource.js'
+import type { NSource } from '../utils/sourceName.js'
 import { __newSqlOperation2ValueSource, __operation0, __operation1 } from '../nodes/operations.js'
 import { __newSqlOperationConstValueSource } from '../nodes/constants.js'
 import { getOptionalType2 } from '../nodes/operands.js'
@@ -12,7 +13,7 @@ import { __computedClassOf } from '../nodes/adaptedTypeClass.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import type { operandTypeName } from '../utils/symbols.js'
 import { instantDifferenceOptionsOf } from '../utils/instantOptions.js'
-import { DurationType } from './durations.js'
+import { DurationType, __durationArgument, timeDurationFieldNames } from './durations.js'
 import { IntType } from './number.js'
 import { BigintType } from './bigint.js'
 import { PlainDateTimeType, PlainDateType, PlainTimeType } from './plainDates.js'
@@ -38,7 +39,7 @@ function withDuration(valueSource: unknown, operation: '_instantAddDuration' | '
         // As Temporal: an instant has no calendar nor zone to give a day its length
         throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value: duration, typeName: 'duration' }, 'An instant only adds or subtracts hours and smaller units, as in Temporal: ' + String(duration))
     }
-    return __operation1(inUtcOf(valueSource), operation, duration, __computedClassOf(valueSource as object, __typeClassOf(valueSource as any)))
+    return __operation1(inUtcOf(valueSource), operation, __durationArgument(duration, timeDurationFieldNames), __computedClassOf(valueSource as object, __typeClassOf(valueSource as any)))
 }
 
 /**
@@ -146,6 +147,8 @@ export abstract class InstantsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME e
      * length without a zone). The duration is a value source: the query fails when it has days, weeks, months or years
      */
     add<VALUE extends IValueWithType<'type:duration:'>>(duration: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    /** The value plus the duration of the fields given, as Temporal's `add`, where a field is an integer or an int of the query, like a column (`{ hours: tShift.hours }`): the database knows its value. The query fails, as Temporal throws, when the fields have different signs */
+    add<SOURCE2 extends NSource, OPTIONAL_TYPE2 extends OptionalType>(duration: TemporalTimeDurationLikeOfQuery<IntOfQuery<SOURCE2, OPTIONAL_TYPE2>>): ValueSource<SourceOf<this> | SOURCE2, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, CombinedOptionalityOfUnion<OPTIONAL_TYPE2>>>
     add(duration: unknown): any {
         return withDuration(this, '_instantAddDuration', duration)
     }
@@ -156,6 +159,8 @@ export abstract class InstantsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME e
      * a value source: the query fails when it has days, weeks, months or years
      */
     subtract<VALUE extends IValueWithType<'type:duration:'>>(duration: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    /** The value minus the duration of the fields given, as Temporal's `subtract`, where a field is an integer or an int of the query, like a column (`{ hours: tShift.hours }`). The query fails, as Temporal throws, when the fields have different signs */
+    subtract<SOURCE2 extends NSource, OPTIONAL_TYPE2 extends OptionalType>(duration: TemporalTimeDurationLikeOfQuery<IntOfQuery<SOURCE2, OPTIONAL_TYPE2>>): ValueSource<SourceOf<this> | SOURCE2, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, CombinedOptionalityOfUnion<OPTIONAL_TYPE2>>>
     subtract(duration: unknown): any {
         return withDuration(this, '_instantSubtractDuration', duration)
     }

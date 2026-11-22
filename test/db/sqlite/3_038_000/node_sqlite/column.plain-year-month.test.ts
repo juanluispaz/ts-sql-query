@@ -4,8 +4,19 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tCalendarValue } from '../../domain/connection.js'
+import { tCalendarValue, tDurationValue, tColMatrixPlain } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+import { TsSqlError } from '../../../../../src/exports/v2/index.js'
+
+/** Whether the query fails with an error of the database */
+async function failureOf(query: Promise<unknown>): Promise<boolean> {
+    try {
+        await query
+        return false
+    } catch (error) {
+        return error instanceof TsSqlError
+    }
+}
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -241,6 +252,80 @@ describe(ctx.label, () => {
             [1, '2025-01', '2023-01', '2024-12', '2000-02'],
             [2, '2000-11', '1998-11', '1999-12', '2000-12'],
         ])
+    })
+
+    test('a-month-of-a-year-plus-and-minus-a-duration-of-the-query', async () => {
+        // duration_value row 1 keeps P1Y2M in span_calendar, row 2 none: 2024-02 plus P1Y2M is 2025-04, as in Temporal
+        ctx.mockNext([
+            { id: 1, plus: '2025-04-01', minus: '2022-12-01' },
+            { id: 2, plus: null, minus: null },
+        ])
+        const rows = await ctx.conn.selectFrom(tCalendarValue)
+            .join(tDurationValue).on(tDurationValue.id.equals(tCalendarValue.id))
+            .where(tCalendarValue.id.lessOrEqual(2))
+            .select({
+                id: tCalendarValue.id,
+                plus: tCalendarValue.monthOf.add(tDurationValue.spanCalendar),
+                minus: tCalendarValue.monthOf.subtract(tDurationValue.spanCalendar),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select calendar_value.id as id, case when tsq_duration_part(duration_value.span_calendar, 'D') <> 0 or tsq_duration_part(duration_value.span_calendar, 'S') <> 0 or tsq_duration_part(duration_value.span_calendar, 'N') <> 0 then abs(-9223372036854775807 - 1) else date(calendar_value.month_of, 'start of month', (tsq_duration_part(duration_value.span_calendar, 'M')) || ' months') end as plus, case when tsq_duration_part(duration_value.span_calendar, 'D') <> 0 or tsq_duration_part(duration_value.span_calendar, 'S') <> 0 or tsq_duration_part(duration_value.span_calendar, 'N') <> 0 then abs(-9223372036854775807 - 1) else date(calendar_value.month_of, 'start of month', (-tsq_duration_part(duration_value.span_calendar, 'M')) || ' months') end as minus from calendar_value join duration_value on duration_value.id = calendar_value.id where calendar_value.id <= ?1 order by id"`)
+        expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
+          [
+            "2",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; plus?: Temporal.PlainYearMonth; minus?: Temporal.PlainYearMonth }>>>()
+        const february = Temporal.PlainYearMonth.from('2024-02')
+        expect(rows.map(row => [row.id, row.plus?.toString(), row.minus?.toString()])).toEqual([
+            [1, february.add('P1Y2M').toString(), february.subtract('P1Y2M').toString()],
+            [2, undefined, undefined],
+        ])
+    })
+
+    test('a-duration-of-the-query-with-days-makes-a-month-of-a-year-fail', async () => {
+        // As Temporal throws: duration_value row 1 keeps 3 days and a time in span and in span_text; row 3 keeps PT1H30M
+        // in span and PT90M in span_text
+        ctx.mockNext([{ plus: '2024-02-01' }])
+        const withDays = await failureOf(ctx.conn.selectFrom(tCalendarValue)
+            .join(tDurationValue).on(tDurationValue.id.equals(1))
+            .where(tCalendarValue.id.equals(1))
+            .select({ plus: tCalendarValue.monthOf.add(tDurationValue.span) })
+            .executeSelectMany())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select case when tsq_duration_part(duration_value.span, 'D') <> 0 or tsq_duration_part(duration_value.span, 'S') <> 0 or tsq_duration_part(duration_value.span, 'N') <> 0 then abs(-9223372036854775807 - 1) else date(calendar_value.month_of, 'start of month', (tsq_duration_part(duration_value.span, 'M')) || ' months') end as plus from calendar_value join duration_value on duration_value.id = ?1 where calendar_value.id = ?2"`)
+        expect(withDays).toBe(ctx.realDbEnabled)
+        ctx.mockNext([{ minus: '2024-02-01' }])
+        const withTime = await failureOf(ctx.conn.selectFrom(tCalendarValue)
+            .join(tDurationValue).on(tDurationValue.id.equals(3))
+            .where(tCalendarValue.id.equals(1))
+            .select({ minus: tCalendarValue.monthOf.subtract(tDurationValue.spanText) })
+            .executeSelectMany())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select case when tsq_duration_part(duration_value.span_text, 'D') <> 0 or tsq_duration_part(duration_value.span_text, 'S') <> 0 or tsq_duration_part(duration_value.span_text, 'N') <> 0 then abs(-9223372036854775807 - 1) else date(calendar_value.month_of, 'start of month', (-tsq_duration_part(duration_value.span_text, 'M')) || ' months') end as minus from calendar_value join duration_value on duration_value.id = ?1 where calendar_value.id = ?2"`)
+        expect(withTime).toBe(ctx.realDbEnabled)
+    })
+
+    test('a-month-of-a-year-plus-and-minus-months-of-the-query', async () => {
+        // The int 42 of col_matrix row 1 as months, and one year more
+        const february = Temporal.PlainYearMonth.from('2024-02')
+        ctx.mockNext([{ plus: february.add({ months: 42 }).toPlainDate({ day: 1 }).toString(), minus: february.subtract({ years: 1, months: 42 }).toPlainDate({ day: 1 }).toString() }])
+        const rows = await ctx.conn.selectFrom(tCalendarValue)
+            .join(tColMatrixPlain).on(tColMatrixPlain.id.equals(1))
+            .where(tCalendarValue.id.equals(1))
+            .select({
+                plus: tCalendarValue.monthOf.add({ months: tColMatrixPlain.mInt }),
+                minus: tCalendarValue.monthOf.subtract({ years: 1, months: tColMatrixPlain.mInt }),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date(calendar_value.month_of, 'start of month', (col_matrix.m_int) || ' months') as plus, case when col_matrix.m_int < 0 then abs(-9223372036854775807 - 1) else date(calendar_value.month_of, 'start of month', (-(col_matrix.m_int + 12)) || ' months') end as minus from calendar_value join col_matrix on col_matrix.id = ?1 where calendar_value.id = ?2"`)
+        expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
+          [
+            "1",
+            "1",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ plus: Temporal.PlainYearMonth; minus: Temporal.PlainYearMonth }>>>()
+        expect(rows.map(row => [row.plus.toString(), row.minus.toString()])).toEqual([[february.add({ months: 42 }).toString(), february.subtract({ years: 1, months: 42 }).toString()]])
     })
 
     test('the-years-and-months-from-a-month-of-a-year-to-another', async () => {

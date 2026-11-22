@@ -1206,6 +1206,7 @@ export const tColMatrixPlain = new class TColMatrixPlain extends Table<DBConnect
     mDate     = this.column('m_date', 'plainDate')
     mTime     = this.column('m_time', 'plainTime')
     mDatetime = this.column('m_datetime', 'plainDateTime')
+    mInt      = this.column('m_int', 'int')
     constructor() { super('col_matrix') }
 }()
 
@@ -1219,6 +1220,7 @@ export const tRelease = new class TRelease extends Table<DBConnection, 'TRelease
     publishedAt = this.column('published_at', 'plainDateTime')
     rolloutTime = this.optionalColumn('rollout_time', 'duration')
     deployedAt = this.optionalColumn('deployed_at', 'instant')
+    supportMonths = this.optionalColumn('support_months', 'int')
     constructor() { super('project_release') }
 }()
 

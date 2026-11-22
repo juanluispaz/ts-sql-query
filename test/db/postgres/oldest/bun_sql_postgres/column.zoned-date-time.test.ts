@@ -10,7 +10,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { TsSqlError } from '../../../../../src/exports/v2/index.js'
-import { tInstantValue, tZonedValue } from '../../domain/connection.js'
+import { tInstantValue, tZonedValue, tColMatrixPlain } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 const zoned = [
@@ -302,6 +302,36 @@ describe(ctx.label, () => {
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select to_char((tsq_zoned_plus_date(instant_at::timestamptz, value_zone, $1, $2, 0)) at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z" BC') || '[' || value_zone || ']' as gap from zoned_value where id = $3"`)
         expect(skipped.map(row => row.gap.toString())).toEqual(ctx.realDbEnabled ? [zoned[0]!.add({ months: 5, days: 3 }).toString()] : [])
+    })
+
+    test('a-zoned-date-and-time-plus-a-duration-of-fields-of-the-query', async () => {
+        // The int 42 of col_matrix row 1 as days, months and hours: the date added to the wall clock in its zone, the
+        // time to the instant, as Temporal; with and without the functions of the library (the mock answers no rows:
+        // there it is the SQL that is checked); and the int negated, with a parameter
+        const query = (conn: typeof ctx.conn) => conn.selectFrom(tZonedValue)
+            .join(tColMatrixPlain).on(tColMatrixPlain.id.equals(1))
+            .select({
+                id: tZonedValue.id,
+                plusDays: zonedAt.add({ days: tColMatrixPlain.mInt }),
+                minusHours: zonedAt.subtract({ hours: tColMatrixPlain.mInt, minutes: 30 }),
+                monthsAndHour: zonedAt.add({ months: tColMatrixPlain.mInt, hours: 1 }),
+                minusNegated: zonedAt.subtract({ days: conn.const(0, 'int').subtract(tColMatrixPlain.mInt), hours: -1 }),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        ctx.mockNext([])
+        const withFunctions = await query(ctx.withLibraryFunctions())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select zoned_value.id as id, to_char((tsq_zoned_plus_date(zoned_value.instant_at::timestamptz, zoned_value.value_zone, 0, col_matrix.m_int, 0)) at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z" BC') || '[' || zoned_value.value_zone || ']' as "plusDays", to_char(((zoned_value.instant_at::timestamptz + make_interval(secs => -(col_matrix.m_int * 3600 + 1800))) + make_interval(days => (extract(day from make_date(2001, 2, case when col_matrix.m_int < 0 then 29 else 28 end))::integer - 28))) at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z" BC') || '[' || zoned_value.value_zone || ']' as "minusHours", to_char(((tsq_zoned_plus_date(zoned_value.instant_at::timestamptz, zoned_value.value_zone, col_matrix.m_int, 0, 0) + make_interval(secs => 3600)) + make_interval(days => (extract(day from make_date(2001, 2, case when col_matrix.m_int < 0 then 29 else 28 end))::integer - 28))) at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z" BC') || '[' || zoned_value.value_zone || ']' as "monthsAndHour", to_char(((tsq_zoned_plus_date(zoned_value.instant_at::timestamptz, zoned_value.value_zone, 0, -($1 - col_matrix.m_int), 0) + make_interval(secs => -(-3600))) + make_interval(days => (extract(day from make_date(2001, 2, case when ($2 - col_matrix.m_int) > 0 then 29 else 28 end))::integer - 28))) at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z" BC') || '[' || zoned_value.value_zone || ']' as "minusNegated" from zoned_value join col_matrix on col_matrix.id = $3 order by id"`)
+        ctx.mockNext([])
+        const withoutFunctions = await query(ctx.conn)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select zoned_value.id as id, to_char((select (case when col_matrix.m_int <> 0 then (((tsq_z.x at time zone (case when zoned_value.value_zone ~ '^[+-]' then translate(zoned_value.value_zone, '+-', '-+') else zoned_value.value_zone end)) + make_interval(days => col_matrix.m_int)) at time zone (case when zoned_value.value_zone ~ '^[+-]' then translate(zoned_value.value_zone, '+-', '-+') else zoned_value.value_zone end)) else tsq_z.x end) from (select zoned_value.instant_at::timestamptz as x offset 0) tsq_z) at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z" BC') || '[' || zoned_value.value_zone || ']' as "plusDays", to_char(((zoned_value.instant_at::timestamptz + make_interval(secs => -(col_matrix.m_int * 3600 + 1800))) + make_interval(days => (extract(day from make_date(2001, 2, case when col_matrix.m_int < 0 then 29 else 28 end))::integer - 28))) at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z" BC') || '[' || zoned_value.value_zone || ']' as "minusHours", to_char(((select ((case when col_matrix.m_int <> 0 then (((tsq_z.x at time zone (case when zoned_value.value_zone ~ '^[+-]' then translate(zoned_value.value_zone, '+-', '-+') else zoned_value.value_zone end)) + make_interval(months => col_matrix.m_int)) at time zone (case when zoned_value.value_zone ~ '^[+-]' then translate(zoned_value.value_zone, '+-', '-+') else zoned_value.value_zone end)) else tsq_z.x end) + make_interval(secs => 3600)) from (select zoned_value.instant_at::timestamptz as x offset 0) tsq_z) + make_interval(days => (extract(day from make_date(2001, 2, case when col_matrix.m_int < 0 then 29 else 28 end))::integer - 28))) at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z" BC') || '[' || zoned_value.value_zone || ']' as "monthsAndHour", to_char(((select ((case when ($2 - col_matrix.m_int) <> 0 then (((tsq_z.x at time zone (case when zoned_value.value_zone ~ '^[+-]' then translate(zoned_value.value_zone, '+-', '-+') else zoned_value.value_zone end)) + make_interval(days => -($1 - col_matrix.m_int))) at time zone (case when zoned_value.value_zone ~ '^[+-]' then translate(zoned_value.value_zone, '+-', '-+') else zoned_value.value_zone end)) else tsq_z.x end) + make_interval(secs => -(-3600))) from (select zoned_value.instant_at::timestamptz as x offset 0) tsq_z) + make_interval(days => (extract(day from make_date(2001, 2, case when ($3 - col_matrix.m_int) > 0 then 29 else 28 end))::integer - 28))) at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z" BC') || '[' || zoned_value.value_zone || ']' as "minusNegated" from zoned_value join col_matrix on col_matrix.id = $4 order by id"`)
+        assertType<Exact<typeof withFunctions, Array<{ id: number; plusDays: Temporal.ZonedDateTime; minusHours: Temporal.ZonedDateTime; monthsAndHour: Temporal.ZonedDateTime; minusNegated: Temporal.ZonedDateTime }>>>()
+        expect(withFunctions.length).toBe(ctx.realDbEnabled ? 3 : 0)
+        const ofTemporal = zoned.map((value, i) => [i + 1, value.add({ days: 42 }).toString(), value.subtract({ hours: 42, minutes: 30 }).toString(), value.add({ months: 42, hours: 1 }).toString(), value.subtract({ days: -42, hours: -1 }).toString()])
+        type Row = (typeof withFunctions)[number]
+        const read = (row: Row) => [row.id, row.plusDays.toString(), row.minusHours.toString(), row.monthsAndHour.toString(), row.minusNegated.toString()]
+        expect(withFunctions.map(read)).toEqual(ofTemporal.slice(0, withFunctions.length))
+        expect(withoutFunctions.map(read)).toEqual(ofTemporal.slice(0, withoutFunctions.length))
     })
 
     test('a-zoned-date-and-time-with-other-fields-rounded-and-at-the-start-of-its-day', async () => {

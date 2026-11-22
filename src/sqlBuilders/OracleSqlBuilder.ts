@@ -1,3 +1,4 @@
+import { __durationFieldsOf } from '../nodes/durationOfFields.js'
 import { dateOfStoredTimesOf } from '../utils/temporalReference.js'
 import type { PlainTemporalFields } from '../utils/plainTemporalFields.js'
 import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
@@ -1584,6 +1585,14 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             }
         }
         const duration = __asNodeValueSource(value as AnyValueSource) as unknown as ToSql
+        if (__durationFieldsOf(duration)) {
+            const parts = this._zonedDurationOfFieldsParts(context, duration, sign)
+            const time = parts.seconds === undefined ? (parts.nanoseconds === undefined ? undefined : parts.nanoseconds + ' / 1000000000') : parts.nanoseconds === undefined ? parts.seconds : parts.seconds + ' + ' + parts.nanoseconds + ' / 1000000000'
+            if (parts.months === undefined && parts.days === undefined && time === undefined) {
+                return undefined
+            }
+            return { months: parts.months, days: parts.days, seconds: time === undefined ? undefined : 'numtodsinterval(' + time + ", 'second')", hasDate: parts.hasDate }
+        }
         const sql = this._isZonedOperandWrittenInPlace(duration) ? this._appendSql(duration, context, false) : 'tsq_z.d'
         const negative = sign < 0 ? '-' : ''
         if (this._isDurationKeptAsText(duration)) {
@@ -1858,7 +1867,26 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             }
         } else {
             const duration = __asNodeValueSource(value)
-            if (this._isDurationKeptAsText(duration)) {
+            if (__durationFieldsOf(duration)) {
+                // Only the parts its fields give
+                const hasSeconds = this._durationHasPart(duration, 'S')
+                if (fields !== 'time') {
+                    months = this._durationHasPart(duration, 'M') ? this._signedDurationTextPart(context, duration, 'M', sign) : undefined
+                }
+                if (fields === 'date') {
+                    days = this._signedDurationOfFieldsWholeDays(context, duration, sign)
+                } else {
+                    if (fields === 'timestamp') {
+                        days = this._durationHasPart(duration, 'D') ? this._signedDurationTextPart(context, duration, 'D', sign) : undefined
+                    }
+                    const secondsPart = hasSeconds ? this._signedDurationTextPart(context, duration, 'S', sign) : undefined
+                    const fraction = this._durationHasPart(duration, 'N') ? this._signedDurationTextPart(context, duration, 'N', sign) + ' / 1000000000' : undefined
+                    seconds = secondsPart === undefined ? fraction : fraction === undefined ? secondsPart : '(' + secondsPart + ' + ' + fraction + ')'
+                }
+                if (months === undefined && days === undefined && seconds === undefined) {
+                    return this._appendSql(valueSource, context, false)
+                }
+            } else if (this._isDurationKeptAsText(duration)) {
                 if (fields !== 'time') {
                     months = this._signedDurationTextPart(context, duration, 'M', sign)
                     days = this._signedDurationTextPart(context, duration, 'D', sign)
@@ -1930,6 +1958,9 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     override _daysInMonth(context: SqlBuildContext, year: string, month: string): string {
         return 'extract(day from last_day(' + this._makeDate(context, year, month, '1') + '))'
     }
+    override _datePlusMonths(context: SqlBuildContext, valueSource: ToSql, months: string): string {
+        return 'add_months(' + this._appendSql(valueSource, context, false) + ', ' + months + ')'
+    }
     override _makeDate(_context: SqlBuildContext, year: string, month: string, day: string): string {
         // The months and days from January 1st of the year 1: no text, so no format of the session takes part
         return "(add_months(date '0001-01-01', (" + year + ' - 1) * 12 + ' + month + ' - 1) + ' + day + ' - 1)'
@@ -1961,6 +1992,16 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             return 'extract(year from ' + interval + ') <> 0 or extract(month from ' + interval + ') <> 0'
         }
         return 'extract(day from ' + interval + ') <> 0'
+    }
+    override _durationHasUnitsBelowMonthsSql(context: SqlBuildContext, duration: ToSql): string | undefined {
+        if (this._isDurationKeptAsText(duration)) {
+            return super._durationHasUnitsBelowMonthsSql(context, duration)
+        }
+        if (this._isYearToMonthDuration(duration)) {
+            // An interval of years to months has nothing else
+            return undefined
+        }
+        return this._appendSqlParenthesis(duration, context, false) + " <> interval '0' second"
     }
     override _bigintOfInteger(sql: string): string {
         // A number has every digit

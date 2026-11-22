@@ -1,4 +1,8 @@
 import { TsSqlProcessingError } from '../TsSqlError.js'
+import type { IValueWithType } from './base.js'
+import type { OptionalType } from './valueSource.js'
+import type { NSource } from '../utils/sourceName.js'
+import type { optionalType, source } from '../utils/symbols.js'
 
 /*
  * Temporal, the dates and times of JavaScript, as the library reaches it: its types, and the object at run time.
@@ -159,6 +163,43 @@ export interface TemporalTimeDurationLike {
     readonly milliseconds?: number | undefined
     readonly microseconds?: number | undefined
     readonly nanoseconds?: number | undefined
+}
+
+/**
+ * An int of the query given as a field of a duration, of the source and the optionality that the operation that takes
+ * it infers from every field: its result has the sources of all of them, and is optional when one of them is
+ */
+export type IntOfQuery<SOURCE extends NSource, OPTIONAL_TYPE extends OptionalType> = IValueWithType<'type:int:number:'> & { [source]: SOURCE, [optionalType]: OPTIONAL_TYPE }
+
+/**
+ * The fields of a duration as `Temporal.Duration.from` takes them, like `{ days: tInvoice.graceDays }`, where a field is
+ * an integer or an int of the query (INT), like a column: the database knows its value. Integers with one sign
+ */
+export interface TemporalDurationLikeOfQuery<INT> {
+    readonly years?: number | INT | undefined
+    readonly months?: number | INT | undefined
+    readonly weeks?: number | INT | undefined
+    readonly days?: number | INT | undefined
+    readonly hours?: number | INT | undefined
+    readonly minutes?: number | INT | undefined
+    readonly seconds?: number | INT | undefined
+    readonly milliseconds?: number | INT | undefined
+    readonly microseconds?: number | INT | undefined
+    readonly nanoseconds?: number | INT | undefined
+}
+/** The fields of a duration of the time alone, an integer or an int of the query (INT): the only ones Temporal adds to an instant */
+export interface TemporalTimeDurationLikeOfQuery<INT> {
+    readonly hours?: number | INT | undefined
+    readonly minutes?: number | INT | undefined
+    readonly seconds?: number | INT | undefined
+    readonly milliseconds?: number | INT | undefined
+    readonly microseconds?: number | INT | undefined
+    readonly nanoseconds?: number | INT | undefined
+}
+/** The fields of a duration a Temporal.PlainYearMonth adds or subtracts, an integer or an int of the query (INT) */
+export interface TemporalYearMonthDurationLikeOfQuery<INT> {
+    readonly years?: number | INT | undefined
+    readonly months?: number | INT | undefined
 }
 
 /** The Temporal object of the runtime, or of a polyfill installed in the global object; an error for a type without it */

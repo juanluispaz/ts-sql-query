@@ -1052,6 +1052,9 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     override _zonedTextOffsetNanoseconds(context: SqlBuildContext, valueSource: ToSql): string {
         return '(' + this._mySqlZonedTextOffsetSeconds(context, valueSource) + ' * 1000000000)'
     }
+    override _datePlusMonths(context: SqlBuildContext, valueSource: ToSql, months: string): string {
+        return 'date_add(' + this._appendSql(valueSource, context, false) + ', interval ' + months + ' month)'
+    }
     override _makeDate(_context: SqlBuildContext, year: string, month: string, day: string): string {
         // The first day of the year, plus the months, plus the days: in the order of the text, as the parameters
         return 'date_add(date_add(makedate(' + year + ', 1), interval ' + month + ' - 1 month), interval ' + day + ' - 1 day)'
@@ -1234,9 +1237,9 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
      * The value plus the duration, or an error of the query when the day of the value isn't in the month the months of
      * the duration reach (a subquery of two rows): each part written again where it appears, in the order of the text
      */
-    override _valueOrErrorWhenDurationHasDays(context: SqlBuildContext, value: string, duration: ToSql): string {
+    override _valueOrErrorWhen(_context: SqlBuildContext, value: string, condition: string, _fields: 'date' | 'time' | 'timestamp'): string {
         // No date fails: a subquery of two rows is the error; the condition after the value, as the parameters appear
-        return 'date_add(' + value + ', interval case when ' + this._durationHasDaysSql(context, duration) + ' then (select 1 union all select 1) else 0 end day)'
+        return 'date_add(' + value + ', interval case when ' + condition + ' then (select 1 union all select 1) else 0 end day)'
     }
     override _bigintOfInteger(sql: string): string {
         // The arithmetic of integers is of 64 bits

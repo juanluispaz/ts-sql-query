@@ -9,7 +9,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { TsSqlError } from '../../../../../src/exports/v2/index.js'
-import { tInstantValue, tZonedValue } from '../../domain/connection.js'
+import { tInstantValue, tZonedValue, tColMatrixPlain } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 const zoned = [
@@ -303,6 +303,36 @@ describe(ctx.label, () => {
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_text_of_zoned(tsq_zoned_plus_date(zoned_at, :0, :1, 0)) as "gap" from zoned_value where id = :2"`)
         expect(skipped.map(row => row.gap.toString())).toEqual(ctx.realDbEnabled ? [zoned[0]!.add({ months: 5, days: 3 }).toString()] : [])
+    })
+
+    test('a-zoned-date-and-time-plus-a-duration-of-fields-of-the-query', async () => {
+        // The int 42 of col_matrix row 1 as days, months and hours: the date added to the wall clock in its zone, the
+        // time to the instant, as Temporal; with and without the functions of the library (the mock answers no rows:
+        // there it is the SQL that is checked); and the int negated, with a parameter
+        const query = (conn: typeof ctx.conn) => conn.selectFrom(tZonedValue)
+            .join(tColMatrixPlain).on(tColMatrixPlain.id.equals(1))
+            .select({
+                id: tZonedValue.id,
+                plusDays: tZonedValue.zonedAt.add({ days: tColMatrixPlain.mInt }),
+                minusHours: tZonedValue.zonedAt.subtract({ hours: tColMatrixPlain.mInt, minutes: 30 }),
+                monthsAndHour: tZonedValue.zonedAt.add({ months: tColMatrixPlain.mInt, hours: 1 }),
+                minusNegated: tZonedValue.zonedAt.subtract({ days: conn.const(0, 'int').subtract(tColMatrixPlain.mInt), hours: -1 }),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        ctx.mockNext([])
+        const withFunctions = await query(ctx.withLibraryFunctions())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select zoned_value.id as "id", tsq_text_of_zoned(tsq_zoned_plus_date(zoned_value.zoned_at, 0, col_matrix.m_int, 0)) as "plusDays", tsq_text_of_zoned((zoned_value.zoned_at + numtodsinterval(-(col_matrix.m_int * 3600 + 1800), 'second')) + numtodsinterval((extract(day from to_date((2001) || '-' || (2) || '-' || (case when col_matrix.m_int < 0 then 29 else 28 end), 'YYYY-MM-DD')) - 28), 'day')) as "minusHours", tsq_text_of_zoned((tsq_zoned_plus_date(zoned_value.zoned_at, col_matrix.m_int, 0, 0) + numtodsinterval(3600, 'second')) + numtodsinterval((extract(day from to_date((2001) || '-' || (2) || '-' || (case when col_matrix.m_int < 0 then 29 else 28 end), 'YYYY-MM-DD')) - 28), 'day')) as "monthsAndHour", tsq_text_of_zoned((tsq_zoned_plus_date(zoned_value.zoned_at, 0, -(:0 - col_matrix.m_int), 0) + numtodsinterval(-(-3600), 'second')) + numtodsinterval((extract(day from to_date((2001) || '-' || (2) || '-' || (case when (:1 - col_matrix.m_int) > 0 then 29 else 28 end), 'YYYY-MM-DD')) - 28), 'day')) as "minusNegated" from zoned_value join col_matrix on col_matrix.id = :2 order by "id""`)
+        ctx.mockNext([])
+        const withoutFunctions = await query(ctx.conn)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select zoned_value.id as "id", to_char((case when col_matrix.m_int <> 0 then from_tz((cast(zoned_value.zoned_at as timestamp(9)) + numtodsinterval(col_matrix.m_int, 'day')), to_char(zoned_value.zoned_at, 'TZR')) else zoned_value.zoned_at end), 'YYYY-MM-DD"T"HH24:MI:SS.FF9TZH:TZM BC"["TZR"]"', 'NLS_DATE_LANGUAGE=AMERICAN') as "plusDays", to_char((zoned_value.zoned_at + numtodsinterval(-(col_matrix.m_int * 3600 + 1800), 'second')) + numtodsinterval((extract(day from to_date((2001) || '-' || (2) || '-' || (case when col_matrix.m_int < 0 then 29 else 28 end), 'YYYY-MM-DD')) - 28), 'day'), 'YYYY-MM-DD"T"HH24:MI:SS.FF9TZH:TZM BC"["TZR"]"', 'NLS_DATE_LANGUAGE=AMERICAN') as "minusHours", to_char(((case when col_matrix.m_int <> 0 then from_tz((cast((add_months(trunc(cast(zoned_value.zoned_at as timestamp(9))), col_matrix.m_int) - greatest(0, extract(day from add_months(trunc(cast(zoned_value.zoned_at as timestamp(9))), col_matrix.m_int)) - extract(day from trunc(cast(zoned_value.zoned_at as timestamp(9)))))) as timestamp(9)) + (cast(zoned_value.zoned_at as timestamp(9)) - trunc(cast(zoned_value.zoned_at as timestamp(9))))), to_char(zoned_value.zoned_at, 'TZR')) else zoned_value.zoned_at end) + numtodsinterval(3600, 'second')) + numtodsinterval((extract(day from to_date((2001) || '-' || (2) || '-' || (case when col_matrix.m_int < 0 then 29 else 28 end), 'YYYY-MM-DD')) - 28), 'day'), 'YYYY-MM-DD"T"HH24:MI:SS.FF9TZH:TZM BC"["TZR"]"', 'NLS_DATE_LANGUAGE=AMERICAN') as "monthsAndHour", to_char(((case when (:1 - col_matrix.m_int) <> 0 then from_tz((cast(zoned_value.zoned_at as timestamp(9)) + numtodsinterval(-(:0 - col_matrix.m_int), 'day')), to_char(zoned_value.zoned_at, 'TZR')) else zoned_value.zoned_at end) + numtodsinterval(-(-3600), 'second')) + numtodsinterval((extract(day from to_date((2001) || '-' || (2) || '-' || (case when (:2 - col_matrix.m_int) > 0 then 29 else 28 end), 'YYYY-MM-DD')) - 28), 'day'), 'YYYY-MM-DD"T"HH24:MI:SS.FF9TZH:TZM BC"["TZR"]"', 'NLS_DATE_LANGUAGE=AMERICAN') as "minusNegated" from zoned_value join col_matrix on col_matrix.id = :3 order by "id""`)
+        assertType<Exact<typeof withFunctions, Array<{ id: number; plusDays: Temporal.ZonedDateTime; minusHours: Temporal.ZonedDateTime; monthsAndHour: Temporal.ZonedDateTime; minusNegated: Temporal.ZonedDateTime }>>>()
+        expect(withFunctions.length).toBe(ctx.realDbEnabled ? 3 : 0)
+        const ofTemporal = zoned.map((value, i) => [i + 1, value.add({ days: 42 }).toString(), value.subtract({ hours: 42, minutes: 30 }).toString(), value.add({ months: 42, hours: 1 }).toString(), value.subtract({ days: -42, hours: -1 }).toString()])
+        type Row = (typeof withFunctions)[number]
+        const read = (row: Row) => [row.id, row.plusDays.toString(), row.minusHours.toString(), row.monthsAndHour.toString(), row.minusNegated.toString()]
+        expect(withFunctions.map(read)).toEqual(ofTemporal.slice(0, withFunctions.length))
+        expect(withoutFunctions.map(read)).toEqual(ofTemporal.slice(0, withoutFunctions.length))
     })
 
     test('a-zoned-date-and-time-with-other-fields-rounded-and-at-the-start-of-its-day', async () => {

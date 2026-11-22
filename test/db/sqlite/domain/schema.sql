@@ -186,6 +186,7 @@ CREATE TABLE project_release (
     is_signed INTEGER,
     download_count INTEGER,
     avg_rating REAL,
+    support_months INTEGER,
     -- DB-computed column: never written by the app (declared
     -- `computedColumn` in connection.ts, so it is excluded from the
     -- insert/update shape).

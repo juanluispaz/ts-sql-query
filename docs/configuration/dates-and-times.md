@@ -739,8 +739,8 @@ The executed query is:
     select 
         version as "version", 
         tsq_duration_text(0, 0, 0, 0, -tsq_nanoseconds_between(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)), sys_extract_utc(cast(published_at as timestamp(9) with time zone))), 'hour') as "afterPublishing", 
-        tsq_text_of_utc(cast(trunc(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone))) as timestamp(9)) + numtodsinterval((tsq_round_to(to_number(to_char(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)), 'SSSSSFF9')), 3600000000000, 'trunc')) / 1000000000, 'second')) as "hour", 
-        tsq_text_of_utc(cast(trunc(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone))) as timestamp(9)) + numtodsinterval((tsq_round_to(to_number(to_char(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)), 'SSSSSFF9')), 3600000000000, 'ceil')) / 1000000000, 'second') + numtodsinterval(:0, 'second')) as "reviewBy" 
+        tsq_text_of_utc(tsq_datetime_round(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)), 3600000000000, 'trunc')) as "hour", 
+        tsq_text_of_utc(tsq_datetime_round(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)), 3600000000000, 'ceil') + numtodsinterval(:0, 'second')) as "reviewBy" 
     from project_release 
     where deployed_at is not null 
     order by "version"
@@ -772,8 +772,8 @@ The executed query is:
     select 
         version as version, 
         dbo.tsq_duration_text(0, 0, 0, 0, cast(-dbo.tsq_ticks_between(cast(switchoffset(deployed_at, '+00:00') as datetime2), cast(switchoffset(published_at, '+00:00') as datetime2)) as decimal(38)) * 100, 'hour') as afterPublishing, 
-        dbo.tsq_datetime_of_ticks(cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as date), dbo.tsq_round_to((datediff_big(nanosecond, cast('00:00' as time), cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as time)) / 100), cast(36000000000 as bigint), 'trunc')) as hour, 
-        dateadd(day, @0, dbo.tsq_datetime_of_ticks(cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as date), dbo.tsq_round_to((datediff_big(nanosecond, cast('00:00' as time), cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as time)) / 100), cast(36000000000 as bigint), 'ceil'))) as reviewBy 
+        dbo.tsq_datetime_round(cast(switchoffset(deployed_at, '+00:00') as datetime2), 36000000000, 'trunc') as hour, 
+        dateadd(day, @0, dbo.tsq_datetime_round(cast(switchoffset(deployed_at, '+00:00') as datetime2), 36000000000, 'ceil')) as reviewBy 
     from project_release 
     where deployed_at is not null 
     order by version

@@ -9,7 +9,7 @@ Some queries call a function that Oracle doesn't have built in. This page says w
 They are of these kinds:
 
 - **The ones a query always needs**, the ones of durations and of differences of zoned dates and times in days: a query that uses one calls it (see [Dates and times](../../configuration/dates-and-times.md)).
-- **The optional ones**, `tsq_zoned_of_wall`, `tsq_zoned_of_text`, `tsq_zoned_hours_in_day`, `tsq_zoned_round_day`, `tsq_zoned_plus_date`, `tsq_round_to`, `tsq_nanoseconds_between`, `tsq_duration_sum`, `tsq_duration_total_of`, `tsq_duration_round_of`, `tsq_ds_interval_text`, `tsq_ym_interval_text`, `tsq_duration_negated`, `tsq_time_plus_duration`, `tsq_instant_plus_duration`, `tsq_day_in_month_or_error`, `tsq_utc_of_epoch`, `tsq_date_with`, the SQL macros of the Temporal values and `tsq_string_util.concat_strict`: a query calls them only with `libraryFunctions = 'installed'` on the connection; without it, the SQL of Oracle does the same with less (see each one).
+- **The optional ones**, `tsq_zoned_of_wall`, `tsq_zoned_of_text`, `tsq_zoned_hours_in_day`, `tsq_zoned_round_day`, `tsq_zoned_plus_date`, `tsq_round_to`, `tsq_datetime_round`, `tsq_nanoseconds_between`, `tsq_duration_sum`, `tsq_duration_total_of`, `tsq_duration_round_of`, `tsq_ds_interval_text`, `tsq_ym_interval_text`, `tsq_duration_negated`, `tsq_time_plus_duration`, `tsq_instant_plus_duration`, `tsq_day_in_month_or_error`, `tsq_utc_of_epoch`, `tsq_date_with`, the SQL macros of the Temporal values and `tsq_string_util.concat_strict`: a query calls them only with `libraryFunctions = 'installed'` on the connection; without it, the SQL of Oracle does the same with less (see each one).
 - **The ones of the uuid strategy** `'custom-functions'`, `tsq_uuid_to_raw` and `tsq_raw_to_uuid`, in two forms to choose, in files of their own.
 
 ## Which function each query needs
@@ -28,6 +28,7 @@ They are of these kinds:
 | [`tsq_zoned_round_day`](#tsq_zoned_round_day) | `round` of a zoned date and time to a day, with `libraryFunctions = 'installed'` | `tsq_zoned_of_wall` |
 | [`tsq_zoned_plus_date`](#tsq_zoned_plus_date) | `add` or `subtract` of a zoned date and time with years, months, weeks or days, with `libraryFunctions = 'installed'` | `tsq_zoned_of_wall`, `tsq_day_in_month_or_error` |
 | [`tsq_round_to`](#tsq_round_to) | `round` of a time, a date and time or an instant, or `until` or `since` with a rounding, with `libraryFunctions = 'installed'` | — |
+| [`tsq_datetime_round`](#tsq_datetime_round) | `round` of a date and time, an instant or the wall clock of a zoned date and time, with `libraryFunctions = 'installed'` | `tsq_round_to` |
 | [`tsq_nanoseconds_between`](#tsq_nanoseconds_between) | `until` or `since` of two dates and times or two instants, with `libraryFunctions = 'installed'` | — |
 | [`tsq_duration_sum`](#tsq_duration_sum) | `add` or `subtract` of two durations, with `libraryFunctions = 'installed'` | `tsq_duration_part`, `tsq_duration_add` |
 | [`tsq_duration_total_of`](#tsq_duration_total_of) | `total` of a duration, with `libraryFunctions = 'installed'` | `tsq_duration_part`, `tsq_duration_total` |
@@ -115,6 +116,12 @@ Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 ## `tsq_round_to`
 
 `tsq_round_to` rounds an integer to a multiple of a step in a rounding mode of Temporal (`'ceil'`, `'floor'`, `'expand'`, `'trunc'`, `'halfCeil'`, `'halfFloor'`, `'halfExpand'`, `'halfTrunc'`, `'halfEven'`), as Temporal rounds: `-90` to a step of `60` in `'halfEven'` is `-120`. A query rounds with it the time since midnight of `round` of a time, a date and time or an instant (see [Changing a field and rounding](../../configuration/dates-and-times.md#changing-a-field-and-rounding)), and the difference of `until` and `since` with a `smallestUnit`, a `roundingIncrement` or a `roundingMode` (see [The options of `until` and `since`](../../configuration/dates-and-times.md#the-options-of-until-and-since)). With `libraryFunctions = 'installed'` the query calls it and writes the value once; without it, the query writes the rounding inline, with the value two to four times.
+
+Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
+
+## `tsq_datetime_round`
+
+`tsq_datetime_round` gives `round` of a date and time (a `TIMESTAMP` or a `DATE`), as Temporal: its time since midnight in nanoseconds rounded to the step in the mode given with `tsq_round_to`, added to its date (the next day for the end of the day). `round` of an instant calls it with the date and time of the instant in UTC, and `round` of a zoned date and time to an hour or a smaller unit with its wall clock in its zone. With `libraryFunctions = 'installed'` the query calls it and writes the value once; without it, the query writes the value several times, for its date and for its time of the day. It calls `tsq_round_to`: create it first.
 
 Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 

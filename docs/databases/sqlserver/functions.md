@@ -9,7 +9,7 @@ Some queries call a function that SQL Server doesn't have built in. This page sa
 They are of these kinds, and all of them are in [one file](#creating-them):
 
 - **The ones a query always needs**, the ones of durations: a query that uses one calls it (see [Dates and times](../../configuration/dates-and-times.md)).
-- **The optional ones**, `tsq_round_to`, `tsq_ticks_between`, `tsq_time_of_ticks`, `tsq_datetime_of_ticks`, `tsq_duration_sum`, `tsq_duration_total_of`, `tsq_duration_round_of`, `tsq_duration_negated`, `tsq_datetime_plus_duration`, `tsq_instant_plus_duration`, `tsq_day_in_month_or_error`, `tsq_utc_of_epoch`, `tsq_date_with`, `tsq_greatest_strict` and `tsq_least_strict`: a query calls them only with `libraryFunctions = 'installed'` on the connection; without it, the SQL of SQL Server does the same with less (see each one).
+- **The optional ones**, `tsq_round_to`, `tsq_ticks_between`, `tsq_time_of_ticks`, `tsq_datetime_of_ticks`, `tsq_datetime_round`, `tsq_duration_sum`, `tsq_duration_total_of`, `tsq_duration_round_of`, `tsq_duration_negated`, `tsq_datetime_plus_duration`, `tsq_instant_plus_duration`, `tsq_day_in_month_or_error`, `tsq_utc_of_epoch`, `tsq_date_with`, `tsq_greatest_strict` and `tsq_least_strict`: a query calls them only with `libraryFunctions = 'installed'` on the connection; without it, the SQL of SQL Server does the same with less (see each one).
 
 ## Which function each query needs
 
@@ -24,6 +24,7 @@ They are of these kinds, and all of them are in [one file](#creating-them):
 | [`tsq_ticks_between`](#tsq_ticks_between) | `until` or `since` of two dates and times or two instants, with `libraryFunctions = 'installed'` | — |
 | [`tsq_time_of_ticks`](#tsq_time_of_ticks) | `round` of a time, with `libraryFunctions = 'installed'` | — |
 | [`tsq_datetime_of_ticks`](#tsq_datetime_of_ticks) | `round` of a date and time or an instant, with `libraryFunctions = 'installed'` | — |
+| [`tsq_datetime_round`](#tsq_datetime_round) | `round` of a date and time or an instant, with `libraryFunctions = 'installed'` | `tsq_round_to`, `tsq_datetime_of_ticks` |
 | [`tsq_duration_sum`](#tsq_duration_sum) | `add` or `subtract` of two durations, with `libraryFunctions = 'installed'` | `tsq_duration_part`, `tsq_duration_add` |
 | [`tsq_duration_total_of`](#tsq_duration_total_of) | `total` of a duration, with `libraryFunctions = 'installed'` | `tsq_duration_part`, `tsq_duration_total` |
 | [`tsq_duration_round_of`](#tsq_duration_round_of) | `until` or `since` of two dates or two dates and times in months or years, or rounded to a week, a month or a year, with `libraryFunctions = 'installed'` | `tsq_duration_round` |
@@ -90,7 +91,13 @@ Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 
 ## `tsq_datetime_of_ticks`
 
-`dbo.tsq_datetime_of_ticks` gives a date plus a number of hundreds of nanoseconds, a `datetime2(7)`: `round` of a date and time or an instant builds its result with it. With `libraryFunctions = 'installed'` the query calls it and writes the number once; without it, the query writes it twice, in two `dateadd`.
+`dbo.tsq_datetime_of_ticks` gives a date plus a number of hundreds of nanoseconds, a `datetime2(7)`: `round` of a date and time or an instant builds its result with it, and so does `tsq_datetime_round`. With `libraryFunctions = 'installed'` the query calls it and writes the number once; without it, the query writes it twice, in two `dateadd`.
+
+Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
+
+## `tsq_datetime_round`
+
+`dbo.tsq_datetime_round` gives `round` of a date and time, as Temporal: its time since midnight in hundreds of nanoseconds rounded to the step in the mode given with `tsq_round_to`, added to its date (the next day for the end of the day). `round` of an instant calls it with the date and time of the instant in UTC. With `libraryFunctions = 'installed'` the query calls it and writes the value once; without it, the query writes the value several times, for its date and for its time of the day. A step that isn't a multiple of 100 nanoseconds is rounded inline. It calls `tsq_round_to` and `tsq_datetime_of_ticks` with schema binding: create them first; the file drops it first when it creates them again.
 
 Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 

@@ -5,7 +5,7 @@
 
 import { OracleConnection } from '../../../../src/connections/OracleConnection.js'
 import { Table } from '../../../../src/Table.js'
-import { OracleDateAsTimestampTypeAdapter } from '../../../../src/TypeAdapter.js'
+import { OracleDateAsTimestampTypeAdapter, withSqlDataType } from '../../../../src/TypeAdapter.js'
 import type { QueryRunner } from '../../../../src/queryRunners/QueryRunner.js'
 import { printResult, probeConfig } from '../../lib/localTemporalValuesProbe.js'
 import { reasonOf } from '../../../runners/lib/runnerContract.js'
@@ -63,6 +63,10 @@ class TInstantMoment extends Table<MadridConnection, 'TInstantMoment'> {
     tz = this.optionalColumn('tz', 'instant')
     // The same column, as a date and time of the zone of the database
     tsPlain = this.optionalColumn('ts', 'plainDateTime')
+    // The same column declared without zone, as an instant and with a Date, and with a Date without the declaration
+    tsDeclared = this.optionalColumn('ts', 'instant', withSqlDataType({ family: 'datetime', fields: 'timestamp', timeZone: 'none' }))
+    tsLocalDeclared = this.optionalColumn('ts', 'localDateTime', withSqlDataType({ family: 'datetime', fields: 'timestamp', timeZone: 'none' }))
+    tsLocal = this.optionalColumn('ts', 'localDateTime')
     constructor() {
         super(tableName)
     }
@@ -112,7 +116,7 @@ export interface ScenarioResult {
     skipped?: string
     summerTime?: { stored: unknown[], read: unknown }
     timeAfterMidnight?: { stored: unknown[], where: number[] }
-    instant?: { sql: string[], stored: unknown[], read: unknown[], where: number[], whereDx: number[], returning: unknown, aggregated: unknown[], currentDrift: number, repeated: unknown, methods: unknown }
+    instant?: { sql: string[], stored: unknown[], read: unknown[], where: number[], whereDx: number[], returning: unknown, aggregated: unknown[], currentDrift: number, repeated: unknown, methods: unknown, declared: unknown }
     zoned?: unknown
     nativeNextDay?: string
 }
@@ -226,6 +230,14 @@ async function scenario(): Promise<ScenarioResult> {
                 plusAnHour: tInstantMoment.ts.add({ hours: 1 }), hourOf: tInstantMoment.tz.round('hour'),
                 ofItsEpoch: conn.instantFromEpochMilliseconds(tInstantMoment.ts.epochMilliseconds()),
             }).executeSelectOne().then(row => ({ ...row, nanoseconds: String(row.nanoseconds), wall: String(row.wall), zonedWall: String(row.zonedWall), instant: String(row.instant), plainDay: String(row.plainDay), plusAnHour: String(row.plusAnHour), hourOf: String(row.hourOf), ofItsEpoch: String(row.ofItsEpoch) })),
+            // Declared without zone: the column is its own date and time in the zone of the database, written as it is
+            // where it is taken to it, and taken to UTC where its getters and its arithmetic need it, as without it
+            declared: await conn.selectFrom(tInstantMoment).where(tInstantMoment.id.equals(12)).select({
+                milliseconds: tInstantMoment.tsDeclared.epochMilliseconds(), wall: tInstantMoment.tsDeclared.toPlainDateTime(),
+                plusAnHour: tInstantMoment.tsDeclared.add({ hours: 1 }), localWall: tInstantMoment.tsLocalDeclared.toPlainDateTime(),
+                localHour: tInstantMoment.tsLocalDeclared.getHours(), localHourUndeclared: tInstantMoment.tsLocal.getHours(),
+                localInstant: tInstantMoment.tsLocalDeclared.toInstant(), localPlusAnHour: tInstantMoment.tsLocalDeclared.toInstant().add({ hours: 1 }),
+            }).executeSelectOne().then(row => ({ ...row, wall: String(row.wall), plusAnHour: String(row.plusAnHour), localWall: String(row.localWall), localInstant: String(row.localInstant), localPlusAnHour: String(row.localPlusAnHour) })),
         }
         // The arithmetic of a zoned date and time follows the rules of its zone (New York goes back an hour on
         // 2024-11-03), whatever the zone of the session

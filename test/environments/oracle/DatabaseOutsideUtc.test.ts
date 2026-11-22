@@ -74,6 +74,7 @@ for (const { version, compatibilityVersion, label } of await environmentVersions
                 expect(out.instant.repeated).toBe('2024-10-27T01:30:00Z')
                 // Its epoch, its date and time in Madrid, and a wall clock of Madrid as an instant
                 expect(out.instant.methods).toEqual({ milliseconds: 1705223730123, nanoseconds: '1705223730123000000', wall: '2024-01-14T10:15:30.123', zonedWall: '2024-01-14T10:15:30.123', hour: 10, instant: '2024-01-14T09:15:30.123Z', plainHour: 10, plainDay: '2024-01-14', plusAnHour: '2024-01-14T10:15:30.123Z', hourOf: '2024-01-14T09:00:00Z', ofItsEpoch: '2024-01-14T09:15:30.123Z' })
+                expect(out.instant.declared).toEqual({ milliseconds: 1705223730123, wall: '2024-01-14T10:15:30.123', plusAnHour: '2024-01-14T10:15:30.123Z', localWall: '2024-01-14T10:15:30.123', localHour: 9, localHourUndeclared: 9, localInstant: '2024-01-14T09:15:30.123Z', localPlusAnHour: '2024-01-14T10:15:30.123Z' })
                 // The arithmetic of a zoned date and time in New York, by the rules of New York, with the functions of the library
                 const newYork = Temporal.ZonedDateTime.from('2024-11-02T01:30:00-04:00[America/New_York]')
                 expect(out.zoned).toEqual({

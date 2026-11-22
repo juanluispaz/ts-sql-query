@@ -472,6 +472,49 @@ interface StringDecimalValueSource extends ComparableValueSource<string, 'string
     atan2(value: number | NumberValueSource): NumberValueSource
 }
 
+/** The type of dnum (https://github.com/bpierre/dnum): the integer of the digits of a decimal and its decimals */
+type Dnum = readonly [value: bigint, decimals: number]
+
+/**
+ * Represents a decimal number whose value is a dnum (`[150n, 2]` is 1.50), kept with every digit and its decimals
+ */
+interface DnumDecimalValueSource extends ComparableValueSource<Dnum, 'dnumDecimal'> {
+    abs(): this
+    ceil(): this
+    floor(): this
+    round(): this
+    exp(): NumberValueSource
+    ln(): NumberValueSource
+    log10(): NumberValueSource
+    sqrt(): NumberValueSource
+    cbrt(): NumberValueSource
+    sign(): NumberValueSource
+    acos(): NumberValueSource
+    asin(): NumberValueSource
+    atan(): NumberValueSource
+    cos(): NumberValueSource
+    cot(): NumberValueSource
+    sin(): NumberValueSource
+    tan(): NumberValueSource
+    power(value: number | NumberValueSource): NumberValueSource
+    logn(value: number | NumberValueSource): NumberValueSource
+    /** The number of decimals is a number, or a value source of one */
+    roundn(value: number | NumberValueSource): this
+    /**
+     * This function establishes a minimum value for the current value, that means the biggest value must be returned
+     */
+    minValue(value: Dnum | this): this
+    /**
+     * This function establishes a maximum value for the current value, that means the smallest value must be returned
+     */
+    maxValue(value: Dnum | this): this
+    add(value: Dnum | this): this
+    subtract(value: Dnum | this): this
+    multiply(value: Dnum | this): this
+    modulo(value: Dnum | this): this
+    atan2(value: number | NumberValueSource): NumberValueSource
+}
+
 /**
  * Represents a UUID of a type of yours that extends `UuidsType`
  */
@@ -1217,7 +1260,7 @@ type DynamicFilter = {
  * types: equality for boolean and the enums, also comparison for the numbers and the dates, also the text operators for
  * string; the uuids accept the text operators too, with a string, and apply asString before them.
  */
-type FieldFilter = BooleanFilter | NumberFilter | BigintFilter | StringFilter | StringDecimalFilter | DateFilter | TimeFilter | DateTimeFilter | EqualableFilter<any> | ComparableFilter<any> | UuidsFilter<any>
+type FieldFilter = BooleanFilter | NumberFilter | BigintFilter | StringFilter | StringDecimalFilter | DnumDecimalFilter | DateFilter | TimeFilter | DateTimeFilter | EqualableFilter<any> | ComparableFilter<any> | UuidsFilter<any>
 
 interface NullableFilter {
     isNull?: boolean
@@ -1335,6 +1378,7 @@ interface DateFilter extends ComparableFilter<Date> { }
 interface TimeFilter extends ComparableFilter<Date> { }
 interface DateTimeFilter extends ComparableFilter<Date> { }
 interface StringDecimalFilter extends ComparableFilter<string> { }
+interface DnumDecimalFilter extends ComparableFilter<Dnum> { }
 
 // Protected configuration properties that each connection adds
 interface MariaDBConnectionConfiguration {
@@ -2522,7 +2566,7 @@ type CompoundableSubquery = SelectExpression
  */
 interface DataTypes {
     boolean: BooleanValueSource, int: NumberValueSource, bigint: BigintValueSource, double: NumberValueSource,
-    stringDecimal: StringDecimalValueSource, string: StringValueSource, uuid: UuidValueSource,
+    stringDecimal: StringDecimalValueSource, dnumDecimal: DnumDecimalValueSource, string: StringValueSource, uuid: UuidValueSource,
     localDate: LocalDateValueSource, localTime: LocalTimeValueSource, localDateTime: LocalDateTimeValueSource,
     plainDate: PlainDateValueSource, plainTime: PlainTimeValueSource, plainDateTime: PlainDateTimeValueSource,
     duration: DurationValueSource, instant: InstantValueSource, zonedDateTime: ZonedDateTimeValueSource

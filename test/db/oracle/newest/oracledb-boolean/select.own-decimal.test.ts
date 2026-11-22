@@ -32,11 +32,11 @@ describe(ctx.label, () => {
 
     test('own-decimal/reads-every-digit-and-the-scale', async () => {
         ctx.mockNext([
-            { id: 1, amount: '12345678901234567890.1234567891', price: '1.5' },
-            { id: 2, amount: '-.25', price: '-.25' },
-            { id: 3, amount: '0', price: '0' },
+            { id: 1, amount: '12345678901234567890.1234567891', price: '1.50' },
+            { id: 2, amount: '-.2500000000', price: '-.25' },
+            { id: 3, amount: '0.0000000000', price: '0.00' },
             { id: 4, amount: null, price: null },
-            { id: 5, amount: '98765432109876543210.987654321', price: '1234.56' },
+            { id: 5, amount: '98765432109876543210.9876543210', price: '1234.56' },
         ])
         const rows = await ctx.conn.selectFrom(tExactAmount)
             .select({
@@ -49,11 +49,11 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", amount as "amount", price as "price" from exact_amount order by "id""`)
         assertType<Exact<typeof rows, { id: number; amount?: Amount; price?: Amount }[]>>()
         expect(rows).toEqual([
-            { id: 1, amount: '12345678901234567890.1234567891', price: '1.5' },
-            { id: 2, amount: '-0.25', price: '-0.25' },
-            { id: 3, amount: '0', price: '0' },
+            { id: 1, amount: '12345678901234567890.1234567891', price: '1.50' },
+            { id: 2, amount: '-0.2500000000', price: '-0.25' },
+            { id: 3, amount: '0.0000000000', price: '0.00' },
             { id: 4 },
-            { id: 5, amount: '98765432109876543210.987654321', price: '1234.56' },
+            { id: 5, amount: '98765432109876543210.9876543210', price: '1234.56' },
         ])
     })
 
@@ -204,6 +204,8 @@ describe(ctx.label, () => {
     })
 
     test('own-decimal/a-returning-clause-reads-every-digit', async () => {
+        // The returning reads the values from OUT binds, which don't say the scale of the column: the price has
+        // the decimals of the text Oracle writes
         ctx.mockNext({ amount: '12345678901234567890.1234567892', price: '1.5' })
         await ctx.withRollback(async () => {
             const row = await ctx.conn.update(tExactAmount)
@@ -321,8 +323,8 @@ describe(ctx.label, () => {
     test('own-decimal/a-column-added-by-a-customization-is-kept', async () => {
         // beforeColumns adds the column "extra_id" (quoted, so Oracle keeps its lower case): the rows the database returns have it, next to the columns of the
         // select
-        ctx.mockNext([{ price: '-0.25' }, { price: '1.5' }, { price: '1234.56' }])
-        ctx.mockNext([{ price: '-.25', extra_id: 2 }, { price: '1.5', extra_id: 1 }, { price: '1234.56', extra_id: 5 }])
+        ctx.mockNext([{ price: '-0.25' }, { price: '1.50' }, { price: '1234.56' }])
+        ctx.mockNext([{ price: '-.25', extra_id: 2 }, { price: '1.50', extra_id: 1 }, { price: '1234.56', extra_id: 5 }])
         const rows = await ctx.conn.selectDistinctFrom(tExactAmount)
             .where(tExactAmount.id.in([1, 2, 5]))
             .select({ price: tExactAmount.price })
@@ -336,18 +338,18 @@ describe(ctx.label, () => {
             .where(tExactAmount.id.equals(id))
             .select({ price: tExactAmount.price })
             .customizeQuery({ beforeColumns: ctx.conn.rawFragment`${tExactAmount.id} as "extra_id", ` })
-        ctx.mockNext([{ price: '-0.25' }, { price: '1.5' }])
-        ctx.mockNext([{ price: '-.25', extra_id: 2 }, { price: '1.5', extra_id: 1 }])
+        ctx.mockNext([{ price: '-0.25' }, { price: '1.50' }])
+        ctx.mockNext([{ price: '-.25', extra_id: 2 }, { price: '1.50', extra_id: 1 }])
         const compound = await priceOf(1).union(priceOf(2)).orderBy('price').executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "extra_id",  price as "price" from exact_amount where id = :0 union select id as "extra_id",  price as "price" from exact_amount where id = :1 order by "price""`)
         const compoundDatabaseRows = await ctx.conn.queryRunner.executeQuery('selectManyRows', ctx.lastSql, ctx.lastParams)
-        // Oracle doesn't keep the scale of a number
-        expect(rows).toEqual([{ price: '-0.25' }, { price: '1.5' }, { price: '1234.56' }])
+        // The price has the 2 decimals of its column, which Oracle doesn't write and the query runner adds
+        expect(rows).toEqual([{ price: '-0.25' }, { price: '1.50' }, { price: '1234.56' }])
         // The rows of the database have the text Oracle writes, without the zero before the point
-        expect(databaseRows.map(row => [row.price, row.extra_id])).toEqual([['-.25', 2], ['1.5', 1], ['1234.56', 5]])
+        expect(databaseRows.map(row => [row.price, row.extra_id])).toEqual([['-.25', 2], ['1.50', 1], ['1234.56', 5]])
         // The order by of the compound query names the column, which the columns the customization adds don't move
-        expect(compound).toEqual([{ price: '-0.25' }, { price: '1.5' }])
-        expect(compoundDatabaseRows.map(row => [row.price, row.extra_id])).toEqual([['-.25', 2], ['1.5', 1]])
+        expect(compound).toEqual([{ price: '-0.25' }, { price: '1.50' }])
+        expect(compoundDatabaseRows.map(row => [row.price, row.extra_id])).toEqual([['-.25', 2], ['1.50', 1]])
     })
 
     test('own-decimal/a-value-wider-than-the-decimals-of-the-database', async () => {
@@ -426,7 +428,7 @@ describe(ctx.label, () => {
     test('own-decimal/an-insert-sends-the-text-and-reads-it-back', async () => {
         ctx.mockNext(1)
         ctx.mockNext([6])
-        ctx.mockNext({ amount: '-98765432109876543210.0000000001', price: '.1' })
+        ctx.mockNext({ amount: '-98765432109876543210.0000000001', price: '.10' })
         await ctx.withRollback(async () => {
             const inserted = await ctx.conn.insertInto(tExactAmount)
                 .set({ id: 6, amount: '-98765432109876543210.0000000001' as Amount, price: '0.1' as Amount })
@@ -452,7 +454,7 @@ describe(ctx.label, () => {
                 .where(tExactAmount.id.equals(6))
                 .select({ amount: tExactAmount.amount, price: tExactAmount.price })
                 .executeSelectOne()
-                expect(row).toEqual({ amount: '-98765432109876543210.0000000001', price: '0.1' })
+                expect(row).toEqual({ amount: '-98765432109876543210.0000000001', price: '0.10' })
         })
     })
 

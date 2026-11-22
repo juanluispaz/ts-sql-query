@@ -3,7 +3,7 @@ import type { OptionalType } from './valueSource.js'
 import type { BooleanType } from './logical.js'
 import type { DoubleType, IntType } from './number.js'
 import type { BigintType } from './bigint.js'
-import type { StringDecimalType } from './decimals.js'
+import type { DnumDecimalType, StringDecimalType } from './decimals.js'
 import type { StringType } from './strings.js'
 import type { UuidType } from './uuids.js'
 import type { LocalDateTimeType, LocalDateType, LocalTimeType } from './localDates.js'
@@ -39,6 +39,7 @@ export interface DataTypes {
     string: StringType
     uuid: UuidType
     stringDecimal: StringDecimalType
+    dnumDecimal: DnumDecimalType
     localDate: LocalDateType
     localTime: LocalTimeType
     localDateTime: LocalDateTimeType

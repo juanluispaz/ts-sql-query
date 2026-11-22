@@ -1,5 +1,6 @@
 import type { TemporalDuration, TemporalInstant, TemporalPlainDate, TemporalPlainDateTime, TemporalPlainMonthDay, TemporalPlainTime, TemporalPlainYearMonth, TemporalZonedDateTime } from '../typeSystem/temporal.js'
 import type { TerminalValueObject, NonValueObject } from '../utils/objectUtils.js'
+import type { Dnum } from '../typeSystem/decimals.js'
 import type { DynamicCondition, DynamicConditionExtension } from '../expressions/dynamicConditionUsingFilters.js'
 import type { ComparableType } from '../typeSystem/comparable.js'
 import type { EnumType } from '../typeSystem/enum.js'
@@ -33,6 +34,7 @@ type DynamicDefinitionLeafForModel<T> =
     [T] extends [bigint] ? 'bigint' :
     [T] extends [number] ? ([number] extends [T] ? 'int' : IsBrandOf<T, number> extends true ? ComparableType<T, string> : EnumType<T, string>) :
     [T] extends [string] ? ([string] extends [T] ? 'string' : IsBrandOf<T, string> extends true ? ComparableType<T, string> : EnumType<T, string>) :
+    [T] extends [Dnum] ? 'dnumDecimal' :
     [T] extends [Date] ? 'localDateTime' :
     [T] extends [TemporalPlainDate] ? 'plainDate' :
     [T] extends [TemporalPlainTime] ? 'plainTime' :
@@ -45,7 +47,7 @@ type DynamicDefinitionLeafForModel<T> =
     never
 
 // Whether a value of the model is a nested object, whose properties are filtered one level deeper. Date, the Temporal
-// values without zone and the scalars are leaves; any other terminal value object (RegExp, binary, …) or non-value object (arrays, Map/Set, …) is
+// values without zone, a dnum and the scalars are leaves; any other terminal value object (RegExp, binary, …) or non-value object (arrays, Map/Set, …) is
 // not filterable
 type IsNestedModel<T> =
     [T] extends [boolean | bigint | number | string | Date | TemporalPlainDate | TemporalPlainTime | TemporalPlainDateTime | TemporalDuration | TemporalInstant | TemporalZonedDateTime] ? false :

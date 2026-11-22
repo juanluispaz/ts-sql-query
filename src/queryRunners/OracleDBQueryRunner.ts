@@ -11,6 +11,7 @@ import type { DataTypeClass, SqlDataType } from '../TypeAdapter.js'
 import { __sqlDataTypeDescribes, __temporalFieldsOf, __typeSqlDataTypeOf } from '../typeSystem/dataTypes.js'
 import { isOracleZonedParam, oraclePlainTemporalFormOfParam, oracleTemporalBind } from '../utils/oracle/oracleParamTypes.js'
 import { durationIsoTextWithoutWeeks, isDurationValue } from '../utils/durationValues.js'
+import { exactDecimalTextWithDecimals } from '../utils/exactDecimalValues.js'
 import { isPlainTemporalClass } from '../utils/plainTemporalValues.js'
 import { __isInstantClass, __isZonedDateTimeClass } from '../typeSystem/dataTypeQuestions.js'
 import { oracleDateParam } from '../utils/metadataSymbols.js'
@@ -107,7 +108,9 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
      * values are received as the library reads them whatever oracledb was configured with:
      * - a column expected as an exact decimal, a bigint or an integer of the user wider than a number is fetched as text, with all
      *   its digits (oracledb gives a NUMBER as a JavaScript number, which loses digits and the scale). The column is the
-     *   one with the name expected, or the only column of a query that returns one value without a name;
+     *   one with the name expected, or the only column of a query that returns one value without a name. Oracle writes
+ *   the text of a NUMBER without the zeros at the end of its decimals (`1.5` in a NUMBER(10, 2)): when the column says
+ *   its scale, they are added (`1.50`), so the value has the decimals of its column;
      * - a DATE or a TIMESTAMP is the Date whose UTC getters are its digits, the values in the database being in UTC:
      *   oracledb builds it with the zone of the process, and the converter takes its local getters back (see
      *   utcDateOfLocalGetters);
@@ -136,7 +139,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
         }
         return (metadata, rowsetMetaData) => {
             if (names?.has(metadata.name) || (unnamed && rowsetMetaData.length === 1)) {
-                return { type: oracleDb.DB_TYPE_VARCHAR }
+                return textFetchTypeOf(metadata)
             }
             return oracleFetchTypeHandler(metadata)
         }
@@ -581,6 +584,31 @@ function utcDateOfLocalGetters(value: unknown): unknown {
     result.setUTCFullYear(value.getFullYear(), value.getMonth(), value.getDate())
     result.setUTCHours(value.getHours(), value.getMinutes(), value.getSeconds(), value.getMilliseconds())
     return result
+}
+
+/**
+ * The fetch type of a column expected as text (see fetchTypeHandlerFor): a NUMBER that says its scale (NUMBER(10, 2);
+ * not an expression, whose scale Oracle doesn't know) gets the zeros at the end of its decimals that Oracle doesn't write
+ */
+function textFetchTypeOf(metadata: Metadata<any>): FetchTypeResponse {
+    const scale = metadata.scale
+    if (metadata.dbType === oracleDb.DB_TYPE_NUMBER && scale !== undefined && Number.isSafeInteger(scale) && scale > 0 && scale <= 127) {
+        return { type: oracleDb.DB_TYPE_VARCHAR, converter: decimalsTextConverterOf(scale) }
+    }
+    return { type: oracleDb.DB_TYPE_VARCHAR }
+}
+
+/** The converters of the text of a NUMBER with a scale, by its scale: one for each, created the first time */
+const decimalsTextConverters: Array<((value: unknown) => unknown) | undefined> = []
+
+/** The converter that gives the text of a NUMBER the decimals of its scale (`.5` with 2 is `.50`) */
+function decimalsTextConverterOf(scale: number): (value: unknown) => unknown {
+    let converter = decimalsTextConverters[scale]
+    if (!converter) {
+        converter = (value: unknown): unknown => typeof value === 'string' && /^-?(\d+(\.\d+)?|\.\d+)$/.test(value) ? exactDecimalTextWithDecimals(value, scale) : value
+        decimalsTextConverters[scale] = converter
+    }
+    return converter
 }
 
 /** The fetch type of every column that is not expected as text (see fetchTypeHandlerFor) */

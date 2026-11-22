@@ -114,7 +114,10 @@ export {
 
 export {
     DecimalsType,
+    DnumDecimalsType,
+    DnumDecimalType,
     StringDecimalType,
+    type Dnum,
 } from '../../typeSystem/decimals.js'
 
 export {

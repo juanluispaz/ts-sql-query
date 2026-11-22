@@ -29,7 +29,7 @@ import type { NAggregate, NDB, NNoTableOrViewRequired, NNotNestedAggregate, NSou
 import type { DataToProject, GetDataToProjectSource } from '../complexProjections/dataToProject.js'
 import type { ResultObjectValuesForAggregatedArray } from '../complexProjections/resultWithOptionalsAsUndefined.js'
 import type { ResultObjectValuesProjectedAsNullableForAggregatedArray } from '../complexProjections/resultWithOptionalsAsNull.js'
-import { __isAggregatedArrayClass, __isBigintClass, __isBooleanClass, __isDoubleClass, __isExactDecimalClass, __isIntClass, __isLocalDateClass, __isLocalDateTimeClass, __isLocalTimeClass, __isPlainDateClass, __isPlainMonthDayClass, __isPlainYearMonthClass, __isPlainDateTimeClass, __isPlainTimeClass, __isStringClass, __isDurationClass, __isInstantClass, __isUuidClass, __isZonedDateTimeClass } from '../typeSystem/dataTypeQuestions.js'
+import { __isAggregatedArrayClass, __isBigintClass, __isBooleanClass, __isDoubleClass, __isDnumDecimalClass, __isExactDecimalClass, __isIntClass, __isLocalDateClass, __isLocalDateTimeClass, __isLocalTimeClass, __isPlainDateClass, __isPlainMonthDayClass, __isPlainYearMonthClass, __isPlainDateTimeClass, __isPlainTimeClass, __isStringClass, __isDurationClass, __isInstantClass, __isUuidClass, __isZonedDateTimeClass } from '../typeSystem/dataTypeQuestions.js'
 import { __durationSqlDataTypeOf } from '../typeSystem/dataTypes.js'
 import { parseUtcDateTimeText } from '../utils/utcDateTimeText.js'
 import type { CombinedOptionalityOfUnion, OptionalType } from '../typeSystem/valueSource.js'
@@ -66,6 +66,7 @@ import { __adaptedTypeClassOf, __keptClassOf, __computedClassOf } from '../nodes
 import { NextTypeAdapter } from '../internal/TypeAdapterContextImpl.js'
 import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
 import { __inCreation } from '../utils/inCreation.js'
+import { decimalsOfSqlDataType, dnumOfText, exactDecimalTextWithDecimals, isDnumValue, textOfDnum } from '../utils/exactDecimalValues.js'
 
 export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements IConnection<DB> {
     [connection]!: DB
@@ -1206,29 +1207,42 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid double value received from the db: ' + String(value))
         }
         if (__isExactDecimalClass(context.requestedType)) {
+            let text: string
             if (typeof value === 'string') {
-                // The text the database gives keeps its digits and its scale (`1.50`). A number without the zero
-                // before the point (`.5`, as Oracle writes it) gets it
+                // The text the database gives keeps its digits, and its decimals when the database keeps them (`1.50`);
+                // the query runner adds the zeros at its end when the driver says the decimals and the text doesn't
+                // have them (Oracle). A number without the zero before the point (`.5`, as Oracle writes it) gets it
                 if (!/^-?(\d+(\.\d+)?|\.\d+)$/.test(value)) {
                     throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid decimal value received from the db: ' + String(value))
                 }
                 if (value.startsWith('.')) {
-                    return '0' + value
+                    text = '0' + value
+                } else if (value.startsWith('-.')) {
+                    text = '-0' + value.substring(1)
+                } else {
+                    text = value
                 }
-                if (value.startsWith('-.')) {
-                    return '-0' + value.substring(1)
-                }
-                return value
-            }
-            if (typeof value === 'number') {
+            } else if (typeof value === 'number') {
                 // The driver gave a JavaScript number: the digits beyond its precision, and the scale, are already
                 // lost, and nothing tells which
                 throw new TsSqlProcessingError({ reason: 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE', value, typeName: type }, 'Precision lost reading a decimal value from the db: the driver returned ' + value + ' as a JavaScript number')
+            } else if (typeof value === 'bigint') {
+                text = '' + value
+            } else if (isDnumValue(value)) {
+                text = textOfDnum(value)
+            } else {
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid decimal value received from the db: ' + String(value))
             }
-            if (typeof value === 'bigint') {
-                return '' + value
+            // The decimals the SQL data type says (the scale of a `numeric(18, 4)`) win over the ones received; a digit
+            // other than a zero beyond them is never removed
+            const decimals = decimalsOfSqlDataType(context.requestedSqlDataType)
+            if (decimals !== undefined) {
+                text = exactDecimalTextWithDecimals(text, decimals)
             }
-            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid decimal value received from the db: ' + String(value))
+            if (__isDnumDecimalClass(context.requestedType)) {
+                return dnumOfText(text)
+            }
+            return text
         }
         if (__isStringClass(context.requestedType)) {
             if (typeof value === 'string') {
@@ -1442,6 +1456,13 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 return value
             }
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid double value to send to the db: ' + String(value))
+        }
+        if (__isDnumDecimalClass(context.requestedType)) {
+            // A dnum is sent as its text, with all its decimals (`[1250n, 2]` is `12.50`), as any exact decimal
+            if (isDnumValue(value)) {
+                return textOfDnum(value)
+            }
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid dnum decimal value to send to the db: ' + String(value))
         }
         if (__isExactDecimalClass(context.requestedType)) {
             // A decimal is sent as its text, with a point as the decimal separator and without an exponent, so every

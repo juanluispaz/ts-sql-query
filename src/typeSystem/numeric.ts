@@ -21,7 +21,7 @@ import { doubleSqlDataType, intSqlDataType } from './numericSqlDataTypes.js'
  * └── AdditiveType                  added and subtracted (a sum of money)
  *     └── MultipliableType          multiplied
  *         ├── IntegersType          the integers: BigintType (bigint.ts)
- *         ├── DecimalsType          the exact decimals (decimals.ts): StringDecimalType
+ *         ├── DecimalsType          the exact decimals (decimals.ts): StringDecimalType, DnumDecimalsType (DnumDecimalType)
  *         └── DivisibleType         divided
  *             └── RealsType         the floating point numbers, with their functions
  *

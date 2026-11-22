@@ -414,7 +414,7 @@ describe(ctx.label, () => {
     })
 
     test('transform-projection/next-keeps-the-conversion-of-the-library', async () => {
-        ctx.mockNext([{ id: 1, price: '1.5' }])
+        ctx.mockNext([{ id: 1, price: '1.50' }])
         const rows = await ctx.conn.selectFrom(tPriceDelegating)
             .where(tPriceDelegating.id.equals(1))
             .select({ id: tPriceDelegating.id, price: tPriceDelegating.price })
@@ -426,7 +426,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, { id: number; price?: Amount }[]>>()
-        expect(rows).toEqual([{ id: 1, price: '1.5' }])
+        expect(rows).toEqual([{ id: 1, price: '1.50' }])
     })
 
     test('transform-projection/converts-the-result-of-a-function', async () => {

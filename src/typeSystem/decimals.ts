@@ -176,3 +176,24 @@ export abstract class DecimalsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME e
 export abstract class StringDecimalType extends DecimalsType<string, 'stringDecimal'> {
     static override readonly type = 'stringDecimal'
 }
+
+/**
+ * An exact decimal as dnum (https://github.com/bpierre/dnum) keeps it: the integer of its digits and the number of its
+ * decimals, `[12345n, 2]` is 123.45. It is the type of dnum, written here so the library doesn't depend on it: the
+ * values of dnum are of this type and the ones of the library can be given to its functions
+ */
+export type Dnum = readonly [value: bigint, decimals: number]
+
+/**
+ * The family of the exact decimals the library delivers as a dnum (`Dnum`, https://github.com/bpierre/dnum), the
+ * integer of its digits and the number of its decimals: an exact decimal (DecimalsType), sent as its text. Its data
+ * types are dnumDecimal and the ones of the user, with its type name:
+ * `class PriceType extends DnumDecimalsType<Price, 'Price'> { static override readonly type = 'Price' }`
+ */
+export abstract class DnumDecimalsType</*in|out*/ VALUE_TYPE extends Dnum, /*in|out*/ TYPE_NAME extends string> extends DecimalsType<VALUE_TYPE, TYPE_NAME> {
+}
+
+/** An exact decimal number that the library delivers as a dnum (`Dnum`): the integer of its digits and its decimals */
+export abstract class DnumDecimalType extends DnumDecimalsType<Dnum, 'dnumDecimal'> {
+    static override readonly type = 'dnumDecimal'
+}

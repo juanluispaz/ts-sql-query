@@ -146,7 +146,7 @@ the other databases.
 
 The connection converts a value by the class of its requested type: a data type of the user is converted as its family
 says, whatever its type name (an `IntegersType` as an `int`, or as a `bigint` when the SQL data type of its class
-doesn't fit in a number; a `RealsType` as a `double`; a `DecimalsType` as a `stringDecimal`; a `UuidsType` as a `uuid`;
+doesn't fit in a number; a `RealsType` as a `double`; a `DecimalsType` as a `stringDecimal`, and a `DnumDecimalsType` as a `dnumDecimal`; a `UuidsType` as a `uuid`;
 a `LocalDatesType`, `LocalTimesType` or `LocalDateTimesType` as a `localDate`, `localTime` or `localDateTime`), and a
 built-in one by its type. A data type of the user whose family converts nothing (`EnumType`, `EqualableType`,
 `ComparableType`, `AdditiveType`, `MultipliableType`, `DivisibleType`) and a value without a built-in type pass
@@ -166,6 +166,7 @@ Every rejection is `INVALID_VALUE_TO_SEND_TO_DATABASE`.
 | `bigint` | `bigint` | anything else (a `number` too) | the bigint. SQLite: the text of a bigint of a type whose SQL data type is wider than 64 bits (an exact number, computed with the decimal strategy) |
 | `double` | any `number` (`NaN`, `Infinity` included) | non-number | the number |
 | `stringDecimal`, `DecimalsType` | a string matching `^-?(\d+(\.\d+)?\|\.\d+)$` (point separator, no exponent) | other strings, non-strings | the text |
+| `dnumDecimal`, `DnumDecimalsType` | a dnum: an array of a `bigint` and a number of decimals that is a safe integer, 0 or more | anything else (a text too) | its text with all its decimals: `[150n, 2]` → `'1.50'`, `[-5n, 3]` → `'-0.005'`, `[12n, 0]` → `'12'` |
 | `string` | `string` | non-string | the string |
 | `uuid` | `string` (format not checked) | non-string | the string; in lower case with the uuid strategy `'string'` (MariaDB, MySQL, Oracle, SQLite) and on SQL Server unless `useUpperCaseUuid` |
 | `localDate` | a valid `Date` | invalid `Date`, non-Date | the `Date` as given (its UTC day is the value) |
@@ -312,7 +313,7 @@ After `transformValueToDB` without adapter, `addParam` and the work of execution
 | int, IntegersType that fits in a number | number; forced: `int4` | number | `Int` | number; null → `DB_TYPE_NUMBER` | number (wasm: beyond 64 bits as `cast(text as real)`) |
 | bigint, IntegersType wider than a number | bigint; forced: `int8` | bigint | `BigInt` | bigint; null → `DB_TYPE_NUMBER` | bigint |
 | double, RealsType | number; forced: `float8` | number | `Float` | number; null → `DB_TYPE_NUMBER` | number |
-| stringDecimal, DecimalsType | text; forced: `numeric` | text, `cast(? as decimal(p,s))` outside a column value | `NVarChar`, `cast(@N as decimal(p,s))` outside a column value | text; null → `DB_TYPE_NUMBER` | text (the SQL around it per `decimalStrategy`) |
+| stringDecimal, dnumDecimal, DecimalsType | text; forced: `numeric` | text, `cast(? as decimal(p,s))` outside a column value | `NVarChar`, `cast(@N as decimal(p,s))` outside a column value | text; null → `DB_TYPE_NUMBER` | text (the SQL around it per `decimalStrategy`) |
 | string | text; forced: `text` | text | `NVarChar` | text | text |
 | uuid, UuidsType | text; forced: `uuid` | text | `UniqueIdentifier` | text | text |
 | localDate | `YYYY-MM-DD` (UTC day); forced: `date` | `YYYY-MM-DD` (UTC day) | the Date, `Date` | `DATE` of the UTC day | per `SqliteDateTimeFormat` |
@@ -404,7 +405,7 @@ their own queries.
 | `MySql2QueryRunner`, `MySql2PoolQueryRunner` | `dateStrings: true`, `supportBigNumbers: true`, `bigNumberStrings: true`, `rowsAsArray: false`; and its own `typeCast` (DECIMAL/NEWDECIMAL as their text, DOUBLE/FLOAT parsed from their text, else `next()`) when the connection has a `typeCast` function, `typeCast: false` or `decimalNumbers: true`, since a typeCast given with the query replaces the connection's, and when a result column is requested as a double (the driver reads a short double digit by digit, which can give the next double) | DATE/DATETIME/TIMESTAMP/TIME as text; BIGINT and DECIMAL as exact text; a double as the one sent; objects | `test/runners/mysql/DriverConfiguration.test.ts` (`a-connection-with-type-cast-false-doesnt-change-the-queries-of-the-runner`), `test/runners/mysql/DeliveredValues.test.ts` |
 | `MariaDBQueryRunner`, `MariaDBPoolQueryRunner` | `dateStrings: true`, `supportBigNumbers: false`, `bigIntAsNumber: false`, `decimalAsNumber: false`, `insertIdAsNumber: false`, `rowsAsArray: false`, `metaAsArray: false`, `nestTables: false`, `typeCast: undefined` (each replaces the connection's) | dates as text; BIGINT and insert id as `bigint`; DECIMAL as text; objects | `test/runners/mariadb/DriverConfiguration.test.ts`, `test/runners/mariadb/DeliveredValues.test.ts` |
 | `MssqlPoolQueryRunner`, `MssqlPoolPromiseQueryRunner` | `request.arrayRowMode = false`; a `plain…` or `instant` result column is given as the text of the Date tedious delivers with the digits below the millisecond it keeps apart (`nanosecondsDelta`): `YYYY-MM-DDTHH:MM:SS.fffffff` | tedious defaults: BIGINT as text, INT and DECIMAL as numbers (the connection converts decimal result columns to `nvarchar(41)`), BIT as a boolean; dates with the UTC getters (`useUTC`), the instant for `datetimeoffset` | `test/runners/sqlserver/DeliveredValues.test.ts`, `test/runners/sqlserver/DriverConfiguration.test.ts` (`the-rows-are-objects-with-array-row-mode-on-the-pool`) |
-| `OracleDBQueryRunner`, `OracleDBPoolQueryRunner`, `OracleDBPoolPromiseQueryRunner` | `outFormat: OUT_FORMAT_OBJECT`, `maxRows: 0`, a `fetchTypeHandler` answering every column: a result column of an exact decimal or of an integer wider than a number (by name, or the only column of an unnamed one-value result) → `DB_TYPE_VARCHAR`; `DATE`/`TIMESTAMP` → the `Date` rebuilt with its local getters as UTC; CLOB/NCLOB → string; BLOB → Buffer; else its own type | decimals and bigints as text; DATE/TIMESTAMP as UTC Date (exact except a wall clock skipped by summer time in the zone of the process, and years < 100 built as 19xx by oracledb); NUMBER as number; RETURNING OUT binds as in §2.4 | `test/runners/oracle/OracleDBResultTypes.test.ts`, `test/environments/oracle/LocalTemporalValuesInAnyZone.test.ts` |
+| `OracleDBQueryRunner`, `OracleDBPoolQueryRunner`, `OracleDBPoolPromiseQueryRunner` | `outFormat: OUT_FORMAT_OBJECT`, `maxRows: 0`, a `fetchTypeHandler` answering every column: a result column of an exact decimal or of an integer wider than a number (by name, or the only column of an unnamed one-value result) → `DB_TYPE_VARCHAR`, and for a `NUMBER` whose metadata says its scale (above 0), the text with the zeros at the end of its decimals up to that scale, which Oracle doesn't write (`1.5` of a `NUMBER(10, 2)` → `1.50`); `DATE`/`TIMESTAMP` → the `Date` rebuilt with its local getters as UTC; CLOB/NCLOB → string; BLOB → Buffer; else its own type | decimals and bigints as text; DATE/TIMESTAMP as UTC Date (exact except a wall clock skipped by summer time in the zone of the process, and years < 100 built as 19xx by oracledb); NUMBER as number; RETURNING OUT binds as in §2.4 | `test/runners/oracle/OracleDBResultTypes.test.ts`, `test/environments/oracle/LocalTemporalValuesInAnyZone.test.ts` |
 | `BetterSqlite3QueryRunner`, `BunSqliteQueryRunner` | nothing (`safeIntegers` not forced) | numbers, or `bigint` with the driver's big-integer mode; text; dates as stored per format | the tests of each runner in `test/runners/sqlite/` |
 | `NodeSqliteQueryRunner` | `setReturnArrays(false)` per statement, where the method exists (Node 22.16 and 24); `readBigInts` not forced | objects even on a database opened with `returnArrays: true`; numbers, or `bigint` with `readBigInts` | `test/runners/sqlite/NodeSqliteQueryRunner.test.ts` (`the-rows-are-objects-with-return-arrays-on-the-database`) |
 | `Sqlite3WasmOO1QueryRunner` | `selectObjects` | objects; numbers, and a `bigint` for an integer beyond the safe range | `test/runners/sqlite/Sqlite3WasmOO1Numbers.test.ts` |
@@ -425,7 +426,7 @@ themselves is in the `DeliveredValues` tests of `test/runners/<db>/` and in the 
 | int | number; text (int8, count) | number; text (mysql2 BIGINT); bigint (mariadb BIGINT) | number; text (BIGINT) | number; text from an OUT bind | number, bigint |
 | bigint | text (int8) | text (mysql2); bigint (mariadb) | text | text (fetched as VARCHAR) | number, bigint |
 | double | number; text (numeric) | number; text (DECIMAL) | number | number | number |
-| stringDecimal, DecimalsType | text | text | text (`convert(nvarchar(41))`) | text, possibly `.5` / `-.5` | text per `decimalStrategy` |
+| stringDecimal, dnumDecimal, DecimalsType | text | text | text (`convert(nvarchar(41))`) | text, possibly `.5` / `-.5`; a column with the scale of its `NUMBER(p, s)`, a computed value and an OUT bind (`returning`) without the zeros at the end of its decimals | text per `decimalStrategy` |
 | string, uuid | text | text | text | text | text |
 | localDate | Date (`date` parsed as UTC) | text `YYYY-MM-DD` (mysql2/mariadb); Date (Bun SQL) | Date | Date (rebuilt as UTC) | per format |
 | localTime | text `HH:MM:SS[.ffffff]`; `timetz` text with its offset | text `HH:MM:SS[.ffffff]` | Date | Date | per format |
@@ -448,7 +449,7 @@ silent.
 
 Common: `undefined` and `null` → `null`; `''` → `null` unless `allowEmptyString`. Tests:
 `marshalling.transform-validation.test.ts` (`from-db-validation/*`), `select.string-decimal.test.ts`,
-`select.own-decimal.test.ts` in each cell.
+`select.own-decimal.test.ts`, `select.dnum-decimal.test.ts` in each cell.
 
 | Conversion type | Accepts → result | `PRECISION_LOST` | Rejects |
 |---|---|---|---|
@@ -456,7 +457,7 @@ Common: `undefined` and `null` → `null`; `''` → `null` unless `allowEmptyStr
 | `int` | safe integer number; text `^-?\d+(\.0+)?$` → number; bigint → number | integer number not safe; text or bigint beyond the safe range | non-integer number, other text, other types |
 | `bigint` | safe integer number → bigint; text → `BigInt(text without a trailing .0+)` (`BigInt()` also takes `0x1f` and blanks, which no database delivers); bigint | integer number not safe | non-integer number, text `BigInt` refuses, other types |
 | `double` | number; text `^(-?(\d+(\.\d+)?\|\.\d+)([eE][-+]?\d+)?\|NaN\|-?Infinity)$` → `+v`; bigint → `Number(v)` (a `double` is approximate by definition: rounding a bigint is not a loss to report) | — | other text, other types |
-| `stringDecimal`, `DecimalsType` | text `^-?(\d+(\.\d+)?\|\.\d+)$` (`.5` → `0.5`, `-.5` → `-0.5`); bigint → its text | any number | other text (an exponent too), other types |
+| `stringDecimal`, `dnumDecimal`, `DecimalsType` | text `^-?(\d+(\.\d+)?\|\.\d+)$` (`.5` → `0.5`, `-.5` → `-0.5`); bigint → its text; a dnum → its text. Then its decimals: the scale of its SQL data type when it says one (zeros added or removed at the end, never another digit), else the ones received; a `dnumDecimal` gives the dnum of that text (`'1.50'` → `[150n, 2]`) | any number | other text (an exponent too), other types |
 | `string`, `uuid` | text, unchanged; a `uuid` in lower case with the uuid strategy `'string'` and on SQL Server unless `useUpperCaseUuid`; on SQL Server also the text of a uuid (`asString()`) in a column of the result | — | non-text |
 | `localDate` | valid Date, read with its UTC getters, or temporal text (§3.4) → a new Date at 10:00 UTC of the UTC day of the received one | — | anything else, invalid Date, unparsable text, text outside the calendar |
 | `localTime` | same inputs → a Date on 1970-01-01 with the UTC time of the received one; with a database outside UTC, the instant read, on its own day (§7.3) | — | same |

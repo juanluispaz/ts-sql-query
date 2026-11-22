@@ -3,7 +3,7 @@ import { __fitsInANumberSql } from './dataTypes.js'
 import { BooleanType } from './logical.js'
 import { DoubleType, IntType } from './number.js'
 import { IntegersType, RealsType } from './numeric.js'
-import { DecimalsType } from './decimals.js'
+import { DecimalsType, DnumDecimalsType } from './decimals.js'
 import { StringType } from './strings.js'
 import { UuidsType } from './uuids.js'
 import { LocalDatesType, LocalDateTimesType, LocalTimesType } from './localDates.js'
@@ -47,9 +47,16 @@ export function __isBigintClass(typeClass: DataTypeClass): boolean {
 export function __isDoubleClass(typeClass: DataTypeClass): boolean {
     return isOf(typeClass, DoubleType) || isOf(typeClass, RealsType)
 }
-/** An exact decimal: a stringDecimal or a decimal of the user, whose value is its text */
+/**
+ * An exact decimal: a stringDecimal, a dnumDecimal or a decimal of the user; its value is its text, or a dnum for the
+ * ones of the dnum family (__isDnumDecimalClass)
+ */
 export function __isExactDecimalClass(typeClass: DataTypeClass): boolean {
     return isOf(typeClass, DecimalsType)
+}
+/** An exact decimal whose value is a dnum: a dnumDecimal or a decimal of the user of the dnum family */
+export function __isDnumDecimalClass(typeClass: DataTypeClass): boolean {
+    return isOf(typeClass, DnumDecimalsType)
 }
 export function __isStringClass(typeClass: DataTypeClass): boolean {
     return isOf(typeClass, StringType)

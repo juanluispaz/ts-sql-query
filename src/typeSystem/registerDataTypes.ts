@@ -2,7 +2,7 @@ import { __registerDataType, __registerInternalDataType } from './dataTypeRegist
 import { BooleanConditionType, BooleanType } from './logical.js'
 import { DoubleType, IntType } from './number.js'
 import { BigintType } from './bigint.js'
-import { StringDecimalType } from './decimals.js'
+import { DnumDecimalType, StringDecimalType } from './decimals.js'
 import { StringType } from './strings.js'
 import { UuidType } from './uuids.js'
 import { LocalDateTimeType, LocalDateType, LocalTimeType } from './localDates.js'
@@ -24,6 +24,7 @@ __registerDataType('int', IntType)
 __registerDataType('bigint', BigintType)
 __registerDataType('double', DoubleType)
 __registerDataType('stringDecimal', StringDecimalType)
+__registerDataType('dnumDecimal', DnumDecimalType)
 __registerDataType('string', StringType)
 __registerDataType('uuid', UuidType)
 __registerDataType('localDate', LocalDateType)

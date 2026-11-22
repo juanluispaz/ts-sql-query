@@ -338,6 +338,36 @@ describe(ctx.label, () => {
 
     // NOT-APPLICABLE: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA: what needs them is not offered here
     /*
+    test('a-zoned-date-and-time-with-fields-of-the-query', async () => {
+        // The int 42 of col_matrix row 1 minus 30 as the hour: the wall clock at 12 in its zone, taken back to the zone
+        // as Temporal takes it; with and without the functions of the library (the mock answers no rows: there it is the
+        // SQL that is checked)
+        const query = (conn: typeof ctx.conn) => conn.selectFrom(tZonedValue)
+            .join(tColMatrixPlain).on(tColMatrixPlain.id.equals(1))
+            .select({
+                id: tZonedValue.id,
+                atNoon: zonedAt.with({ hour: tColMatrixPlain.mInt.subtract(conn.const(30, 'int')), minute: 0 }),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        ctx.mockNext([])
+        const withFunctions = await query(ctx.withLibraryFunctions())
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        ctx.mockNext([])
+        const withoutFunctions = await query(ctx.conn)
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        assertType<Exact<typeof withFunctions, Array<{ id: number; atNoon: Temporal.ZonedDateTime }>>>()
+        expect(withFunctions.length).toBe(ctx.realDbEnabled ? 3 : 0)
+        const ofTemporal = zoned.map((value, i) => [i + 1, value.with({ hour: 12, minute: 0 }).toString()])
+        type Row = (typeof withFunctions)[number]
+        const read = (row: Row) => [row.id, row.atNoon.toString()]
+        expect(withFunctions.map(read)).toEqual(ofTemporal.slice(0, withFunctions.length))
+        expect(withoutFunctions.map(read)).toEqual(ofTemporal.slice(0, withoutFunctions.length))
+    })
+    */
+
+    // NOT-APPLICABLE: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA: what needs them is not offered here
+    /*
     test('a-zoned-date-and-time-with-other-fields-rounded-and-at-the-start-of-its-day', async () => {
         // Row 1 is in the first 02:30 of a day Madrid repeats, with 25 hours: with keeps its offset when the zone still
         // has it, round rounds its wall clock, round to a day takes the start of its day or of the next one

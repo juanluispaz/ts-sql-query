@@ -584,6 +584,7 @@ export interface SqlFunction1 {
     // A date, a time or a date and time with the fields given, with the semantics of Temporal's with
     _withFields(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
     _yearMonthWith(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
+    _yearMonthWithRejecting(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
     _monthDayWith(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
     _monthDayWithRejecting(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass): string
     // The same rejecting a day the month hasn't (Temporal's overflow 'reject') as an error of the query

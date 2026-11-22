@@ -3,8 +3,28 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tColMatrixPlain } from '../../domain/connection.js'
+import { tColMatrixPlain, tCalendarValue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+import { TsSqlError } from '../../../../../src/exports/v2/index.js'
+
+/** Whether the query fails with an error of the database */
+async function failureOf(query: Promise<unknown>): Promise<boolean> {
+    try {
+        await query
+        return false
+    } catch (error) {
+        return error instanceof TsSqlError
+    }
+}
+
+/** The text of each value, as the database gives it */
+function asRow(values: Record<string, { toString(): string }>): Record<string, string> {
+    const row: Record<string, string> = {}
+    for (const key in values) {
+        row[key] = values[key]!.toString().replace('T', ' ')
+    }
+    return row
+}
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -183,4 +203,114 @@ describe(ctx.label, () => {
         expect([failsWithFunctions, failsWithoutFunctions]).toEqual([ctx.realDbEnabled, ctx.realDbEnabled])
     })
     */
+
+    test('with-fields-of-the-query', async () => {
+        // Each field is an integer or an int of the query, taken to its range as Temporal's overflow 'constrain' takes it:
+        // the int 42 of the row as a day is the last one of the month, as a month December, as an hour 23, as a minute 42;
+        // negated as an hour, 0; the same with the functions of the library, which aren't used for fields of the query
+        const date = Temporal.PlainDate.from('2024-03-04')
+        const time = Temporal.PlainTime.from('09:15')
+        const dateTime = Temporal.PlainDateTime.from('2024-01-14T12:30')
+        const expected = {
+            lastDay: date.with({ day: 42 }),
+            december: date.with({ month: 42 }),
+            inYear: date.with({ year: 2022 }),
+            lastHour: time.with({ hour: 42 }),
+            minute: time.with({ minute: 42 }),
+            lastSecond: time.with({ second: 84 }),
+            dayAndHour: dateTime.with({ day: 42, hour: -42 }),
+            millisecond: dateTime.with({ millisecond: 42 }),
+        }
+        const query = (conn: typeof ctx.conn) => {
+            const negated = conn.const(0, 'int').subtract(tColMatrixPlain.mInt)
+            return conn.selectFrom(tColMatrixPlain)
+                .where(tColMatrixPlain.id.equals(1))
+                .select({
+                    lastDay: tColMatrixPlain.mDate.with({ day: tColMatrixPlain.mInt }),
+                    december: tColMatrixPlain.mDate.with({ month: tColMatrixPlain.mInt }),
+                    inYear: tColMatrixPlain.mDate.with({ year: tColMatrixPlain.mInt.add(conn.const(1980, 'int')) }),
+                    lastHour: tColMatrixPlain.mTime.with({ hour: tColMatrixPlain.mInt }),
+                    minute: tColMatrixPlain.mTime.with({ minute: tColMatrixPlain.mInt }),
+                    lastSecond: tColMatrixPlain.mTime.with({ second: tColMatrixPlain.mInt.multiply(conn.const(2, 'int')) }),
+                    dayAndHour: tColMatrixPlain.mDatetime.with({ day: tColMatrixPlain.mInt, hour: negated }),
+                    millisecond: tColMatrixPlain.mDatetime.with({ millisecond: tColMatrixPlain.mInt }),
+                })
+                .executeSelectMany()
+        }
+        ctx.mockNext([asRow(expected)])
+        const rows = await query(ctx.conn)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select case when m_int < 1 then abs(-9223372036854775807 - 1) else date(printf('%04d-%02d-%02d', cast(strftime('%Y', m_date) as integer), cast(strftime('%m', m_date) as integer), min(m_int, cast(strftime('%d', printf('%04d-%02d-01', cast(strftime('%Y', m_date) as integer), cast(strftime('%m', m_date) as integer)), '+1 months', '-1 days') as integer)))) end as lastDay, case when m_int < 1 then abs(-9223372036854775807 - 1) else date(printf('%04d-%02d-%02d', cast(strftime('%Y', m_date) as integer), min(m_int, 12), min(cast(strftime('%d', m_date) as integer), cast(strftime('%d', printf('%04d-%02d-01', cast(strftime('%Y', m_date) as integer), min(m_int, 12)), '+1 months', '-1 days') as integer)))) end as december, date(printf('%04d-%02d-%02d', (m_int + ?1), cast(strftime('%m', m_date) as integer), min(cast(strftime('%d', m_date) as integer), cast(strftime('%d', printf('%04d-%02d-01', (m_int + ?1), cast(strftime('%m', m_date) as integer)), '+1 months', '-1 days') as integer)))) as inYear, strftime('%H:%M:%f', printf('%02d:%02d:%02d.%03d', max(min(m_int, 23), 0), cast(strftime('%M', m_time) as integer), cast(strftime('%S', m_time) as integer), cast((cast(round(strftime('%f', m_time) * 1000) as integer) % 1000) * 1000000 / 1000000 as integer))) as lastHour, strftime('%H:%M:%f', printf('%02d:%02d:%02d.%03d', cast(strftime('%H', m_time) as integer), max(min(m_int, 59), 0), cast(strftime('%S', m_time) as integer), cast((cast(round(strftime('%f', m_time) * 1000) as integer) % 1000) * 1000000 / 1000000 as integer))) as minute, strftime('%H:%M:%f', printf('%02d:%02d:%02d.%03d', cast(strftime('%H', m_time) as integer), cast(strftime('%M', m_time) as integer), max(min((m_int * ?2), 59), 0), cast((cast(round(strftime('%f', m_time) * 1000) as integer) % 1000) * 1000000 / 1000000 as integer))) as lastSecond, case when m_int < 1 then abs(-9223372036854775807 - 1) else strftime('%Y-%m-%d %H:%M:%f', printf('%04d-%02d-%02d %02d:%02d:%02d.%03d', cast(strftime('%Y', m_datetime) as integer), cast(strftime('%m', m_datetime) as integer), min(m_int, cast(strftime('%d', printf('%04d-%02d-01', cast(strftime('%Y', m_datetime) as integer), cast(strftime('%m', m_datetime) as integer)), '+1 months', '-1 days') as integer)), max(min((?3 - m_int), 23), 0), cast(strftime('%M', m_datetime) as integer), cast(strftime('%S', m_datetime) as integer), cast((cast(round(strftime('%f', m_datetime) * 1000) as integer) % 1000) * 1000000 / 1000000 as integer))) end as dayAndHour, strftime('%Y-%m-%d %H:%M:%f', printf('%04d-%02d-%02d %02d:%02d:%02d.%03d', cast(strftime('%Y', m_datetime) as integer), cast(strftime('%m', m_datetime) as integer), cast(strftime('%d', m_datetime) as integer), cast(strftime('%H', m_datetime) as integer), cast(strftime('%M', m_datetime) as integer), cast(strftime('%S', m_datetime) as integer), cast((max(min(m_int, 999), 0) * 1000000 + cast((cast(round(strftime('%f', m_datetime) * 1000) as integer) % 1000) * 1000000 / 1000 as integer) % 1000 * 1000 + (cast(round(strftime('%f', m_datetime) * 1000) as integer) % 1000) * 1000000 % 1000) / 1000000 as integer))) as millisecond from col_matrix where id = ?4"`)
+        expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
+          [
+            "1980",
+            "2",
+            "0",
+            "1",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ lastDay: Temporal.PlainDate; december: Temporal.PlainDate; inYear: Temporal.PlainDate; lastHour: Temporal.PlainTime; minute: Temporal.PlainTime; lastSecond: Temporal.PlainTime; dayAndHour: Temporal.PlainDateTime; millisecond: Temporal.PlainDateTime }>>>()
+        expect(rows.map(row => asRow(row))).toEqual([asRow(expected)])
+        ctx.mockNext([asRow(expected)])
+        const withFunctions = await query(ctx.withLibraryFunctions())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select case when m_int < 1 then abs(-9223372036854775807 - 1) else date(printf('%04d-%02d-%02d', cast(strftime('%Y', m_date) as integer), cast(strftime('%m', m_date) as integer), min(m_int, cast(strftime('%d', printf('%04d-%02d-01', cast(strftime('%Y', m_date) as integer), cast(strftime('%m', m_date) as integer)), '+1 months', '-1 days') as integer)))) end as lastDay, case when m_int < 1 then abs(-9223372036854775807 - 1) else date(printf('%04d-%02d-%02d', cast(strftime('%Y', m_date) as integer), min(m_int, 12), min(cast(strftime('%d', m_date) as integer), cast(strftime('%d', printf('%04d-%02d-01', cast(strftime('%Y', m_date) as integer), min(m_int, 12)), '+1 months', '-1 days') as integer)))) end as december, date(printf('%04d-%02d-%02d', (m_int + ?1), cast(strftime('%m', m_date) as integer), min(cast(strftime('%d', m_date) as integer), cast(strftime('%d', printf('%04d-%02d-01', (m_int + ?1), cast(strftime('%m', m_date) as integer)), '+1 months', '-1 days') as integer)))) as inYear, strftime('%H:%M:%f', printf('%02d:%02d:%02d.%03d', max(min(m_int, 23), 0), cast(strftime('%M', m_time) as integer), cast(strftime('%S', m_time) as integer), cast((cast(round(strftime('%f', m_time) * 1000) as integer) % 1000) * 1000000 / 1000000 as integer))) as lastHour, strftime('%H:%M:%f', printf('%02d:%02d:%02d.%03d', cast(strftime('%H', m_time) as integer), max(min(m_int, 59), 0), cast(strftime('%S', m_time) as integer), cast((cast(round(strftime('%f', m_time) * 1000) as integer) % 1000) * 1000000 / 1000000 as integer))) as minute, strftime('%H:%M:%f', printf('%02d:%02d:%02d.%03d', cast(strftime('%H', m_time) as integer), cast(strftime('%M', m_time) as integer), max(min((m_int * ?2), 59), 0), cast((cast(round(strftime('%f', m_time) * 1000) as integer) % 1000) * 1000000 / 1000000 as integer))) as lastSecond, case when m_int < 1 then abs(-9223372036854775807 - 1) else strftime('%Y-%m-%d %H:%M:%f', printf('%04d-%02d-%02d %02d:%02d:%02d.%03d', cast(strftime('%Y', m_datetime) as integer), cast(strftime('%m', m_datetime) as integer), min(m_int, cast(strftime('%d', printf('%04d-%02d-01', cast(strftime('%Y', m_datetime) as integer), cast(strftime('%m', m_datetime) as integer)), '+1 months', '-1 days') as integer)), max(min((?3 - m_int), 23), 0), cast(strftime('%M', m_datetime) as integer), cast(strftime('%S', m_datetime) as integer), cast((cast(round(strftime('%f', m_datetime) * 1000) as integer) % 1000) * 1000000 / 1000000 as integer))) end as dayAndHour, strftime('%Y-%m-%d %H:%M:%f', printf('%04d-%02d-%02d %02d:%02d:%02d.%03d', cast(strftime('%Y', m_datetime) as integer), cast(strftime('%m', m_datetime) as integer), cast(strftime('%d', m_datetime) as integer), cast(strftime('%H', m_datetime) as integer), cast(strftime('%M', m_datetime) as integer), cast(strftime('%S', m_datetime) as integer), cast((max(min(m_int, 999), 0) * 1000000 + cast((cast(round(strftime('%f', m_datetime) * 1000) as integer) % 1000) * 1000000 / 1000 as integer) % 1000 * 1000 + (cast(round(strftime('%f', m_datetime) * 1000) as integer) % 1000) * 1000000 % 1000) / 1000000 as integer))) as millisecond from col_matrix where id = ?4"`)
+        expect(withFunctions.map(row => asRow(row))).toEqual([asRow(expected)])
+    })
+
+    test('fields-of-the-query-temporal-rejects-make-the-query-fail', async () => {
+        // As Temporal throws: a day below 1 (the int 42 of the row negated); with reject, a month, an hour or a day out of
+        // its range; a day in the month passes with reject
+        const negated = ctx.conn.const(0, 'int').subtract(tColMatrixPlain.mInt)
+        ctx.mockNext([{ value: '2024-03-04' }])
+        const dayBelowOne = await failureOf(ctx.conn.selectFrom(tColMatrixPlain).where(tColMatrixPlain.id.equals(1))
+            .select({ value: tColMatrixPlain.mDate.with({ day: negated }) }).executeSelectMany())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select case when (?2 - m_int) < 1 then abs(-9223372036854775807 - 1) else date(printf('%04d-%02d-%02d', cast(strftime('%Y', m_date) as integer), cast(strftime('%m', m_date) as integer), min((?1 - m_int), cast(strftime('%d', printf('%04d-%02d-01', cast(strftime('%Y', m_date) as integer), cast(strftime('%m', m_date) as integer)), '+1 months', '-1 days') as integer)))) end as value from col_matrix where id = ?3"`)
+        ctx.mockNext([{ value: '2024-03-04' }])
+        const monthOutOfRange = await failureOf(ctx.conn.selectFrom(tColMatrixPlain).where(tColMatrixPlain.id.equals(1))
+            .select({ value: tColMatrixPlain.mDate.with({ month: tColMatrixPlain.mInt }, { overflow: 'reject' }) }).executeSelectMany())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select case when m_int < 1 or m_int > 12 then abs(-9223372036854775807 - 1) else date(printf('%04d-%02d-%02d', cast(strftime('%Y', m_date) as integer), m_int, case when cast(strftime('%d', m_date) as integer) > cast(strftime('%d', printf('%04d-%02d-01', cast(strftime('%Y', m_date) as integer), m_int), '+1 months', '-1 days') as integer) then abs(-9223372036854775807 - 1) else cast(strftime('%d', m_date) as integer) end)) end as value from col_matrix where id = ?1"`)
+        ctx.mockNext([{ value: '09:15:00' }])
+        const hourOutOfRange = await failureOf(ctx.conn.selectFrom(tColMatrixPlain).where(tColMatrixPlain.id.equals(1))
+            .select({ value: tColMatrixPlain.mTime.with({ hour: tColMatrixPlain.mInt }, { overflow: 'reject' }) }).executeSelectMany())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select case when m_int < 0 or m_int > 23 then abs(-9223372036854775807 - 1) else strftime('%H:%M:%f', printf('%02d:%02d:%02d.%03d', m_int, cast(strftime('%M', m_time) as integer), cast(strftime('%S', m_time) as integer), cast((cast(round(strftime('%f', m_time) * 1000) as integer) % 1000) * 1000000 / 1000000 as integer))) end as value from col_matrix where id = ?1"`)
+        ctx.mockNext([{ value: '2024-03-04' }])
+        const dayNotInMonth = await failureOf(ctx.conn.selectFrom(tColMatrixPlain).where(tColMatrixPlain.id.equals(1))
+            .select({ value: tColMatrixPlain.mDate.with({ day: tColMatrixPlain.mInt }, { overflow: 'reject' }) }).executeSelectMany())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select case when m_int < 1 then abs(-9223372036854775807 - 1) else date(printf('%04d-%02d-%02d', cast(strftime('%Y', m_date) as integer), cast(strftime('%m', m_date) as integer), case when m_int > cast(strftime('%d', printf('%04d-%02d-01', cast(strftime('%Y', m_date) as integer), cast(strftime('%m', m_date) as integer)), '+1 months', '-1 days') as integer) then abs(-9223372036854775807 - 1) else m_int end)) end as value from col_matrix where id = ?1"`)
+        expect([dayBelowOne, monthOutOfRange, hourOutOfRange, dayNotInMonth]).toEqual([ctx.realDbEnabled, ctx.realDbEnabled, ctx.realDbEnabled, ctx.realDbEnabled])
+        const day30 = Temporal.PlainDate.from('2024-03-04').with({ day: 30 }, { overflow: 'reject' })
+        ctx.mockNext([{ value: day30.toString() }])
+        const rows = await ctx.conn.selectFrom(tColMatrixPlain).where(tColMatrixPlain.id.equals(1))
+            .select({ value: tColMatrixPlain.mDate.with({ day: tColMatrixPlain.mInt.subtract(ctx.conn.const(12, 'int')) }, { overflow: 'reject' }) }).executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select case when (m_int - ?2) < 1 then abs(-9223372036854775807 - 1) else date(printf('%04d-%02d-%02d', cast(strftime('%Y', m_date) as integer), cast(strftime('%m', m_date) as integer), case when (m_int - ?1) > cast(strftime('%d', printf('%04d-%02d-01', cast(strftime('%Y', m_date) as integer), cast(strftime('%m', m_date) as integer)), '+1 months', '-1 days') as integer) then abs(-9223372036854775807 - 1) else (m_int - ?1) end)) end as value from col_matrix where id = ?3"`)
+        expect(rows.map(row => row.value.toString())).toEqual([day30.toString()])
+    })
+
+    test('with-fields-of-the-query-of-a-month-of-a-year-and-of-a-day-of-a-month', async () => {
+        // calendar_value row 1 is 2024-02 and 02-29; the int 42 of col_matrix row 1 as a month is December, as a day the
+        // last one of the month; with reject the month fails, as Temporal throws
+        const yearMonth = Temporal.PlainYearMonth.from('2024-02')
+        const monthDay = Temporal.PlainMonthDay.from('02-29')
+        const expected = { december: yearMonth.with({ month: 42 }), lastDay: monthDay.with({ day: 42 }), inYear: monthDay.with({ month: 3 }) }
+        ctx.mockNext([{ december: '2024-12-01', lastDay: '1972-02-29', inYear: '1972-03-29' }])
+        const rows = await ctx.conn.selectFrom(tCalendarValue)
+            .join(tColMatrixPlain).on(tColMatrixPlain.id.equals(1))
+            .where(tCalendarValue.id.equals(1))
+            .select({
+                december: tCalendarValue.monthOf.with({ month: tColMatrixPlain.mInt }),
+                lastDay: tCalendarValue.dayOf.with({ day: tColMatrixPlain.mInt }),
+                inYear: tCalendarValue.dayOf.with({ month: tColMatrixPlain.mInt.subtract(ctx.conn.const(39, 'int')) }),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select case when col_matrix.m_int < 1 then abs(-9223372036854775807 - 1) else date(printf('%04d-%02d-%02d', cast(strftime('%Y', calendar_value.month_of) as integer), min(col_matrix.m_int, 12), 1)) end as december, case when col_matrix.m_int < 1 then abs(-9223372036854775807 - 1) else date(printf('%04d-%02d-%02d', 1972, cast(strftime('%m', calendar_value.day_of) as integer), min(col_matrix.m_int, cast(strftime('%d', printf('%04d-%02d-01', 1972, cast(strftime('%m', calendar_value.day_of) as integer)), '+1 months', '-1 days') as integer)))) end as lastDay, case when (col_matrix.m_int - ?2) < 1 then abs(-9223372036854775807 - 1) else date(printf('%04d-%02d-%02d', 1972, min((col_matrix.m_int - ?1), 12), min(cast(strftime('%d', calendar_value.day_of) as integer), cast(strftime('%d', printf('%04d-%02d-01', 1972, min((col_matrix.m_int - ?1), 12)), '+1 months', '-1 days') as integer)))) end as inYear from calendar_value join col_matrix on col_matrix.id = ?3 where calendar_value.id = ?4"`)
+        assertType<Exact<typeof rows, Array<{ december: Temporal.PlainYearMonth; lastDay: Temporal.PlainMonthDay; inYear: Temporal.PlainMonthDay }>>>()
+        expect(rows.map(row => [row.december.toString(), row.lastDay.toString(), row.inYear.toString()])).toEqual([[expected.december.toString(), expected.lastDay.toString(), expected.inYear.toString()]])
+        ctx.mockNext([{ december: '2024-12-01' }])
+        const rejected = await failureOf(ctx.conn.selectFrom(tCalendarValue)
+            .join(tColMatrixPlain).on(tColMatrixPlain.id.equals(1))
+            .where(tCalendarValue.id.equals(1))
+            .select({ december: tCalendarValue.monthOf.with({ month: tColMatrixPlain.mInt }, { overflow: 'reject' }) })
+            .executeSelectMany())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select case when col_matrix.m_int < 1 or col_matrix.m_int > 12 then abs(-9223372036854775807 - 1) else date(printf('%04d-%02d-%02d', cast(strftime('%Y', calendar_value.month_of) as integer), col_matrix.m_int, 1)) end as december from calendar_value join col_matrix on col_matrix.id = ?1 where calendar_value.id = ?2"`)
+        expect(rejected).toBe(ctx.realDbEnabled)
+    })
 })

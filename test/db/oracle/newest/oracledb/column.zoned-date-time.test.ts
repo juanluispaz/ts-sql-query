@@ -335,6 +335,33 @@ describe(ctx.label, () => {
         expect(withoutFunctions.map(read)).toEqual(ofTemporal.slice(0, withoutFunctions.length))
     })
 
+    test('a-zoned-date-and-time-with-fields-of-the-query', async () => {
+        // The int 42 of col_matrix row 1 minus 30 as the hour: the wall clock at 12 in its zone, taken back to the zone
+        // as Temporal takes it; with and without the functions of the library (the mock answers no rows: there it is the
+        // SQL that is checked)
+        const query = (conn: typeof ctx.conn) => conn.selectFrom(tZonedValue)
+            .join(tColMatrixPlain).on(tColMatrixPlain.id.equals(1))
+            .select({
+                id: tZonedValue.id,
+                atNoon: tZonedValue.zonedAt.with({ hour: tColMatrixPlain.mInt.subtract(conn.const(30, 'int')), minute: 0 }),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        ctx.mockNext([])
+        const withFunctions = await query(ctx.withLibraryFunctions())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select zoned_value.id as "id", tsq_text_of_zoned(tsq_zoned_of_wall(cast(cast((add_months(date '0001-01-01', (extract(year from cast(zoned_value.zoned_at as timestamp(9))) - 1) * 12 + extract(month from cast(zoned_value.zoned_at as timestamp(9))) - 1) + extract(day from cast(zoned_value.zoned_at as timestamp(9))) - 1) as timestamp(9)) + numtodsinterval(greatest(least((col_matrix.m_int - :0), 23), 0) * 3600 + 0 * 60 + trunc(extract(second from cast(zoned_value.zoned_at as timestamp(9)))) + to_number(to_char(cast(zoned_value.zoned_at as timestamp(9)), 'FF9')) / 1000000000, 'second') as timestamp(9)), to_char(zoned_value.zoned_at, 'TZR'), 'compatible', to_char(zoned_value.zoned_at, 'TZH:TZM'))) as "atNoon" from zoned_value join col_matrix on col_matrix.id = :1 order by "id""`)
+        ctx.mockNext([])
+        const withoutFunctions = await query(ctx.conn)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select zoned_value.id as "id", to_char((select case when cast((from_tz(tsq_w.w, to_char(zoned_value.zoned_at, 'TZH:TZM')) at time zone to_char(zoned_value.zoned_at, 'TZR')) as timestamp(9)) = tsq_w.w then (from_tz(tsq_w.w, to_char(zoned_value.zoned_at, 'TZH:TZM')) at time zone to_char(zoned_value.zoned_at, 'TZR')) else from_tz(tsq_w.w, to_char(zoned_value.zoned_at, 'TZR')) end from (select cast(cast((add_months(date '0001-01-01', (extract(year from cast(zoned_value.zoned_at as timestamp(9))) - 1) * 12 + extract(month from cast(zoned_value.zoned_at as timestamp(9))) - 1) + extract(day from cast(zoned_value.zoned_at as timestamp(9))) - 1) as timestamp(9)) + numtodsinterval(greatest(least((col_matrix.m_int - :0), 23), 0) * 3600 + 0 * 60 + trunc(extract(second from cast(zoned_value.zoned_at as timestamp(9)))) + to_number(to_char(cast(zoned_value.zoned_at as timestamp(9)), 'FF9')) / 1000000000, 'second') as timestamp(9)) as w from dual where rownum = 1) tsq_w), 'YYYY-MM-DD"T"HH24:MI:SS.FF9TZH:TZM BC"["TZR"]"', 'NLS_DATE_LANGUAGE=AMERICAN') as "atNoon" from zoned_value join col_matrix on col_matrix.id = :1 order by "id""`)
+        assertType<Exact<typeof withFunctions, Array<{ id: number; atNoon: Temporal.ZonedDateTime }>>>()
+        expect(withFunctions.length).toBe(ctx.realDbEnabled ? 3 : 0)
+        const ofTemporal = zoned.map((value, i) => [i + 1, value.with({ hour: 12, minute: 0 }).toString()])
+        type Row = (typeof withFunctions)[number]
+        const read = (row: Row) => [row.id, row.atNoon.toString()]
+        expect(withFunctions.map(read)).toEqual(ofTemporal.slice(0, withFunctions.length))
+        expect(withoutFunctions.map(read)).toEqual(ofTemporal.slice(0, withoutFunctions.length))
+    })
+
     test('a-zoned-date-and-time-with-other-fields-rounded-and-at-the-start-of-its-day', async () => {
         // Row 1 is in the first 02:30 of a day Madrid repeats, with 25 hours: with keeps its offset when the zone still
         // has it, round rounds its wall clock, round to a day takes the start of its day or of the next one

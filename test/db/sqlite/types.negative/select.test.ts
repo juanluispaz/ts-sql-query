@@ -85,6 +85,10 @@ function _typeNegatives() {
     void connection.selectFrom(tColMatrixPlain)
         // @ts-expect-error tIssue.priority is not reachable from tColMatrixPlain alone
         .select({ earlier: tColMatrixPlain.mDatetime.subtract({ hours: tIssue.priority }) })
+    // The same for a field of with
+    void connection.selectFrom(tColMatrixPlain)
+        // @ts-expect-error tIssue.priority is not reachable from tColMatrixPlain alone
+        .select({ moved: tColMatrixPlain.mDate.with({ day: tIssue.priority }) })
 
     // Rule: an `inN`/`notInN` element must carry the receiver's data type —
     // both as a scalar and as a value source.

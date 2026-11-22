@@ -1253,6 +1253,10 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         // least came in SQL Server 2022
         return 'case when ' + value + ' < ' + other + ' then ' + value + ' else ' + other + ' end'
     }
+    override _greatestOf(value: string, other: string): string {
+        // greatest came in SQL Server 2022
+        return 'case when ' + value + ' > ' + other + ' then ' + value + ' else ' + other + ' end'
+    }
     /*
      * A zoned date and time is kept as its RFC 9557 text (see _zonedKeptAsText): the text before its zone is a
      * datetimeoffset (style 127, with an offset or a Z; its fraction kept to 7 digits)

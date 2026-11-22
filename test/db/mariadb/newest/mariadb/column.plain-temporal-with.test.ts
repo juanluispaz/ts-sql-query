@@ -5,6 +5,26 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../.
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { tCalendarValue, tColMatrixPlain, tRelease } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+import { TsSqlError } from '../../../../../src/exports/v2/index.js'
+
+/** Whether the query fails with an error of the database */
+async function failureOf(query: Promise<unknown>): Promise<boolean> {
+    try {
+        await query
+        return false
+    } catch (error) {
+        return error instanceof TsSqlError
+    }
+}
+
+/** The text of each value, as the database gives it */
+function asRow(values: Record<string, { toString(): string }>): Record<string, string> {
+    const row: Record<string, string> = {}
+    for (const key in values) {
+        row[key] = values[key]!.toString().replace('T', ' ')
+    }
+    return row
+}
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -185,5 +205,116 @@ describe(ctx.label, () => {
         ctx.mockNext([])
         const failsWithoutFunctions = await ctx.conn.selectFrom(tCalendarValue).where(tCalendarValue.id.equals(1)).select({ v: tCalendarValue.bornOn.with({ year: 2023 }, { overflow: 'reject' }) }).executeSelectMany().then(() => false, () => true)
         expect([failsWithFunctions, failsWithoutFunctions]).toEqual([ctx.realDbEnabled, ctx.realDbEnabled])
+    })
+
+    test('with-fields-of-the-query', async () => {
+        // Each field is an integer or an int of the query, taken to its range as Temporal's overflow 'constrain' takes it:
+        // the int 42 of the row as a day is the last one of the month, as a month December, as an hour 23, as a minute 42;
+        // negated as an hour, 0; the same with the functions of the library, which aren't used for fields of the query
+        const date = Temporal.PlainDate.from('2024-03-04')
+        const time = Temporal.PlainTime.from('09:15')
+        const dateTime = Temporal.PlainDateTime.from('2024-01-14T12:30')
+        const expected = {
+            lastDay: date.with({ day: 42 }),
+            december: date.with({ month: 42 }),
+            inYear: date.with({ year: 2022 }),
+            lastHour: time.with({ hour: 42 }),
+            minute: time.with({ minute: 42 }),
+            lastSecond: time.with({ second: 84 }),
+            dayAndHour: dateTime.with({ day: 42, hour: -42 }),
+            millisecond: dateTime.with({ millisecond: 42 }),
+        }
+        const query = (conn: typeof ctx.conn) => {
+            const negated = conn.const(0, 'int').subtract(tColMatrixPlain.mInt)
+            return conn.selectFrom(tColMatrixPlain)
+                .where(tColMatrixPlain.id.equals(1))
+                .select({
+                    lastDay: tColMatrixPlain.mDate.with({ day: tColMatrixPlain.mInt }),
+                    december: tColMatrixPlain.mDate.with({ month: tColMatrixPlain.mInt }),
+                    inYear: tColMatrixPlain.mDate.with({ year: tColMatrixPlain.mInt.add(conn.const(1980, 'int')) }),
+                    lastHour: tColMatrixPlain.mTime.with({ hour: tColMatrixPlain.mInt }),
+                    minute: tColMatrixPlain.mTime.with({ minute: tColMatrixPlain.mInt }),
+                    lastSecond: tColMatrixPlain.mTime.with({ second: tColMatrixPlain.mInt.multiply(conn.const(2, 'int')) }),
+                    dayAndHour: tColMatrixPlain.mDatetime.with({ day: tColMatrixPlain.mInt, hour: negated }),
+                    millisecond: tColMatrixPlain.mDatetime.with({ millisecond: tColMatrixPlain.mInt }),
+                })
+                .executeSelectMany()
+        }
+        ctx.mockNext([asRow(expected)])
+        const rows = await query(ctx.conn)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date_add(date_add(date_add(makedate(year(m_date), 1), interval month(m_date) - 1 month), interval least(m_int, day(last_day(date_add(makedate(year(m_date), 1), interval month(m_date) - 1 month)))) - 1 day), interval case when m_int < 1 then (select 1 union all select 1) else 0 end day) as lastDay, date_add(date_add(date_add(makedate(year(m_date), 1), interval least(m_int, 12) - 1 month), interval least(day(m_date), day(last_day(date_add(makedate(year(m_date), 1), interval least(m_int, 12) - 1 month)))) - 1 day), interval case when m_int < 1 then (select 1 union all select 1) else 0 end day) as december, date_add(date_add(makedate((m_int + ?), 1), interval month(m_date) - 1 month), interval least(day(m_date), day(last_day(date_add(makedate((m_int + ?), 1), interval month(m_date) - 1 month)))) - 1 day) as inYear, maketime(greatest(least(m_int, 23), 0), minute(m_time), second(m_time) + (microsecond(m_time)) * 0.000001) as lastHour, maketime(hour(m_time), greatest(least(m_int, 59), 0), second(m_time) + (microsecond(m_time)) * 0.000001) as minute, maketime(hour(m_time), minute(m_time), greatest(least((m_int * ?), 59), 0) + (microsecond(m_time)) * 0.000001) as lastSecond, date_add(timestamp(date_add(date_add(makedate(year(m_datetime), 1), interval month(m_datetime) - 1 month), interval least(m_int, day(last_day(date_add(makedate(year(m_datetime), 1), interval month(m_datetime) - 1 month)))) - 1 day), maketime(greatest(least((? - m_int), 23), 0), minute(m_datetime), second(m_datetime) + (microsecond(m_datetime)) * 0.000001)), interval case when m_int < 1 then (select 1 union all select 1) else 0 end day) as dayAndHour, timestamp(date_add(date_add(makedate(year(m_datetime), 1), interval month(m_datetime) - 1 month), interval day(m_datetime) - 1 day), maketime(hour(m_datetime), minute(m_datetime), second(m_datetime) + (greatest(least(m_int, 999), 0) * 1000 + microsecond(m_datetime) % 1000) * 0.000001)) as millisecond from col_matrix where id = ?"`)
+        expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
+          [
+            "1980",
+            "1980",
+            "2",
+            "0",
+            "1",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ lastDay: Temporal.PlainDate; december: Temporal.PlainDate; inYear: Temporal.PlainDate; lastHour: Temporal.PlainTime; minute: Temporal.PlainTime; lastSecond: Temporal.PlainTime; dayAndHour: Temporal.PlainDateTime; millisecond: Temporal.PlainDateTime }>>>()
+        expect(rows.map(row => asRow(row))).toEqual([asRow(expected)])
+        ctx.mockNext([asRow(expected)])
+        const withFunctions = await query(ctx.withLibraryFunctions())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date_add(date_add(date_add(makedate(year(m_date), 1), interval month(m_date) - 1 month), interval least(m_int, day(last_day(date_add(makedate(year(m_date), 1), interval month(m_date) - 1 month)))) - 1 day), interval case when m_int < 1 then (select 1 union all select 1) else 0 end day) as lastDay, date_add(date_add(date_add(makedate(year(m_date), 1), interval least(m_int, 12) - 1 month), interval least(day(m_date), day(last_day(date_add(makedate(year(m_date), 1), interval least(m_int, 12) - 1 month)))) - 1 day), interval case when m_int < 1 then (select 1 union all select 1) else 0 end day) as december, date_add(date_add(makedate((m_int + ?), 1), interval month(m_date) - 1 month), interval least(day(m_date), day(last_day(date_add(makedate((m_int + ?), 1), interval month(m_date) - 1 month)))) - 1 day) as inYear, maketime(greatest(least(m_int, 23), 0), minute(m_time), second(m_time) + (microsecond(m_time)) * 0.000001) as lastHour, maketime(hour(m_time), greatest(least(m_int, 59), 0), second(m_time) + (microsecond(m_time)) * 0.000001) as minute, maketime(hour(m_time), minute(m_time), greatest(least((m_int * ?), 59), 0) + (microsecond(m_time)) * 0.000001) as lastSecond, date_add(timestamp(date_add(date_add(makedate(year(m_datetime), 1), interval month(m_datetime) - 1 month), interval least(m_int, day(last_day(date_add(makedate(year(m_datetime), 1), interval month(m_datetime) - 1 month)))) - 1 day), maketime(greatest(least((? - m_int), 23), 0), minute(m_datetime), second(m_datetime) + (microsecond(m_datetime)) * 0.000001)), interval case when m_int < 1 then (select 1 union all select 1) else 0 end day) as dayAndHour, timestamp(date_add(date_add(makedate(year(m_datetime), 1), interval month(m_datetime) - 1 month), interval day(m_datetime) - 1 day), maketime(hour(m_datetime), minute(m_datetime), second(m_datetime) + (greatest(least(m_int, 999), 0) * 1000 + microsecond(m_datetime) % 1000) * 0.000001)) as millisecond from col_matrix where id = ?"`)
+        expect(withFunctions.map(row => asRow(row))).toEqual([asRow(expected)])
+    })
+
+    test('fields-of-the-query-temporal-rejects-make-the-query-fail', async () => {
+        // As Temporal throws: a day below 1 (the int 42 of the row negated); with reject, a month, an hour or a day out of
+        // its range; a day in the month passes with reject
+        const negated = ctx.conn.const(0, 'int').subtract(tColMatrixPlain.mInt)
+        ctx.mockNext([{ value: '2024-03-04' }])
+        const dayBelowOne = await failureOf(ctx.conn.selectFrom(tColMatrixPlain).where(tColMatrixPlain.id.equals(1))
+            .select({ value: tColMatrixPlain.mDate.with({ day: negated }) }).executeSelectMany())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date_add(date_add(date_add(makedate(year(m_date), 1), interval month(m_date) - 1 month), interval least((? - m_int), day(last_day(date_add(makedate(year(m_date), 1), interval month(m_date) - 1 month)))) - 1 day), interval case when (? - m_int) < 1 then (select 1 union all select 1) else 0 end day) as \`value\` from col_matrix where id = ?"`)
+        ctx.mockNext([{ value: '2024-03-04' }])
+        const monthOutOfRange = await failureOf(ctx.conn.selectFrom(tColMatrixPlain).where(tColMatrixPlain.id.equals(1))
+            .select({ value: tColMatrixPlain.mDate.with({ month: tColMatrixPlain.mInt }, { overflow: 'reject' }) }).executeSelectMany())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date_add(date_add(date_add(makedate(year(m_date), 1), interval m_int - 1 month), interval case when day(m_date) > day(last_day(date_add(makedate(year(m_date), 1), interval m_int - 1 month))) then (select 1 union all select 1) else day(m_date) end - 1 day), interval case when m_int < 1 or m_int > 12 then (select 1 union all select 1) else 0 end day) as \`value\` from col_matrix where id = ?"`)
+        ctx.mockNext([{ value: '09:15:00' }])
+        const hourOutOfRange = await failureOf(ctx.conn.selectFrom(tColMatrixPlain).where(tColMatrixPlain.id.equals(1))
+            .select({ value: tColMatrixPlain.mTime.with({ hour: tColMatrixPlain.mInt }, { overflow: 'reject' }) }).executeSelectMany())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date_add(maketime(m_int, minute(m_time), second(m_time) + (microsecond(m_time)) * 0.000001), interval case when m_int < 0 or m_int > 23 then (select 1 union all select 1) else 0 end day) as \`value\` from col_matrix where id = ?"`)
+        ctx.mockNext([{ value: '2024-03-04' }])
+        const dayNotInMonth = await failureOf(ctx.conn.selectFrom(tColMatrixPlain).where(tColMatrixPlain.id.equals(1))
+            .select({ value: tColMatrixPlain.mDate.with({ day: tColMatrixPlain.mInt }, { overflow: 'reject' }) }).executeSelectMany())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date_add(date_add(date_add(makedate(year(m_date), 1), interval month(m_date) - 1 month), interval case when m_int > day(last_day(date_add(makedate(year(m_date), 1), interval month(m_date) - 1 month))) then (select 1 union all select 1) else m_int end - 1 day), interval case when m_int < 1 then (select 1 union all select 1) else 0 end day) as \`value\` from col_matrix where id = ?"`)
+        expect([dayBelowOne, monthOutOfRange, hourOutOfRange, dayNotInMonth]).toEqual([ctx.realDbEnabled, ctx.realDbEnabled, ctx.realDbEnabled, ctx.realDbEnabled])
+        const day30 = Temporal.PlainDate.from('2024-03-04').with({ day: 30 }, { overflow: 'reject' })
+        ctx.mockNext([{ value: day30.toString() }])
+        const rows = await ctx.conn.selectFrom(tColMatrixPlain).where(tColMatrixPlain.id.equals(1))
+            .select({ value: tColMatrixPlain.mDate.with({ day: tColMatrixPlain.mInt.subtract(ctx.conn.const(12, 'int')) }, { overflow: 'reject' }) }).executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date_add(date_add(date_add(makedate(year(m_date), 1), interval month(m_date) - 1 month), interval case when (m_int - ?) > day(last_day(date_add(makedate(year(m_date), 1), interval month(m_date) - 1 month))) then (select 1 union all select 1) else (m_int - ?) end - 1 day), interval case when (m_int - ?) < 1 then (select 1 union all select 1) else 0 end day) as \`value\` from col_matrix where id = ?"`)
+        expect(rows.map(row => row.value.toString())).toEqual([day30.toString()])
+    })
+
+    test('with-fields-of-the-query-of-a-month-of-a-year-and-of-a-day-of-a-month', async () => {
+        // calendar_value row 1 is 2024-02 and 02-29; the int 42 of col_matrix row 1 as a month is December, as a day the
+        // last one of the month; with reject the month fails, as Temporal throws
+        const yearMonth = Temporal.PlainYearMonth.from('2024-02')
+        const monthDay = Temporal.PlainMonthDay.from('02-29')
+        const expected = { december: yearMonth.with({ month: 42 }), lastDay: monthDay.with({ day: 42 }), inYear: monthDay.with({ month: 3 }) }
+        ctx.mockNext([{ december: '2024-12-01', lastDay: '1972-02-29', inYear: '1972-03-29' }])
+        const rows = await ctx.conn.selectFrom(tCalendarValue)
+            .join(tColMatrixPlain).on(tColMatrixPlain.id.equals(1))
+            .where(tCalendarValue.id.equals(1))
+            .select({
+                december: tCalendarValue.monthOf.with({ month: tColMatrixPlain.mInt }),
+                lastDay: tCalendarValue.dayOf.with({ day: tColMatrixPlain.mInt }),
+                inYear: tCalendarValue.dayOf.with({ month: tColMatrixPlain.mInt.subtract(ctx.conn.const(39, 'int')) }),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date_add(date_add(date_add(makedate(cast(year(calendar_value.month_of) as signed), 1), interval least(col_matrix.m_int, 12) - 1 month), interval 1 - 1 day), interval case when col_matrix.m_int < 1 then (select 1 union all select 1) else 0 end day) as december, date_add(date_add(date_add(makedate(1972, 1), interval month(calendar_value.day_of) - 1 month), interval least(col_matrix.m_int, day(last_day(date_add(makedate(1972, 1), interval month(calendar_value.day_of) - 1 month)))) - 1 day), interval case when col_matrix.m_int < 1 then (select 1 union all select 1) else 0 end day) as lastDay, date_add(date_add(date_add(makedate(1972, 1), interval least((col_matrix.m_int - ?), 12) - 1 month), interval least(day(calendar_value.day_of), day(last_day(date_add(makedate(1972, 1), interval least((col_matrix.m_int - ?), 12) - 1 month)))) - 1 day), interval case when (col_matrix.m_int - ?) < 1 then (select 1 union all select 1) else 0 end day) as inYear from calendar_value join col_matrix on col_matrix.id = ? where calendar_value.id = ?"`)
+        assertType<Exact<typeof rows, Array<{ december: Temporal.PlainYearMonth; lastDay: Temporal.PlainMonthDay; inYear: Temporal.PlainMonthDay }>>>()
+        expect(rows.map(row => [row.december.toString(), row.lastDay.toString(), row.inYear.toString()])).toEqual([[expected.december.toString(), expected.lastDay.toString(), expected.inYear.toString()]])
+        ctx.mockNext([{ december: '2024-12-01' }])
+        const rejected = await failureOf(ctx.conn.selectFrom(tCalendarValue)
+            .join(tColMatrixPlain).on(tColMatrixPlain.id.equals(1))
+            .where(tCalendarValue.id.equals(1))
+            .select({ december: tCalendarValue.monthOf.with({ month: tColMatrixPlain.mInt }, { overflow: 'reject' }) })
+            .executeSelectMany())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select date_add(date_add(date_add(makedate(cast(year(calendar_value.month_of) as signed), 1), interval col_matrix.m_int - 1 month), interval 1 - 1 day), interval case when col_matrix.m_int < 1 or col_matrix.m_int > 12 then (select 1 union all select 1) else 0 end day) as december from calendar_value join col_matrix on col_matrix.id = ? where calendar_value.id = ?"`)
+        expect(rejected).toBe(ctx.realDbEnabled)
     })
 })

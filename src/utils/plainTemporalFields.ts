@@ -3,18 +3,38 @@
 // range is taken to the last value it can have (the day, to the last day of its month, which only the database knows
 // for a month it computes), and a field of a time out of its range to the nearest value it can have.
 
-/** The fields of a date and a time to put in place of the ones of a value, each an integer in its range */
+/**
+ * A field of the query given to with (an int, like a column): its value is only known by the database, which takes it
+ * to its range or rejects it as Temporal does
+ */
+export type PlainTemporalFieldOfQuery = object
+
+/**
+ * The fields of a date and a time to put in place of the ones of a value, each an integer in its range, or a field of
+ * the query
+ */
 export interface PlainTemporalFields {
-    readonly year: number | undefined
-    readonly month: number | undefined
+    readonly year: number | PlainTemporalFieldOfQuery | undefined
+    readonly month: number | PlainTemporalFieldOfQuery | undefined
     /** At least 1; the database takes it to the last day of the month when it has fewer */
-    readonly day: number | undefined
-    readonly hour: number | undefined
-    readonly minute: number | undefined
-    readonly second: number | undefined
-    readonly millisecond: number | undefined
-    readonly microsecond: number | undefined
-    readonly nanosecond: number | undefined
+    readonly day: number | PlainTemporalFieldOfQuery | undefined
+    readonly hour: number | PlainTemporalFieldOfQuery | undefined
+    readonly minute: number | PlainTemporalFieldOfQuery | undefined
+    readonly second: number | PlainTemporalFieldOfQuery | undefined
+    readonly millisecond: number | PlainTemporalFieldOfQuery | undefined
+    readonly microsecond: number | PlainTemporalFieldOfQuery | undefined
+    readonly nanosecond: number | PlainTemporalFieldOfQuery | undefined
+}
+
+/** Whether a field given to with is of the query */
+export function isFieldOfTheQuery(field: unknown): field is PlainTemporalFieldOfQuery {
+    return typeof field === 'object' && field !== null
+}
+
+/** Whether a field of the fields given to with is of the query */
+export function hasFieldOfTheQuery(given: PlainTemporalFields): boolean {
+    return isFieldOfTheQuery(given.year) || isFieldOfTheQuery(given.month) || isFieldOfTheQuery(given.day) || isFieldOfTheQuery(given.hour) || isFieldOfTheQuery(given.minute)
+        || isFieldOfTheQuery(given.second) || isFieldOfTheQuery(given.millisecond) || isFieldOfTheQuery(given.microsecond) || isFieldOfTheQuery(given.nanosecond)
 }
 
 const dateFieldNames = ['year', 'month', 'monthCode', 'day'] as const
@@ -29,8 +49,18 @@ function integerOf(value: unknown): number | undefined {
     return Number.isFinite(number) ? Math.trunc(number) : NaN
 }
 
-function constrained(value: number | undefined, max: number): number | undefined {
-    return value === undefined ? undefined : Math.min(Math.max(value, 0), max)
+function constrained(value: number | PlainTemporalFieldOfQuery | undefined, max: number): number | PlainTemporalFieldOfQuery | undefined {
+    return typeof value === 'number' ? Math.min(Math.max(value, 0), max) : value
+}
+
+/** A field given as Temporal reads it (see integerOf), or the field of the query as it is */
+function fieldOf(value: unknown): number | PlainTemporalFieldOfQuery | undefined {
+    return isFieldOfTheQuery(value) ? value : integerOf(value)
+}
+
+/** Whether a number of a field is NaN (a field of the query isn't) */
+function isNaNField(value: number | PlainTemporalFieldOfQuery | undefined): boolean {
+    return typeof value === 'number' && Number.isNaN(value)
 }
 
 /**
@@ -51,12 +81,12 @@ export function plainTemporalFieldsOf(value: unknown, fields: 'date' | 'time' | 
     if (!hasDate && !hasTime) {
         return undefined
     }
-    let year: number | undefined
-    let month: number | undefined
-    let day: number | undefined
+    let year: number | PlainTemporalFieldOfQuery | undefined
+    let month: number | PlainTemporalFieldOfQuery | undefined
+    let day: number | PlainTemporalFieldOfQuery | undefined
     if (hasDate) {
-        year = integerOf(given['year']) ?? inYear
-        month = integerOf(given['month'])
+        year = fieldOf(given['year']) ?? inYear
+        month = fieldOf(given['month'])
         const monthCode = given['monthCode']
         if (monthCode !== undefined) {
             const code = typeof monthCode === 'string' ? /^M(0[1-9]|1[0-2])$/.exec(monthCode) : null
@@ -65,34 +95,34 @@ export function plainTemporalFieldsOf(value: unknown, fields: 'date' | 'time' | 
             }
             month = Number(code[1])
         }
-        day = integerOf(given['day'])
-        if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day) || (month !== undefined && month < 1) || (day !== undefined && day < 1)) {
+        day = fieldOf(given['day'])
+        if (isNaNField(year) || isNaNField(month) || isNaNField(day) || (typeof month === 'number' && month < 1) || (typeof day === 'number' && day < 1)) {
             return undefined
         }
-        if (month !== undefined && month > 12) {
+        if (typeof month === 'number' && month > 12) {
             if (reject) {
                 return undefined
             }
             month = 12
         }
-        if (reject && year !== undefined && month !== undefined && day !== undefined && day > daysInMonth(year, month)) {
+        if (reject && typeof year === 'number' && typeof month === 'number' && typeof day === 'number' && day > daysInMonth(year, month)) {
             return undefined
         }
     }
-    let hour: number | undefined
-    let minute: number | undefined
-    let second: number | undefined
-    let millisecond: number | undefined
-    let microsecond: number | undefined
-    let nanosecond: number | undefined
+    let hour: number | PlainTemporalFieldOfQuery | undefined
+    let minute: number | PlainTemporalFieldOfQuery | undefined
+    let second: number | PlainTemporalFieldOfQuery | undefined
+    let millisecond: number | PlainTemporalFieldOfQuery | undefined
+    let microsecond: number | PlainTemporalFieldOfQuery | undefined
+    let nanosecond: number | PlainTemporalFieldOfQuery | undefined
     if (hasTime) {
-        hour = integerOf(given['hour'])
-        minute = integerOf(given['minute'])
-        second = integerOf(given['second'])
-        millisecond = integerOf(given['millisecond'])
-        microsecond = integerOf(given['microsecond'])
-        nanosecond = integerOf(given['nanosecond'])
-        if ([hour, minute, second, millisecond, microsecond, nanosecond].some(Number.isNaN)) {
+        hour = fieldOf(given['hour'])
+        minute = fieldOf(given['minute'])
+        second = fieldOf(given['second'])
+        millisecond = fieldOf(given['millisecond'])
+        microsecond = fieldOf(given['microsecond'])
+        nanosecond = fieldOf(given['nanosecond'])
+        if ([hour, minute, second, millisecond, microsecond, nanosecond].some(isNaNField)) {
             return undefined
         }
         if (reject && (outOf(hour, 23) || outOf(minute, 59) || outOf(second, 59) || outOf(millisecond, 999) || outOf(microsecond, 999) || outOf(nanosecond, 999))) {
@@ -106,8 +136,8 @@ export function plainTemporalFieldsOf(value: unknown, fields: 'date' | 'time' | 
     }
 }
 
-function outOf(value: number | undefined, max: number): boolean {
-    return value !== undefined && (value < 0 || value > max)
+function outOf(value: number | PlainTemporalFieldOfQuery | undefined, max: number): boolean {
+    return typeof value === 'number' && (value < 0 || value > max)
 }
 
 /** The days of a month of the ISO calendar */

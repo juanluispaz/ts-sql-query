@@ -609,6 +609,18 @@ function _typeNegatives() {
     void tColMatrixPlain.mDate.with({ hour: 0 })
     // @ts-expect-error a time has no day
     void tColMatrixPlain.mTime.with({ day: 1 })
+    // A field of with may be an int of the query, as Temporal takes numbers; the result is optional when one of them is
+    void tColMatrixPlain.mDate.with({ day: tColMatrixPlain.mInt })
+    const optionalWith = tColMatrixPlain.mDatetime.with({ day: tColMatrixPlain.mInt, hour: connection.optionalConst(1, 'int') })
+    assertType<Exact<OptionalityOf<typeof optionalWith>, 'optional'>>()
+    // @ts-expect-error a field of with is an integer: a double isn't one, as in Temporal
+    void tColMatrixPlain.mDate.with({ day: tColMatrixPlain.mInt.divide(2) })
+    // @ts-expect-error a date has no hour, also of the query
+    void tColMatrixPlain.mDate.with({ hour: tColMatrixPlain.mInt })
+    // @ts-expect-error the code of a month is a text Temporal checks, not a value of the query
+    void tColMatrixPlain.mDate.with({ monthCode: connection.const('M02', 'string') })
+    // @ts-expect-error a month of a year has no day to replace, also of the query
+    void tCalendarValue.monthOf.with({ day: tColMatrixPlain.mInt })
     // round takes a unit of the type, or the options of Temporal
     void tColMatrixPlain.mTime.round('minute')
     void tColMatrixPlain.mDatetime.round({ smallestUnit: 'day' })

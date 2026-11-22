@@ -28,7 +28,7 @@ import type { SqlOperation0ValueSource, SqlOperation2ValueSource } from '../node
 import { __temporalIfAvailable, type TemporalDuration } from '../typeSystem/temporal.js'
 import { __dateOfCalendarValue } from '../nodes/dateOfCalendarValue.js'
 import { durationIsoText, durationOfArgument, durationOfParts, durationPartsFor, isZeroDuration, type DurationParts, type DurationPartsSql } from '../utils/durationValues.js'
-import { plainTemporalFieldsOf, type PlainTemporalFields } from '../utils/plainTemporalFields.js'
+import { hasFieldOfTheQuery, isFieldOfTheQuery, plainTemporalFieldsOf, type PlainTemporalFieldOfQuery, type PlainTemporalFields } from '../utils/plainTemporalFields.js'
 import { dateOfStoredTimesOf, dayOfStoredYearMonthsOf, yearOfStoredMonthDaysOf } from '../utils/temporalReference.js'
 import { plainTemporalRoundingOf, type PlainTemporalRounding } from '../utils/plainTemporalRounding.js'
 import type { ZonedInterpretation } from '../utils/zonedOptions.js'
@@ -43,7 +43,7 @@ import type { EqualableType } from '../typeSystem/equalable.js'
 import { UuidTextType } from '../typeSystem/uuidText.js'
 import { __classOf, __adaptedTypeClassOf, __unadaptedClassOf, __sqlDataTypeOf } from '../nodes/adaptedTypeClass.js'
 import { __isIntClass, __isPlainYearMonthClass, __isZonedDateTimeClass } from '../typeSystem/dataTypeQuestions.js'
-import { __durationFieldsOf, type DurationFieldsGiven } from '../nodes/durationOfFields.js'
+import { __durationFieldsOf, __withFieldsOf, type DurationFieldsGiven } from '../nodes/durationOfFields.js'
 import { isZonedDateTimeValue } from '../utils/instantValues.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
 import { __arithmeticOperandClassOf, __valueOperandClassOf } from '../typeSystem/dataTypeClasses.js'
@@ -5035,10 +5035,18 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * year and the month, given or of the value, on the reference day, which every month has
      */
     _yearMonthWith(context: SqlBuildContext, valueSource: ToSql, value: any, _typeClass: DataTypeClass): string {
-        const given = plainTemporalFieldsOf(value, 'date')!
-        const year = given.year === undefined ? this._integerPart(this._year(context, valueSource)) : String(given.year)
-        const month = given.month === undefined ? this._integerPart(this._month(context, valueSource)) : String(given.month)
-        return this._makeDate(context, year, month, String(this._dayOfStoredYearMonths()))
+        return this._appendYearMonthWith(context, valueSource, value, false)
+    }
+    /** with of a month of a year rejecting a month of the query out of its range, as an error of the query */
+    _yearMonthWithRejecting(context: SqlBuildContext, valueSource: ToSql, value: any, _typeClass: DataTypeClass): string {
+        return this._appendYearMonthWith(context, valueSource, value, true)
+    }
+    /** with of a month of a year (see _yearMonthWith), a month of the query taken to its range or rejected */
+    _appendYearMonthWith(context: SqlBuildContext, valueSource: ToSql, value: any, reject: boolean): string {
+        const given = plainTemporalFieldsOf(__withFieldsOf(value) ?? value, 'date', reject)!
+        const year = given.year === undefined ? this._integerPart(this._year(context, valueSource)) : this._withFieldSql(context, given.year, 'year', reject)
+        const month = given.month === undefined ? this._integerPart(this._month(context, valueSource)) : this._withFieldSql(context, given.month, 'month', reject)
+        return this._withFieldsOfTheQueryChecked(context, this._makeDate(context, year, month, String(this._dayOfStoredYearMonths())), given, reject, 'date')
     }
     /**
      * with of a day of a month without a year (its month or its code and its day): the date in the reference year, a
@@ -5056,27 +5064,36 @@ export class AbstractSqlBuilder implements SqlBuilder {
     /** with, taking a day the month hasn't to its last day, or rejecting it (reject) as an error of the query */
     _appendWithFields(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass, reject: boolean, inYear?: number): string {
         const fields = this._temporalFieldsOfDurationOperation(typeClass)
-        const given = plainTemporalFieldsOf(value, fields, reject, inYear)
+        const given = plainTemporalFieldsOf(__withFieldsOf(value) ?? value, fields, reject, inYear)
         if (!given) {
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: typeClass.type }, 'Invalid fields to put in a ' + typeClass.type + ': ' + JSON.stringify(value))
+        }
+        if (hasFieldOfTheQuery(given)) {
+            // A field of the query is written where it is used, taken to its range or checked; without the function of
+            // the library, which takes a null field as one not given
+            return this._withFieldsOfTheQueryChecked(context, this._appendWithFieldsInline(context, valueSource, given, fields, reject), given, reject, fields)
         }
         if (fields !== 'date' && __withChangesOnlyWholeTime(given)) {
             return this._withWholeTime(context, valueSource, given, fields)
         }
         if (fields === 'date' && this._libraryFunctionsInstalled()) {
             // The function of the library, the value written once: a field not given (null) is the one of the value
-            return this._dateWithFunction(context, valueSource, this._integerOrNull(given.year) + ', ' + this._integerOrNull(given.month) + ', ' + this._integerOrNull(given.day) + ', ' + (reject ? '1' : '0'))
+            return this._dateWithFunction(context, valueSource, this._integerOrNull(given.year as number | undefined) + ', ' + this._integerOrNull(given.month as number | undefined) + ', ' + this._integerOrNull(given.day as number | undefined) + ', ' + (reject ? '1' : '0'))
         }
+        return this._appendWithFieldsInline(context, valueSource, given, fields, reject)
+    }
+    /** with, built from the parts of the value and the fields given (see _appendWithFields) */
+    _appendWithFieldsInline(context: SqlBuildContext, valueSource: ToSql, given: PlainTemporalFields, fields: 'date' | 'time' | 'timestamp', reject: boolean): string {
         let year = ''
         let month = ''
         let day = ''
         if (fields !== 'time') {
-            year = given.year === undefined ? this._integerPart(this._year(context, valueSource)) : String(given.year)
-            month = given.month === undefined ? this._integerPart(this._month(context, valueSource)) : String(given.month)
-            day = given.day === undefined ? this._integerPart(this._day(context, valueSource)) : String(given.day)
-            // Only a day that may not fit in the month is taken to its last day: one given above 28, or the one of the
-            // value in another month
-            const mayNotFit = given.day === undefined ? given.year !== undefined || given.month !== undefined : given.day > 28
+            year = given.year === undefined ? this._integerPart(this._year(context, valueSource)) : this._withFieldSql(context, given.year, 'year', reject)
+            month = given.month === undefined ? this._integerPart(this._month(context, valueSource)) : this._withFieldSql(context, given.month, 'month', reject)
+            day = given.day === undefined ? this._integerPart(this._day(context, valueSource)) : this._withFieldSql(context, given.day, 'day', reject)
+            // Only a day that may not fit in the month is taken to its last day: one given above 28 or of the query, or
+            // the one of the value in another month
+            const mayNotFit = given.day === undefined ? given.year !== undefined || given.month !== undefined : typeof given.day !== 'number' || given.day > 28
             if (mayNotFit) {
                 day = reject ? this._validDayOrError(context, year, month, day) : this._leastOf(day, this._daysInMonth(context, year, month))
             }
@@ -5084,20 +5101,20 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (fields === 'date') {
             return this._makeDate(context, year, month, day)
         }
-        const hour = given.hour === undefined ? this._integerPart(this._hour(context, valueSource)) : String(given.hour)
-        const minute = given.minute === undefined ? this._integerPart(this._minute(context, valueSource)) : String(given.minute)
-        const second = given.second === undefined ? this._integerPart(this._second(context, valueSource)) : String(given.second)
+        const hour = given.hour === undefined ? this._integerPart(this._hour(context, valueSource)) : this._withFieldSql(context, given.hour, 'hour', reject)
+        const minute = given.minute === undefined ? this._integerPart(this._minute(context, valueSource)) : this._withFieldSql(context, given.minute, 'minute', reject)
+        const second = given.second === undefined ? this._integerPart(this._second(context, valueSource)) : this._withFieldSql(context, given.second, 'second', reject)
         let nanoseconds: string
         if (given.millisecond === undefined && given.microsecond === undefined && given.nanosecond === undefined) {
             nanoseconds = this._nanosecondOfSecond(context, valueSource)
-        } else if (given.millisecond !== undefined && given.microsecond !== undefined && given.nanosecond !== undefined) {
+        } else if (typeof given.millisecond === 'number' && typeof given.microsecond === 'number' && typeof given.nanosecond === 'number') {
             nanoseconds = String(given.millisecond * 1_000_000 + given.microsecond * 1000 + given.nanosecond)
         } else {
             // The parts of the fraction not given are the ones of the value
             const ofTheValue = this._nanosecondOfSecond(context, valueSource)
-            const milliseconds = given.millisecond === undefined ? this._truncatedDivision(ofTheValue, '1000000') : String(given.millisecond)
-            const microseconds = given.microsecond === undefined ? this._integerRemainder(this._truncatedDivision(ofTheValue, '1000'), '1000') : String(given.microsecond)
-            const ofTheMicrosecond = given.nanosecond === undefined ? this._integerRemainder(ofTheValue, '1000') : String(given.nanosecond)
+            const milliseconds = given.millisecond === undefined ? this._truncatedDivision(ofTheValue, '1000000') : this._withFieldSql(context, given.millisecond, 'millisecond', reject)
+            const microseconds = given.microsecond === undefined ? this._integerRemainder(this._truncatedDivision(ofTheValue, '1000'), '1000') : this._withFieldSql(context, given.microsecond, 'microsecond', reject)
+            const ofTheMicrosecond = given.nanosecond === undefined ? this._integerRemainder(ofTheValue, '1000') : this._withFieldSql(context, given.nanosecond, 'nanosecond', reject)
             nanoseconds = '(' + milliseconds + ' * 1000000 + ' + microseconds + ' * 1000 + ' + ofTheMicrosecond + ')'
         }
         if (fields === 'time') {
@@ -5268,6 +5285,67 @@ export class AbstractSqlBuilder implements SqlBuilder {
     /** The smaller of two integers */
     _leastOf(value: string, other: string): string {
         return 'least(' + value + ', ' + other + ')'
+    }
+    /** The larger of two integers */
+    _greatestOf(value: string, other: string): string {
+        return 'greatest(' + value + ', ' + other + ')'
+    }
+    /**
+     * A field given to with as SQL: a number as it is (checked and taken to its range already), a field of the query
+     * written here (where it is used: the parameters of MariaDB and MySQL are positional), taken to its range as
+     * Temporal's overflow 'constrain' takes it (the month to 12, a field of the time to between 0 and its largest
+     * value; the day to the last one of its month where it is used); with reject as it is, checked by
+     * _withFieldsOfTheQueryCondition
+     */
+    _withFieldSql(context: SqlBuildContext, field: number | PlainTemporalFieldOfQuery, name: 'year' | 'month' | 'day' | 'hour' | 'minute' | 'second' | 'millisecond' | 'microsecond' | 'nanosecond', reject: boolean): string {
+        if (typeof field === 'number') {
+            return String(field)
+        }
+        const sql = this._appendSqlParenthesis(field as ToSql, context, false)
+        if (reject || name === 'year' || name === 'day') {
+            return sql
+        }
+        if (name === 'month') {
+            return this._leastOf(sql, '12')
+        }
+        return this._greatestOf(this._leastOf(sql, name === 'hour' ? '23' : name === 'minute' || name === 'second' ? '59' : '999'), '0')
+    }
+    /**
+     * The condition that a field of the query given to with is out of the range Temporal takes, which makes the query
+     * fail as Temporal throws: a month or a day below 1, and with reject a month above 12 or a field of the time out
+     * of its range (a day the month hasn't is rejected where the day is used); undefined when no field of the query can
+     * be out of it
+     */
+    _withFieldsOfTheQueryCondition(context: SqlBuildContext, given: PlainTemporalFields, reject: boolean): string | undefined {
+        let condition = ''
+        if (isFieldOfTheQuery(given.month)) {
+            const month = this._appendSqlParenthesis(given.month as ToSql, context, false)
+            condition += month + ' < 1' + (reject ? ' or ' + this._appendSqlParenthesis(given.month as ToSql, context, false) + ' > 12' : '')
+        }
+        if (isFieldOfTheQuery(given.day)) {
+            condition += (condition === '' ? '' : ' or ') + this._appendSqlParenthesis(given.day as ToSql, context, false) + ' < 1'
+        }
+        if (reject) {
+            condition = this._withTimeFieldOutOfRange(context, condition, given.hour, 23)
+            condition = this._withTimeFieldOutOfRange(context, condition, given.minute, 59)
+            condition = this._withTimeFieldOutOfRange(context, condition, given.second, 59)
+            condition = this._withTimeFieldOutOfRange(context, condition, given.millisecond, 999)
+            condition = this._withTimeFieldOutOfRange(context, condition, given.microsecond, 999)
+            condition = this._withTimeFieldOutOfRange(context, condition, given.nanosecond, 999)
+        }
+        return condition === '' ? undefined : condition
+    }
+    /** The condition given, or a field of the time of the query below 0 or above its largest value */
+    _withTimeFieldOutOfRange(context: SqlBuildContext, condition: string, field: number | PlainTemporalFieldOfQuery | undefined, max: number): string {
+        if (!isFieldOfTheQuery(field)) {
+            return condition
+        }
+        return (condition === '' ? '' : condition + ' or ') + this._appendSqlParenthesis(field as ToSql, context, false) + ' < 0 or ' + this._appendSqlParenthesis(field as ToSql, context, false) + ' > ' + max
+    }
+    /** The value computed by with, or an error of the query when a field of the query is out of range (see _withFieldsOfTheQueryCondition) */
+    _withFieldsOfTheQueryChecked(context: SqlBuildContext, value: string, given: PlainTemporalFields, reject: boolean, fields: 'date' | 'time' | 'timestamp'): string {
+        const condition = this._withFieldsOfTheQueryCondition(context, given, reject)
+        return condition === undefined ? value : this._valueOrErrorWhen(context, value, condition, fields)
     }
     /** A date plus the months of a duration of the query (multiplied by sign), with its years */
     _datePlusDurationMonths(context: SqlBuildContext, valueSource: ToSql, duration: ToSql, sign: 1 | -1): string {

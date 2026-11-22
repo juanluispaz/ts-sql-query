@@ -1467,6 +1467,9 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     override _leastOf(value: string, other: string): string {
         return 'min(' + value + ', ' + other + ')'
     }
+    override _greatestOf(value: string, other: string): string {
+        return 'max(' + value + ', ' + other + ')'
+    }
     /*
      * A zoned date and time is kept as its RFC 9557 text (see _zonedKeptAsText): the date functions of SQLite take the
      * text before its zone, with its offset or its Z, as its instant (to the millisecond)

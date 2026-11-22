@@ -1,7 +1,7 @@
 import type { SqlDataType } from '../TypeAdapter.js'
 import { ComparableType } from './comparable.js'
 import { localDateSqlDataType, localDateTimeSqlDataType, localTimeSqlDataType } from './localDates.js'
-import type { TemporalDateUnit, TemporalDifferenceOptions, TemporalDisambiguationOptions, TemporalDuration, TemporalDurationLike, TemporalPlainDate, TemporalPlainDateFields, TemporalPlainDateTime, TemporalPlainTime, TemporalPlainTimeFields, TemporalOverflowOptions, TemporalRoundingOptions, TemporalTimeUnit, IntOfQuery, TemporalDurationLikeOfQuery } from './temporal.js'
+import type { TemporalDateUnit, TemporalDifferenceOptions, TemporalDisambiguationOptions, TemporalDuration, TemporalDurationLike, TemporalPlainDate, TemporalPlainDateFields, TemporalPlainDateTime, TemporalPlainTime, TemporalPlainTimeFields, TemporalOverflowOptions, TemporalRoundingOptions, TemporalTimeUnit, IntOfQuery, TemporalDurationLikeOfQuery, TemporalPlainDateFieldsOfQuery, TemporalPlainTimeFieldsOfQuery } from './temporal.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import type { DataTypeOf, IValueWithType, OptionalityOf, SourceOf, ValueSource } from './base.js'
 import type { CombinedOptionality, CombinedOptionalityOfUnion, OptionalType } from './valueSource.js'
@@ -12,7 +12,8 @@ import { __newSqlOperationConstValueSource } from '../nodes/constants.js'
 import { getOptionalType2 } from '../nodes/operands.js'
 import { isValueSource } from '../nodes/NodeStrategy.js'
 import { DurationType, __durationArgument } from './durations.js'
-import { durationFieldNames } from '../nodes/durationOfFields.js'
+import { durationFieldNames, __hasWithFieldOfTheQuery, __newWithFieldsValueSource } from '../nodes/durationOfFields.js'
+import type { DataTypeClass } from '../TypeAdapter.js'
 import { InstantType } from './instants.js'
 import { ZonedDateTimeType, __zonedOfWallClock, type OfDatabaseWithZoneRules } from './zonedDateTimes.js'
 import type { operandTypeName } from '../utils/symbols.js'
@@ -40,7 +41,19 @@ function isRejecting(options: unknown): boolean {
 
 /** The value with the fields given, of the same data type */
 function withFields(valueSource: unknown, fields: unknown, options: unknown): any {
-    return __operation1(valueSource as any, isRejecting(options) ? '_withFieldsRejecting' : '_withFields', fields, __computedClassOf(valueSource as object, __typeClassOf(valueSource as any)))
+    const sameClass = __computedClassOf(valueSource as object, __typeClassOf(valueSource as any))
+    return __operation1(valueSource as any, isRejecting(options) ? '_withFieldsRejecting' : '_withFields', __withFieldsArgument(fields, sameClass), sameClass)
+}
+
+/**
+ * The fields given to with: as they are, or, with a field of the query (an int, like a column), the fields as an
+ * operand that reaches each of them (see durationOfFields), of the class given
+ */
+export function __withFieldsArgument(fields: unknown, typeClass: DataTypeClass): unknown {
+    if (fields === null || typeof fields !== 'object' || isValueSource(fields) || !__hasWithFieldOfTheQuery(fields)) {
+        return fields
+    }
+    return __newWithFieldsValueSource(fields, typeClass)
 }
 
 /** The value rounded, of the same data type */
@@ -180,6 +193,8 @@ export abstract class PlainDatesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME
      * The date with the fields given in place of its own, as Temporal's `with`: a field out of its range is taken to the nearest value it can have, and the day to the last one of the month when the month has fewer (`with({ day: 31 })` in February is the 29th or 28th). The fields are integers
      */
     with(fields: TemporalPlainDateFields, options?: TemporalOverflowOptions): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    /** The value with the fields given in place of its own, as Temporal's `with`, where a field is an integer or an int of the query, like a column (`{ day: tCustomer.paymentDay }`): the database takes it to its range, or makes the query fail where Temporal throws (a month or a day below 1; with `{ overflow: 'reject' }`, out of its range) */
+    with<SOURCE2 extends NSource, OPTIONAL_TYPE2 extends OptionalType>(fields: TemporalPlainDateFieldsOfQuery<IntOfQuery<SOURCE2, OPTIONAL_TYPE2>>, options?: TemporalOverflowOptions): ValueSource<SourceOf<this> | SOURCE2, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, CombinedOptionalityOfUnion<OPTIONAL_TYPE2>>>
     with(fields: unknown, options?: unknown): any {
         return withFields(this, fields, options)
     }
@@ -279,6 +294,8 @@ export abstract class PlainTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME
      * The time with the fields given in place of its own, as Temporal's `with`: a field out of its range is taken to the nearest value it can have (`with({ hour: 25 })` is 23). The fields are integers
      */
     with(fields: TemporalPlainTimeFields, options?: TemporalOverflowOptions): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    /** The value with the fields given in place of its own, as Temporal's `with`, where a field is an integer or an int of the query, like a column (`{ day: tCustomer.paymentDay }`): the database takes it to its range, or makes the query fail where Temporal throws (a month or a day below 1; with `{ overflow: 'reject' }`, out of its range) */
+    with<SOURCE2 extends NSource, OPTIONAL_TYPE2 extends OptionalType>(fields: TemporalPlainTimeFieldsOfQuery<IntOfQuery<SOURCE2, OPTIONAL_TYPE2>>, options?: TemporalOverflowOptions): ValueSource<SourceOf<this> | SOURCE2, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, CombinedOptionalityOfUnion<OPTIONAL_TYPE2>>>
     with(fields: unknown, options?: unknown): any {
         return withFields(this, fields, options)
     }
@@ -469,6 +486,8 @@ export abstract class PlainDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
      * The date and time with the fields given in place of its own, as Temporal's `with`: a field out of its range is taken to the nearest value it can have, and the day to the last one of the month when the month has fewer. The fields are integers
      */
     with(fields: TemporalPlainDateFields & TemporalPlainTimeFields, options?: TemporalOverflowOptions): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    /** The value with the fields given in place of its own, as Temporal's `with`, where a field is an integer or an int of the query, like a column (`{ day: tCustomer.paymentDay }`): the database takes it to its range, or makes the query fail where Temporal throws (a month or a day below 1; with `{ overflow: 'reject' }`, out of its range) */
+    with<SOURCE2 extends NSource, OPTIONAL_TYPE2 extends OptionalType>(fields: TemporalPlainDateFieldsOfQuery<IntOfQuery<SOURCE2, OPTIONAL_TYPE2>> & TemporalPlainTimeFieldsOfQuery<IntOfQuery<SOURCE2, OPTIONAL_TYPE2>>, options?: TemporalOverflowOptions): ValueSource<SourceOf<this> | SOURCE2, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, CombinedOptionalityOfUnion<OPTIONAL_TYPE2>>>
     with(fields: unknown, options?: unknown): any {
         return withFields(this, fields, options)
     }

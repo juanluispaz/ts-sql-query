@@ -1,6 +1,6 @@
 import type { DataTypeClass, SqlDataType } from '../TypeAdapter.js'
 import { ComparableType } from './comparable.js'
-import { __temporal, type TemporalDateUnit, type TemporalDifferenceOptions, type TemporalDisambiguation, type TemporalDuration, type TemporalDurationLike, type TemporalOffsetOption, type TemporalOverflowOptions, type TemporalPlainDateFields, type TemporalPlainTime, type TemporalPlainTimeFields, type TemporalRoundingOptions, type TemporalTimeUnit, type TemporalZonedDateTime, type IntOfQuery, type TemporalDurationLikeOfQuery } from './temporal.js'
+import { __temporal, type TemporalDateUnit, type TemporalDifferenceOptions, type TemporalDisambiguation, type TemporalDuration, type TemporalDurationLike, type TemporalOffsetOption, type TemporalOverflowOptions, type TemporalPlainDateFields, type TemporalPlainTime, type TemporalPlainTimeFields, type TemporalRoundingOptions, type TemporalTimeUnit, type TemporalZonedDateTime, type IntOfQuery, type TemporalDurationLikeOfQuery, type TemporalPlainDateFieldsOfQuery, type TemporalPlainTimeFieldsOfQuery } from './temporal.js'
 import type { DataTypeOf, IValueWithType, OptionalityOf, SourceOf, ValueSource } from './base.js'
 import type { CombinedOptionality, CombinedOptionalityOfUnion, OptionalType } from './valueSource.js'
 import type { NSource } from '../utils/sourceName.js'
@@ -279,6 +279,11 @@ export abstract class ZonedDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
      * offset as it is, `'ignore'` disambiguates always, and `'reject'` makes the query fail when the zone hasn't it
      */
     with(this: OfDatabaseWithZoneRules, fields: TemporalPlainDateFields & TemporalPlainTimeFields & { readonly offset?: string | undefined }, options?: TemporalOverflowOptions & { readonly disambiguation?: TemporalDisambiguation | undefined, readonly offset?: TemporalOffsetOption | undefined }): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    /**
+     * The zoned date and time with the fields given in place of the ones of its wall clock, as Temporal's `with`, where a
+     * field is an integer or an int of the query, like a column (see with of a plainDateTime)
+     */
+    with<SOURCE2 extends NSource, OPTIONAL_TYPE2 extends OptionalType>(this: OfDatabaseWithZoneRules, fields: TemporalPlainDateFieldsOfQuery<IntOfQuery<SOURCE2, OPTIONAL_TYPE2>> & TemporalPlainTimeFieldsOfQuery<IntOfQuery<SOURCE2, OPTIONAL_TYPE2>> & { readonly offset?: string | undefined }, options?: TemporalOverflowOptions & { readonly disambiguation?: TemporalDisambiguation | undefined, readonly offset?: TemporalOffsetOption | undefined }): ValueSource<SourceOf<this> | SOURCE2, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, CombinedOptionalityOfUnion<OPTIONAL_TYPE2>>>
     with(fields: unknown, options?: unknown): any {
         const offsetField = fields !== null && typeof fields === 'object' ? (fields as { offset?: unknown }).offset : undefined
         const interpretation = zonedWithInterpretationOf(options, offsetField)

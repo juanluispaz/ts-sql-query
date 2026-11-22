@@ -202,6 +202,35 @@ export interface TemporalYearMonthDurationLikeOfQuery<INT> {
     readonly months?: number | INT | undefined
 }
 
+/** The fields `with` of a Temporal.PlainDate takes, where a number can be an int of the query (INT), like a column */
+export interface TemporalPlainDateFieldsOfQuery<INT> {
+    readonly year?: number | INT | undefined
+    readonly month?: number | INT | undefined
+    readonly monthCode?: string | undefined
+    readonly day?: number | INT | undefined
+}
+/** The fields `with` of a Temporal.PlainTime takes, where a number can be an int of the query (INT), like a column */
+export interface TemporalPlainTimeFieldsOfQuery<INT> {
+    readonly hour?: number | INT | undefined
+    readonly minute?: number | INT | undefined
+    readonly second?: number | INT | undefined
+    readonly millisecond?: number | INT | undefined
+    readonly microsecond?: number | INT | undefined
+    readonly nanosecond?: number | INT | undefined
+}
+/** The fields `with` of a Temporal.PlainYearMonth takes, where a number can be an int of the query (INT), like a column */
+export interface TemporalPlainYearMonthFieldsOfQuery<INT> {
+    readonly year?: number | INT | undefined
+    readonly month?: number | INT | undefined
+    readonly monthCode?: string | undefined
+}
+/** The fields `with` of a Temporal.PlainMonthDay takes, where a number can be an int of the query (INT), like a column */
+export interface TemporalPlainMonthDayFieldsOfQuery<INT> {
+    readonly month?: number | INT | undefined
+    readonly monthCode?: string | undefined
+    readonly day?: number | INT | undefined
+}
+
 /** The Temporal object of the runtime, or of a polyfill installed in the global object; an error for a type without it */
 export function __temporal(typeName: string): TemporalObject {
     const temporal = (globalThis as { Temporal?: TemporalObject }).Temporal

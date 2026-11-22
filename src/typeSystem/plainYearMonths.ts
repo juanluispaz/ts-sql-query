@@ -2,7 +2,7 @@ import type { SqlDataType } from '../TypeAdapter.js'
 import { ComparableType } from './comparable.js'
 import { EqualableType } from './equalable.js'
 import { localDateSqlDataType } from './localDates.js'
-import type { TemporalDifferenceOptions, TemporalDuration, TemporalOverflowOptions, TemporalPlainMonthDay, TemporalPlainMonthDayFields, TemporalPlainYearMonth, TemporalPlainYearMonthFields, TemporalYearMonthDurationLike, TemporalYearMonthUnit, IntOfQuery, TemporalYearMonthDurationLikeOfQuery } from './temporal.js'
+import type { TemporalDifferenceOptions, TemporalDuration, TemporalOverflowOptions, TemporalPlainMonthDay, TemporalPlainMonthDayFields, TemporalPlainYearMonth, TemporalPlainYearMonthFields, TemporalYearMonthDurationLike, TemporalYearMonthUnit, IntOfQuery, TemporalYearMonthDurationLikeOfQuery, TemporalPlainMonthDayFieldsOfQuery, TemporalPlainYearMonthFieldsOfQuery } from './temporal.js'
 import type { DataTypeOf, IValueWithType, OptionalityOf, SourceOf, ValueSource } from './base.js'
 import type { CombinedOptionality, CombinedOptionalityOfUnion, OptionalType } from './valueSource.js'
 import type { NSource } from '../utils/sourceName.js'
@@ -18,7 +18,7 @@ import { TsSqlProcessingError } from '../TsSqlError.js'
 import { plainTemporalFieldsOf } from '../utils/plainTemporalFields.js'
 import type { operandTypeName } from '../utils/symbols.js'
 import { DurationType, __durationArgument, yearMonthDurationFieldNames } from './durations.js'
-import { PlainDateType } from './plainDates.js'
+import { PlainDateType, __withFieldsArgument } from './plainDates.js'
 import { IntType } from './number.js'
 import { StringType } from './strings.js'
 import { BooleanConditionType, BooleanType } from './logical.js'
@@ -151,12 +151,19 @@ export abstract class PlainYearMonthsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE
      * its range is taken to the nearest one (13 is December), or rejected with `{ overflow: 'reject' }`
      */
     with(fields: TemporalPlainYearMonthFields, options?: TemporalOverflowOptions): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    /**
+     * The month of the year with the year or the month given in place of its own, as Temporal's `with`, where a field is an
+     * integer or an int of the query, like a column: the database takes the month to 12, or makes the query fail where
+     * Temporal throws (a month below 1; with `{ overflow: 'reject' }`, above 12)
+     */
+    with<SOURCE2 extends NSource, OPTIONAL_TYPE2 extends OptionalType>(fields: TemporalPlainYearMonthFieldsOfQuery<IntOfQuery<SOURCE2, OPTIONAL_TYPE2>>, options?: TemporalOverflowOptions): ValueSource<SourceOf<this> | SOURCE2, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, CombinedOptionalityOfUnion<OPTIONAL_TYPE2>>>
     with(fields: unknown, options?: unknown): any {
-        const given = plainTemporalFieldsOf(fields, 'date', isRejecting(options))
+        const reject = isRejecting(options)
+        const given = plainTemporalFieldsOf(fields, 'date', reject)
         if (!given || given.day !== undefined || (given.year === undefined && given.month === undefined)) {
             throw invalid(__typeClassOf(this as any).type, fields, 'Invalid fields of a month of a year')
         }
-        return __operation1(this as any, '_yearMonthWith', fields, sameClassOf(this))
+        return __operation1(this as any, reject ? '_yearMonthWithRejecting' : '_yearMonthWith', __withFieldsArgument(fields, sameClassOf(this)), sameClassOf(this))
     }
     /**
      * The duration from this month of the year to the other one, as Temporal's `until`: in years and months by default;
@@ -210,18 +217,25 @@ export abstract class PlainMonthDaysType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
      * `{ overflow: 'reject' }`
      */
     with(fields: TemporalPlainMonthDayFields & { readonly year?: number | undefined }, options?: TemporalOverflowOptions): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+    /**
+     * The day of the month with the fields given in place of its own, as Temporal's `with`, where a field is an integer or
+     * an int of the query, like a column: the database takes it to its range, or makes the query fail where Temporal
+     * throws (a month or a day below 1; with `{ overflow: 'reject' }`, out of its range)
+     */
+    with<SOURCE2 extends NSource, OPTIONAL_TYPE2 extends OptionalType>(fields: TemporalPlainMonthDayFieldsOfQuery<IntOfQuery<SOURCE2, OPTIONAL_TYPE2>> & { readonly year?: number | IntOfQuery<SOURCE2, OPTIONAL_TYPE2> | undefined }, options?: TemporalOverflowOptions): ValueSource<SourceOf<this> | SOURCE2, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, CombinedOptionalityOfUnion<OPTIONAL_TYPE2>>>
     with(fields: unknown, options?: unknown): any {
         const reject = isRejecting(options)
         const given = plainTemporalFieldsOf(fields, 'date', reject)
         if (!given) {
             throw invalid(__typeClassOf(this as any).type, fields, 'Invalid fields of a day of a month')
         }
+        const argument = __withFieldsArgument(fields, sameClassOf(this))
         if (given.year === undefined) {
             // The date in the reference year, a leap year, with the fields
-            return __operation1(this as any, reject ? '_monthDayWithRejecting' : '_monthDayWith', fields, sameClassOf(this))
+            return __operation1(this as any, reject ? '_monthDayWithRejecting' : '_monthDayWith', argument, sameClassOf(this))
         }
         // The date in the year given, with the fields, taken to the reference
-        const date = __operation1(this as any, reject ? '_withFieldsRejecting' : '_withFields', fields, PlainDateType)
+        const date = __operation1(this as any, reject ? '_withFieldsRejecting' : '_withFields', argument, PlainDateType)
         return __operation0(date, '_toPlainMonthDay', sameClassOf(this))
     }
     /** The date of this day of the month in the year given, a plainDate: Temporal's `toPlainDate({ year })` (February 29 is the 28th in a year without it) */

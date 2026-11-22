@@ -1,3 +1,4 @@
+import { __withFieldsOf } from '../nodes/durationOfFields.js'
 import type { SqlBuildContext } from '../internal/SqlBuildContext.js'
 import { mySqlMariaDBOperationsThatNeedParenthesis } from '../utils/mySqlMariaDB/mySqlMariaDBOperationsThatNeedParenthesis.js'
 import type { ToSql, SqlOperation, SelectData, InsertData, UpdateData, DeleteData, FlatQueryColumns, OrderByEntry, PlainSelectData } from './SqlBuilder.js'
@@ -16,7 +17,7 @@ import type { ILogicalValueSource } from '../typeSystem/base.js'
 import { __classOf } from '../nodes/adaptedTypeClass.js'
 import { __registeredDataType } from '../typeSystem/dataTypeRegistry.js'
 import { isZeroDuration } from '../utils/durationValues.js'
-import { plainTemporalFieldsOf, type PlainTemporalFields } from '../utils/plainTemporalFields.js'
+import { hasFieldOfTheQuery, plainTemporalFieldsOf, type PlainTemporalFields } from '../utils/plainTemporalFields.js'
 import { __valueOperandClassOf } from '../typeSystem/dataTypeClasses.js'
 import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
 
@@ -1135,35 +1136,45 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
      */
     override _appendWithFields(context: SqlBuildContext, valueSource: ToSql, value: any, typeClass: DataTypeClass, reject: boolean, inYear?: number): string {
         const fields = this._temporalFieldsOfDurationOperation(typeClass)
-        const given = plainTemporalFieldsOf(value, fields, reject, inYear)
+        const given = plainTemporalFieldsOf(__withFieldsOf(value) ?? value, fields, reject, inYear)
         if (!given) {
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: typeClass.type }, 'Invalid fields to put in a ' + typeClass.type + ': ' + JSON.stringify(value))
+        }
+        const ofTheQuery = hasFieldOfTheQuery(given)
+        if (ofTheQuery) {
+            // A field of the query is written where it is used, taken to its range or checked; without the function of
+            // the library, which takes a null field as one not given
+            return this._withFieldsOfTheQueryChecked(context, this._mySqlWithFields(context, valueSource, given, fields, reject), given, reject, fields)
         }
         if (fields !== 'date' && __withChangesOnlyWholeTime(given)) {
             return this._withWholeTime(context, valueSource, given, fields)
         }
-        if (fields === 'time') {
-            return this._mySqlTimeWith(context, valueSource, given)
-        }
         if (fields === 'date' && this._libraryFunctionsInstalled()) {
             // The function of the library, the value written once: a field not given (null) is the one of the value
-            return this._dateWithFunction(context, valueSource, this._integerOrNull(given.year) + ', ' + this._integerOrNull(given.month) + ', ' + this._integerOrNull(given.day) + ', ' + (reject ? '1' : '0'))
+            return this._dateWithFunction(context, valueSource, this._integerOrNull(given.year as number | undefined) + ', ' + this._integerOrNull(given.month as number | undefined) + ', ' + this._integerOrNull(given.day as number | undefined) + ', ' + (reject ? '1' : '0'))
         }
-        const mayNotFit = given.day === undefined ? given.year !== undefined || given.month !== undefined : given.day > 28
+        return this._mySqlWithFields(context, valueSource, given, fields, reject)
+    }
+    /** with built from the parts of the value and the fields given, each written where it is used (see _appendWithFields) */
+    _mySqlWithFields(context: SqlBuildContext, valueSource: ToSql, given: PlainTemporalFields, fields: 'date' | 'time' | 'timestamp', reject: boolean): string {
+        if (fields === 'time') {
+            return this._mySqlTimeWith(context, valueSource, given, reject)
+        }
+        const mayNotFit = given.day === undefined ? given.year !== undefined || given.month !== undefined : typeof given.day !== 'number' || given.day > 28
         // The first day of the month, then the days after it, up to the last day of the month; rejecting a day the month
         // hasn't with an error of the query (MariaDB and MySQL have no date that fails): a subquery of two rows
-        let date = 'date_add(' + this._mySqlFirstOfMonthWith(context, valueSource, given) + ', interval '
+        let date = 'date_add(' + this._mySqlFirstOfMonthWith(context, valueSource, given, reject) + ', interval '
         if (!mayNotFit) {
-            date += this._mySqlDayWith(context, valueSource, given) + ' - 1 day)'
+            date += this._mySqlDayWith(context, valueSource, given, reject) + ' - 1 day)'
         } else if (reject) {
-            date += 'case when ' + this._mySqlDayWith(context, valueSource, given) + ' > day(last_day(' + this._mySqlFirstOfMonthWith(context, valueSource, given) + ')) then (select 1 union all select 1) else ' + this._mySqlDayWith(context, valueSource, given) + ' end - 1 day)'
+            date += 'case when ' + this._mySqlDayWith(context, valueSource, given, reject) + ' > day(last_day(' + this._mySqlFirstOfMonthWith(context, valueSource, given, reject) + ')) then (select 1 union all select 1) else ' + this._mySqlDayWith(context, valueSource, given, reject) + ' end - 1 day)'
         } else {
-            date += 'least(' + this._mySqlDayWith(context, valueSource, given) + ', day(last_day(' + this._mySqlFirstOfMonthWith(context, valueSource, given) + '))) - 1 day)'
+            date += 'least(' + this._mySqlDayWith(context, valueSource, given, reject) + ', day(last_day(' + this._mySqlFirstOfMonthWith(context, valueSource, given, reject) + '))) - 1 day)'
         }
         if (fields === 'date') {
             return date
         }
-        return 'timestamp(' + date + ', ' + this._mySqlTimeWith(context, valueSource, given) + ')'
+        return 'timestamp(' + date + ', ' + this._mySqlTimeWith(context, valueSource, given, reject) + ')'
     }
     /** The whole difference of two dates and times: their microseconds apart, as timestampdiff counts them */
     override _differenceTotal(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
@@ -1230,8 +1241,8 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         return 'date_add(' + date + ', interval ' + ticks + ' microsecond)'
     }
     /** The day of the value, or the one given */
-    _mySqlDayWith(context: SqlBuildContext, valueSource: ToSql, given: PlainTemporalFields): string {
-        return given.day === undefined ? 'day(' + this._appendSql(valueSource, context, false) + ')' : String(given.day)
+    _mySqlDayWith(context: SqlBuildContext, valueSource: ToSql, given: PlainTemporalFields, reject: boolean): string {
+        return given.day === undefined ? 'day(' + this._appendSql(valueSource, context, false) + ')' : this._withFieldSql(context, given.day, 'day', reject)
     }
     /**
      * The value plus the duration, or an error of the query when the day of the value isn't in the month the months of
@@ -1255,22 +1266,22 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         return result + (this._appendPlusDuration(context, valueSource, value, fields, sign) ?? this._appendWithDuration(context, valueSource, value, typeClass, sign)) + ' end'
     }
     /** The first day of the month of the value with the year and the month given */
-    _mySqlFirstOfMonthWith(context: SqlBuildContext, valueSource: ToSql, given: PlainTemporalFields): string {
-        const year = given.year === undefined ? 'year(' + this._appendSql(valueSource, context, false) + ')' : String(given.year)
-        const month = given.month === undefined ? 'month(' + this._appendSql(valueSource, context, false) + ')' : String(given.month)
+    _mySqlFirstOfMonthWith(context: SqlBuildContext, valueSource: ToSql, given: PlainTemporalFields, reject: boolean): string {
+        const year = given.year === undefined ? 'year(' + this._appendSql(valueSource, context, false) + ')' : this._withFieldSql(context, given.year, 'year', reject)
+        const month = given.month === undefined ? 'month(' + this._appendSql(valueSource, context, false) + ')' : this._withFieldSql(context, given.month, 'month', reject)
         return 'date_add(makedate(' + year + ', 1), interval ' + month + ' - 1 month)'
     }
     /** The time of the day of the value with the fields of a time given */
-    _mySqlTimeWith(context: SqlBuildContext, valueSource: ToSql, given: PlainTemporalFields): string {
-        const hour = given.hour === undefined ? 'hour(' + this._appendSql(valueSource, context, false) + ')' : String(given.hour)
-        const minute = given.minute === undefined ? 'minute(' + this._appendSql(valueSource, context, false) + ')' : String(given.minute)
-        const second = given.second === undefined ? 'second(' + this._appendSql(valueSource, context, false) + ')' : String(given.second)
+    _mySqlTimeWith(context: SqlBuildContext, valueSource: ToSql, given: PlainTemporalFields, reject: boolean): string {
+        const hour = given.hour === undefined ? 'hour(' + this._appendSql(valueSource, context, false) + ')' : this._withFieldSql(context, given.hour, 'hour', reject)
+        const minute = given.minute === undefined ? 'minute(' + this._appendSql(valueSource, context, false) + ')' : this._withFieldSql(context, given.minute, 'minute', reject)
+        const second = given.second === undefined ? 'second(' + this._appendSql(valueSource, context, false) + ')' : this._withFieldSql(context, given.second, 'second', reject)
         let microseconds: string
         if (given.millisecond === undefined && given.microsecond === undefined) {
             microseconds = 'microsecond(' + this._appendSql(valueSource, context, false) + ')'
         } else {
-            const milliseconds = given.millisecond === undefined ? 'microsecond(' + this._appendSql(valueSource, context, false) + ') div 1000' : String(given.millisecond)
-            const ofTheMillisecond = given.microsecond === undefined ? 'microsecond(' + this._appendSql(valueSource, context, false) + ') % 1000' : String(given.microsecond)
+            const milliseconds = given.millisecond === undefined ? 'microsecond(' + this._appendSql(valueSource, context, false) + ') div 1000' : this._withFieldSql(context, given.millisecond, 'millisecond', reject)
+            const ofTheMillisecond = given.microsecond === undefined ? 'microsecond(' + this._appendSql(valueSource, context, false) + ') % 1000' : this._withFieldSql(context, given.microsecond, 'microsecond', reject)
             microseconds = milliseconds + ' * 1000 + ' + ofTheMillisecond
         }
         // MariaDB and MySQL keep microseconds: the nanoseconds given are dropped

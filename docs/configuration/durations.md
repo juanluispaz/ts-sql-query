@@ -438,6 +438,83 @@ A month, a year and a week have no fixed length: a duration with years, months o
 
 As with `until` and `since`, on PostgreSQL the sum is an interval, which keeps it as days and a time (`PT120M` is read as `PT2H`) with its microseconds; on the other databases, Oracle too, it is the ISO 8601 text Temporal writes.
 
+## A duration of fields of the query
+
+`connection.duration(fields)` is Temporal's `Temporal.Duration.from(fields)` in the query: each field is an integer or an `int` of the query, like a column, so the database knows its value. Here the time of support of each release, as many months as its row says:
+
+```ts
+const releases = await connection.selectFrom(tRelease)
+    .select({
+        version: tRelease.version,
+        support: connection.duration({ months: tRelease.supportMonths }),
+    })
+    .orderBy('version')
+    .executeSelectMany()
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        version as version, 
+        tsq_duration_text(0, support_months, 0, 0, 0, 0, 0, 'second') as support 
+    from project_release 
+    order by version
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        version as version, 
+        tsq_duration_text(0, support_months, 0, 0, 0, 0, 0, 'second') as support 
+    from project_release 
+    order by version
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        version as "version", 
+        tsq_duration_text(0, support_months, 0, 0, 0, 0, 0, 'second') as "support" 
+    from project_release 
+    order by "version"
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        version as version, 
+        make_interval(months => support_months) as support 
+    from project_release 
+    order by version
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        version as version, 
+        tsq_duration_text(0, support_months, 0, 0, 0, 0, cast(0 as text), 'second') as support 
+    from project_release 
+    order by version
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        version as version, 
+        dbo.tsq_duration_text(0, support_months, 0, 0, 0, 0, 0, 'second') as support 
+    from project_release 
+    order by version
+    ```
+
+The parameters are: `[]`
+
+| version | support |
+|---|---|
+| `'0.9.0'` | |
+| `'1.2.0'` | `P18M` (on PostgreSQL `P1Y6M`) |
+| `'1.3.0-beta.1'` | `P3M` |
+
+The duration is kept as the database keeps one: as its ISO 8601 text, the one Temporal's `toString` writes with every field as given, or in an interval on PostgreSQL, which keeps 18 months as a year and 6 months (see [How it is kept](#how-it-is-kept)). Written in a column, it is kept as that column keeps a duration: in a column of text, its text with every field as given (an hour and 90 minutes of the query are `PT1H90M`, as a `Temporal.Duration` sent is written). The rules are the ones of [A field of the duration from the query](plain-dates-and-times.md#a-field-of-the-duration-from-the-query): the result is optional when a field is, the column is of a table of the query, and the query fails for a row where the fields have different signs. With only numbers it is the `Temporal.Duration` of them, sent as a value.
+
+`add` and `subtract` of a duration take fields of the query too, as Temporal's `add` takes numbers: `tRelease.rolloutTime.add({ hours: tRelease.supportMonths })`.
+
 ## The functions of the library it uses
 
 Some operations of this page need functions of the library in the database; without them, the query fails with the error of the database for a function that doesn't exist. Create them once with the file of SQL of your database ([MariaDB](../databases/mariadb/functions.md), [MySQL](../databases/mysql/functions.md), [Oracle](../databases/oracle/functions.md), [PostgreSQL](../databases/postgresql/functions.md), [SQLite](../databases/sqlite/functions.md), [SQL Server](../databases/sqlserver/functions.md)), and on SQLite register them with `registerSqliteFunctions` of the query runner; that page also says how each one computes.

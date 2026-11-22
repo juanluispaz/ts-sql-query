@@ -16,7 +16,7 @@ They are the functions of the library, whose names start with `tsq_`, of two kin
 | Function | A query calls it when | It calls |
 |---|---|---|
 | [`tsq_duration_part`](#tsq_duration_part) | it adds a duration of the database, reads its fields, its sign or its total, or negates it | — |
-| [`tsq_duration_text`](#tsq_duration_text) | `until` or `since` computes a duration | — |
+| [`tsq_duration_text`](#tsq_duration_text) | `until` or `since` computes a duration, or a query has a duration of fields of the query (`connection.duration`) | — |
 | [`tsq_duration_round`](#tsq_duration_round) | `until` or `since` in months or years, or rounded to a week, a month or a year | `tsq_duration_text` |
 | [`tsq_duration_total`](#tsq_duration_total) | `total` of a duration | — |
 | [`tsq_duration_add`](#tsq_duration_add) | `add` or `subtract` of two durations | `tsq_duration_text` |

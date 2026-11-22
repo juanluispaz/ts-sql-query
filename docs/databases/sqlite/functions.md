@@ -43,7 +43,7 @@ SQLite keeps a [duration](../../configuration/durations.md#durations) as its ISO
 | Function | A query calls it when |
 |---|---|
 | `tsq_duration_part` | it adds a duration of the database, like a column, to a date or to another duration, reads its fields, its sign or its total, or negates it ([The functions of the library it uses](../../configuration/durations.md#the-functions-of-the-library-it-uses)) |
-| `tsq_duration_text` | `until` or `since` computes a duration ([The duration between two dates and times](../../configuration/plain-dates-and-times.md#the-duration-between-two-dates-and-times)) |
+| `tsq_duration_text` | `until` or `since` computes a duration ([The duration between two dates and times](../../configuration/plain-dates-and-times.md#the-duration-between-two-dates-and-times)), or a query has a duration of fields of the query ([A duration of fields of the query](../../configuration/durations.md#a-duration-of-fields-of-the-query)) |
 | `tsq_duration_round` | `until` or `since` in months or years, or rounded to a week, a month or a year ([The options of `until` and `since`](../../configuration/plain-dates-and-times.md#the-options-of-until-and-since)) |
 | `tsq_duration_total` | `total` of a duration ([The total of a duration in a unit](../../configuration/durations.md#the-total-of-a-duration-in-a-unit)) |
 | `tsq_duration_add` | `add` or `subtract` of two durations ([Durations added and subtracted together](../../configuration/durations.md#durations-added-and-subtracted-together)) |

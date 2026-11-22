@@ -19,6 +19,7 @@ They are of these kinds, and all of them are in [one file](#creating-them):
 | [`tsq_duration_round`](#tsq_duration_round) | `until` or `since` in months or years, or rounded to a week, a month or a year | — |
 | [`tsq_duration_total`](#tsq_duration_total) | `total` of a duration | — |
 | [`tsq_duration_add`](#tsq_duration_add) | `add` or `subtract` of two durations | — |
+| [`tsq_duration_text`](#tsq_duration_text) | a duration of fields of the query (`connection.duration`) is written in a column that keeps its text | — |
 | [`tsq_interval_text`](#tsq_interval_text) | a duration of the query kept in an interval is written in a column that keeps its text | — |
 | [`tsq_zoned_of_wall`](#tsq_zoned_of_wall) | a wall clock is taken to its zone, with `libraryFunctions = 'installed'` | — |
 | [`tsq_zoned_until`](#tsq_zoned_until) | `until` or `since` of two zoned dates and times, in days or larger units | `tsq_zoned_of_wall` |
@@ -63,6 +64,12 @@ Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 ## `tsq_duration_add`
 
 `tsq_duration_add` adds or subtracts two durations, as Temporal's `add` and `subtract` of a `Temporal.Duration`: a day is 24 hours, the sum is written up to the largest field of the two, and a duration with years, months or weeks makes it fail. A query calls it for `add` and `subtract` of a duration to another one (see [Durations added and subtracted together](../../configuration/durations.md#durations-added-and-subtracted-together)). It takes, of each duration, its largest field that isn't zero, which `tsq_duration_part` gives with `'largest'`.
+
+Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
+
+## `tsq_duration_text`
+
+`tsq_duration_text` writes the ISO 8601 text of a duration from its fields, the text of Temporal's `toString`: its years, months, weeks, days, hours and minutes as they are given, and the time in nanoseconds balanced up to the unit it is given. A query calls it when it writes a duration of fields of the query, `connection.duration`, in a column that keeps its text, so its fields are kept as given, as a `Temporal.Duration` sent is written (see [A duration of fields of the query](../../configuration/durations.md#a-duration-of-fields-of-the-query)).
 
 Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 

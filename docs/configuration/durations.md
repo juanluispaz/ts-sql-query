@@ -296,7 +296,7 @@ The parameters are: `[]`
 | `'1.2.0'` | `1` | `12` | `0` | `1` | `-P1DT12H` |
 | `'1.3.0-beta.1'` | `0` | `0` | `45` | `1` | `-PT45M` |
 
-The fields are the ones of the duration as the database keeps it, as Temporal reads it: a duration kept as text has the fields written (`PT90M` has 90 minutes and no hours, as `Temporal.Duration.from('PT90M')`); an interval of PostgreSQL has its months (as years and months), its days and its time in hours, minutes and seconds, and no weeks; an interval of Oracle has days to seconds, or years and months. A duration kept as text reads them with the function `tsq_duration_part` (see [below](plain-dates-and-times.md#a-duration-kept-as-text-the-function-tsq_duration_part)).
+The fields are the ones of the duration as the database keeps it, as Temporal reads it: a duration kept as text has the fields written (`PT90M` has 90 minutes and no hours, as `Temporal.Duration.from('PT90M')`); an interval of PostgreSQL has its months (as years and months), its days and its time in hours, minutes and seconds, and no weeks; an interval of Oracle has days to seconds, or years and months. A duration kept as text reads them with the function `tsq_duration_part` (see [The functions of the library it uses](#the-functions-of-the-library-it-uses)).
 
 ## The total of a duration in a unit
 
@@ -392,26 +392,9 @@ The number is the one Temporal's `total` gives, to the last digit. What applies 
 | `'day'` and the units of the time | a day is 24 hours; a duration with years, months or weeks fails the query | the duration is added to the date; a day is 24 hours |
 | `'week'`, `'month'`, `'year'` | doesn't compile | counted from the date: a month or a year has the days of the calendar there |
 
-Without a date of reference, a duration with years, months or weeks fails the query, as Temporal's `total` throws: the type of the value doesn't tell which fields it has. The error is the one of the function below, which says it needs a date of reference (on SQL Server, an error converting that text to a number, because a function there can't raise one).
+Without a date of reference, a duration with years, months or weeks fails the query, as Temporal's `total` throws: the type of the value doesn't tell which fields it has. The error is the one of the function `tsq_duration_total` (see [The functions of the library it uses](#the-functions-of-the-library-it-uses)), which says it needs a date of reference (on SQL Server, an error converting that text to a number, because a function there can't raise one).
 
 On Oracle, a date before 15 October 1582 is in the Julian calendar: a total counted across that day isn't the one of Temporal (see [Dates before 1582](../databases/oracle/index.md#dates-before-1582)).
-
-### The function `tsq_duration_total`
-
-`total` is computed by `tsq_duration_total`, a function of the library, on every database: it adds the duration to the date of reference and divides with integers, so the `double` is rounded once, as Temporal rounds it. It takes the months of the duration (its years too), its weeks, its days, the whole seconds of its time and the nanoseconds of the second, the year, the month and the day of the date of reference (`0, 0, 0` without one) and the unit. Create it once in the database, as `tsq_duration_part`; without it, the query fails with the error of the database for a function that doesn't exist.
-
-With `libraryFunctions = 'installed'` on the connection, a query calls `tsq_duration_total_of` instead, which takes each duration whole and writes it once; the result is the same.
-
-Its code for each database:
-
-| Database | The code |
-|---|---|
-| MariaDB | [`tsq_duration_total`](../databases/mariadb/functions.md#tsq_duration_total) |
-| MySQL | [`tsq_duration_total`](../databases/mysql/functions.md#tsq_duration_total) |
-| Oracle | [`tsq_duration_total`](../databases/oracle/functions.md#tsq_duration_total) |
-| PostgreSQL | [`tsq_duration_total`](../databases/postgresql/functions.md#tsq_duration_total) |
-| SQLite | registered by `registerSqliteFunctions`: see [SQLite functions and extensions](../databases/sqlite/functions.md#the-functions-of-durations) |
-| SQL Server | [`tsq_duration_total`](../databases/sqlserver/functions.md#tsq_duration_total) |
 
 ## Durations added and subtracted together
 
@@ -497,19 +480,15 @@ A month, a year and a week have no fixed length: a duration with years, months o
 
 As with `until` and `since`, on PostgreSQL the sum is an interval, which keeps it as days and a time (`PT120M` is read as `PT2H`) with its microseconds; on the other databases, Oracle too, it is the ISO 8601 text Temporal writes.
 
-### The function `tsq_duration_add`
+## The functions of the library it uses
 
-The sum is computed by `tsq_duration_add`, a function of the library, on every database. It takes, of each duration, its largest field that isn't zero (`tsq_duration_part` gives it with `'largest'`), its days, the whole seconds of its time and the nanoseconds of the second, and the sign of the second one (1 to add it, -1 to subtract it). Create it once in the database, as `tsq_duration_part`; on MariaDB, MySQL, Oracle and SQL Server it writes the text with `tsq_duration_text` (see [The functions `tsq_duration_text` and `tsq_duration_round`](plain-dates-and-times.md#the-functions-tsq_duration_text-and-tsq_duration_round)). Without it, the query fails with the error of the database for a function that doesn't exist.
+Some operations of this page are computed by functions of the library: create them once in the database with the file of SQL of the functions of your database ([MariaDB](../databases/mariadb/functions.md), [MySQL](../databases/mysql/functions.md), [Oracle](../databases/oracle/functions.md), [PostgreSQL](../databases/postgresql/functions.md), [SQLite](../databases/sqlite/functions.md#the-functions-of-durations), [SQL Server](../databases/sqlserver/functions.md)), and on SQLite register them with `registerSqliteFunctions` of the query runner; without them, the query fails with the error of the database for a function that doesn't exist.
 
-With `libraryFunctions = 'installed'` on the connection, a query calls `tsq_duration_sum` instead, which takes each duration whole and writes it once; the result is the same.
+| Function | What it computes | Databases |
+|---|---|---|
+| `tsq_duration_part` | Reading the fields, the sign or the total of a duration the database holds, like `tRelease.rolloutTime`, negating it, or adding it to another duration: it reads the parts of its ISO 8601 text. Reading, writing or comparing a duration doesn't need it, and neither does a duration given as a value | MariaDB, MySQL, SQLite, SQL Server, and a column of Oracle or PostgreSQL that keeps a duration as text |
+| `tsq_duration_total` | `total`: it adds the duration to the date of reference and divides with integers, so the `double` is rounded once, as Temporal rounds it | Every database |
+| `tsq_duration_add` | `add` and `subtract` of two durations: it takes, of each duration, its largest field that isn't zero, its days, the whole seconds of its time and the nanoseconds of the second | Every database |
+| `tsq_duration_text` | The text of the sum, which `tsq_duration_add` writes | MariaDB, MySQL, Oracle, SQL Server |
 
-Its code for each database:
-
-| Database | The code |
-|---|---|
-| MariaDB | [`tsq_duration_add`](../databases/mariadb/functions.md#tsq_duration_add) |
-| MySQL | [`tsq_duration_add`](../databases/mysql/functions.md#tsq_duration_add) |
-| Oracle | [`tsq_duration_add`](../databases/oracle/functions.md#tsq_duration_add) |
-| PostgreSQL | [`tsq_duration_add`](../databases/postgresql/functions.md#tsq_duration_add) |
-| SQLite | registered by `registerSqliteFunctions`: see [SQLite functions and extensions](../databases/sqlite/functions.md#the-functions-of-durations) |
-| SQL Server | [`tsq_duration_add`](../databases/sqlserver/functions.md#tsq_duration_add) |
+With `libraryFunctions = 'installed'` on the connection, a query calls `tsq_duration_total_of` and `tsq_duration_sum` instead of `tsq_duration_total` and `tsq_duration_add`, which take each duration whole and write it once, and the other optional functions of the queries of this page; the result is the same.

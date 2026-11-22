@@ -43,7 +43,7 @@ They are of these kinds, and all of them are in [one file](#creating-them):
 
 ## `tsq_duration_part`
 
-`tsq_duration_part` reads a part of the ISO 8601 text of a duration: its months, its days, the whole seconds of its time and the nanoseconds of the second, to add it; each field as written; its sign; or its largest field that isn't zero. PostgreSQL keeps a duration in an interval, and only a column that keeps it as text needs it (see [A column that keeps it in its own way](../../configuration/durations.md#a-column-that-keeps-it-in-its-own-way)): a query calls it to add a duration of such a column to a date or to another duration, to read its fields, its sign or its total, or to negate it. A duration given as a value doesn't need it to be added, and neither does reading, writing or comparing a duration. See [A duration kept as text](../../configuration/plain-dates-and-times.md#a-duration-kept-as-text-the-function-tsq_duration_part).
+`tsq_duration_part` reads a part of the ISO 8601 text of a duration: its months, its days, the whole seconds of its time and the nanoseconds of the second, to add it; each field as written; its sign; or its largest field that isn't zero. PostgreSQL keeps a duration in an interval, and only a column that keeps it as text needs it (see [A column that keeps it in its own way](../../configuration/durations.md#a-column-that-keeps-it-in-its-own-way)): a query calls it to add a duration of such a column to a date or to another duration, to read its fields, its sign or its total, or to negate it. A duration given as a value doesn't need it to be added, and neither does reading, writing or comparing a duration. See [The functions of the library it uses](../../configuration/durations.md#the-functions-of-the-library-it-uses).
 
 Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 
@@ -73,7 +73,7 @@ Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 
 ## `tsq_zoned_until`
 
-`tsq_zoned_until` gives the duration from one zoned date and time to another as Temporal's `until` with a largest unit of days or larger: it counts the days of the calendar in their zone, each one with its length there (23 or 25 hours where the zone changes its offset), and rounds as Temporal rounds. A query calls it for `until` and `since` of two zoned dates and times in days or larger units (see [The functions `tsq_zoned_until` and `tsq_zoned_of_wall`](../../configuration/zoned-dates-and-times.md#the-functions-tsq_zoned_until-and-tsq_zoned_of_wall)). Two zoned dates and times in different zones make it fail, as in Temporal. It calls `tsq_zoned_of_wall`: create it after that one.
+`tsq_zoned_until` gives the duration from one zoned date and time to another as Temporal's `until` with a largest unit of days or larger: it counts the days of the calendar in their zone, each one with its length there (23 or 25 hours where the zone changes its offset), and rounds as Temporal rounds. A query calls it for `until` and `since` of two zoned dates and times in days or larger units (see [The functions of the library it uses](../../configuration/zoned-dates-and-times.md#the-functions-of-the-library-it-uses)). Two zoned dates and times in different zones make it fail, as in Temporal. It calls `tsq_zoned_of_wall`: create it after that one.
 
 Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 

@@ -231,17 +231,14 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 }
 ```
 
-## The functions `tsq_zoned_until` and `tsq_zoned_of_wall`
+## The functions of the library it uses
 
-`until` and `since` of two zoned dates and times in days or larger units count the days of the calendar in their zone, with the length of each one there, and round as Temporal rounds, which needs variables: it is done by `tsq_zoned_until`, a function of the library, with `tsq_zoned_of_wall`, which it uses, and which takes a wall clock to its zone as Temporal, the one `libraryFunctions` uses. Create it once in the database, on Oracle after [`tsq_duration_text`](plain-dates-and-times.md#the-functions-tsq_duration_text-and-tsq_duration_round), which it uses; without it, the query fails with the error of the database for a function that doesn't exist. Two zoned dates and times in different zones make it fail (`ORA-20001` on Oracle).
+Some operations of this page are computed by functions of the library: create them once in the database with the file of SQL of the functions of your database ([MariaDB](../databases/mariadb/functions.md), [MySQL](../databases/mysql/functions.md), [Oracle](../databases/oracle/functions.md), [PostgreSQL](../databases/postgresql/functions.md), [SQLite](../databases/sqlite/functions.md), [SQL Server](../databases/sqlserver/functions.md)), and on SQLite register them with `registerSqliteFunctions` of the query runner; without them, the query fails with the error of the database for a function that doesn't exist.
 
-Their code for each database (MariaDB, MySQL, SQLite and SQL Server have no zoned dates and times):
+| Function | What it computes | Databases |
+|---|---|---|
+| `tsq_zoned_until` | `until` and `since` of two zoned dates and times in days or larger units: it counts the days of the calendar in their zone, with the length of each one there, and rounds as Temporal rounds. Two zoned dates and times in different zones make it fail (`ORA-20001` on Oracle) | Oracle, PostgreSQL |
+| `tsq_zoned_of_wall` | A wall clock taken to its zone as Temporal takes it, which `tsq_zoned_until` uses | Oracle, PostgreSQL |
+| `tsq_duration_text` | The text of the duration, which `tsq_zoned_until` writes | Oracle |
 
-| Database | The code |
-|---|---|
-| MariaDB | — |
-| MySQL | — |
-| Oracle | [`tsq_zoned_of_wall`](../databases/oracle/functions.md#tsq_zoned_of_wall) and [`tsq_zoned_until`](../databases/oracle/functions.md#tsq_zoned_until) |
-| PostgreSQL | [`tsq_zoned_of_wall`](../databases/postgresql/functions.md#tsq_zoned_of_wall) and [`tsq_zoned_until`](../databases/postgresql/functions.md#tsq_zoned_until) |
-| SQLite | — |
-| SQL Server | — |
+With `libraryFunctions = 'installed'` on the connection, a query calls the optional functions of the queries of this page, like `tsq_zoned_of_wall` to take a wall clock to its zone as Temporal disambiguates it; the result is the one of Temporal.

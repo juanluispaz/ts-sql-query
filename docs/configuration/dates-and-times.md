@@ -5,7 +5,7 @@ search:
 <!-- doc-code-library-functions -->
 # Dates and times
 
-A date, a time of the day or both reach your code in one of two ways: as a [Temporal](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal) value of JavaScript, or as a `Date`. This page says what each one is, why Temporal is the one we recommend, what you need to use it, and what a query can do with these values: compare them, take their parts, and turn a date into a date and time. It also covers [instants](instants.md#instants), an exact moment like the one a release was deployed, as a `Temporal.Instant`, and [durations](durations.md#durations), a length of time like the 45 minutes a task took, as a `Temporal.Duration`. Where the zone of each value comes from, and how to set up the zones of your database and your application, is in [Time zones](time-zones.md).
+A date, a time of the day or both reach your code in one of two ways: as a [Temporal](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal) value of JavaScript, or as a `Date`. This page says what each one is, why Temporal is the one we recommend, what you need to use it, how a value goes in a query and how a query gives the current date and time. What a query does with each type, like comparing it, taking its parts or computing with it, is in the page of the type. Where the zone of each value comes from, and how to set up the zones of your database and your application, is in [Time zones](time-zones.md).
 
 ## The types
 

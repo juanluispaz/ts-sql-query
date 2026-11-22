@@ -129,8 +129,8 @@ What each one has, with the meaning and the name it has in Temporal:
 | `with` | Another `year` or `month` (or `monthCode`), also an `int` of the query (see [The fields of `with`](plain-dates-and-times.md#the-fields-of-with)); a month out of its range is taken to the nearest one (13 is December), or rejected with `{ overflow: 'reject' }` | `plainYearMonth` |
 | `with` | Another `month` (or `monthCode`) or `day`, also an `int` of the query, the day taken to the last one of the month in a leap year, or in the `year` given (February 29 in 2023 is the 28th), or rejected with `{ overflow: 'reject' }` | `plainMonthDay` |
 | `until`, `since` | The duration to or from another month of a year, in years and months (see below) | `plainYearMonth` |
-| `toPlainDate({ day })` | The date of that day of the month, taken to the last one of the month | `plainYearMonth` |
-| `toPlainDate({ year })` | The date in that year (February 29 is the 28th in a year without it) | `plainMonthDay` |
+| `toPlainDate({ day })` | The date of that day of the month, taken to the last one of the month; the day can be an `int` of the query, and the query fails for one below 1, as Temporal throws | `plainYearMonth` |
+| `toPlainDate({ year })` | The date in that year (February 29 is the 28th in a year without it); the year can be an `int` of the query | `plainMonthDay` |
 
 A month of a year is compared and ordered (`lessThan`, `orderBy`); a day of a month only compared for equality, as Temporal has no order of them: `lessThan` of one doesn't compile.
 

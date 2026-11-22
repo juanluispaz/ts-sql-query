@@ -774,6 +774,27 @@ BEGIN
 END;
 /
 
+-- ===== tsq_zoned_plus_date =====
+CREATE OR REPLACE FUNCTION tsq_zoned_plus_date(value IN TIMESTAMP_TZ_UNCONSTRAINED, months IN NUMBER, days IN NUMBER, reject IN NUMBER) RETURN TIMESTAMP_TZ_UNCONSTRAINED DETERMINISTIC IS
+    v_wall TIMESTAMP_UNCONSTRAINED;
+    v_day DATE;
+    v_added DATE;
+    v_check NUMBER;
+BEGIN
+    IF value IS NULL OR months IS NULL OR days IS NULL OR reject IS NULL THEN RETURN NULL; END IF;
+    IF months = 0 AND days = 0 THEN RETURN value; END IF;
+    v_wall := CAST(value AS TIMESTAMP_UNCONSTRAINED);
+    IF months <> 0 THEN
+        IF reject <> 0 THEN v_check := tsq_day_in_month_or_error(v_wall, months); END IF;
+        v_day := TRUNC(v_wall);
+        v_added := ADD_MONTHS(v_day, months);
+        v_added := v_added - GREATEST(0, EXTRACT(DAY FROM v_added) - EXTRACT(DAY FROM v_day));
+        v_wall := CAST(v_added AS TIMESTAMP_UNCONSTRAINED) + (v_wall - v_day);
+    END IF;
+    RETURN tsq_zoned_of_wall(v_wall + NUMTODSINTERVAL(days, 'day'), TO_CHAR(value, 'TZR'), 'compatible');
+END;
+/
+
 -- ===== tsq_sql_macros =====
 CREATE OR REPLACE FUNCTION tsq_text_of_date(value IN DATE) RETURN VARCHAR2 SQL_MACRO(SCALAR) IS
 BEGIN

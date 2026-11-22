@@ -1283,6 +1283,29 @@ BEGIN
     RETURN v_first + v_day - 1;
 END;
 
+-- tsq_zoned_plus_date: a zoned date and time plus months and days, as Temporal's add of a ZonedDateTime adds the
+-- years, months, weeks and days of a duration: to its wall clock in its zone, the day kept in the month (or an error
+-- with reject), taken back to the zone as 'compatible' disambiguates it; the value itself without months nor days. The
+-- function of the library that writes the value once (libraryFunctions installed).
+CREATE OR REPLACE FUNCTION tsq_zoned_plus_date(value IN TIMESTAMP_TZ_UNCONSTRAINED, months IN NUMBER, days IN NUMBER, reject IN NUMBER) RETURN TIMESTAMP_TZ_UNCONSTRAINED DETERMINISTIC IS
+    v_wall TIMESTAMP_UNCONSTRAINED;
+    v_day DATE;
+    v_added DATE;
+    v_check NUMBER;
+BEGIN
+    IF value IS NULL OR months IS NULL OR days IS NULL OR reject IS NULL THEN RETURN NULL; END IF;
+    IF months = 0 AND days = 0 THEN RETURN value; END IF;
+    v_wall := CAST(value AS TIMESTAMP_UNCONSTRAINED);
+    IF months <> 0 THEN
+        IF reject <> 0 THEN v_check := tsq_day_in_month_or_error(v_wall, months); END IF;
+        v_day := TRUNC(v_wall);
+        v_added := ADD_MONTHS(v_day, months);
+        v_added := v_added - GREATEST(0, EXTRACT(DAY FROM v_added) - EXTRACT(DAY FROM v_day));
+        v_wall := CAST(v_added AS TIMESTAMP_UNCONSTRAINED) + (v_wall - v_day);
+    END IF;
+    RETURN tsq_zoned_of_wall(v_wall + NUMTODSINTERVAL(days, 'day'), TO_CHAR(value, 'TZR'), 'compatible');
+END;
+
 -- tsq_sql_macros: The SQL macros of the library (used from Oracle 23.4): the conversions a Temporal value leaves and reaches the driver
 -- with, written once in the macro, which Oracle expands where the query uses it (libraryFunctions installed): the text
 -- of a date, of a date and time or a time (a TIMESTAMP on the date of the stored times), of the date and time in UTC of

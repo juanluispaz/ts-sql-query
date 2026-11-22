@@ -1663,6 +1663,12 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         if (!parts) {
             return this._appendSql(valueSource, context, this._typesTemporalConsts())
         }
+        if (this._libraryFunctionsInstalled() && (parts.months !== undefined || parts.days !== undefined)) {
+            // The function of the library adds the months and the days to the wall clock in its zone and takes it back
+            // to the zone, writing the value once; the value itself without them; then the time to that instant
+            const added = 'tsq_zoned_plus_date(' + this._appendSql(valueSource, context, false) + ', ' + (parts.months ?? '0') + ', ' + (parts.days ?? '0') + ', ' + (reject ? '1' : '0') + ')'
+            return this._zonedComputedOnce(context, parts.seconds === undefined ? added : '(' + added + ' + ' + parts.seconds + ')', undefined, 'x', value, 'd')
+        }
         const zoned = this._zonedOperandSql(context, valueSource, 'x')
         const zone = this._zonedZoneOf(context, valueSource, zoned)
         let result = zoned

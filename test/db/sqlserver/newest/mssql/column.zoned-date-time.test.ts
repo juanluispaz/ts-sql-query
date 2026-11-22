@@ -242,13 +242,13 @@ describe(ctx.label, () => {
         ctx.mockNext(zoned.map((value, i) => ({
             id: i + 1, nextDay: text(value.add({ days: 1 })), twoHoursBefore: text(value.subtract({ hours: 2 })), monthAndHour: text(value.add({ months: 1, hours: 1 })), ofDuration: text(value.add(duration)),
         })))
-        const rows = await ctx.conn.selectFrom(tZonedValue)
+        const rows = await ctx.withLibraryFunctions().selectFrom(tZonedValue)
             .select({
                 id: tZonedValue.id,
-                nextDay: tZonedValue.zonedAt.add({ days: 1 }),
-                twoHoursBefore: tZonedValue.zonedAt.subtract({ hours: 2 }),
-                monthAndHour: tZonedValue.zonedAt.add({ months: 1, hours: 1 }),
-                ofDuration: tZonedValue.zonedAt.add(ctx.conn.const(duration, 'duration')),
+                nextDay: zonedAt.add({ days: 1 }),
+                twoHoursBefore: zonedAt.subtract({ hours: 2 }),
+                monthAndHour: zonedAt.add({ months: 1, hours: 1 }),
+                ofDuration: zonedAt.add(ctx.withLibraryFunctions().const(duration, 'duration')),
             })
             .orderBy('id')
             .executeSelectMany()
@@ -258,6 +258,49 @@ describe(ctx.label, () => {
         expect(rows.map(row => [row.id, row.nextDay.toString(), row.twoHoursBefore.toString(), row.monthAndHour.toString(), row.ofDuration.toString()])).toEqual(zoned.map((value, i) => [
             i + 1, value.add({ days: 1 }).toString(), value.subtract({ hours: 2 }).toString(), value.add({ months: 1, hours: 1 }).toString(), value.add(duration).toString(),
         ]))
+    })
+    */
+
+    // NOT-APPLICABLE: this database keeps a zonedDateTime as its text and computes no time zone with the rules of IANA: what needs them is not offered here
+    /*
+    test('a-zoned-date-and-time-plus-a-duration-with-and-without-the-functions-of-the-library', async () => {
+        // With the functions of the library, tsq_zoned_plus_date adds the years, months, weeks and days to the wall clock
+        // in its zone and takes it back to the zone, writing the value once: the values are the ones of Temporal, with and
+        // without the functions; a wall clock the zone skips (row 1 plus 5 months and 3 days is 2025-03-30 02:30, which
+        // Madrid skips) moves as Temporal moves it with the functions (the mock answers no rows: there it is the SQL that
+        // is checked)
+        const duration = Temporal.Duration.from('P2DT3H')
+        const query = (conn: typeof ctx.conn) => conn.selectFrom(tZonedValue)
+            .select({
+                id: tZonedValue.id,
+                weeksAndHours: zonedAt.add({ weeks: 2, hours: 3 }),
+                yearBefore: zonedAt.subtract({ years: 1, days: 1 }),
+                rejecting: zonedAt.add({ months: 4 }, { overflow: 'reject' }),
+                ofDuration: zonedAt.add(conn.const(duration, 'duration')),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        ctx.mockNext([])
+        const withFunctions = await query(ctx.withLibraryFunctions())
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        ctx.mockNext([])
+        const withoutFunctions = await query(ctx.conn)
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(withFunctions.length).toBe(ctx.realDbEnabled ? 3 : 0)
+        const ofTemporal = zoned.map((value, i) => [
+            i + 1, value.add({ weeks: 2, hours: 3 }).toString(), value.subtract({ years: 1, days: 1 }).toString(), value.add({ months: 4 }, { overflow: 'reject' }).toString(), value.add(duration).toString(),
+        ])
+        type Row = (typeof withFunctions)[number]
+        const read = (row: Row) => [row.id, row.weeksAndHours.toString(), row.yearBefore.toString(), row.rejecting.toString(), row.ofDuration.toString()]
+        expect(withFunctions.map(read)).toEqual(ofTemporal.slice(0, withFunctions.length))
+        expect(withoutFunctions.map(read)).toEqual(ofTemporal.slice(0, withoutFunctions.length))
+        ctx.mockNext([])
+        const skipped = await ctx.withLibraryFunctions().selectFrom(tZonedValue)
+            .where(tZonedValue.id.equals(1))
+            .select({ gap: zonedAt.add({ months: 5, days: 3 }) })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(skipped.map(row => row.gap.toString())).toEqual(ctx.realDbEnabled ? [zoned[0]!.add({ months: 5, days: 3 }).toString()] : [])
     })
     */
 
@@ -302,11 +345,11 @@ describe(ctx.label, () => {
         const text = (value: Temporal.ZonedDateTime) => value.toInstant().toString() + ' AD[' + value.timeZoneId.toUpperCase() + ']'
         const chain = (value: Temporal.ZonedDateTime) => value.add({ days: 1 }).with({ hour: 3 }).round('hour')
         ctx.mockNext(zoned.map((value, i) => ({ id: i + 1, chained: text(chain(value).startOfDay()), hoursInDay: chain(value).hoursInDay })))
-        const rows = await ctx.conn.selectFrom(tZonedValue)
+        const rows = await ctx.withLibraryFunctions().selectFrom(tZonedValue)
             .select({
                 id: tZonedValue.id,
-                chained: tZonedValue.zonedAt.add({ days: 1 }).with({ hour: 3 }).round('hour').startOfDay(),
-                hoursInDay: tZonedValue.zonedAt.add({ days: 1 }).with({ hour: 3 }).round('hour').hoursInDay(),
+                chained: zonedAt.add({ days: 1 }).with({ hour: 3 }).round('hour').startOfDay(),
+                hoursInDay: zonedAt.add({ days: 1 }).with({ hour: 3 }).round('hour').hoursInDay(),
             })
             .orderBy('id')
             .executeSelectMany()
@@ -346,12 +389,12 @@ describe(ctx.label, () => {
             id: i + 1, hours: value.until(later(value)).toString(), days: value.until(later(value), { largestUnit: 'day' }).toString(),
             months: value.since(value.subtract({ months: 1, days: 10 }), { largestUnit: 'month', smallestUnit: 'month', roundingMode: 'halfExpand' }).toString(),
         })))
-        const rows = await ctx.conn.selectFrom(tZonedValue)
+        const rows = await ctx.withLibraryFunctions().selectFrom(tZonedValue)
             .select({
                 id: tZonedValue.id,
-                hours: tZonedValue.zonedAt.until(tZonedValue.zonedAt.add({ days: 2, hours: 1 })),
-                days: tZonedValue.zonedAt.until(tZonedValue.zonedAt.add({ days: 2, hours: 1 }), { largestUnit: 'day' }),
-                months: tZonedValue.zonedAt.since(tZonedValue.zonedAt.subtract({ months: 1, days: 10 }), { largestUnit: 'month', smallestUnit: 'month', roundingMode: 'halfExpand' }),
+                hours: zonedAt.until(zonedAt.add({ days: 2, hours: 1 })),
+                days: zonedAt.until(zonedAt.add({ days: 2, hours: 1 }), { largestUnit: 'day' }),
+                months: zonedAt.since(zonedAt.subtract({ months: 1, days: 10 }), { largestUnit: 'month', smallestUnit: 'month', roundingMode: 'halfExpand' }),
             })
             .orderBy('id')
             .executeSelectMany()

@@ -652,6 +652,17 @@ BEGIN
     RETURN make_date(v_year, v_month, v_day);
 END $$;
 
+-- ===== tsq_zoned_plus_date =====
+CREATE OR REPLACE FUNCTION tsq_zoned_plus_date(instant timestamptz, zone text, months integer, days integer, reject integer) RETURNS timestamptz LANGUAGE plpgsql IMMUTABLE STRICT AS $$
+DECLARE
+    wall timestamp;
+BEGIN
+    IF months = 0 AND days = 0 THEN RETURN instant; END IF;
+    wall := instant AT TIME ZONE tsq_zone(zone);
+    IF reject <> 0 AND months <> 0 THEN PERFORM tsq_day_in_month_or_error(wall, months); END IF;
+    RETURN tsq_zoned_of_wall(wall + make_interval(months => months, days => days), zone, 'compatible');
+END $$;
+
 -- ===== tsq_greatest_strict and tsq_least_strict =====
 CREATE OR REPLACE FUNCTION tsq_greatest_strict(a anycompatible, b anycompatible) RETURNS anycompatible
 LANGUAGE sql IMMUTABLE AS $$ SELECT CASE WHEN a IS NULL OR b IS NULL THEN NULL ELSE greatest(a, b) END $$;

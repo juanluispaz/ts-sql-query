@@ -28,8 +28,9 @@ type OuterJoinSource = any
 type Argument<_T, _TYPE_NAME extends string = string> = any
 // The name of a data type (a built-in one, or one of the user registered), and the class of a data type: a built-in one,
 // like `StringType`, or one of the user
-type DataTypeName = 'boolean' | 'int' | 'bigint' | 'double' | 'string' | 'uuid' | 'stringDecimal' | 'localDate' | 'localTime' | 'localDateTime' | (string & {})
+type DataTypeName = 'boolean' | 'int' | 'bigint' | 'double' | 'string' | 'uuid' | 'stringDecimal' | 'dnumDecimal' | 'localDate' | 'localTime' | 'localDateTime' | (string & {})
 type DataTypeClass = any
+export type Dnum = readonly [value: bigint, decimals: number]
 type DynamicFilter = any
 type Filterable = any
 type DynamicConditionExtension = any

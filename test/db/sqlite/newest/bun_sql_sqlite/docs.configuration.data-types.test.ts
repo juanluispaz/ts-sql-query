@@ -5,7 +5,7 @@ import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { Table } from '../../../../../src/Table.js'
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-import { DecimalsType } from '../../../../../src/exports/v2/index.js'
+import { DecimalsType, type Dnum } from '../../../../../src/exports/v2/index.js'
 
 // An exact decimal of the user
 abstract class AmountType extends DecimalsType<string, 'Amount'> { static override readonly type = 'Amount' }
@@ -14,6 +14,15 @@ const tExactAmount = new class TExactAmount extends Table<DBConnection, 'TExactA
     id = this.primaryKey('id', 'int')
     amount = this.optionalColumn('amount', AmountType)
     price = this.optionalColumn('price', AmountType)
+    constructor() {
+        super('exact_amount')
+    }
+}()
+
+const tDnumAmount = new class TDnumAmount extends Table<DBConnection, 'TDnumAmount'> {
+    id = this.primaryKey('id', 'int')
+    amount = this.optionalColumn('amount', 'dnumDecimal')
+    price = this.optionalColumn('price', 'dnumDecimal')
     constructor() {
         super('exact_amount')
     }
@@ -55,6 +64,40 @@ describe(ctx.label, () => {
         expect(rows).toEqual([
             { id: 1, amount: '12345678901234567890.1234567891', next: '12345678901234567890.1234567892' },
             { id: 5, amount: '98765432109876543210.987654321', next: '98765432109876543210.9876543211' },
+        ])
+    })
+
+    test('docs:data-types/the-decimals-of-a-value-read', async () => {
+        // MOCK-ONLY: Bun SQL's SQLite can't register functions, and the query writes decimal_mul and decimal_cmp
+        ctx.mockOnlyConnection()
+        ctx.mockNext([
+            { id: 1, price: '1.5', twice: '3' },
+            { id: 5, price: '1234.56', twice: '2469.12' },
+        ])
+        const connection = ctx.conn
+        // doc-start
+        const rows = await connection.selectFrom(tDnumAmount)
+            .where(tDnumAmount.price.greaterOrEqual([15n, 1]))
+            .select({
+                id: tDnumAmount.id,
+                price: tDnumAmount.price,
+                twice: tDnumAmount.price.multiply([2n, 0]),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        // doc-end
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, price as price, (select case when typeof(tsq_v) <> 'text' then tsq_v when instr(tsq_v, '.') = 0 then (case when tsq_v = '-0' then '0' else tsq_v end) when rtrim(rtrim(tsq_v, '0'), '.') in ('-0', '-', '') then '0' else rtrim(rtrim(tsq_v, '0'), '.') end from (select decimal_mul(price, ?1) as tsq_v)) as twice from exact_amount where decimal_cmp(price, ?2) >= 0 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2",
+            "1.5",
+          ]
+        `)
+        assertType<Exact<typeof rows, { id: number; price?: Dnum; twice?: Dnum }[]>>()
+        expect(rows).toEqual([
+            // Every value is in its canonical text, without the zeros at the end of its decimals
+            { id: 1, price: [15n, 1], twice: [3n, 0] },
+            { id: 5, price: [123456n, 2], twice: [246912n, 2] },
         ])
     })
 })

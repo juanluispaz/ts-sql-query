@@ -310,6 +310,15 @@ const tExactAmount = new class TExactAmount extends Table<DBConnection, 'TExactA
     }
 }()
 void tExactAmount
+const tDnumAmount = new class TDnumAmount extends Table<DBConnection, 'TDnumAmount'> {
+    id = this.primaryKey('id', 'int')
+    amount = this.optionalColumn('amount', 'dnumDecimal')
+    price = this.optionalColumn('price', 'dnumDecimal')
+    constructor() {
+        super('exact_amount')
+    }
+}()
+void tDnumAmount
 
 // The releases of a project, with their dates and times as Temporal values (docs/configuration/dates-and-times.md)
 const tRelease = new class TRelease extends Table<DBConnection, 'TRelease'> {

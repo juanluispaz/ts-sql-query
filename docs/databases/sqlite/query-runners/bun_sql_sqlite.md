@@ -11,7 +11,7 @@ This page explains how to use `ts-sql-query` with the [Bun SQL](https://bun.com/
 
     Bun SQL for SQLite can't register functions written in JavaScript nor load an extension of SQLite. So with it:
 
-    - The exact decimals ([`stringDecimal` and the `DecimalsType` of yours](../../../configuration/data-types.md#exact-decimals)) have no arithmetic, sums nor roundings: the [decimal strategies](../index.md#exact-decimals-the-decimal-strategies) with functions, the default included, need functions it can't register.
+    - The exact decimals ([`stringDecimal`, `dnumDecimal` and the `DecimalsType` of yours](../../../configuration/data-types.md#exact-decimals)) have no arithmetic, sums nor roundings: the [decimal strategies](../index.md#exact-decimals-the-decimal-strategies) with functions, the default included, need functions it can't register.
     - The [uuid strategy](../index.md#uuid-strategies) `uuid-extension`, the default, works only where the SQLite that Bun uses has the uuid extension built in, like the one of macOS (measured with SQLite 3.51.0).
     - `libraryFunctions = 'installed'` can't be used (`tsq_ci_replace`, `tsq_round_to`, `tsq_zoned_wall`, `tsq_duration_sum`, …).
     - A [duration](../../../configuration/durations.md#durations) of a column can't be added to a date or a time, nor its fields read, and `until`, `since`, `total` and the `add` and `subtract` of two durations can't be used: they need the functions of the library `tsq_duration_part`, `tsq_duration_text`, `tsq_duration_round`, `tsq_duration_total` and `tsq_duration_add`. A duration given as a value is added without them.

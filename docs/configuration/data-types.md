@@ -19,6 +19,7 @@ The same types are used for a [constant](../queries/basic-query-structure.md) an
 | `string`                        | `string`             | String value                                                      |
 | `uuid`                          | `string`             | UUID value                                                        |
 | `stringDecimal`                 | `string`             | Exact decimal number, sent and read as its text                   |
+| `dnumDecimal`                   | `Dnum`               | Exact decimal number, as a [dnum](https://github.com/bpierre/dnum) |
 | `plainDate`                     | `Temporal.PlainDate` | Date without time, as a Temporal value                            |
 | `plainTime`                     | `Temporal.PlainTime` | Time without date, as a Temporal value                            |
 | `plainDateTime`                 | `Temporal.PlainDateTime` | Date with time, as a Temporal value                           |
@@ -38,6 +39,7 @@ this.column('ColumnName', 'double')
 this.column('ColumnName', 'string')
 this.column('ColumnName', 'uuid')
 this.column('ColumnName', 'stringDecimal')
+this.column('ColumnName', 'dnumDecimal')
 this.column('ColumnName', 'plainDate')
 this.column('ColumnName', 'plainTime')
 this.column('ColumnName', 'plainDateTime')
@@ -68,7 +70,8 @@ Choose by the values your code handles, not only by the type of the column in th
 | A whole number that can be larger, like a 64-bit counter | `bigint` | The value in your code is a `bigint`. Some drivers round large integers unless you configure them: see the [query runner](query-runners/index.md#which-one-for-your-database) of your driver. The query is rejected rather than giving you a rounded value. |
 | A number with decimals, when a JavaScript `number` is enough | `double` | The value becomes a `number`, whatever the column is. A `decimal` column with more digits than a `number` holds loses them. |
 | A decimal number that must stay exact, like money | `stringDecimal` | The value is a `string` with all its digits; what each database keeps is in [Exact decimals](#exact-decimals). |
-| The same, with your own type for it, like the one of a decimal library | A class that extends `DecimalsType` | Your type, with a [conversion](../advanced/data-types/branded-and-opaque-types.md#a-value-of-a-class-of-yours) from and to the text of the number. |
+| The same, to compute with it in your code with the [dnum](https://github.com/bpierre/dnum) library | `dnumDecimal` | The value is a `Dnum`, the integer of its digits and the number of its decimals: `[150n, 2]` is `1.50`. |
+| The same, with your own type for it, like the one of a decimal library | A class that extends `DecimalsType`, or `DnumDecimalsType` for a dnum | Your type, with a [conversion](../advanced/data-types/branded-and-opaque-types.md#a-value-of-a-class-of-yours) from and to the text of the number, or a dnum of your own. |
 | Text | `string` | An empty string [has no value](connection.md#allowing-empty-string) by default. |
 | True or false | `boolean` | Oracle and SQL Server store it as a number or a bit, with `0` and `1`. For other representations, like `'Y'` and `'N'`, see [Custom booleans values](../advanced/data-types/custom-booleans-values.md). |
 | A UUID | `uuid` | It's a `string` in your code, and how it's stored depends on the database, as in the tip above. |
@@ -114,26 +117,35 @@ A column of `MyCentsType` is compared, computed and assigned only with values of
 
 ## Exact decimals
 
-JavaScript has no decimal type yet (there is a [proposal](https://github.com/tc39/proposal-decimal) to add one), and a `number` keeps about 16 significant digits. An exact decimal is kept as the text of the number, like `'12345678901234567890.1234567891'`, which keeps all the digits and the scale, like the `0` of `1.50`. There are two types for it, and everything this section says applies to both:
+JavaScript has no decimal type yet (there is a [proposal](https://github.com/tc39/proposal-decimal) to add one), and a `number` keeps about 16 significant digits. An exact decimal keeps all the digits and the decimals, like the `0` of `1.50`. There are three types for it, and everything this section says applies to all of them:
 
-- `stringDecimal`: the value is a `string`. Choose it when a string is enough in your code.
-- A class of yours that extends `DecimalsType`: the value has your own TypeScript type, like a branded string or the decimal type of a library of your choice. The conversion from and to the text, if your type isn't a string, goes in the class, as in [a value of a class of yours](../advanced/data-types/branded-and-opaque-types.md#a-value-of-a-class-of-yours), or in a [type adapter](../advanced/data-types/type-adapters.md).
+- `stringDecimal`: the value is the text of the number, a `string` like `'12345678901234567890.1234567891'`. Choose it when a string is enough in your code.
+- `dnumDecimal`: the value is a `Dnum`, the representation of the [dnum](https://github.com/bpierre/dnum) library, `readonly [value: bigint, decimals: number]`: the integer of its digits and the number of its decimals, so `[150n, 2]` is `1.50` and `[-5n, 3]` is `-0.005`. Choose it to compute with dnum in your code. The library exports the type `Dnum` and doesn't depend on dnum: the values of dnum are of this type, so they go to the queries and come from them as they are.
+- A class of yours that extends `DecimalsType`: the value has your own TypeScript type, like a branded string or the decimal type of a library of your choice. The conversion from and to the text, if your type isn't a string, goes in the class, as in [a value of a class of yours](../advanced/data-types/branded-and-opaque-types.md#a-value-of-a-class-of-yours), or in a [type adapter](../advanced/data-types/type-adapters.md). A class that extends `DnumDecimalsType` has a dnum as its value, like `dnumDecimal`, with a type of yours, like a branded `Dnum`.
 
 ```typescriptreact
 amount = this.optionalColumn('amount', 'stringDecimal')
+
+total = this.optionalColumn('total', 'dnumDecimal')
 
 type Amount = string & { readonly __brand: 'Amount' }
 abstract class AmountType extends DecimalsType<Amount, 'Amount'> {
     static override readonly type = 'Amount'
 }
 price = this.optionalColumn('price', AmountType)
+
+type Cost = Dnum & { readonly __brand: 'Cost' }
+abstract class CostType extends DnumDecimalsType<Cost, 'Cost'> {
+    static override readonly type = 'Cost'
+}
+cost = this.optionalColumn('cost', CostType)
 ```
 
-A `stringDecimal` is compared and computed only with another `stringDecimal` or a string, and a decimal of yours only with values of its own type, so the two don't mix.
+A `stringDecimal` is compared and computed only with another `stringDecimal` or a string, a `dnumDecimal` only with another `dnumDecimal` or a `Dnum`, and a decimal of yours only with values of its own type, so they don't mix.
 
-The text sent to the database uses a point as the decimal separator and has no exponent, like `'-0.25'`; another text, like `'1,50'` or `'1e3'`, is rejected with `INVALID_VALUE_TO_SEND_TO_DATABASE`. A text read from the database is returned as it comes, with a `0` added before a leading point (`.5` is `'0.5'`).
+The text sent to the database uses a point as the decimal separator and has no exponent, like `'-0.25'`; another text, like `'1,50'` or `'1e3'`, is rejected with `INVALID_VALUE_TO_SEND_TO_DATABASE`. A dnum is sent as its text with all its decimals: `[150n, 2]` as `'1.50'`; a dnum whose decimals aren't a whole number of 0 or more, like `[15n, -1]`, is rejected with `INVALID_VALUE_TO_SEND_TO_DATABASE`. In the database, a value is its number, whatever its decimals: `price.equals([15n, 1])` is true for the price `1.50`. A text read from the database keeps all its digits, with a `0` added before a leading point (`.5` is `'0.5'`); its decimals are the ones of [The decimals of a value read](#the-decimals-of-a-value-read).
 
-The operations that keep the value exact return the same type, `stringDecimal` or yours: `add`, `subtract`, `multiply`, `modulo`, `abs`, `ceil`, `floor`, `round`, `roundn`, `minValue`, `maxValue` and `sum`. There is no `divide`: the division of two decimals isn't exact, and each database rounds it its own way. The ones whose result can't be exact return a `double`: `power`, `sqrt`, `cbrt`, `exp`, `ln`, `log10`, `logn`, the trigonometric functions and `average`.
+The operations that keep the value exact return the same type, `stringDecimal`, `dnumDecimal` or yours: `add`, `subtract`, `multiply`, `modulo`, `abs`, `ceil`, `floor`, `round`, `roundn`, `minValue`, `maxValue` and `sum`. There is no `divide`: the division of two decimals isn't exact, and each database rounds it its own way. The ones whose result can't be exact return a `double`: `power`, `sqrt`, `cbrt`, `exp`, `ln`, `log10`, `logn`, the trigonometric functions and `average`.
 
 A query with a decimal column of yours, here `tExactAmount` with `amount` as a `decimal(38, 10)` and `price` as a `decimal(10, 2)`:
 
@@ -216,14 +228,107 @@ The parameters are: `[ '0.0000000001', '1' ]`
 
 For a row with the amount `12345678901234567890.1234567891` and the price `1.50`, the row read is `{ id: 1, amount: '12345678901234567890.1234567891', next: '12345678901234567890.1234567892' }`. On SQLite the query uses functions you register in the connection of the driver: see below.
 
+### The decimals of a value read
+
+A value read has the decimals of the first of these that knows them:
+
+1. The [SQL data type](#the-type-of-the-column-in-the-database) of the column, when you declare it with its scale, like `numeric(10, 2)`: the value has those decimals on every database, also on one that doesn't keep them, like SQLite.
+2. What the driver says of the column: on Oracle, a `NUMBER(10, 2)` column is read with its 2 decimals, which Oracle doesn't write in the text of the number. A value of a `returning` comes in an OUT bind, which doesn't say them: it has the decimals of 3.
+3. The text the database gives: MariaDB, MySQL, PostgreSQL and SQL Server give the scale of the column or of the computation (`1.50`); Oracle gives a computed value with only the decimals it needs (`price * 2` is `3`), and SQLite, by default, every value in its canonical text (`1.5`).
+
+To give a value the decimals of 1., zeros are added or removed at the end of its decimals; a digit other than a zero is never removed, so the value never loses a digit: with 3 decimals `1.50` is `1.500`, and with 2 decimals `0.0000000000` is `0.00` and `12345678901234567890.1234567891` stays as it is. The decimals are the same for a `stringDecimal` (`'1.500'`), a `dnumDecimal` (`[1500n, 3]`) and a decimal of yours.
+
+A query with `dnumDecimal` columns, here `tDnumAmount`, the same table as before:
+
+```ts
+const rows = await connection.selectFrom(tDnumAmount)
+    .where(tDnumAmount.price.greaterOrEqual([15n, 1]))
+    .select({
+        id: tDnumAmount.id,
+        price: tDnumAmount.price,
+        twice: tDnumAmount.price.multiply([2n, 0]),
+    })
+    .orderBy('id')
+    .executeSelectMany()
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        price as price, 
+        price * cast(? as decimal(1, 0)) as twice 
+    from exact_amount 
+    where price >= cast(? as decimal(2, 1)) 
+    order by id
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        price as price, 
+        price * cast(? as decimal(1, 0)) as twice 
+    from exact_amount 
+    where price >= cast(? as decimal(2, 1)) 
+    order by id
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        price as "price", 
+        price * :0 as "twice" 
+    from exact_amount 
+    where price >= :1 
+    order by "id"
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        price as price, 
+        price * $1 as twice 
+    from exact_amount 
+    where price >= $2 
+    order by id
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        price as price, 
+        (select case when typeof(tsq_v) <> 'text' then tsq_v when instr(tsq_v, '.') = 0 then (case when tsq_v = '-0' then '0' else tsq_v end) when rtrim(rtrim(tsq_v, '0'), '.') in ('-0', '-', '') then '0' else rtrim(rtrim(tsq_v, '0'), '.') end from (select decimal_mul(price, ?1) as tsq_v)) as twice 
+    from exact_amount 
+    where decimal_cmp(price, ?2) >= 0 
+    order by id
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        convert(nvarchar(41), price) as price, 
+        convert(nvarchar(41), price * cast(@0 as decimal(1, 0))) as twice 
+    from exact_amount 
+    where price >= cast(@1 as decimal(2, 1)) 
+    order by id
+    ```
+
+The parameters are: `[ '2', '1.5' ]`
+
+For the rows with the prices `1.50` and `1234.56`, the rows read are `[{ id: 1, price: [150n, 2], twice: [300n, 2] }, { id: 5, price: [123456n, 2], twice: [246912n, 2] }]`. On Oracle the computed value has the decimals it needs (`[3n, 0]` and `[246912n, 2]`), and on SQLite every value its canonical text (`[15n, 1]` and `[3n, 0]`), unless the SQL data type of the column says its decimals.
+
+### What each database keeps
+
 What each database keeps, for a `decimal(38, 10)` and a `decimal(10, 2)` column:
 
 | Database | Reading a value | Sending a value | Adding, comparing and ordering |
 |---|---|---|---|
 | MariaDB, MySQL | All the digits, with the scale of the column: `'1.50'` | As text, written as `cast(? as decimal(P, S))` with the digits of the value where it isn't assigned to a column; a value wider than `decimal(65, 30)` is rejected | Exact |
-| Oracle | All the digits, without the zeros at the end of the decimals: `'1.5'` for `1.50` | As text; a value of more than 38 significant digits is rejected | Exact |
+| Oracle | All the digits, with the scale of the column: `'1.50'`; a computed value, and a value of a `returning`, without the zeros at the end of its decimals: `'3'` for `1.50 * 2` | As text; a value of more than 38 significant digits is rejected | Exact |
 | PostgreSQL | All the digits, with the scale of the column: `'1.50'` | As a `numeric` | Exact |
-| SQLite | By default, the canonical text: `'1.5'` for `1.50`; with a strategy without the canonical text, the text stored | By default, the canonical text; otherwise the text, as it is | Exact or rejected, by the decimal strategy: see below |
+| SQLite | By default, the canonical text: `'1.5'` for `1.50`; with a strategy without the canonical text, the text stored. With the decimals of the column when its SQL data type says them | By default, the canonical text; otherwise the text, as it is | Exact or rejected, by the decimal strategy: see below |
 | SQL Server | All the digits, with the scale of the column: `'1.50'`; the outermost query converts the value to text with `convert(nvarchar(41), …)` | As an `nvarchar`, written as `cast(@0 as decimal(P, S))` with the digits of the value where it isn't assigned to a column; a value wider than `decimal(38)` is rejected | Exact |
 
 In every database, an exact decimal of yours in an [array aggregate](../queries/aggregate-as-object-array.md) is read from the JSON with all its digits.

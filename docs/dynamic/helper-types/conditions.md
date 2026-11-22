@@ -246,6 +246,7 @@ Each operator of a filter is a method of the data type of the field, which the f
 | `'int'`, `'double'` | `FilterOf<IntType>`, `FilterOf<DoubleType>` | Equality and comparison, with a `number` |
 | `'bigint'` | `FilterOf<BigintType>` | Equality and comparison, with a `bigint` |
 | `'stringDecimal'` | `FilterOf<StringDecimalType>` | Equality and comparison, with a `string` |
+| `'dnumDecimal'` | `FilterOf<DnumDecimalType>` | Equality and comparison, with a `Dnum` |
 | `'string'` | `FilterOf<StringType>` | Equality, comparison and the text operators |
 | `'uuid'` | `FilterOf<UuidType>` | Equality, comparison and the text operators, applied to its text |
 | `'localDate'`, `'localTime'`, `'localDateTime'` | `FilterOf<LocalDateType>`, `FilterOf<LocalTimeType>`, `FilterOf<LocalDateTimeType>` | Equality and comparison, with a `Date` |
@@ -273,6 +274,7 @@ A class of yours can add operators of its own: see [Operations of your own in a 
 | `boolean` | `'boolean'` | `FilterOf<BooleanType>` |
 | `number` | `'int'` | `FilterOf<IntType>` |
 | `bigint` | `'bigint'` | `FilterOf<BigintType>` |
+| `Dnum` | `'dnumDecimal'` | `FilterOf<DnumDecimalType>` |
 | `string` | `'string'` | `FilterOf<StringType>` |
 | `Date` | `'localDateTime'` | `FilterOf<LocalDateTimeType>`, with the same operators as the other dates |
 | A union of texts or numbers, like `'active' \| 'inactive'` | `EnumType<T, string>` | `FilterOf<EnumType<T, string>>` |

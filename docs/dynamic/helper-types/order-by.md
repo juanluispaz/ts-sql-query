@@ -33,7 +33,7 @@ interface Customer {
 type CustomerOrder = OrderByForModel<Customer>
 ```
 
-Only the properties that hold a value can be ordered by, as in `orderByFromString`. A property inside a nested object is written with a dot, like `'company.name'`. The nested object as a whole, `'company'`, isn't accepted, and neither is a property that is an array.
+Only the properties that hold a value can be ordered by, as in `orderByFromString`. A property inside a nested object is written with a dot, like `'company.name'`. The nested object as a whole, `'company'`, isn't accepted, and neither is a property that is an array; a `Dnum`, an [exact decimal](../../configuration/data-types.md#exact-decimals) kept as a tuple, is a value, and it is accepted.
 
 For an order with several columns, use an array of clauses, joined for `orderByFromString`, or for `orderByFromStringIfValue` if the array can be missing:
 

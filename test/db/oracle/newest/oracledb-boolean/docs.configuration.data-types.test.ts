@@ -5,7 +5,7 @@ import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { Table } from '../../../../../src/Table.js'
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-import { DecimalsType } from '../../../../../src/exports/v2/index.js'
+import { DecimalsType, type Dnum } from '../../../../../src/exports/v2/index.js'
 
 // An exact decimal of the user
 abstract class AmountType extends DecimalsType<string, 'Amount'> { static override readonly type = 'Amount' }
@@ -19,6 +19,15 @@ const tExactAmount = new class TExactAmount extends Table<DBConnection, 'TExactA
     }
 }()
 
+const tDnumAmount = new class TDnumAmount extends Table<DBConnection, 'TDnumAmount'> {
+    id = this.primaryKey('id', 'int')
+    amount = this.optionalColumn('amount', 'dnumDecimal')
+    price = this.optionalColumn('price', 'dnumDecimal')
+    constructor() {
+        super('exact_amount')
+    }
+}()
+
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
@@ -27,7 +36,7 @@ describe(ctx.label, () => {
     test('docs:data-types/exact-decimals', async () => {
         ctx.mockNext([
             { id: 1, amount: '12345678901234567890.1234567891', next: '12345678901234567890.1234567892' },
-            { id: 5, amount: '98765432109876543210.987654321', next: '98765432109876543210.9876543211' },
+            { id: 5, amount: '98765432109876543210.9876543210', next: '98765432109876543210.9876543211' },
         ])
         const connection = ctx.conn
         // doc-start
@@ -51,7 +60,39 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, { id: number; amount?: string; next?: string }[]>>()
         expect(rows).toEqual([
             { id: 1, amount: '12345678901234567890.1234567891', next: '12345678901234567890.1234567892' },
-            { id: 5, amount: '98765432109876543210.987654321', next: '98765432109876543210.9876543211' },
+            { id: 5, amount: '98765432109876543210.9876543210', next: '98765432109876543210.9876543211' },
+        ])
+    })
+
+    test('docs:data-types/the-decimals-of-a-value-read', async () => {
+        ctx.mockNext([
+            { id: 1, price: '1.50', twice: '3' },
+            { id: 5, price: '1234.56', twice: '2469.12' },
+        ])
+        const connection = ctx.conn
+        // doc-start
+        const rows = await connection.selectFrom(tDnumAmount)
+            .where(tDnumAmount.price.greaterOrEqual([15n, 1]))
+            .select({
+                id: tDnumAmount.id,
+                price: tDnumAmount.price,
+                twice: tDnumAmount.price.multiply([2n, 0]),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        // doc-end
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", price as "price", price * :0 as "twice" from exact_amount where price >= :1 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2",
+            "1.5",
+          ]
+        `)
+        assertType<Exact<typeof rows, { id: number; price?: Dnum; twice?: Dnum }[]>>()
+        expect(rows).toEqual([
+            // Oracle doesn't keep the scale of a computed number: it has the decimals it needs
+            { id: 1, price: [150n, 2], twice: [3n, 0] },
+            { id: 5, price: [123456n, 2], twice: [246912n, 2] },
         ])
     })
 })

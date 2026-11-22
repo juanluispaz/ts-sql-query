@@ -46,6 +46,7 @@ The family the class extends says which operations the column offers in a query,
 |---|---|---|
 | `IntegersType` | An integer: added, subtracted, multiplied, compared | An `int`, or a `bigint` when its SQL data type doesn't fit in a `number` (see below) |
 | `DecimalsType` | An exact decimal: also rounded; what can't be exact gives a `double` | A decimal number as text: see [Exact decimals](../../configuration/data-types.md#exact-decimals) |
+| `DnumDecimalsType` | The same as `DecimalsType` | A decimal number as a dnum (`Dnum`): see [Exact decimals](../../configuration/data-types.md#exact-decimals) |
 | `RealsType` | A floating point number: also divided and rounded, with the mathematical functions | `double` |
 | `AdditiveType` | A number only added and subtracted, like a sum of money | Not converted |
 | `MultipliableType` | Also multiplied | Not converted |

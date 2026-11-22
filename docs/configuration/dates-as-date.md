@@ -6,6 +6,38 @@ search:
 
 The `local…` types (`localDate`, `localTime`, `localDateTime`) give a value as a JavaScript `Date`. This page says how to read it.
 
+## The rule: every value in the database is in UTC
+
+| Data type | What you read | What is stored when you send a `Date` |
+|---|---|---|
+| `localDate` | A `Date` at 10:00 UTC of the stored day | The day of its UTC getters |
+| `localTime` | A `Date` on 1970-01-01 whose UTC getters are the stored time | The time of its UTC getters |
+| `localDateTime`, in a column without zone | A `Date` whose UTC getters are the stored digits | The digits of its UTC getters |
+| `localDateTime`, in a column with zone, like `timestamptz` | The instant | The instant |
+
+On SQLite the [strategy of dates](../databases/sqlite/index.md#working-with-date-and-time) decides. With a `localdate` strategy, the default, a `localTime` and a `localDateTime` are in the zone of the application: the stored text is in their **local** getters, and a `Date` is stored with its local getters, so `2024-01-14 12:30:00.000` is read in `Europe/Madrid` as `2024-01-14T11:30:00.000Z`. The `UTC` and numeric strategies follow the rule. A `localDate` is at 10:00 UTC of its day on SQLite too.
+
+The same holds for a value inside an [aggregated array](../queries/aggregate-as-object-array.md), for a `Date` compared with a column, and for a value you read and send back: it finds its row and stores the same digits.
+
+A `timestamp` column holding `2024-01-14 12:30:00`, read with the process in three zones:
+
+```
+TZ=UTC               value.toISOString() = 2024-01-14T12:30:00.000Z   getUTCHours() = 12   getHours() = 12
+TZ=Europe/Madrid     value.toISOString() = 2024-01-14T12:30:00.000Z   getUTCHours() = 12   getHours() = 13
+TZ=America/New_York  value.toISOString() = 2024-01-14T12:30:00.000Z   getUTCHours() = 12   getHours() = 7
+```
+
+The `Date` is the same in every zone. Only the local getters of JavaScript change, because they convert the instant to the zone of the process.
+
+Sending works the other way round. These two `Date`s, inserted from a process in `Europe/Madrid`:
+
+```ts
+new Date(Date.UTC(2024, 0, 14, 9, 15))   // stored as 2024-01-14 09:15:00, in any zone
+new Date(2024, 0, 14, 9, 15)             // 09:15 in Madrid is 08:15 UTC: stored as 2024-01-14 08:15:00
+```
+
+The local constructor of `Date`, `new Date(2024, 0, 14, 9, 15)`, builds 09:15 *in the zone of the process*, so what is stored depends on where the code runs. Build the values with `Date.UTC(...)`, or from a text with a `Z`, like `new Date('2024-01-14T09:15:00Z')`.
+
 ## Read the values with the UTC getters
 
 The value is still a `Date`, and JavaScript gives its local getters and its local formatting just as readily:
@@ -123,3 +155,7 @@ TZ=America/New_York  value.getTime() = 1705235400000   epoch = 1705235400000
 ```
 
 On a column with zone it counts the instant, the same as the `getTime()` of the `Date` read, whatever offset the value was stored with. On a column of kind 2 the database counts from the wall clock of the session, so `getTime()` is right only with the session in UTC, as the value itself. On SQLite, the `localdate` strategies are read as the zone of the process and `getTime()` reads them as UTC, unless you set [`sqliteRunsInApplicationTimeZone`](../databases/sqlite/index.md#the-date-functions-and-the-time-zone).
+
+## A value outside the calendar
+
+A date or a time whose digits a `Date` of that day can't keep is rejected with `INVALID_VALUE_RECEIVED_FROM_DATABASE`, instead of becoming another day: a day the month doesn't have, like `2024-02-30`, that MySQL and MariaDB keep with the SQL mode `ALLOW_INVALID_DATES`, a zero date like `0000-00-00`, that they keep without `NO_ZERO_DATE`, and the end of the day `24:00:00`, that PostgreSQL's `time` and MySQL's and MariaDB's `TIME` accept. To keep such a value, read it with a type of your own.

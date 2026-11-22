@@ -11,7 +11,7 @@ A `zonedDateTime` is an exact moment seen in a time zone: a `Temporal.ZonedDateT
 
     Every query of this page shows the SQL it sends with `libraryFunctions = 'installed'`. Without it, the result is the same, and the SQL of some operations is longer: it writes inline what the function computes.
 
-Oracle and PostgreSQL compute with the rules of the zones, the ones of the time zone data of the database, which may be older than the ones of Temporal in the application (the data of Oracle 21 has no summer time in Egypt in 2023). Oracle also keeps a zone with each value, in a `TIMESTAMP WITH TIME ZONE`, so a column can be a `zonedDateTime`. PostgreSQL keeps an instant without its zone (a `timestamptz`), so there a column keeps a zoned date and time as its text, which PostgreSQL computes with the rules of its zone, or the query computes one from an instant and a zone: the instant of a column in the zone the query gives it, from a column or a value (the instant in a `timestamptz` and the zone in a `text`). MariaDB, MySQL, SQLite and SQL Server keep it as its text too, which gives its parts and its instant (see [How each database keeps a zoned date and time](#how-each-database-keeps-a-zoned-date-and-time)); what computes with the rules of the zones, like the queries below, doesn't compile there, because the zones of these databases give other results than Temporal's (see [Computing with the zones on the other databases](#computing-with-the-zones-on-the-other-databases)).
+Oracle and PostgreSQL compute with the rules of the zones, the ones of the time zone data of the database, which may be older than the ones of Temporal in the application (the data of Oracle 21 has no summer time in Egypt in 2023). Oracle also keeps a zone with each value, in a `TIMESTAMP WITH TIME ZONE`, so a column can be a `zonedDateTime`. PostgreSQL keeps an instant without its zone (a `timestamptz`), so there a column keeps a zoned date and time as its text, which PostgreSQL computes with the rules of its zone, or the query computes one from an instant and a zone: the instant of a column in the zone the query gives it, from a column or a value (the instant in a `timestamptz` and the zone in a `text`). MariaDB, MySQL, SQLite and SQL Server keep it as its text too, which gives its parts and its instant (see [How each database keeps a zoned date and time](../advanced/dates-and-times/storage.md#how-each-database-keeps-a-zoned-date-and-time)); what computes with the rules of the zones, like the queries below, doesn't compile there, because the zones of these databases give other results than Temporal's (see [Computing with the zones on the other databases](#computing-with-the-zones-on-the-other-databases)).
 
 An instant goes to a zone with `toZonedDateTimeISO(zone)`, and a wall clock with `toZonedDateTime(zone)`, as in Temporal. A wall clock that the zone repeats (02:30 on 2024-10-27 in Madrid) or skips (02:30 on 2024-03-31) takes the instant `disambiguation` says, as Temporal: `'compatible'`, the default, the earlier of a repeated one and the later of a skipped one (03:30), `'earlier'` and `'later'` what they say, and `'reject'` makes the query fail. That takes a function of the library; without it, a wall clock the zone repeats is the later instant, and on Oracle one it skips makes the query fail (see [A wall clock the zone repeats or skips](#a-wall-clock-the-zone-repeats-or-skips)). Here, the deployments and the publications of the releases in Madrid:
 
@@ -91,33 +91,6 @@ A `zonedDateTime` has the methods of Temporal that give its parts and its instan
 | `withTimeZone(zone)` | the same instant in another zone |
 
 Two zoned dates and times are compared and ordered by their instant, as Temporal's `ZonedDateTime.compare`: `equals` finds the same instant in another zone too, where Temporal's `equals` also compares the zone.
-
-## How each database keeps a zoned date and time
-
-| Database | The column | Computes with the rules of the zones |
-|---|---|---|
-| MariaDB, MySQL, SQLite, SQL Server | A text, like `varchar(100)`: the [RFC 9557](https://www.rfc-editor.org/rfc/rfc9557) text of Temporal's `toString`, `2024-03-02T12:05:00+01:00[Europe/Madrid]` | No |
-| Oracle | `TIMESTAMP WITH TIME ZONE`, with the region of its zone; or a text, when the column says it (below): the RFC 9557 text, a value computed in the query written with its offset and its region in capitals | Yes |
-| PostgreSQL | A text, like `text`: the RFC 9557 text, a value computed in the query kept as its instant in UTC with a `Z` (`2024-03-02T11:05:00.000000Z[Europe/Madrid]`); or none, computed in the query from a `timestamptz` and a zone | Yes |
-
-The library writes the text as Temporal's `toString` does: the wall clock in its zone with the digits of the fraction of a second it has, the offset rounded to the minute, and the zone in brackets. It reads it as `Temporal.ZonedDateTime.from(text, { offset: 'prefer' })` does: the value written; a text with a `Z` instead of the offset, written by another program, as that instant in its zone; and when the zone no longer has the offset written at that wall clock, because its rules changed, the wall clock in its zone.
-
-A column says it keeps the text with its [SQL data type](../advanced/data-types/sql-data-types.md), which on Oracle chooses the text instead of a `TIMESTAMP WITH TIME ZONE` (on the other databases a text is what it keeps anyway); `withSqlDataType` is exported by `ts-sql-query`:
-
-```typescriptreact
-startsAt = this.column('starts_at', 'zonedDateTime', withSqlDataType({ family: 'character string', length: 100 }))
-```
-
-From the text, without the rules of the zones, the database gives its wall clock and its parts (`toPlainDateTime()`, `year()`, `hour()`, ...), its offset, its zone, its instant (the wall clock minus the offset) and its epoch, with the digits of the fraction of a second it computes with: microseconds on MariaDB and MySQL, 100 nanoseconds on SQL Server, milliseconds on SQLite. A zoned date and time is compared (`equals`, `in`, `lessThan`, `between`, ...), ordered and taken by `min` and `max` by its instant, as Temporal's `compare` and as on Oracle and PostgreSQL: the same instant in two zones is equal. What needs the rules of the zones, like `toZonedDateTimeISO`, `withTimeZone` or the arithmetic below, doesn't compile on MariaDB, MySQL, SQLite and SQL Server; PostgreSQL computes it on a column of text as on any other zoned date and time.
-
-The query writes these computations inline, with the text of the column several times in each one. With the functions of the library in the database and `libraryFunctions = 'installed'` on the connection, it calls one that reads the text, writing the column once: `tsq_zoned_wall` and `tsq_zoned_utc` on MariaDB and MySQL, `tsq_zoned_wall` on SQLite, `tsq_zoned_of_text` on Oracle, and `tsq_zone` on PostgreSQL (see the functions of [MariaDB](../databases/mariadb/functions.md#tsq_zoned_wall), [MySQL](../databases/mysql/functions.md#tsq_zoned_wall), [Oracle](../databases/oracle/functions.md#tsq_zoned_of_text), [PostgreSQL](../databases/postgresql/functions.md#tsq_zone) and [SQLite](../databases/sqlite/functions.md#which-functions-each-setting-needs)). The result is the same.
-
-What to keep in mind:
-
-- A comparison and an order by compute the instant of each row from its text, so an index of the column isn't used for them. Where that matters, keep the instant in a column of its own and the zone in another, and index the instant.
-- `groupBy` and `distinct` take the text: the same instant in two zones is two groups. `min` and `max` of the same instant in two zones give either one.
-- In a text with a `Z` from another program, the parts the query gives are the ones in UTC; the value the library reads is right.
-- When the offset written isn't the one the zone has now at that wall clock (its rules changed, or the offset of seconds of a zone before its standard time, written rounded to the minute), the instant the query computes is the one of the offset written, and the value read keeps the wall clock.
 
 ## Computing with the zones on the other databases
 

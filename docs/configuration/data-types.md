@@ -85,7 +85,7 @@ Choose by the values your code handles, not only by the type of the column in th
 | A value your code gives a type of its own, like an id with a TypeScript brand | A class of the [family](../advanced/data-types/own-data-types.md#the-families) with the operations it needs | It's converted as its family says, like an `IntegersType` as an `int`. |
 | A value that only your code understands, like a JSON document | A class that extends `EqualableType`, or `ComparableType` if the database can order it | With the [conversion registered](../advanced/data-types/own-data-types.md#its-conversions-a-type-adapter-in-the-class). |
 
-On SQLite, with a `localdate` [strategy of dates](../databases/sqlite/index.md#working-with-date-and-time), the default, a `localTime` and a `localDateTime` hold the stored text in their local getters instead: see [Time zones](time-zones.md#the-rule-every-value-in-the-database-is-in-utc).
+On SQLite, with a `localdate` [strategy of dates](../databases/sqlite/index.md#working-with-date-and-time), the default, a `localTime` and a `localDateTime` hold the stored text in their local getters instead: see [Time zones](dates-as-date.md#the-rule-every-value-in-the-database-is-in-utc).
 
 ## Your own types
 

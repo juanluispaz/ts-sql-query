@@ -620,7 +620,7 @@ Reading:
   user's responsibility, documented in `docs/databases/mysql/query-runners/bun_sql_mysql.md`).
 - MySQL/MariaDB: `TIMESTAMP` columns follow the session `time_zone` (the rule above). A date outside the calendar
   (`ALLOW_INVALID_DATES`), a zero date (without `NO_ZERO_DATE`) and a `24:00:00` value are rejected when read
-  (`docs/configuration/time-zones.md#known-limits`); who stores them reads them with a type of their own.
+  (`docs/configuration/dates-as-date.md#a-value-outside-the-calendar`); who stores them reads them with a type of their own.
 - PostgreSQL `time` values of `24:00:00` are rejected the same way.
 - Oracle: a session zone changed with `ALTER SESSION`, or a connection opened before `ORA_SDTZ` is set, isn't seen.
 - PGlite: created (or opened once) with `postgresqlconf: ["timezone = 'UTC'"]`, or its database takes the zone of the
@@ -634,7 +634,7 @@ Reading:
   `'boolean'`, Oracle 23.4 or later); a column of the other form is declared with a `CustomBooleanTypeAdapter`.
 
 Sources: `docs/databases/<database>/query-runners/<runner>.md`, "Connection requirements" ("Large integers" on
-better-sqlite3, bun:sqlite and sqlite-wasm); `docs/configuration/time-zones.md#known-limits`.
+better-sqlite3, bun:sqlite and sqlite-wasm); `docs/configuration/dates-as-date.md#a-value-outside-the-calendar`.
 
 ## 6. Adding or changing a query runner — checklist
 
@@ -698,7 +698,7 @@ completes it with the zone of its session (a column of kind 2, in the table belo
 without zone with one with zone). For every piece, know how it completes what is missing; in what is supported (§7.3)
 the runners keep each one from completing it with anything but the zone of the database (§3.1, §2.4).
 
-The kinds of column (`docs/configuration/time-zones.md`):
+The kinds of column (`docs/advanced/dates-and-times/column-kinds-and-session.md`):
 
 | Kind | The engine | What the program gets | Examples |
 |---|---|---|---|
@@ -712,10 +712,10 @@ Temporal: `month` from 1, `dayOfWeek` from 1 Monday) give the parts of its digit
 `datetimeoffset`, whose instant tedious delivers, by the parts of that instant in UTC. The date functions of a query
 of a `Date` (`getFullYear` … `getMilliseconds`) give the parts in UTC, as the `getUTC…` methods of
 the `Date` read, and `getTime` its `getTime()`, the instant, also for a value stored with another offset
-(`docs/configuration/time-zones.md`, "The date functions of a query give the parts in UTC"). One exception: with the
+(`docs/configuration/dates-as-date.md`, "The date functions of a query give the parts in UTC"). One exception: with the
 database in UTC, `getHours` of a PostgreSQL `timetz` stored with an offset other than `+00:00` gives the hour of its own
 offset, because no expression without a zone gives it in UTC; with a database outside UTC it gives the hour in UTC
-(`docs/configuration/time-zones.md#known-limits`; `test/environments/postgres/DatabaseOutsideUtc.test.ts`). SQLite has
+(`docs/advanced/dates-and-times/column-kinds-and-session.md#what-a-column-with-a-zone-gives`; `test/environments/postgres/DatabaseOutsideUtc.test.ts`). SQLite has
 its own strategies (§0) and `sqliteRunsInApplicationTimeZone`.
 
 ### 7.2 Kind 4 through the drivers

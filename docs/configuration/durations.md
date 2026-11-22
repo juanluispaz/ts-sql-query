@@ -148,53 +148,6 @@ Two durations of the same length written differently, like `P1D` and `PT24H`, ar
 | An `INTERVAL DAY TO SECOND` of Oracle | Equal | Equal |
 | Its ISO 8601 text | Different: the texts are compared | Different |
 
-## How each database keeps a duration
-
-PostgreSQL and Oracle have a type for a length of time, an interval; the other databases keep a duration as its [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) text, the text Temporal gives it (`P1Y2M3DT4H5M6.789S`):
-
-| Database | The column | What it keeps | What is read back |
-|---|---|---|---|
-| PostgreSQL | `interval` | Each field as sent, the fraction of a second rounded to microseconds; weeks as days | `PT24H` as `PT24H`, `P2W` as `P14D` |
-| Oracle | `INTERVAL DAY TO SECOND` | Days to seconds, with the digits of the fraction of the column | `PT24H` as `P1D` |
-| Oracle | `INTERVAL YEAR TO MONTH`, when the column says it (below) | Years and months | `P14M` as `P1Y2M` |
-| MariaDB, MySQL, SQLite, SQL Server | A text, like `varchar(64)` | The ISO 8601 text of the duration, all of it, up to the nanosecond | The same text: `PT24H` as `PT24H`, `P2W` as `P2W` |
-
-On Oracle, declare the precision of an interval column: see [A duration in an interval](../databases/oracle/index.md#a-duration-in-an-interval).
-
-## The digits of the fraction of a second kept in a text
-
-A duration kept as text is written with every digit of its fraction of a second, up to the nanosecond: `PT1.123456789S`. To keep fewer, which takes less space, the connection says how many with the protected method `getDurationFractionDigits`, from 0 to 9; the digits beyond are truncated, as Temporal's `toString({ fractionalSecondDigits, roundingMode: 'trunc' })` does. With 3, the milliseconds:
-
-<!-- doc-code-snippet-template: mysql -->
-```ts
-import { MySqlConnection } from 'ts-sql-query/mysql'
-
-class DBConnection extends MySqlConnection<'DBConnection'> {
-    protected override getDurationFractionDigits(): number {
-        return 3
-    }
-}
-```
-
-| Duration | Kept with 9 (the default) | Kept with 3 | Kept with 0 |
-|---|---|---|---|
-| `PT1.123456789S` | `PT1.123456789S` | `PT1.123S` | `PT1S` |
-| `-PT2H0.9999S` | `-PT2H0.9999S` | `-PT2H0.999S` | `-PT2H` |
-| `-PT0.0009S` | `-PT0.0009S` | `PT0S` | `PT0S` |
-
-It applies to the durations sent to be kept as text, in a value or a column of the query, on every database where a duration is text: MariaDB, MySQL, SQLite and SQL Server, and a column of PostgreSQL or Oracle that keeps it as text. A duration a query computes, like the one of `until`, keeps the digits of the database, and an interval keeps the ones of its column. Another number is rejected with `INVALID_CONFIGURATION` when a duration is sent.
-
-## A column that keeps it in its own way
-
-A column says how it keeps its durations with its [SQL data type](../advanced/data-types/sql-data-types.md): a text keeps the ISO 8601 text on any database, also on PostgreSQL and Oracle, where it holds what one interval of Oracle can't, like `P1M1D`; on Oracle an `INTERVAL YEAR TO MONTH` keeps the years and months. `withSqlDataType` is exported by `ts-sql-query`:
-
-```typescriptreact
-spanText = this.column('span_text', 'duration', withSqlDataType({ family: 'character string', length: 64 }))
-spanCalendar = this.column('span_calendar', 'duration', withSqlDataType({ family: 'interval', fields: 'year to month' }))
-```
-
-An interval of Oracle holds either years and months or days to seconds, never both: a duration that doesn't fit the one of its column is rejected (see [A duration in an interval](../databases/oracle/index.md#a-duration-in-an-interval)).
-
 ## The fields of a duration
 
 A duration in a query has the fields and methods of Temporal's: `years()`, `months()`, `weeks()`, `days()`, `hours()`, `minutes()`, `seconds()` (without its fraction), `milliseconds()`, `microseconds()` and `nanoseconds()` (each from 0 to 999) give each field as an `int` with the sign of the duration; `sign()` gives -1, 0 or 1; `negated()` and `abs()` give the duration with the opposite sign and without its sign. Here the fields of the time each rollout took, and that time negated:

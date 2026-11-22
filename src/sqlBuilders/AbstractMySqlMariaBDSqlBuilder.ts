@@ -974,7 +974,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         // its argument against it: the digits are counted as UTC, as the library reads a value
         // without zone, so `getTime()` agrees with the Date read in any zone of the process. A
         // TIMESTAMP column still depends on the session zone, which converts it on delivery
-        // (see docs/configuration/time-zones.md).
+        // (see docs/advanced/dates-and-times/column-kinds-and-session.md).
         // The digits below a millisecond are dropped, as the Date read drops them (floor, also before 1970)
         return "floor(timestampdiff(microsecond, '1970-01-01 00:00:00', " + this._appendSql(valueSource, context, false) + ') / 1000)'
     }

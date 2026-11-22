@@ -49,7 +49,7 @@ Nothing is rejected.
 - **The safe way**: always create it with `postgresqlconf: ["timezone = 'UTC'"]`, as in the examples on this page. A database in memory is created at every start, so it needs it every time; in a directory the option is also kept, and it puts in UTC a database that was created in another zone.
 - **Without the option**, which needs more care: a database in a directory created in UTC, or opened once with the option, stays in UTC. One created by a process in another zone is in that zone, and the values already stored in it are in that zone too: opening it with the option changes the zone of the database, not those values. `ALTER DATABASE … SET timezone` isn't applied by PGlite (measured on 0.5.11).
 
-When the database isn't in UTC, the values the library sends and reads stay right, but the SQL that the database computes in its zone doesn't, like a wall clock converted to an instant or the date functions of a `timestamptz` (`getHours()` of `09:15 UTC` is `18` in Tokyo). The query runner can't check it without running a query: see [Time zones → Known limits](../../../configuration/time-zones.md#known-limits). Don't use `startParams` for it: it replaces the parameters PGlite starts with, and PGlite fails to start.
+When the database isn't in UTC, the values the library sends and reads stay right, but the SQL that the database computes in its zone doesn't, like a wall clock converted to an instant or the date functions of a `timestamptz` (`getHours()` of `09:15 UTC` is `18` in Tokyo). The query runner can't check it without running a query. Don't use `startParams` for it: it replaces the parameters PGlite starts with, and PGlite fails to start.
 
 ## Inside a transaction something else manages
 

@@ -36,7 +36,7 @@ What isn't offered doesn't compile on this connection. On a version older than t
 | [Sequences](../../configuration/mapping.md#using-a-sequence) | Yes |
 | [Stored procedures](../../configuration/mapping.md#calling-a-stored-procedure) and [functions](../../configuration/mapping.md#calling-a-function-of-the-database) | Yes |
 | [Isolation levels](../../queries/transaction.md#what-each-database-offers) | `read committed`, `snapshot`, `serializable` |
-| [Known limits of the dates and times](../../configuration/dates-and-times.md#known-limits) | With Bun SQL, a `timestamp` is read to the millisecond; `year()` of a date before the year 1; an interval with fields of different signs; a `plainDateTime` of a column with zone |
+| Known limits of the dates and times | With Bun SQL, a `timestamp` is [read to the millisecond](query-runners/bun_sql_postgres.md#fractions-of-a-second-below-the-millisecond); [`year()` of a date before the year 1](../../about/limitations.md#can-a-date-before-the-year-1-be-kept); [an interval with fields of different signs](#an-interval-with-fields-of-different-signs); [a `plainDateTime` of a column with zone](../../advanced/dates-and-times/column-kinds-and-session.md#what-a-column-with-a-zone-gives) |
 
 ## Compatibility version
 
@@ -220,9 +220,13 @@ select tsq_greatest_strict(estimated_hours, $1) as floored, tsq_least_strict(est
 
     The default `CASE` matches the declared type on every database and only pays a repeated operand for a value-source receiver. Reach for `ignoreNullInMinAndMaxValue` when you specifically want PostgreSQL's ignore-NULL semantics, or install the functions of the library (`libraryFunctions`) when the repeated operand is expensive enough to matter. The row aggregate `min(col)` / `max(col)` over rows is a different function — it ignores NULL on every database by standard SQL — and is unaffected by any of these.
 
+## An interval with fields of different signs
+
+, like `-1 days +02:03:00` or `1 mon -1 days`, can't be a `Temporal.Duration`, whose fields have one sign: reading it is rejected with `INVALID_VALUE_RECEIVED_FROM_DATABASE`. The library never sends one.
+
 ## Time zones
 
-Which column types fall in which [kind of temporal column](../../configuration/time-zones.md#the-four-kinds-of-temporal-column), and what the zone of the database and the session do (see [Time zones](../../configuration/time-zones.md)):
+Which column types fall in which [kind of temporal column](../../advanced/dates-and-times/column-kinds-and-session.md#the-four-kinds-of-temporal-column), and what the zone of the database and the session do (see [Time zones](../../configuration/time-zones.md)):
 
 | kind | types |
 |---|---|
@@ -241,7 +245,7 @@ PGlite writes the zone of the process into its database when it creates it, as a
 
 ### A database outside UTC
 
-With the zone of the database declared in the connection (`databaseTimeZone`, see [A database outside UTC](../../configuration/time-zones.md#a-database-outside-utc)), what the library writes for each value, in `Europe/Madrid`:
+With the zone of the database declared in the connection (`databaseTimeZone`, see [A database outside UTC](../../advanced/dates-and-times/outside-utc.md#a-database-outside-utc)), what the library writes for each value, in `Europe/Madrid`:
 
 | | What the library writes | Example, in `Europe/Madrid` |
 |---|---|---|

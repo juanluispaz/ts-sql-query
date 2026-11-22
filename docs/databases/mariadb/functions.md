@@ -67,7 +67,7 @@ Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 
 ## `tsq_zoned_wall`
 
-`tsq_zoned_wall` gives the date and time of the RFC 9557 text of a zoned date and time, the text before its offset: `2024-03-02T12:05:00+01:00[Europe/Madrid]` is `2024-03-02 12:05:00`. MariaDB keeps a zoned date and time as that text (see [How each database keeps a zoned date and time](../../configuration/zoned-dates-and-times.md#how-each-database-keeps-a-zoned-date-and-time)), so a query reads its date and time, its parts (`hour()`, `day()`, …) and `toPlainDateTime()` from it. With `libraryFunctions = 'installed'` a query calls it and writes the column once; without it, the query writes the same computation inline, with the column three times. `tsq_zoned_utc` calls it: create it first.
+`tsq_zoned_wall` gives the date and time of the RFC 9557 text of a zoned date and time, the text before its offset: `2024-03-02T12:05:00+01:00[Europe/Madrid]` is `2024-03-02 12:05:00`. MariaDB keeps a zoned date and time as that text (see [How each database keeps a zoned date and time](../../advanced/dates-and-times/storage.md#how-each-database-keeps-a-zoned-date-and-time)), so a query reads its date and time, its parts (`hour()`, `day()`, …) and `toPlainDateTime()` from it. With `libraryFunctions = 'installed'` a query calls it and writes the column once; without it, the query writes the same computation inline, with the column three times. `tsq_zoned_utc` calls it: create it first.
 
 Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 

@@ -41,7 +41,7 @@ What isn't offered doesn't compile on this connection. On a version older than t
 | [Stored procedures](../../configuration/mapping.md#calling-a-stored-procedure) and [functions](../../configuration/mapping.md#calling-a-function-of-the-database) | Yes |
 | [Isolation levels](../../queries/transaction.md#what-each-database-offers) | `read uncommitted`, `read committed`, `repeatable read`, `snapshot` (needs a database option), `serializable` |
 | [Zoned dates and times](../../configuration/zoned-dates-and-times.md#zoned-dates-and-times) | Kept as their text, with their parts and compared by their instant. What computes with the rules of the zones isn't offered: [Computing with the zones on the other databases](../../configuration/zoned-dates-and-times.md#computing-with-the-zones-on-the-other-databases) |
-| [Known limits of the dates and times](../../configuration/dates-and-times.md#known-limits) | A date or an instant before the year 1; a `plainDateTime` of a `datetimeoffset` is read in UTC |
+| Known limits of the dates and times | [A date or an instant before the year 1](../../about/limitations.md#can-a-date-before-the-year-1-be-kept); [a `plainDateTime` of a `datetimeoffset` is read in UTC](../../advanced/dates-and-times/column-kinds-and-session.md#what-a-column-with-a-zone-gives) |
 
 ## Compatibility version
 
@@ -142,7 +142,7 @@ class DBConnection extends SqlServerConnection<'DBConnection'> {
 
 ## A date and time with its offset
 
-A `datetimeoffset` keeps, with each value, the offset it was written with, like `+09:00`. A `localDateTime` column reads only its instant, because tedious, the driver of mssql, gives a `Date`, which has no zone (see [The zone stored with each value](../../configuration/time-zones.md#4-the-zone-stored-with-each-value)). When the offset is part of the value, like the local time of departure of a flight, declare the column with a [type adapter](../../advanced/data-types/type-adapters.md) that keeps the value as the text the database writes:
+A `datetimeoffset` keeps, with each value, the offset it was written with, like `+09:00`. A `localDateTime` column reads only its instant, because tedious, the driver of mssql, gives a `Date`, which has no zone (see [The zone stored with each value](../../advanced/dates-and-times/column-kinds-and-session.md#4-the-zone-stored-with-each-value)). When the offset is part of the value, like the local time of departure of a flight, declare the column with a [type adapter](../../advanced/data-types/type-adapters.md) that keeps the value as the text the database writes:
 
 - `transformProjection` has the database give the value as text, with `convert(nvarchar(40), …, 126)`, in the columns of the result (also those of an `output`) and inside the JSON of an aggregated array (see [The SQL of a value read from the database](../../advanced/data-types/type-adapters.md#the-sql-of-a-value-read-from-the-database)).
 - `transformPlaceholder` converts the text sent with a `cast` to `datetimeoffset`.
@@ -342,7 +342,7 @@ select dbo.tsq_greatest_strict(estimated_hours, @0) as floored, dbo.tsq_least_st
 
 ## Time zones
 
-Which column types fall in which [kind of temporal column](../../configuration/time-zones.md#the-four-kinds-of-temporal-column), and what the zone of the database and the session do (see [Time zones](../../configuration/time-zones.md)):
+Which column types fall in which [kind of temporal column](../../advanced/dates-and-times/column-kinds-and-session.md#the-four-kinds-of-temporal-column), and what the zone of the database and the session do (see [Time zones](../../configuration/time-zones.md)):
 
 | kind | types |
 |---|---|

@@ -36,7 +36,7 @@ What isn't offered doesn't compile on this connection. On a version older than t
 | [Sequences](../../configuration/mapping.md#using-a-sequence) | Yes |
 | [Stored procedures](../../configuration/mapping.md#calling-a-stored-procedure) and [functions](../../configuration/mapping.md#calling-a-function-of-the-database) | Yes |
 | [Isolation levels](../../queries/transaction.md#what-each-database-offers) | `read committed`, `snapshot` |
-| [Known limits of the dates and times](../../configuration/dates-and-times.md#known-limits) | `year()` of a date before the year 1; a `plainTime` kept in a `DATE` or a `TIMESTAMP`; grouping by the arithmetic of a zoned date and time that isn't a column; a zoned date and time in local mean time |
+| Known limits of the dates and times | [`year()` of a date before the year 1](../../about/limitations.md#can-a-date-before-the-year-1-be-kept); [a `plainTime` kept in a `DATE` or a `TIMESTAMP`](#a-time-of-the-day); [grouping by the arithmetic of a zoned date and time that isn't a column](#grouping-by-the-arithmetic-of-a-zoned-date-and-time-that-isnt-a-column); [a zoned date and time in local mean time](#a-zoned-date-and-time-in-local-mean-time) |
 
 ## Compatibility version
 
@@ -172,7 +172,7 @@ On a column of any other type, the adapter does nothing. A column stored in a `T
 
 ## A date and time with its time zone
 
-A `TIMESTAMP WITH TIME ZONE` keeps, with each value, the zone it was written with: an offset like `+09:00`, or a region like `Europe/Madrid`. A `localDateTime` column reads only its instant, because oracledb gives a `Date`, which has no zone (see [The zone stored with each value](../../configuration/time-zones.md#4-the-zone-stored-with-each-value)). When the zone is part of the value, like the local time of departure of a flight, declare the column with a [type adapter](../../advanced/data-types/type-adapters.md) that keeps the value as the text the database writes:
+A `TIMESTAMP WITH TIME ZONE` keeps, with each value, the zone it was written with: an offset like `+09:00`, or a region like `Europe/Madrid`. A `localDateTime` column reads only its instant, because oracledb gives a `Date`, which has no zone (see [The zone stored with each value](../../advanced/dates-and-times/column-kinds-and-session.md#4-the-zone-stored-with-each-value)). When the zone is part of the value, like the local time of departure of a flight, declare the column with a [type adapter](../../advanced/data-types/type-adapters.md) that keeps the value as the text the database writes:
 
 - `transformProjection` has the database give the value as text, with `to_char`, in the columns of the result (also those of a `returning`) and inside the JSON of an aggregated array (see [The SQL of a value read from the database](../../advanced/data-types/type-adapters.md#the-sql-of-a-value-read-from-the-database)).
 - `transformPlaceholder` converts the text sent with `to_timestamp_tz`, which reads an offset or a region.
@@ -297,6 +297,14 @@ And its parameters are: `[ 4, '2024-07-01T10:30:15.123+09:00' ]`
 Read back, the value is `'2024-07-01T10:30:15.123000000+09:00'`. The format of `to_timestamp_tz` reads an offset written right after the time, like this one, and a region after a space, like `'2024-07-01T07:45:00.5 Europe/Madrid'`. A value assigned from another column of this type keeps the zone of that column, because it doesn't go through the text, and the `returning` of an insert or an update gives the text too.
 
 To keep the name of a region, write `TZR` in the `to_char` instead of `TZH:TZM`, with a space before it (`'YYYY-MM-DD"T"HH24:MI:SS.FF9 TZR'`): a value written with a region is read as `'2024-07-01T07:45:00.000000000 EUROPE/MADRID'`, and one written with an offset as `'2024-06-30T22:00:00.000000000 -05:00'`.
+
+## Grouping by the arithmetic of a zoned date and time that isn't a column
+
+a zoned date and time computed in the query (like `toZonedDateTimeISO(zone)` of an instant) or given as a value is computed once in a scalar subquery when an operation of its arithmetic uses it, and Oracle doesn't accept a subquery in the `group by` (*ORA-22818*). The arithmetic of a column has no subquery.
+
+## A zoned date and time in local mean time
+
+Oracle keeps the offset of the local mean time of a zone (like `-00:14:44` in Madrid until 1900, or `-03:50:40` in Asunción until 1931) without its seconds, so the date and time of an instant there, and the instant of a wall clock there, are some seconds off from Temporal's. A zoned date and time read keeps its instant.
 
 ## A duration in an interval
 
@@ -462,7 +470,7 @@ class DBConnection extends OracleConnection<'DBConnection'> {
 
 ## Time zones
 
-Which column types fall in which [kind of temporal column](../../configuration/time-zones.md#the-four-kinds-of-temporal-column), and what the zone of the database and the session do (see [Time zones](../../configuration/time-zones.md)):
+Which column types fall in which [kind of temporal column](../../advanced/dates-and-times/column-kinds-and-session.md#the-four-kinds-of-temporal-column), and what the zone of the database and the session do (see [Time zones](../../configuration/time-zones.md)):
 
 | kind | types |
 |---|---|
@@ -471,17 +479,17 @@ Which column types fall in which [kind of temporal column](../../configuration/t
 | 3 — pinned, delivered with the zone | *none* |
 | 4 — zone stored per value | `TIMESTAMP WITH TIME ZONE` |
 
-The zone of the database is the one of `SYSTIMESTAMP`: the zone of the server's operating system, or `DBTIMEZONE` when the pluggable database sets `TIME_AT_DBTIMEZONE = DATABASE`. It must be UTC, unless you declare it (see [A database outside UTC](../../configuration/time-zones.md#a-database-outside-utc)). oracledb sets the session zone when it opens a connection: the one of the environment variable `ORA_SDTZ`, or else the offset of the process at that moment. A `TIMESTAMP WITH LOCAL TIME ZONE` is read and written in the session zone, a `DATE` or a `TIMESTAMP` given back by a `returning` is converted with it, and `current_date` and `localtimestamp` come in it. So the query runner requires the session in the zone of the database: in UTC, `ORA_SDTZ` set to UTC, or not set with the process in UTC; in a zone you declare, `ORA_SDTZ` set to it. See [oracledb → Connection requirements](query-runners/oracledb.md#connection-requirements).
+The zone of the database is the one of `SYSTIMESTAMP`: the zone of the server's operating system, or `DBTIMEZONE` when the pluggable database sets `TIME_AT_DBTIMEZONE = DATABASE`. It must be UTC, unless you declare it (see [A database outside UTC](../../advanced/dates-and-times/outside-utc.md#a-database-outside-utc)). oracledb sets the session zone when it opens a connection: the one of the environment variable `ORA_SDTZ`, or else the offset of the process at that moment. A `TIMESTAMP WITH LOCAL TIME ZONE` is read and written in the session zone, a `DATE` or a `TIMESTAMP` given back by a `returning` is converted with it, and `current_date` and `localtimestamp` come in it. So the query runner requires the session in the zone of the database: in UTC, `ORA_SDTZ` set to UTC, or not set with the process in UTC; in a zone you declare, `ORA_SDTZ` set to it. See [oracledb → Connection requirements](query-runners/oracledb.md#connection-requirements).
 
 ```sql
 SELECT sessiontimezone, to_char(systimestamp, 'TZR') FROM dual;
 ```
 
-A `DATE` or `TIMESTAMP` holding a wall clock that doesn't exist in the zone of the process comes back moved: see [Known limits](../../configuration/time-zones.md#known-limits).
+A `DATE` or `TIMESTAMP` holding a wall clock that doesn't exist in the zone of the process comes back moved: see [oracledb → A wall clock that doesn't exist in the zone of the process](query-runners/oracledb.md#a-wall-clock-that-doesnt-exist-in-the-zone-of-the-process).
 
 ### A database outside UTC
 
-With the zone of the database declared in the connection (`databaseTimeZone`, see [A database outside UTC](../../configuration/time-zones.md#a-database-outside-utc)), what the library writes for each value, in `Europe/Madrid`:
+With the zone of the database declared in the connection (`databaseTimeZone`, see [A database outside UTC](../../advanced/dates-and-times/outside-utc.md#a-database-outside-utc)), what the library writes for each value, in `Europe/Madrid`:
 
 | | What the library writes | Example, in `Europe/Madrid` |
 |---|---|---|

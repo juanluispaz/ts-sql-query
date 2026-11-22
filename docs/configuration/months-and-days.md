@@ -221,18 +221,3 @@ The parameters are: `[ PlainDate 2025-06-01, PlainDate 2025-06-01, PlainDate 202
 | `1.3.0-beta.1` | `P1Y4M` | `P16M` | `P1Y` |
 
 The months between them are computed in the query. Temporal rounds to the year, and to an increment of months with years or in a mode half way (`'halfExpand'`, ...), by the days of the months from the start of the step to the value and to its end: from January 2000 to July 2003, 3 years and 6 months, is `P3Y` rounded half way, the 181 days from January to July being less than half of the 365 of 2003. That rounding needs the function of the library `tsq_duration_round` on every database, as `until` of dates in months does, and, where the database has no interval, `tsq_duration_text` writes the duration (see [The functions of the library it uses](plain-dates-and-times.md#the-functions-of-the-library-it-uses)). On PostgreSQL the interval gives the months as years and months: `P15M` is read as `P1Y3M`.
-
-## The dates they are stored in
-
-The connection says the day of the date a month of a year is stored in, `dayOfStoredYearMonths` (from 1 to 28, a day every month has; 1 by default), and the year of the date a day of a month is stored in, `yearOfStoredMonthDays` (a leap year; 1972 by default), the ones of Temporal by default. Another one is for a database whose dates were stored by another program on another day or year, so a value of the library compares with them:
-
-```ts
-import { PostgreSqlConnection } from 'ts-sql-query/postgresql'
-
-class DBConnection extends PostgreSqlConnection<'DBConnection'> {
-    protected override dayOfStoredYearMonths = 15
-    protected override yearOfStoredMonthDays = 2000
-}
-```
-
-The value read is given with the reference of Temporal whatever the date it is stored in. A day not every month has, or a year without February 29, is rejected with `INVALID_CONFIGURATION`.

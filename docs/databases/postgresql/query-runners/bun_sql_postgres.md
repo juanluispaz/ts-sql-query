@@ -80,7 +80,7 @@ async function main() {
 - **`adapter`** other than `'postgres'`.
 - **A `transform` that renames the columns of the results**: `transform: SQL.camel`, `SQL.toCamel`, or a `column.from` of your own. The library reads each column by its name. A transform of what is sent only, like `SQL.fromCamel` or `transform: { undefined: null }`, is accepted.
 
-**Required and not checked**: the database in UTC, and the session `TimeZone` left in it. Bun SQL sets none unless you give it `connection: { TimeZone: … }` or `options` in the URL; don't give it one other than the zone of the database. See [Time zones](../../../configuration/time-zones.md#the-zone-of-the-database-and-the-session).
+**Required and not checked**: the database in UTC, and the session `TimeZone` left in it. Bun SQL sets none unless you give it `connection: { TimeZone: … }` or `options` in the URL; don't give it one other than the zone of the database. See [Time zones](../../../advanced/dates-and-times/column-kinds-and-session.md#the-zone-of-the-database-and-the-session).
 
 ## Inside a transaction you began with Bun SQL
 
@@ -124,3 +124,7 @@ abstract class FeelingType extends EnumType<Feeling, 'Feeling'> {
 ```
 
 Then `connection.const('happy', FeelingType)` selected on its own is `select $1::feeling as result`, with the parameter `[ 'happy' ]`, and a value the enum doesn't have is rejected by the database. The cast is written only where the query needs a type; elsewhere, like compared with a column, the parameter goes as `$1` and the column gives it its type.
+
+## Fractions of a second below the millisecond
+
+Bun SQL gives a `timestamp` (PostgreSQL) or a `datetime` (MySQL and MariaDB) as a `Date`, and has no way to give its text: a `plainDateTime` or an `instant` read through it stops at the millisecond. A `date` and a `time` keep all their digits. The other drivers of these databases read every digit.

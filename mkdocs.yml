@@ -355,6 +355,10 @@ nav:
       - Extract columns from an object: advanced/tables-and-rows/columns-from-object.md
       - Deep utilities: advanced/tables-and-rows/deep-utilities.md
       - Passing tables and views as parameter: advanced/tables-and-rows/tables-views-as-parameter.md
+    - Dates and time zones:
+      - How each database keeps dates and times: advanced/dates-and-times/storage.md
+      - Temporal columns and the session: advanced/dates-and-times/column-kinds-and-session.md
+      - A database outside UTC: advanced/dates-and-times/outside-utc.md
     - Running queries:
       - Synchronous query runners: advanced/running-queries/synchronous-query-runners.md
       - The context of a query: advanced/running-queries/query-execution-metadata.md

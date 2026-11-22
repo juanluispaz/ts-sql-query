@@ -49,7 +49,7 @@ They are of these kinds:
 
 ## `tsq_duration_part`
 
-`tsq_duration_part` reads a part of the ISO 8601 text of a duration: its months, its days, the whole seconds of its time and the nanoseconds of the second, to add it; each field as written; its sign; or its largest field that isn't zero. Oracle keeps a duration in an interval, and only a column that keeps it as text needs it (see [A column that keeps it in its own way](../../configuration/durations.md#a-column-that-keeps-it-in-its-own-way)): a query calls it to add a duration of such a column to a date or to another duration, to read its fields, its sign or its total, or to negate it. A duration given as a value doesn't need it to be added, and neither does reading, writing or comparing a duration. See [The functions of the library it uses](../../configuration/durations.md#the-functions-of-the-library-it-uses).
+`tsq_duration_part` reads a part of the ISO 8601 text of a duration: its months, its days, the whole seconds of its time and the nanoseconds of the second, to add it; each field as written; its sign; or its largest field that isn't zero. Oracle keeps a duration in an interval, and only a column that keeps it as text needs it (see [A column that keeps it in its own way](../../advanced/dates-and-times/storage.md#a-column-that-keeps-a-duration-in-its-own-way)): a query calls it to add a duration of such a column to a date or to another duration, to read its fields, its sign or its total, or to negate it. A duration given as a value doesn't need it to be added, and neither does reading, writing or comparing a duration. See [The functions of the library it uses](../../configuration/durations.md#the-functions-of-the-library-it-uses).
 
 Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 
@@ -91,7 +91,7 @@ Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 
 ## `tsq_zoned_of_text`
 
-`tsq_zoned_of_text` gives the `TIMESTAMP WITH TIME ZONE` of the RFC 9557 text of a zoned date and time: its date and time with its offset, a `Z` being `+00:00`, in the zone in brackets, `2024-03-02T12:05:00+01:00[Europe/Madrid]` in `Europe/Madrid`. A column declared to keep a zoned date and time as its text (see [How each database keeps a zoned date and time](../../configuration/zoned-dates-and-times.md#how-each-database-keeps-a-zoned-date-and-time)) is that value in every query that uses it: compared, ordered, read, its parts, its instant, its arithmetic. With `libraryFunctions = 'installed'` a query calls it and writes the column once; without it, the query writes the same computation inline, with the column five times, in every place the column is used.
+`tsq_zoned_of_text` gives the `TIMESTAMP WITH TIME ZONE` of the RFC 9557 text of a zoned date and time: its date and time with its offset, a `Z` being `+00:00`, in the zone in brackets, `2024-03-02T12:05:00+01:00[Europe/Madrid]` in `Europe/Madrid`. A column declared to keep a zoned date and time as its text (see [How each database keeps a zoned date and time](../../advanced/dates-and-times/storage.md#how-each-database-keeps-a-zoned-date-and-time)) is that value in every query that uses it: compared, ordered, read, its parts, its instant, its arithmetic. With `libraryFunctions = 'installed'` a query calls it and writes the column once; without it, the query writes the same computation inline, with the column five times, in every place the column is used.
 
 Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 

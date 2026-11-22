@@ -41,7 +41,7 @@ What isn't offered doesn't compile on this connection. On a version older than t
 | [Stored procedures](../../configuration/mapping.md#calling-a-stored-procedure) and [functions](../../configuration/mapping.md#calling-a-function-of-the-database) | SQLite has no stored procedures, and rejects the statement. A function exists only if you register it in the driver |
 | [Isolation levels](../../queries/transaction.md#what-each-database-offers) | You can't choose one: transactions are always serializable |
 | [Zoned dates and times](../../configuration/zoned-dates-and-times.md#zoned-dates-and-times) | Kept as their text, with their parts and compared by their instant. What computes with the rules of the zones isn't offered: [Computing with the zones on the other databases](../../configuration/zoned-dates-and-times.md#computing-with-the-zones-on-the-other-databases) |
-| [Known limits of the dates and times](../../configuration/dates-and-times.md#known-limits) | A difference of more than 292 years |
+| Known limits of the dates and times | [A difference of more than 292 years](#a-difference-of-more-than-292-years) |
 
 ## Working with Date and Time
 
@@ -221,6 +221,10 @@ When a value is returned from the database that is different from the defined st
 ## Digits below a millisecond
 
 SQLite keeps a date and time to the millisecond, and rounds the fractional seconds of a text when it reads it. For the text `'2024-01-14 10:30:15.123789'`, `getTime()` and `getMilliseconds()` count `.124`, while the `Date` the library reads has `.123`, as on the other databases, which drop those digits. A value the library writes from a `Date` has three digits of fractional seconds at most, so it isn't affected; a text with more digits, written by another application, is.
+
+## A difference of more than 292 years
+
+, like `until` of two instants or of two dates and times, has more nanoseconds than its 64-bit integers: the query fails with the error of `tsq_duration_text` or `tsq_duration_total`. The other databases compute it with decimal numbers.
 
 ## Collations & case sensitivity
 
@@ -408,7 +412,7 @@ class DBConnection extends SqliteConnection<'DBConnection'> {
 
 ## Time zones
 
-Which column types fall in which [kind of temporal column](../../configuration/time-zones.md#the-four-kinds-of-temporal-column), and what the zone of the database and the session do (see [Time zones](../../configuration/time-zones.md)):
+Which column types fall in which [kind of temporal column](../../advanced/dates-and-times/column-kinds-and-session.md#the-four-kinds-of-temporal-column), and what the zone of the database and the session do (see [Time zones](../../configuration/time-zones.md)):
 
 SQLite has **no temporal types at all**: a date is text, a number or an integer, and *you* choose which. In ts-sql-query that choice is `getDateTimeFormat()`; see [SQLite → Working with Date and Time](#working-with-date-and-time). The `UTC` text strategies and the numeric ones keep every value in UTC; the `localdate` ones, the default, write and read the wall clock of the zone of the process.
 

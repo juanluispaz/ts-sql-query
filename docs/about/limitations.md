@@ -17,6 +17,10 @@ No, and there are no plans to support them: each database implements them in a d
 
 No. PostgreSQL accepts these statements in a `with` clause, but `ts-sql-query` doesn't write them: what goes in a `with` clause is a [select](../queries/cte-subqueries.md#a-select-used-as-a-view-the-with-clause).
 
+## Can a date before the year 1 be kept?
+
+In Temporal the year before 1 is 0 (1 BC), and the one before it -1. PostgreSQL and Oracle keep these dates, but `year()` gives the year as they number it, with no year 0: -1 for 1 BC and -44 for 44 BC, where the value read is `-000043-03-15`. SQL Server rejects a date before the year 1, and an instant before the year 1.
+
 ## How to compare against a null or undefined value?
 
 In SQL, a comparison with `null` isn't true or false: it's `null`, and a `where` discards the row. To avoid this surprise, `equals` and the other comparisons don't accept a `null` or an `undefined` from your code. You choose what to do when there is no value, here with a variable `parentId` of type `number | null`:

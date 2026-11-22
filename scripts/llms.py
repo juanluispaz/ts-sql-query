@@ -37,7 +37,7 @@ AREAS = [
     ], False),
     ('configuration', 'Mapping and configuration', 'the connection, tables and views, the types of the columns, dates and times (Temporal), time zones, collations and each database', [
         'configuration/*.md', 'databases/index.md', 'databases/*/index.md',
-        'advanced/data-types/custom-booleans-values.md',
+        'advanced/data-types/custom-booleans-values.md', 'advanced/dates-and-times/*.md',
     ], True),
     ('api-mapping', 'API of the tables and views', 'the methods to declare tables, views and constant values as a view, to look up', [
         'api/introduction.md', 'api/table.md', 'api/view.md', 'api/constant-values-view.md',

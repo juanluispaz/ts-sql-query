@@ -305,7 +305,7 @@ The rules are the ones of Temporal, and the result is the same on every database
 | `10:00` | `add({ days: 1, hours: 2 })` | `12:00` | A time takes only the time of the duration |
 | `2024-02-28T23:00` (`plainDateTime`) | `add({ days: 1, hours: 2, minutes: 30 })` | `2024-03-01T01:30` | |
 
-The fields of a duration given as a value must be integers with one sign, as `Temporal.Duration.from` asks: `{ days: 1, hours: -1 }`, `{ days: 1.5 }` or `{}` are rejected with `INVALID_VALUE_TO_SEND_TO_DATABASE` before the query is sent. The result keeps the digits of the fraction of a second the database keeps (see [The digits each database keeps](dates-and-times.md#the-digits-each-database-keeps)); SQLite computes with milliseconds.
+The fields of a duration given as a value must be integers with one sign, as `Temporal.Duration.from` asks: `{ days: 1, hours: -1 }`, `{ days: 1.5 }` or `{}` are rejected with `INVALID_VALUE_TO_SEND_TO_DATABASE` before the query is sent. The result keeps the digits of the fraction of a second the database keeps (see [The digits each database keeps](../advanced/dates-and-times/storage.md#the-digits-each-database-keeps)); SQLite computes with milliseconds.
 
 ### Rejecting a day the month hasn't
 

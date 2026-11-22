@@ -91,7 +91,7 @@ The parameters are: `[ Instant 2024-01-16T09:30:15Z ]` (on SQLite: `[ '2024-01-1
 An instant can be kept in any column of a date and a time:
 
 - **A column that keeps the instant** (`timestamptz`, `TIMESTAMP WITH TIME ZONE`, `datetimeoffset`): what you read is the instant written. The library writes it with the offset `+00:00`; one written with another offset by another program is read as its instant. A MySQL and MariaDB `TIMESTAMP` and an Oracle `TIMESTAMP WITH LOCAL TIME ZONE` keep the instant too, converted with the zone of the session, which must be the zone of the database.
-- **A column without a zone** keeps the wall clock of the instant in the zone of the database: in UTC, `2024-01-16 09:30:15.123456`. With a [database outside UTC](time-zones.md#a-database-outside-utc), the database converts it with its session.
+- **A column without a zone** keeps the wall clock of the instant in the zone of the database: in UTC, `2024-01-16 09:30:15.123456`. With a [database outside UTC](../advanced/dates-and-times/outside-utc.md#a-database-outside-utc), the database converts it with its session.
 
 | Database | Keeps the instant | Keeps its wall clock |
 |---|---|---|
@@ -104,11 +104,11 @@ An instant can be kept in any column of a date and a time:
 
 On SQLite a `localdate` format keeps the wall clock of the instant in the zone of the application. With [`sqliteRunsInApplicationTimeZone`](../databases/sqlite/index.md#the-date-functions-and-the-time-zone), the arithmetic of the instant takes it to UTC and back with the modifiers `'utc'` and `'localtime'`; without it, the zone of the application must be UTC.
 
-The [four kinds of temporal column](time-zones.md#the-four-kinds-of-temporal-column) explain what each one does with the zone. On MySQL and MariaDB a `TIMESTAMP` rejects an instant outside its range, from `1970-01-01T00:00:01Z` to `2038-01-19T03:14:07Z` on MySQL, and to `2106-02-07T06:28:15Z` on MariaDB 13; a `DATETIME(6)` in UTC also holds the instants before and after it.
+The [four kinds of temporal column](../advanced/dates-and-times/column-kinds-and-session.md#the-four-kinds-of-temporal-column) explain what each one does with the zone. On MySQL and MariaDB a `TIMESTAMP` rejects an instant outside its range, from `1970-01-01T00:00:01Z` to `2038-01-19T03:14:07Z` on MySQL, and to `2106-02-07T06:28:15Z` on MariaDB 13; a `DATETIME(6)` in UTC also holds the instants before and after it.
 
 ## The epoch of an instant, and its date and time
 
-An instant has no year, month or hour of its own: as in Temporal, they depend on the zone they are seen in. Its date and time in the zone of the database, UTC unless you [declare another](time-zones.md#a-database-outside-utc), are `toPlainDateTime()`, `toPlainDate()` and `toPlainTime()`, which Temporal writes `instant.toZonedDateTimeISO(zone).toPlainDateTime()`; the parts are taken from them, like `toPlainDateTime().hour()`. The other way round, `toInstant()` of a `plainDateTime` is the instant of that wall clock in the zone of the database. `epochMilliseconds()` and `epochNanoseconds()` count from `1970-01-01T00:00:00Z`, as Temporal's: the milliseconds as a number, rounded down, also before 1970, and the nanoseconds as a `bigint`.
+An instant has no year, month or hour of its own: as in Temporal, they depend on the zone they are seen in. Its date and time in the zone of the database, UTC unless you [declare another](../advanced/dates-and-times/outside-utc.md#a-database-outside-utc), are `toPlainDateTime()`, `toPlainDate()` and `toPlainTime()`, which Temporal writes `instant.toZonedDateTimeISO(zone).toPlainDateTime()`; the parts are taken from them, like `toPlainDateTime().hour()`. The other way round, `toInstant()` of a `plainDateTime` is the instant of that wall clock in the zone of the database. `epochMilliseconds()` and `epochNanoseconds()` count from `1970-01-01T00:00:00Z`, as Temporal's: the milliseconds as a number, rounded down, also before 1970, and the nanoseconds as a `bigint`.
 
 ```ts
 const deployments = await connection.selectFrom(tRelease)
@@ -381,7 +381,7 @@ The parameters are: `[ Duration PT172800S ]` (on MariaDB and MySQL: `[ 172800000
 | `'0.9.0'` | `PT5M` | `2024-03-02T11:00:00Z` | `2024-03-04T12:00:00Z` |
 | `'1.2.0'` | `PT30M15.123456S` (on SQLite: `PT30M15.123S`) | `2024-01-16T09:00:00Z` | `2024-01-18T10:00:00Z` |
 
-The arithmetic is computed on the wall clock of the instant in UTC, where there is no summer time, also with a [database outside UTC](time-zones.md#a-database-outside-utc).
+The arithmetic is computed on the wall clock of the instant in UTC, where there is no summer time, also with a [database outside UTC](../advanced/dates-and-times/outside-utc.md#a-database-outside-utc).
 
 `currentInstant()` of the connection gives the instant of now in the database, with the digits of the fraction of a second it gives:
 

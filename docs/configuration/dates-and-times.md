@@ -210,30 +210,3 @@ The executed query is:
     ```
 
 The parameters are: `[]`
-
-## The digits each database keeps
-
-A Temporal value goes to the database with all its digits, up to the nanosecond, and comes back with all the ones the column keeps. A value with more digits than the column keeps is rounded or cut by the database, as with any other way of sending it. Measured with a column of six digits of fraction, and seven on SQL Server, sending `23:59:58.123456789`:
-
-| Database | Keeps | Reads back |
-|---|---|---|
-| MariaDB | Microseconds, the digits beyond dropped | `23:59:58.123456` |
-| MySQL | Microseconds, rounded | `23:59:58.123457` |
-| Oracle | Microseconds in a `TIMESTAMP`, rounded | `23:59:58.123457` |
-| PostgreSQL | Microseconds, rounded | `23:59:58.123457` |
-| SQLite | What the [format of its dates](../databases/sqlite/index.md#working-with-date-and-time) says: milliseconds by default | `23:59:58.123` |
-| SQL Server | Hundreds of nanoseconds in a `datetime2(7)`, rounded | `23:59:58.1234568` |
-
-An Oracle `TIMESTAMP(9)`, or `TIMESTAMP(9) WITH TIME ZONE`, keeps the nanoseconds. A constant selected as it is comes back as it was sent, with all its digits, unless the database converts it: PostgreSQL and SQL Server round it to the digits of their type.
-
-## Known limits
-
-- **Bun SQL** gives a `timestamp` (PostgreSQL) or a `datetime` (MySQL and MariaDB) as a `Date`, and has no way to give its text: a `plainDateTime` or an `instant` read through it stops at the millisecond. A `date` and a `time` keep all their digits. The other drivers of these databases read every digit.
-- **A year before 1.** In Temporal the year before 1 is 0 (1 BC), and the one before it -1. PostgreSQL and Oracle keep these dates, but `year()` gives the year as they number it, with no year 0: -1 for 1 BC and -44 for 44 BC, where the value read is `-000043-03-15`. SQL Server rejects a date before the year 1, and an instant before the year 1.
-- **Bun SQL on MySQL 8** sends a text parameter that MySQL converts to a time wrongly (`'10:07:30'` is `00:00:00`): a `plainTime` given as a value and rounded is another time there. A column is read right, and so is every value with the other drivers and with MariaDB.
-- **Oracle has no type for a time of the day**: a `plainTime` is kept in a `DATE` or a `TIMESTAMP` on one date, as a `localTime` is: `dateOfStoredTimes`, 1972-01-01 by default (see [A time of the day](../databases/oracle/index.md#a-time-of-the-day)).
-- **A difference of more than 292 years on SQLite**, like `until` of two instants or of two dates and times, has more nanoseconds than its 64-bit integers: the query fails with the error of `tsq_duration_text` or `tsq_duration_total`. The other databases compute it with decimal numbers.
-- **Grouping by the arithmetic of a zoned date and time that isn't a column, on Oracle**: a zoned date and time computed in the query (like `toZonedDateTimeISO(zone)` of an instant) or given as a value is computed once in a scalar subquery when an operation of its arithmetic uses it, and Oracle doesn't accept a subquery in the `group by` (*ORA-22818*). The arithmetic of a column has no subquery.
-- **A zoned date and time in local mean time on Oracle**: Oracle keeps the offset of the local mean time of a zone (like `-00:14:44` in Madrid until 1900, or `-03:50:40` in Asunción until 1931) without its seconds, so the date and time of an instant there, and the instant of a wall clock there, are some seconds off from Temporal's. A zoned date and time read keeps its instant.
-- **An interval of PostgreSQL with fields of different signs**, like `-1 days +02:03:00` or `1 mon -1 days`, can't be a `Temporal.Duration`, whose fields have one sign: reading it is rejected with `INVALID_VALUE_RECEIVED_FROM_DATABASE`. The library never sends one.
-- **A column with a zone**, like `timestamptz` on PostgreSQL: a `plainDateTime` reads the date and time it has in the zone of the database. On SQL Server, a `datetimeoffset` is read, and its parts given, in UTC.

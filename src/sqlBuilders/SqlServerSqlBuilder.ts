@@ -1106,7 +1106,8 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     }
     /**
      * Whether the value is a datetime2 of a wall clock in UTC the query computes: an instant computed by the library
-     * (rounded, plus or minus a duration, of an epoch, of a zoned date and time) or the wall clock in UTC of an instant.
+     * (rounded, plus or minus a duration, of an epoch, of a zoned date and time), the wall clock in UTC of an instant, or
+     * a date at a time of the day.
      * A column, a parameter or any other value of an instant may be a datetimeoffset, taken to UTC where it is used
      */
     _isDateTime2InUtc(valueSource: ToSql): boolean {
@@ -1122,6 +1123,9 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             case '_instantFromEpochMilliseconds':
             case '_instantFromEpochNanoseconds':
             case '_zonedToInstant':
+            // A date at a time of the day: a datetime2 of a value without zone
+            case '_toPlainDateTime':
+            case '_toPlainDateTimeAt':
                 return true
             default:
                 return false
@@ -1378,8 +1382,9 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         return tick === 100n ? 'dbo.tsq_datetime_round' : undefined
     }
     override _durationRoundOfOperand(context: SqlBuildContext, valueSource: ToSql): string {
-        // Its date and time in UTC, as its parts are given
-        return 'switchoffset(' + super._durationRoundOfOperand(context, valueSource) + ", '+00:00')"
+        // Its date and time in UTC, as its parts are given (see _appendDateTimeInUtc)
+        const operand = super._durationRoundOfOperand(context, valueSource)
+        return this._mayHaveAnOffset(valueSource) ? 'switchoffset(' + operand + ", '+00:00')" : operand
     }
     override _durationRoundFunctionName(): string {
         return 'dbo.tsq_duration_round'
@@ -1390,11 +1395,12 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _addDaysToDate(_context: SqlBuildContext, date: string, days: string): string {
         return 'dateadd(day, ' + days + ', ' + date + ')'
     }
+    // The time of the day and the date of a value, in UTC as its other parts (see _appendDateTimeInUtc)
     override _nanosecondsSinceMidnight(context: SqlBuildContext, valueSource: ToSql): string {
-        return "datediff_big(nanosecond, cast('00:00' as time), cast(" + this._appendSql(valueSource, context, false) + ' as time))'
+        return "datediff_big(nanosecond, cast('00:00' as time), cast(" + this._appendDateTimeInUtc(context, valueSource) + ' as time))'
     }
     override _dateOfValue(context: SqlBuildContext, valueSource: ToSql): string {
-        return 'cast(' + this._appendSql(valueSource, context, false) + ' as date)'
+        return 'cast(' + this._appendDateTimeInUtc(context, valueSource) + ' as date)'
     }
     override _timeOfNanoseconds(_context: SqlBuildContext, nanoseconds: string): string {
         return 'dateadd(nanosecond, (' + nanoseconds + ') % 1000000000, dateadd(second, (' + nanoseconds + ") / 1000000000 % 86400, cast('00:00' as time(7))))"
@@ -1409,16 +1415,20 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _differenceTotal(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
         if (this._libraryFunctionsInstalled() && d.fields === 'timestamp') {
             // The days of the dates and the time of the times of the day, each value written once
-            return 'dbo.tsq_ticks_between(' + this._appendSql(d.one, context, false) + ', ' + this._appendSql(d.two, context, false) + ')'
+            return 'dbo.tsq_ticks_between(' + this._dateTimeFunctionOperand(context, d.one) + ', ' + this._dateTimeFunctionOperand(context, d.two) + ')'
         }
         return super._differenceTotal(context, d)
     }
     override _differenceTime(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
         // The nanoseconds from one time of the day to the other, less than a day: a bigint
-        return '(datediff_big(nanosecond, cast(' + this._appendSql(d.one, context, false) + ' as time), cast(' + this._appendSql(d.two, context, false) + ' as time)) / 100)'
+        return '(datediff_big(nanosecond, cast(' + this._appendDateTimeInUtc(context, d.one) + ' as time), cast(' + this._appendDateTimeInUtc(context, d.two) + ' as time)) / 100)'
+    }
+    /** A date and time as a function of the library takes it whole, a datetime2: in UTC, as its parts (see _appendDateTimeInUtc) */
+    override _dateTimeFunctionOperand(context: SqlBuildContext, valueSource: ToSql): string {
+        return this._appendDateTimeInUtc(context, valueSource)
     }
     override _ticksSinceMidnight(context: SqlBuildContext, valueSource: ToSql): string {
-        return "(datediff_big(nanosecond, cast('00:00' as time), cast(" + this._appendSql(valueSource, context, false) + ' as time)) / 100)'
+        return "(datediff_big(nanosecond, cast('00:00' as time), cast(" + this._appendDateTimeInUtc(context, valueSource) + ' as time)) / 100)'
     }
     override _timeOfDatabaseTicks(_context: SqlBuildContext, ticks: string): string {
         if (this._libraryFunctionsInstalled()) {
@@ -1485,11 +1495,22 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
      * the seconds and milliseconds don't depend on one (offsets are whole minutes): they are written as they are
      */
     _appendDateTimeInUtc(context: SqlBuildContext, valueSource: ToSql): string {
-        // An instant the query computes, and the date and time of an instant, are already a datetime2 of the wall clock in UTC
-        if (isValueSource(valueSource) && __isLocalDateTimeValueSource(__asNodeValueSource(valueSource)) && !this._isDateTime2InUtc(valueSource)) {
+        if (this._mayHaveAnOffset(valueSource)) {
             return 'switchoffset(' + this._appendSql(valueSource, context, false) + ", '+00:00')"
         }
         return this._appendSql(valueSource, context, false)
+    }
+    /**
+     * Whether a value of a date and time may be a datetimeoffset, taken to UTC where it is used: not an instant the query
+     * computes, nor the date and time of an instant, which are already a datetime2 of the wall clock in UTC, nor a value
+     * sent, which is sent in UTC
+     */
+    _mayHaveAnOffset(valueSource: ToSql): boolean {
+        if (!isValueSource(valueSource)) {
+            return false
+        }
+        const nodeValueSource = __asNodeValueSource(valueSource)
+        return __isLocalDateTimeValueSource(nodeValueSource) && !nodeValueSource.isConstValue() && !this._isDateTime2InUtc(valueSource)
     }
     override _second(context: SqlBuildContext, valueSource: ToSql): string {
         return 'datepart(second, ' + this._appendSql(valueSource, context, false) + ')'

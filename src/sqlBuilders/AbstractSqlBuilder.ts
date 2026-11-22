@@ -5255,7 +5255,11 @@ export class AbstractSqlBuilder implements SqlBuilder {
             return undefined
         }
         // The step is a number the parameter of the function converts
-        return name + '(' + this._appendSql(valueSource, context, false) + ', ' + String(rounding.step / tick) + ", '" + rounding.mode + "')"
+        return name + '(' + this._dateTimeFunctionOperand(context, valueSource) + ', ' + String(rounding.step / tick) + ", '" + rounding.mode + "')"
+    }
+    /** A date and time as a function of the library takes it whole: the value */
+    _dateTimeFunctionOperand(context: SqlBuildContext, valueSource: ToSql): string {
+        return this._appendSql(valueSource, context, false)
     }
     /**
      * The name of the function of the library that rounds a date and time to a step of units of tick nanoseconds in a

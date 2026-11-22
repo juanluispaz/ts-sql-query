@@ -103,7 +103,7 @@ describe(ctx.label, () => {
                 startOfMonth: moment.with({ day: 1, hour: 0, minute: 0, second: 0, millisecond: 0 }),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datetime2fromparts(datepart(year, switchoffset(@0, '+00:00')), 2, case when datepart(day, switchoffset(@1, '+00:00')) < day(eomonth(datefromparts(datepart(year, switchoffset(@0, '+00:00')), 2, 1))) then datepart(day, switchoffset(@1, '+00:00')) else day(eomonth(datefromparts(datepart(year, switchoffset(@0, '+00:00')), 2, 1))) end, 0, datepart(minute, switchoffset(@2, '+00:00')), datepart(second, @3), datepart(nanosecond, @4) / 100, 7) as february, datetime2fromparts(datepart(year, switchoffset(@5, '+00:00')), datepart(month, switchoffset(@6, '+00:00')), 1, 0, 0, 0, (0 * 1000000 + datepart(nanosecond, @7) / 1000 % 1000 * 1000 + datepart(nanosecond, @7) % 1000) / 100, 7) as startOfMonth"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datetime2fromparts(datepart(year, @0), 2, case when datepart(day, @1) < day(eomonth(datefromparts(datepart(year, @0), 2, 1))) then datepart(day, @1) else day(eomonth(datefromparts(datepart(year, @0), 2, 1))) end, 0, datepart(minute, @2), datepart(second, @3), datepart(nanosecond, @4) / 100, 7) as february, datetime2fromparts(datepart(year, @5), datepart(month, @6), 1, 0, 0, 0, (0 * 1000000 + datepart(nanosecond, @7) / 1000 % 1000 * 1000 + datepart(nanosecond, @7) % 1000) / 100, 7) as startOfMonth"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
             "2024-01-31T10:20:30.5",

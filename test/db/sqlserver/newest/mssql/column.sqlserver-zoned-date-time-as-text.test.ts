@@ -376,4 +376,39 @@ describe(ctx.label, () => {
         `)
         expect(rows.map(row => [row.departsAt.toString(), row.day.toString(), row.time.toString(), row.hour])).toEqual([['2024-07-01T03:00:00', '2024-07-01', '03:00:00', 3]])
     })
+
+    test('a-datetimeoffset-read-as-a-plain-date-time-computes-in-utc', async () => {
+        // Flight 3 departs 2024-06-30 22:00 -05:00, read as 2024-07-01T03:00:00: its difference with another date and
+        // time, with and without the functions of the library, and its rounding, are the ones of that value
+        const query = (connection: typeof ctx.conn) => connection.selectFrom(tFlightLegPlain)
+            .where(tFlightLegPlain.id.equals(3))
+            .select({
+                departsAt: tFlightLegPlain.departsAt,
+                since: tFlightLegPlain.departsAt.since(Temporal.PlainDateTime.from('2024-07-01T00:00'), { largestUnit: 'month', smallestUnit: 'nanosecond' }),
+                hours: tFlightLegPlain.departsAt.until(Temporal.PlainDateTime.from('2024-07-02T00:00')),
+                rounded: tFlightLegPlain.departsAt.round({ smallestUnit: 'hour', roundingIncrement: 6 }),
+            })
+            .executeSelectMany()
+        ctx.mockNext([{ departsAt: '2024-07-01T03:00:00.0000000', since: 'PT3H', hours: 'PT21H', rounded: '2024-07-01T06:00:00.0000000' }])
+        const withFunctions = await query(ctx.withLibraryFunctions())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select departs_at as departsAt, dbo.tsq_duration_round_of(switchoffset(departs_at, '+00:00'), @0, 'month', 'nanosecond', 1, 'trunc', -1) as since, dbo.tsq_duration_text(0, 0, 0, 0, 0, 0, cast(dbo.tsq_ticks_between(switchoffset(departs_at, '+00:00'), @1) as decimal(38)) * 100, 'day') as hours, dbo.tsq_datetime_round(switchoffset(departs_at, '+00:00'), 216000000000, 'halfExpand') as rounded from flight_leg where id = @2"`)
+        ctx.mockNext([{ departsAt: '2024-07-01T03:00:00.0000000', since: 'PT3H', hours: 'PT21H', rounded: '2024-07-01T06:00:00.0000000' }])
+        const withoutFunctions = await query(ctx.conn)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select departs_at as departsAt, dbo.tsq_duration_round(datepart(year, switchoffset(departs_at, '+00:00')), datepart(month, switchoffset(departs_at, '+00:00')), datepart(day, switchoffset(departs_at, '+00:00')), datediff_big(nanosecond, cast('00:00' as time), cast(switchoffset(departs_at, '+00:00') as time)), @0, @1, @2, @3, 'month', 'nanosecond', 1, 'trunc', -1) as since, dbo.tsq_duration_text(0, 0, 0, 0, 0, 0, cast((datediff(day, cast(switchoffset(departs_at, '+00:00') as date), cast(@4 as date)) * cast(864000000000 as bigint) + (datediff_big(nanosecond, cast(switchoffset(departs_at, '+00:00') as time), cast(@4 as time)) / 100)) as decimal(38)) * 100, 'day') as hours, dateadd(nanosecond, ((2 * (datediff_big(nanosecond, cast('00:00' as time), cast(switchoffset(departs_at, '+00:00') as time)) / 100) + cast(216000000000 as bigint)) / cast(432000000000 as bigint) * cast(216000000000 as bigint)) % 10000000 * 100, dateadd(second, ((2 * (datediff_big(nanosecond, cast('00:00' as time), cast(switchoffset(departs_at, '+00:00') as time)) / 100) + cast(216000000000 as bigint)) / cast(432000000000 as bigint) * cast(216000000000 as bigint)) / 10000000, cast(cast(switchoffset(departs_at, '+00:00') as date) as datetime2))) as rounded from flight_leg where id = @5"`)
+        expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
+          [
+            "2024",
+            "7",
+            "1",
+            "0",
+            "2024-07-02T00:00:00",
+            "3",
+          ]
+        `)
+        const read = (row: (typeof withFunctions)[number]) => [row.departsAt.toString(), row.since.toString(), row.hours.toString(), row.rounded.toString()]
+        const departsAt = Temporal.PlainDateTime.from('2024-07-01T03:00:00')
+        const expected = [departsAt.toString(), departsAt.since(Temporal.PlainDateTime.from('2024-07-01T00:00'), { largestUnit: 'month', smallestUnit: 'nanosecond' }).toString(), departsAt.until(Temporal.PlainDateTime.from('2024-07-02T00:00')).toString(), departsAt.round({ smallestUnit: 'hour', roundingIncrement: 6 }).toString()]
+        expect(withFunctions.map(read)).toEqual([expected])
+        expect(withoutFunctions.map(read)).toEqual([expected])
+    })
 })

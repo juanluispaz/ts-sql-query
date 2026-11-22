@@ -62,6 +62,49 @@ describe(ctx.label, () => {
         expect(rows).toEqual([{ id: 1 }])
     })
 
+    test('a-date-and-time-with-a-fraction-of-a-second-as-the-temporal-value-of-its-column', async () => {
+        // 12:30:00.007, which each database keeps with the digits it has (a SQL Server datetime, in 300ths of a second,
+        // read as 12:30:00.007): the value with a Date as a plainDateTime, its time, and its difference with and without
+        // the functions of the library, are the ones of the value read from the column
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tColMatrixPlain)
+                .set({ mDatetime: Temporal.PlainDateTime.from('2024-01-14T12:30:00.007') })
+                .where(tColMatrixPlain.id.equals(1))
+                .executeUpdate()
+            ctx.mockNext([{ converted: '2024-01-14 12:30:00.007', direct: '2024-01-14 12:30:00.007', time: '12:30:00.007' }])
+            const rows = await ctx.conn.selectFrom(tColMatrixColumn)
+                .join(plain).on(plain.id.equals(tColMatrixColumn.id))
+                .where(tColMatrixColumn.id.equals(1))
+                .select({
+                    converted: tColMatrixColumn.mDatetime.toPlainDateTime(),
+                    direct: plain.mDatetime,
+                    time: plain.mDatetime.toPlainTime(),
+                })
+                .executeSelectMany()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select col_matrix.m_datetime as converted, plain.m_datetime as direct, strftime('%H:%M:%f', plain.m_datetime) as time from col_matrix join col_matrix as plain on plain.id = col_matrix.id where col_matrix.id = ?1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof rows, Array<{ converted: Temporal.PlainDateTime; direct: Temporal.PlainDateTime; time: Temporal.PlainTime }>>>()
+            expect(rows.map(row => [row.converted.toString(), row.time.toString()])).toEqual(rows.map(row => [row.direct.toString(), row.direct.toPlainTime().toString()]))
+            const since = (connection: typeof ctx.conn) => connection.selectFrom(plain)
+                .where(plain.id.equals(1))
+                .selectOneColumn(plain.mDatetime.since(Temporal.PlainDateTime.from('2024-01-14T12:30:00'), { largestUnit: 'month', smallestUnit: 'nanosecond' }))
+                .executeSelectOne()
+            ctx.mockNext('PT0.007S')
+            const withFunctions = await since(ctx.withLibraryFunctions())
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_duration_round_of(strftime('%Y-%m-%d %H:%M:%f', plain.m_datetime), strftime('%Y-%m-%d %H:%M:%f', ?1), 'month', 'nanosecond', 1, 'trunc', -1) as result from col_matrix as plain where plain.id = ?2"`)
+            ctx.mockNext('PT0.007S')
+            const withoutFunctions = await since(ctx.conn)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_duration_round(cast(strftime('%Y', plain.m_datetime) as integer), cast(strftime('%m', plain.m_datetime) as integer), cast(strftime('%d', plain.m_datetime) as integer), cast(round((julianday(plain.m_datetime) - julianday(date(plain.m_datetime))) * 86400000) as integer) * 1000000, ?1, ?2, ?3, ?4, 'month', 'nanosecond', 1, 'trunc', -1) as result from col_matrix as plain where plain.id = ?5"`)
+            const expected = rows[0]!.direct.since(Temporal.PlainDateTime.from('2024-01-14T12:30:00'), { largestUnit: 'month', smallestUnit: 'nanosecond' }).toString()
+            expect([withFunctions.toString(), withoutFunctions.toString()]).toEqual([expected, expected])
+        })
+    })
+
     test('a-temporal-value-as-the-date-value-of-its-column', async () => {
         ctx.mockNext([{ day: '2024-03-04', time: '09:15:00', moment: '2024-01-14 12:30:00', direct: '2024-01-14 12:30:00' }])
         const rows = await ctx.conn.selectFrom(plain)

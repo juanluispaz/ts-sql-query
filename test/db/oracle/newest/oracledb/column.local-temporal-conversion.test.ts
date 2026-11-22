@@ -60,6 +60,49 @@ describe(ctx.label, () => {
         expect(rows).toEqual([{ id: 1 }])
     })
 
+    test('a-date-and-time-with-a-fraction-of-a-second-as-the-temporal-value-of-its-column', async () => {
+        // 12:30:00.007, which each database keeps with the digits it has (a SQL Server datetime, in 300ths of a second,
+        // read as 12:30:00.007): the value with a Date as a plainDateTime, its time, and its difference with and without
+        // the functions of the library, are the ones of the value read from the column
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tColMatrixPlain)
+                .set({ mDatetime: Temporal.PlainDateTime.from('2024-01-14T12:30:00.007') })
+                .where(tColMatrixPlain.id.equals(1))
+                .executeUpdate()
+            ctx.mockNext([{ converted: '2024-01-14 12:30:00.007', direct: '2024-01-14 12:30:00.007', time: '12:30:00.007' }])
+            const rows = await ctx.conn.selectFrom(tColMatrixColumn)
+                .join(plain).on(plain.id.equals(tColMatrixColumn.id))
+                .where(tColMatrixColumn.id.equals(1))
+                .select({
+                    converted: tColMatrixColumn.mDatetime.toPlainDateTime(),
+                    direct: plain.mDatetime,
+                    time: plain.mDatetime.toPlainTime(),
+                })
+                .executeSelectMany()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select to_char(cast(cast(col_matrix.m_datetime as timestamp(9) with time zone) at local as timestamp(9)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "converted", to_char(cast(plain.m_datetime as timestamp(9)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "direct", to_char(cast(timestamp '1972-01-01 00:00:00' + (plain.m_datetime - trunc(plain.m_datetime)) as timestamp(9)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "time" from col_matrix join col_matrix plain on plain.id = col_matrix.id where col_matrix.id = :0"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof rows, Array<{ converted: Temporal.PlainDateTime; direct: Temporal.PlainDateTime; time: Temporal.PlainTime }>>>()
+            expect(rows.map(row => [row.converted.toString(), row.time.toString()])).toEqual(rows.map(row => [row.direct.toString(), row.direct.toPlainTime().toString()]))
+            const since = (connection: typeof ctx.conn) => connection.selectFrom(plain)
+                .where(plain.id.equals(1))
+                .selectOneColumn(plain.mDatetime.since(Temporal.PlainDateTime.from('2024-01-14T12:30:00'), { largestUnit: 'month', smallestUnit: 'nanosecond' }))
+                .executeSelectOne()
+            ctx.mockNext('PT0.007S')
+            const withFunctions = await since(ctx.withLibraryFunctions())
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_duration_round_of(plain.m_datetime, to_timestamp(:0, 'YYYY-MM-DD HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN'), 'month', 'nanosecond', 1, 'trunc', -1) as "result" from col_matrix plain where plain.id = :1"`)
+            ctx.mockNext('PT0.007S')
+            const withoutFunctions = await since(ctx.conn)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_duration_round(extract(year from plain.m_datetime), extract(month from plain.m_datetime), extract(day from plain.m_datetime), to_number(to_char(plain.m_datetime, 'SSSSSFF9')), :0, :1, :2, :3, 'month', 'nanosecond', 1, 'trunc', -1) as "result" from col_matrix plain where plain.id = :4"`)
+            const expected = rows[0]!.direct.since(Temporal.PlainDateTime.from('2024-01-14T12:30:00'), { largestUnit: 'month', smallestUnit: 'nanosecond' }).toString()
+            expect([withFunctions.toString(), withoutFunctions.toString()]).toEqual([expected, expected])
+        })
+    })
+
     test('a-temporal-value-as-the-date-value-of-its-column', async () => {
         ctx.mockNext([{ day: '2024-03-04', time: '09:15:00', moment: '2024-01-14 12:30:00', direct: '2024-01-14 12:30:00' }])
         const rows = await ctx.conn.selectFrom(plain)

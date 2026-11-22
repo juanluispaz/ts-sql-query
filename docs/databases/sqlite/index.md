@@ -404,3 +404,22 @@ class DBConnection extends SqliteConnection<'DBConnection'> {
     protected override compatibilityVersion = 3_029_000
 }
 ```
+
+## Time zones
+
+Which column types fall in which [kind of temporal column](../../configuration/time-zones.md#the-four-kinds-of-temporal-column), and what the zone of the database and the session do (see [Time zones](../../configuration/time-zones.md)):
+
+SQLite has **no temporal types at all**: a date is text, a number or an integer, and *you* choose which. In ts-sql-query that choice is `getDateTimeFormat()`; see [SQLite → Working with Date and Time](#working-with-date-and-time). The `UTC` text strategies and the numeric ones keep every value in UTC; the `localdate` ones, the default, write and read the wall clock of the zone of the process.
+
+!!! tip "SQLite has only one zone"
+
+    There is no server and no session: SQLite runs **inside your process**, and it takes the zone the process started with from the C library. `datetime('now', 'localtime')` follows your `TZ`:
+
+    ```
+    TZ=UTC             localtime = 12:37:58   utc = 12:37:58
+    TZ=Europe/Madrid   localtime = 14:37:58   utc = 12:37:58
+    ```
+
+    Set the zone when the process starts: on Bun with `bun:sqlite`, changing `process.env.TZ` afterwards changes JavaScript and not SQLite, and the two disagree. With a `localdate` strategy, pin your application's zone anyway: it is what keeps the stored text consistent across the machines that write it.
+
+    The date functions of the database work in UTC by default, so they can differ from what JavaScript gives when the process doesn't run in UTC. See [The date functions and the time zone](#the-date-functions-and-the-time-zone).

@@ -452,3 +452,22 @@ class DBConnection extends OracleConnection<'DBConnection'> {
 !!! tip "Generating UUIDs"
 
     For **chronologically sortable** primary keys, generate **UUID v7** in the application and use the `'custom-functions'` strategy: it keeps the 16 bytes as they are, so v7's leading timestamp keeps the inserts at the end of the index of the primary key. The default `'built-in'` strategy can't store a v7 (or v1) uuid: Oracle's `UUID_TO_RAW` accepts version 4 only and rejects the others with `ORA-62432`. With **UUID v4** (random, no clustering benefit) `'built-in'` works as it is; Oracle 23.9 also has a `UUID()` function that gives a v4, useful as the `DEFAULT` of a column. There is no server-side v7 generator. See the [column types](../../configuration/data-types.md) page for more context.
+
+## Time zones
+
+Which column types fall in which [kind of temporal column](../../configuration/time-zones.md#the-four-kinds-of-temporal-column), and what the zone of the database and the session do (see [Time zones](../../configuration/time-zones.md)):
+
+| kind | types |
+|---|---|
+| 1 — no handling | `DATE`, `TIMESTAMP` |
+| 2 — pinned, delivered without the zone | `TIMESTAMP WITH LOCAL TIME ZONE` (normalized to the database zone, converted with the session zone) |
+| 3 — pinned, delivered with the zone | *none* |
+| 4 — zone stored per value | `TIMESTAMP WITH TIME ZONE` |
+
+The zone of the database is the one of `SYSTIMESTAMP`: the zone of the server's operating system, or `DBTIMEZONE` when the pluggable database sets `TIME_AT_DBTIMEZONE = DATABASE`. It must be UTC, unless you declare it (see [A database outside UTC](../../configuration/time-zones.md#a-database-outside-utc)). oracledb sets the session zone when it opens a connection: the one of the environment variable `ORA_SDTZ`, or else the offset of the process at that moment. A `TIMESTAMP WITH LOCAL TIME ZONE` is read and written in the session zone, a `DATE` or a `TIMESTAMP` given back by a `returning` is converted with it, and `current_date` and `localtimestamp` come in it. So the query runner requires the session in the zone of the database: in UTC, `ORA_SDTZ` set to UTC, or not set with the process in UTC; in a zone you declare, `ORA_SDTZ` set to it. See [oracledb → Connection requirements](query-runners/oracledb.md#connection-requirements).
+
+```sql
+SELECT sessiontimezone, to_char(systimestamp, 'TZR') FROM dual;
+```
+
+A `DATE` or `TIMESTAMP` holding a wall clock that doesn't exist in the zone of the process comes back moved: see [Known limits](../../configuration/time-zones.md#known-limits).

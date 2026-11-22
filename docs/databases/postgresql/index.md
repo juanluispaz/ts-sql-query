@@ -218,3 +218,22 @@ select tsq_greatest_strict(estimated_hours, $1) as floored, tsq_least_strict(est
 !!! tip "Leave the defaults unless you need them"
 
     The default `CASE` matches the declared type on every database and only pays a repeated operand for a value-source receiver. Reach for `ignoreNullInMinAndMaxValue` when you specifically want PostgreSQL's ignore-NULL semantics, or install the functions of the library (`libraryFunctions`) when the repeated operand is expensive enough to matter. The row aggregate `min(col)` / `max(col)` over rows is a different function — it ignores NULL on every database by standard SQL — and is unaffected by any of these.
+
+## Time zones
+
+Which column types fall in which [kind of temporal column](../../configuration/time-zones.md#the-four-kinds-of-temporal-column), and what the zone of the database and the session do (see [Time zones](../../configuration/time-zones.md)):
+
+| kind | types |
+|---|---|
+| 1 — no handling | `date`, `time`, `timestamp` (`timestamp without time zone`) |
+| 2 — pinned, delivered without the zone | *none* |
+| 3 — pinned, delivered with the zone | `timestamptz` (`timestamp with time zone`) |
+| 4 — zone stored per value | *none*: despite the name, `timestamptz` stores no zone |
+
+The zone of the database is the server's `timezone` setting, which `initdb` takes from the machine where the server is installed (a container is in UTC). It must be UTC. The session takes it unless a connection sets another, and pg, postgres.js and Bun SQL set none: leave it so. It must show `UTC` or `Etc/UTC`:
+
+```sql
+SHOW TimeZone;
+```
+
+PGlite writes the zone of the process into its database when it creates it, as a fixed offset, unless it's created with `postgresqlconf: ["timezone = 'UTC'"]`, and a database in a directory keeps that zone: see [pglite → Connection requirements](query-runners/pglite.md#connection-requirements).

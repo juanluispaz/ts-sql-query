@@ -440,7 +440,7 @@ The default collation, the collation names to use with `insensitiveCollation` / 
 
     **Set on the schema:** `CREATE TABLE t (name varchar(100) COLLATE Latin1_General_CS_AS)`, or `CREATE DATABASE app COLLATE Latin1_General_CI_AS`.
 
-    **Session collation:** **none** — SQL Server has no session collation, exactly as it has [no session time zone](time-zones.md#per-database). Reach for `.collate()` per value, `insensitiveCollation` connection-wide, `replaceCollation` for `replaceAll`, or the column / database collation.
+    **Session collation:** **none** — SQL Server has no session collation, exactly as it has [no session time zone](../databases/sqlserver/index.md#time-zones). Reach for `.collate()` per value, `insensitiveCollation` connection-wide, `replaceCollation` for `replaceAll`, or the column / database collation.
 
     **`replaceAll`:** honours the collation, so it corrupts on the case-insensitive default — fixed by default via [`replaceCollation`](#replacecollation-sql-server-and-oracle). See the [SQL Server page](../databases/sqlserver/index.md#replaceall-and-collation).
 
@@ -461,7 +461,7 @@ Some engines carry a **session collation** that a connection sets on connect and
 | **Oracle** | `ALTER SESSION SET NLS_COMP = LINGUISTIC; NLS_SORT = <coll>` | **full** — flips `equals` / `like` / `distinct` / `order` session-wide |
 | **MySQL / MariaDB** | `SET collation_connection = <coll>` | **partial** — literals only; a column keeps its own collation |
 | **SQLite** | `PRAGMA case_sensitive_like = ON` | `LIKE` only (connection-global) |
-| **SQL Server** | — | **none**, exactly as it has [no session time zone](time-zones.md#per-database) |
+| **SQL Server** | — | **none**, exactly as it has [no session time zone](../databases/sqlserver/index.md#time-zones) |
 | **PostgreSQL** | — | **none** — use the column / database collation, or `.collate()` |
 
 You run the statement in the **pool's connection-init hook**, so every connection gets it — the same hook where you would set the session time zone. The mechanism is driver-specific: see [oracledb → Running a statement on each new connection](../databases/oracle/query-runners/oracledb.md#running-a-statement-on-each-new-connection) for the concrete code (Oracle is where a session collation reaches fully).

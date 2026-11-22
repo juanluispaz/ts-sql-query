@@ -159,3 +159,24 @@ class DBConnection extends MySqlConnection<'DBConnection'> {
 With the flag on, `value.round()` and `value.roundn(n)` emit `round(x)` directly: when `x` is an exact expression you still get away-from-zero, but when `x` is a `DOUBLE` expression (the type produced by `.divide(...)`, `.asDouble()`, and many other arithmetic chains) the tie-breaking follows the C library's rules.
 
 The flag also sends and writes the scale of `roundn` as it is. MySQL rounds a fractional scale (`roundn(1.6)` is 2 decimals), which is what the library does on every database without the flag.
+
+## Time zones
+
+Which column types fall in which [kind of temporal column](../../configuration/time-zones.md#the-four-kinds-of-temporal-column), and what the zone of the database and the session do (see [Time zones](../../configuration/time-zones.md)):
+
+| kind | types |
+|---|---|
+| 1 — no handling | `DATE`, `TIME`, `DATETIME` |
+| 2 — pinned, delivered without the zone | `TIMESTAMP` (stored as UTC, converted with the session zone) |
+| 3 — pinned, delivered with the zone | *none* |
+| 4 — zone stored per value | *none* |
+
+The zone of the database is the server's `time_zone`: `SYSTEM` by default, the zone of the operating system of the machine it runs on, or the one set in the server. It must be UTC. The session takes it unless something sets another: leave it so, since a `TIMESTAMP` column and `now()` follow the session. Bun SQL sets the session to `+00:00`, which is right only with the server in UTC. The query runner can't read either without a query of its own, so it doesn't check them. With both in UTC, `now()` and `utc_timestamp()` give the same time:
+
+```sql
+SELECT @@global.time_zone, @@session.time_zone, now(), utc_timestamp();
+```
+
+!!! warning "`TIMESTAMP` is not this engine's `timestamptz`"
+
+    "Stored as UTC" reads like "safe", but it is kind 2, not kind 3: the conversion uses the **session's** zone and what reaches the driver is a bare wall clock. With the session in UTC it holds the UTC digits, as a `DATETIME` does.

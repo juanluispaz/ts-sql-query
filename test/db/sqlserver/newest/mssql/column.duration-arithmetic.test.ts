@@ -124,7 +124,7 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFromNoTable()
             .select({ later: january31.until(Temporal.PlainDate.from('2024-03-30')).add({ hours: 12 }) })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.tsq_duration_add(dbo.tsq_duration_part(dbo.tsq_duration_text(0, 0, 0, datediff(day, @1, @0), 0, 'day'), 'largest'), dbo.tsq_duration_part(dbo.tsq_duration_text(0, 0, 0, datediff(day, @3, @2), 0, 'day'), 'days'), dbo.tsq_duration_part(dbo.tsq_duration_text(0, 0, 0, datediff(day, @5, @4), 0, 'day'), 'S'), dbo.tsq_duration_part(dbo.tsq_duration_text(0, 0, 0, datediff(day, @7, @6), 0, 'day'), 'N'), 4, 0, 43200, 0, 1) as later"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.tsq_duration_add(dbo.tsq_duration_part(dbo.tsq_duration_text(0, 0, 0, datediff(day, @1, @0), 0, 0, 0, 'day'), 'largest'), dbo.tsq_duration_part(dbo.tsq_duration_text(0, 0, 0, datediff(day, @3, @2), 0, 0, 0, 'day'), 'days'), dbo.tsq_duration_part(dbo.tsq_duration_text(0, 0, 0, datediff(day, @5, @4), 0, 0, 0, 'day'), 'S'), dbo.tsq_duration_part(dbo.tsq_duration_text(0, 0, 0, datediff(day, @7, @6), 0, 0, 0, 'day'), 'N'), 4, 0, 43200, 0, 1) as later"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
             "2024-03-30",

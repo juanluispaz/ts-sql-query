@@ -53,7 +53,7 @@ END;
 /
 
 -- ===== tsq_duration_text =====
-CREATE OR REPLACE FUNCTION tsq_duration_text(y IN NUMBER, mo IN NUMBER, w IN NUMBER, d IN NUMBER, ns IN NUMBER, unit IN VARCHAR2) RETURN VARCHAR2 DETERMINISTIC IS
+CREATE OR REPLACE FUNCTION tsq_duration_text(y IN NUMBER, mo IN NUMBER, w IN NUMBER, d IN NUMBER, h IN NUMBER, mi IN NUMBER, ns IN NUMBER, unit IN VARCHAR2) RETURN VARCHAR2 DETERMINISTIC IS
     r VARCHAR2(100);
     t VARCHAR2(100);
     v_y NUMBER := y;
@@ -61,10 +61,12 @@ CREATE OR REPLACE FUNCTION tsq_duration_text(y IN NUMBER, mo IN NUMBER, w IN NUM
     v_w NUMBER := w;
     v_d NUMBER := d;
     v_ns NUMBER := ns;
+    v_h NUMBER := ABS(h);
+    v_mi NUMBER := ABS(mi);
     rest NUMBER;
     f NUMBER;
 BEGIN
-    IF y IS NULL OR mo IS NULL OR w IS NULL OR d IS NULL OR ns IS NULL THEN RETURN NULL; END IF;
+    IF y IS NULL OR mo IS NULL OR w IS NULL OR d IS NULL OR h IS NULL OR mi IS NULL OR ns IS NULL THEN RETURN NULL; END IF;
     IF unit = 'year' THEN v_y := v_y + TRUNC(v_mo / 12); v_mo := MOD(v_mo, 12); END IF;
     IF unit IN ('week', 'day') THEN
         v_d := v_d + TRUNC(v_ns / 86400000000000);
@@ -76,8 +78,10 @@ BEGIN
     IF v_w <> 0 THEN r := r || TO_CHAR(ABS(v_w)) || 'W'; END IF;
     IF v_d <> 0 THEN r := r || TO_CHAR(ABS(v_d)) || 'D'; END IF;
     rest := ABS(v_ns);
-    IF unit IN ('week', 'day', 'hour') AND rest >= 3600000000000 THEN t := t || TO_CHAR(TRUNC(rest / 3600000000000)) || 'H'; rest := MOD(rest, 3600000000000); END IF;
-    IF unit <> 'second' AND rest >= 60000000000 THEN t := t || TO_CHAR(TRUNC(rest / 60000000000)) || 'M'; rest := MOD(rest, 60000000000); END IF;
+    IF unit IN ('week', 'day', 'hour') THEN v_h := v_h + TRUNC(rest / 3600000000000); rest := MOD(rest, 3600000000000); END IF;
+    IF v_h <> 0 THEN t := t || TO_CHAR(v_h) || 'H'; END IF;
+    IF unit <> 'second' THEN v_mi := v_mi + TRUNC(rest / 60000000000); rest := MOD(rest, 60000000000); END IF;
+    IF v_mi <> 0 THEN t := t || TO_CHAR(v_mi) || 'M'; END IF;
     IF rest > 0 THEN
         f := MOD(rest, 1000000000);
         t := t || TO_CHAR(TRUNC(rest / 1000000000));
@@ -85,7 +89,7 @@ BEGIN
         t := t || 'S';
     END IF;
     IF r IS NULL AND t IS NULL THEN RETURN 'PT0S'; END IF;
-    RETURN CASE WHEN v_y < 0 OR v_mo < 0 OR v_w < 0 OR v_d < 0 OR v_ns < 0 THEN '-' END || 'P' || r || CASE WHEN t IS NOT NULL THEN 'T' || t END;
+    RETURN CASE WHEN v_y < 0 OR v_mo < 0 OR v_w < 0 OR v_d < 0 OR h < 0 OR mi < 0 OR v_ns < 0 THEN '-' END || 'P' || r || CASE WHEN t IS NOT NULL THEN 'T' || t END;
 END;
 /
 
@@ -211,7 +215,7 @@ BEGIN
             END IF;
         END IF;
     END IF;
-    RETURN tsq_duration_text(v_years * negation, v_months * negation, v_weeks * negation, v_days * negation, v_t * negation, 'hour');
+    RETURN tsq_duration_text(v_years * negation, v_months * negation, v_weeks * negation, v_days * negation, 0, 0, v_t * negation, 'hour');
 END;
 /
 
@@ -318,7 +322,7 @@ BEGIN
     END IF;
     v_total := (days1 + sgn * days2) * v_day + (seconds1 + sgn * seconds2) * 1000000000 + nanoseconds1 + sgn * nanoseconds2;
     IF v_largest = 3 THEN v_days := TRUNC(v_total / v_day); END IF;
-    RETURN tsq_duration_text(0, 0, 0, v_days, v_total - v_days * v_day, CASE WHEN v_largest <= 4 THEN 'hour' WHEN v_largest = 5 THEN 'minute' ELSE 'second' END);
+    RETURN tsq_duration_text(0, 0, 0, v_days, 0, 0, v_total - v_days * v_day, CASE WHEN v_largest <= 4 THEN 'hour' WHEN v_largest = 5 THEN 'minute' ELSE 'second' END);
 END;
 /
 
@@ -473,7 +477,7 @@ BEGIN
     v_u1 := SYS_EXTRACT_UTC(one);
     v_u2 := SYS_EXTRACT_UTC(two);
     IF v_u1 = v_u2 THEN
-        RETURN tsq_duration_text(0, 0, 0, 0, 0, 'hour');
+        RETURN tsq_duration_text(0, 0, 0, 0, 0, 0, 0, 'hour');
     END IF;
     v_w1 := wall_of(v_u1);
     v_w2 := wall_of(v_u2);
@@ -589,7 +593,7 @@ BEGIN
             END LOOP;
         END IF;
     END IF;
-    RETURN tsq_duration_text(v_years * negation, v_months * negation, v_weeks * negation, v_days * negation, v_t * negation, 'hour');
+    RETURN tsq_duration_text(v_years * negation, v_months * negation, v_weeks * negation, v_days * negation, 0, 0, v_t * negation, 'hour');
 END;
 /
 

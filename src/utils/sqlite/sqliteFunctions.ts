@@ -550,12 +550,13 @@ function bigintArgument(value: unknown): bigint | null {
 
 /**
  * tsq_duration_text: the ISO 8601 text of a duration of its fields, as Temporal's toString writes it, as the same
- * function of the library on the other databases: the years, months, weeks and days, and the nanoseconds of its time,
- * balanced up to the largest unit given: the months go to the years ('year'), the days of the time to the days ('day'),
+ * function of the library on the other databases: the years, months, weeks, days, hours and minutes, written as they
+ * are given, and the nanoseconds of its time, balanced up to the largest unit given (a duration computed: until, since,
+ * a sum; 'second' for one of the fields given, which Temporal doesn't balance): the months go to the years ('year'), the days of the time to the days ('day'),
  * and the weeks of the days to the weeks too ('week'); the time is written in hours, minutes and seconds ('week', 'day', 'hour'), minutes and seconds
  * ('minute') or seconds ('second'); every field with the sign of the duration; null when a field is null
  */
-function durationText(years: unknown, months: unknown, weeks: unknown, days: unknown, nanoseconds: unknown, unit: unknown): string | null {
+function durationText(years: unknown, months: unknown, weeks: unknown, days: unknown, hours: unknown, minutes: unknown, nanoseconds: unknown, unit: unknown): string | null {
     if (typeof nanoseconds === 'string' && !/^-?\d+$/.test(nanoseconds)) {
         // The nanoseconds given as text are a real: SQLite turned an integer that overflowed its 64 bits (a difference
         // of more than 292 years) into one, which has lost digits
@@ -565,8 +566,10 @@ function durationText(years: unknown, months: unknown, weeks: unknown, days: unk
     let mo = bigintArgument(months)
     let w = bigintArgument(weeks)
     let d = bigintArgument(days)
+    let h = bigintArgument(hours)
+    let mi = bigintArgument(minutes)
     let ns = bigintArgument(nanoseconds)
-    if (y === null || mo === null || w === null || d === null || ns === null) {
+    if (y === null || mo === null || w === null || d === null || h === null || mi === null || ns === null) {
         return null
     }
     if (unit === 'year') {
@@ -581,22 +584,26 @@ function durationText(years: unknown, months: unknown, weeks: unknown, days: unk
             d %= 7n
         }
     }
-    const negative = y < 0n || mo < 0n || w < 0n || d < 0n || ns < 0n
+    const negative = y < 0n || mo < 0n || w < 0n || d < 0n || h < 0n || mi < 0n || ns < 0n
     let date = ''
     if (y !== 0n) date += absoluteBigint(y) + 'Y'
     if (mo !== 0n) date += absoluteBigint(mo) + 'M'
     if (w !== 0n) date += absoluteBigint(w) + 'W'
     if (d !== 0n) date += absoluteBigint(d) + 'D'
     ns = absoluteBigint(ns)
+    h = absoluteBigint(h)
+    mi = absoluteBigint(mi)
     let time = ''
-    if ((unit === 'week' || unit === 'day' || unit === 'hour') && ns >= 3_600_000_000_000n) {
-        time += ns / 3_600_000_000_000n + 'H'
+    if (unit === 'week' || unit === 'day' || unit === 'hour') {
+        h += ns / 3_600_000_000_000n
         ns %= 3_600_000_000_000n
     }
-    if (unit !== 'second' && ns >= 60_000_000_000n) {
-        time += ns / 60_000_000_000n + 'M'
+    if (h !== 0n) time += h + 'H'
+    if (unit !== 'second') {
+        mi += ns / 60_000_000_000n
         ns %= 60_000_000_000n
     }
+    if (mi !== 0n) time += mi + 'M'
     if (ns > 0n) {
         const fraction = ns % 1_000_000_000n
         time += String(ns / 1_000_000_000n) + (fraction > 0n ? '.' + String(fraction).padStart(9, '0').replace(/0+$/, '') : '') + 'S'
@@ -805,7 +812,7 @@ function durationRound(year1: unknown, month1: unknown, day1: unknown, nanosecon
             }
         }
     }
-    return durationText(years * resultSign, months * resultSign, weeks * resultSign, days * resultSign, time * resultSign, 'hour')
+    return durationText(years * resultSign, months * resultSign, weeks * resultSign, days * resultSign, 0n, 0n, time * resultSign, 'hour')
 }
 
 /**
@@ -943,7 +950,7 @@ function durationAdd(largest1: unknown, days1: unknown, seconds1: unknown, nanos
     const day = 86_400_000_000_000n
     const total = (d1 + k * d2) * day + (s1 + k * s2) * 1_000_000_000n + n1 + k * n2
     const days = largest === 3 ? total / day : 0n
-    return durationText(0n, 0n, 0n, days, total - days * day, largest <= 4 ? 'hour' : largest === 5 ? 'minute' : 'second')
+    return durationText(0n, 0n, 0n, days, 0n, 0n, total - days * day, largest <= 4 ? 'hour' : largest === 5 ? 'minute' : 'second')
 }
 
 /**
@@ -1148,7 +1155,7 @@ export const sqliteScalarFunctions: readonly SqliteScalarFunction[] = [
     { name: 'tsq_round_to', arity: 3, deterministic: pure, fn: roundTo as SqliteScalarFunction['fn'] },
     { name: 'tsq_zoned_wall', arity: 1, deterministic: pure, fn: zonedWall as SqliteScalarFunction['fn'] },
     { name: 'tsq_duration_part', arity: 2, deterministic: pure, fn: durationPart as SqliteScalarFunction['fn'] },
-    { name: 'tsq_duration_text', arity: 6, deterministic: pure, fn: durationText as SqliteScalarFunction['fn'] },
+    { name: 'tsq_duration_text', arity: 8, deterministic: pure, fn: durationText as SqliteScalarFunction['fn'] },
     { name: 'tsq_duration_round', arity: 13, deterministic: pure, fn: durationRound as SqliteScalarFunction['fn'] },
     { name: 'tsq_duration_total', arity: 9, deterministic: pure, fn: durationTotal as SqliteScalarFunction['fn'] },
     { name: 'tsq_duration_add', arity: 9, deterministic: pure, fn: durationAdd as SqliteScalarFunction['fn'] },

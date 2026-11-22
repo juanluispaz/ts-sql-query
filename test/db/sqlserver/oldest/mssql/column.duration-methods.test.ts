@@ -865,7 +865,7 @@ describe(ctx.label, () => {
                 sign: january31.since(Temporal.PlainDate.from('2025-03-30')).sign(),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.tsq_duration_part(dbo.tsq_duration_round(@0, @1, @2, 0, @3, @4, @5, 0, 'year', 'day', 1, 'trunc', 1), 'years') as years, dbo.tsq_duration_part(dbo.tsq_duration_round(@6, @7, @8, 0, @9, @10, @11, 0, 'year', 'day', 1, 'trunc', 1), 'months') as months, dbo.tsq_duration_part(dbo.tsq_duration_round(@12, @13, @14, 0, @15, @16, @17, 0, 'year', 'day', 1, 'trunc', 1), 'days') as days, dbo.tsq_duration_part(dbo.tsq_duration_text(0, 0, 0, -datediff(day, @19, @18), 0, 'day'), 'sign') as sign"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.tsq_duration_part(dbo.tsq_duration_round(@0, @1, @2, 0, @3, @4, @5, 0, 'year', 'day', 1, 'trunc', 1), 'years') as years, dbo.tsq_duration_part(dbo.tsq_duration_round(@6, @7, @8, 0, @9, @10, @11, 0, 'year', 'day', 1, 'trunc', 1), 'months') as months, dbo.tsq_duration_part(dbo.tsq_duration_round(@12, @13, @14, 0, @15, @16, @17, 0, 'year', 'day', 1, 'trunc', 1), 'days') as days, dbo.tsq_duration_part(dbo.tsq_duration_text(0, 0, 0, -datediff(day, @19, @18), 0, 0, 0, 'day'), 'sign') as sign"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
             "2024",

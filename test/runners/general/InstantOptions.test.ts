@@ -72,12 +72,12 @@ describe('InstantOptions', () => {
 
     test('the-text-of-a-duration-of-sqlite-reads-an-integer-given-as-text', () => {
         // 4880353340.123 seconds: more nanoseconds than a double holds exactly
-        expect(durationText(0, 0, 0, 0, '4880353340123000000', 'second')).toBe('PT4880353340.123S')
-        expect(durationText(0, 0, 0, 0, '-4880353340123000000', 'hour')).toBe('-PT1355653H42M20.123S')
+        expect(durationText(0, 0, 0, 0, 0, 0, '4880353340123000000', 'second')).toBe('PT4880353340.123S')
+        expect(durationText(0, 0, 0, 0, 0, 0, '-4880353340123000000', 'hour')).toBe('-PT1355653H42M20.123S')
         // A real, which SQLite gives for an integer beyond its 64 bits (a difference of more than 292 years): an error
         let error = 'no error'
         try {
-            durationText(0, 0, 0, 0, '1.10770596301220e+19', 'hour')
+            durationText(0, 0, 0, 0, 0, 0, '1.10770596301220e+19', 'hour')
         } catch (e) {
             error = (e as Error).message
         }

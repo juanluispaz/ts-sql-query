@@ -865,7 +865,7 @@ describe(ctx.label, () => {
                 sign: january31.since(Temporal.PlainDate.from('2025-03-30')).sign(),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_duration_part(tsq_duration_round(?1, ?2, ?3, 0, ?4, ?5, ?6, 0, 'year', 'day', 1, 'trunc', 1), 'years') as years, tsq_duration_part(tsq_duration_round(?7, ?8, ?9, 0, ?10, ?11, ?12, 0, 'year', 'day', 1, 'trunc', 1), 'months') as months, tsq_duration_part(tsq_duration_round(?13, ?14, ?15, 0, ?16, ?17, ?18, 0, 'year', 'day', 1, 'trunc', 1), 'days') as days, tsq_duration_part(tsq_duration_text(0, 0, 0, -cast(julianday(date(?19)) - julianday(date(?20)) as integer), 0, 'day'), 'sign') as sign"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_duration_part(tsq_duration_round(?1, ?2, ?3, 0, ?4, ?5, ?6, 0, 'year', 'day', 1, 'trunc', 1), 'years') as years, tsq_duration_part(tsq_duration_round(?7, ?8, ?9, 0, ?10, ?11, ?12, 0, 'year', 'day', 1, 'trunc', 1), 'months') as months, tsq_duration_part(tsq_duration_round(?13, ?14, ?15, 0, ?16, ?17, ?18, 0, 'year', 'day', 1, 'trunc', 1), 'days') as days, tsq_duration_part(tsq_duration_text(0, 0, 0, -cast(julianday(date(?19)) - julianday(date(?20)) as integer), 0, 0, 0, 'day'), 'sign') as sign"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
             "2024",

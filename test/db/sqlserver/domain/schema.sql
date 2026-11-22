@@ -589,9 +589,9 @@ GO
 -- time to the days ('day'), and the weeks of the days to the weeks too ('week'); the time is written in hours, minutes
 -- and seconds ('week', 'day', 'hour'), minutes and seconds ('minute') or seconds ('second'); every field with the sign
 -- of the duration. The text is the one of Temporal's toString.
-CREATE OR ALTER FUNCTION dbo.tsq_duration_text(@y BIGINT, @mo BIGINT, @w BIGINT, @d BIGINT, @ns DECIMAL(38, 0), @unit VARCHAR(6)) RETURNS VARCHAR(100) WITH SCHEMABINDING AS
+CREATE OR ALTER FUNCTION dbo.tsq_duration_text(@y BIGINT, @mo BIGINT, @w BIGINT, @d BIGINT, @h BIGINT, @mi BIGINT, @ns DECIMAL(38, 0), @unit VARCHAR(6)) RETURNS VARCHAR(100) WITH SCHEMABINDING AS
 BEGIN
-    IF @y IS NULL OR @mo IS NULL OR @w IS NULL OR @d IS NULL OR @ns IS NULL RETURN NULL;
+    IF @y IS NULL OR @mo IS NULL OR @w IS NULL OR @d IS NULL OR @h IS NULL OR @mi IS NULL OR @ns IS NULL RETURN NULL;
     IF @unit = 'year' BEGIN SET @y = @y + @mo / 12; SET @mo = @mo % 12; END
     IF @unit = 'week' OR @unit = 'day'
     BEGIN
@@ -600,15 +600,17 @@ BEGIN
         IF @unit = 'week' BEGIN SET @w = @w + @d / 7; SET @d = @d % 7; END
         SET @unit = 'hour';
     END
-    DECLARE @neg BIT = CASE WHEN @y < 0 OR @mo < 0 OR @w < 0 OR @d < 0 OR @ns < 0 THEN 1 ELSE 0 END, @r VARCHAR(100) = '', @t VARCHAR(100) = '';
+    DECLARE @neg BIT = CASE WHEN @y < 0 OR @mo < 0 OR @w < 0 OR @d < 0 OR @h < 0 OR @mi < 0 OR @ns < 0 THEN 1 ELSE 0 END, @r VARCHAR(100) = '', @t VARCHAR(100) = '';
     DECLARE @hour BIGINT = 3600000000000, @minute BIGINT = 60000000000, @second BIGINT = 1000000000, @f BIGINT, @frac VARCHAR(9);
     IF @y <> 0 SET @r = @r + CAST(ABS(@y) AS VARCHAR(20)) + 'Y';
     IF @mo <> 0 SET @r = @r + CAST(ABS(@mo) AS VARCHAR(20)) + 'M';
     IF @w <> 0 SET @r = @r + CAST(ABS(@w) AS VARCHAR(20)) + 'W';
     IF @d <> 0 SET @r = @r + CAST(ABS(@d) AS VARCHAR(20)) + 'D';
-    SET @ns = ABS(@ns);
-    IF @unit = 'hour' AND @ns >= @hour BEGIN SET @t = @t + CAST(FLOOR(@ns / @hour) AS VARCHAR(20)) + 'H'; SET @ns = @ns % @hour; END
-    IF @unit <> 'second' AND @ns >= @minute BEGIN SET @t = @t + CAST(FLOOR(@ns / @minute) AS VARCHAR(20)) + 'M'; SET @ns = @ns % @minute; END
+    SET @ns = ABS(@ns); SET @h = ABS(@h); SET @mi = ABS(@mi);
+    IF @unit = 'hour' BEGIN SET @h = @h + CAST(FLOOR(@ns / @hour) AS BIGINT); SET @ns = @ns % @hour; END
+    IF @h <> 0 SET @t = @t + CAST(@h AS VARCHAR(20)) + 'H';
+    IF @unit <> 'second' BEGIN SET @mi = @mi + CAST(FLOOR(@ns / @minute) AS BIGINT); SET @ns = @ns % @minute; END
+    IF @mi <> 0 SET @t = @t + CAST(@mi AS VARCHAR(20)) + 'M';
     IF @ns > 0
     BEGIN
         SET @f = @ns % @second;
@@ -718,7 +720,7 @@ BEGIN
             END
         END
     END
-    RETURN dbo.tsq_duration_text(@years * @negation, @months * @negation, @weeks * @negation, @days * @negation, @t * @negation, 'hour');
+    RETURN dbo.tsq_duration_text(@years * @negation, @months * @negation, @weeks * @negation, @days * @negation, 0, 0, @t * @negation, 'hour');
 END
 GO
 
@@ -803,7 +805,7 @@ BEGIN
         RETURN CAST(CAST('tsq_duration_add: a duration with years, months or weeks can''t be added nor subtracted, sign ' + CAST(@sign AS VARCHAR(2)) AS INT) AS VARCHAR(100));
     SET @total = CAST(@days1 + @sign * @days2 AS DECIMAL(38, 0)) * @day + CAST(@seconds1 + @sign * @seconds2 AS DECIMAL(38, 0)) * 1000000000 + @nanoseconds1 + @sign * @nanoseconds2;
     IF @largest = 3 SET @days = (@total - @total % @day) / @day;
-    RETURN dbo.tsq_duration_text(0, 0, 0, @days, @total - @days * @day, CASE WHEN @largest <= 4 THEN 'hour' WHEN @largest = 5 THEN 'minute' ELSE 'second' END);
+    RETURN dbo.tsq_duration_text(0, 0, 0, @days, 0, 0, @total - @days * @day, CASE WHEN @largest <= 4 THEN 'hour' WHEN @largest = 5 THEN 'minute' ELSE 'second' END);
 END
 GO
 

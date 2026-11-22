@@ -82,10 +82,26 @@ describe('PlainTemporalDifference', () => {
             [0, 30, 0, 0, 0n, 'year'],
             [0, -30, 0, 0, 0n, 'month'],
         ]
-        expect(fields.map(([years, months, weeks, days, nanoseconds, unit]) => durationText(years, months, weeks, days, nanoseconds, unit))).toEqual([
+        expect(fields.map(([years, months, weeks, days, nanoseconds, unit]) => durationText(years, months, weeks, days, 0, 0, nanoseconds, unit))).toEqual([
             'PT0S', 'P1Y2M3W4DT1H23M45.5S', '-P1Y2M4DT1.5S', 'PT90M', 'PT5400.000000123S', 'P3D', 'PT0.0005S', 'P1DT1H', 'PT1H', '-P1W2DT1H', 'P1W3D', 'P2Y6M', '-P30M',
         ])
-        expect(durationText(null, 0, 0, 0, 0, 'hour')).toBeNull()
+        expect(durationText(null, 0, 0, 0, 0, 0, 0, 'hour')).toBeNull()
+    })
+
+    test('tsq-duration-text-writes-the-hours-and-minutes-given-as-they-are', () => {
+        // The fields of Temporal.Duration.from, which Temporal doesn't balance, are written as they are given with the unit
+        // 'second'; the nanoseconds of a duration computed are balanced up to the unit and added to them
+        const given: Array<[number, number, number, number, number, number, bigint, string, Temporal.DurationLike]> = [
+            [0, 0, 0, 0, 1, 90, 5_500_000_000n, 'second', { hours: 1, minutes: 90, seconds: 5, milliseconds: 500 }],
+            [0, 0, 0, 2, 0, 90, 0n, 'second', { days: 2, minutes: 90 }],
+            [0, 0, 0, 0, -25, 0, -1n, 'second', { hours: -25, nanoseconds: -1 }],
+            [1, 0, 0, 0, 0, 0, 0n, 'second', { years: 1 }],
+        ]
+        expect(given.map(([years, months, weeks, days, hours, minutes, nanoseconds, unit]) => durationText(years, months, weeks, days, hours, minutes, nanoseconds, unit)))
+            .toEqual(given.map(fields => Temporal.Duration.from(fields[8]).toString()))
+        expect(durationText(0, 0, 0, 0, 1, 0, 3_600_000_000_000n, 'hour')).toBe('PT2H')
+        expect(durationText(0, 0, 0, 0, 0, 59, 120_000_000_000n, 'minute')).toBe('PT61M')
+        expect(durationText(0, 0, 0, 0, null, 0, 0, 'hour')).toBeNull()
     })
 
     // Its values are the ones of Temporal: compared where the Temporal of the runtime gives the ones of the specification

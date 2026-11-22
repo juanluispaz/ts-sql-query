@@ -124,7 +124,7 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFromNoTable()
             .select({ later: january31.until(Temporal.PlainDate.from('2024-03-30')).add({ hours: 12 }) })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_duration_add(tsq_duration_part(tsq_duration_text(0, 0, 0, datediff(?, ?), 0, 'day'), 'largest'), tsq_duration_part(tsq_duration_text(0, 0, 0, datediff(?, ?), 0, 'day'), 'days'), tsq_duration_part(tsq_duration_text(0, 0, 0, datediff(?, ?), 0, 'day'), 'S'), tsq_duration_part(tsq_duration_text(0, 0, 0, datediff(?, ?), 0, 'day'), 'N'), 4, 0, 43200, 0, 1) as later"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_duration_add(tsq_duration_part(tsq_duration_text(0, 0, 0, datediff(?, ?), 0, 0, 0, 'day'), 'largest'), tsq_duration_part(tsq_duration_text(0, 0, 0, datediff(?, ?), 0, 0, 0, 'day'), 'days'), tsq_duration_part(tsq_duration_text(0, 0, 0, datediff(?, ?), 0, 0, 0, 'day'), 'S'), tsq_duration_part(tsq_duration_text(0, 0, 0, datediff(?, ?), 0, 0, 0, 'day'), 'N'), 4, 0, 43200, 0, 1) as later"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
             "2024-03-30",

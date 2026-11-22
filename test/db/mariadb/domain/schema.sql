@@ -480,27 +480,29 @@ DELIMITER ;
 -- of the duration. The text is the one of Temporal's toString.
 DROP FUNCTION IF EXISTS tsq_duration_text;
 DELIMITER //
-CREATE FUNCTION tsq_duration_text(y BIGINT, mo BIGINT, w BIGINT, d BIGINT, ns DECIMAL(65, 0), unit VARCHAR(6)) RETURNS VARCHAR(100) CHARACTER SET ascii DETERMINISTIC NO SQL
+CREATE FUNCTION tsq_duration_text(y BIGINT, mo BIGINT, w BIGINT, d BIGINT, h BIGINT, mi BIGINT, ns DECIMAL(65, 0), unit VARCHAR(6)) RETURNS VARCHAR(100) CHARACTER SET ascii DETERMINISTIC NO SQL
 BEGIN
     DECLARE r VARCHAR(100) DEFAULT '';
     DECLARE t VARCHAR(100) DEFAULT '';
     DECLARE neg BOOLEAN;
     DECLARE f BIGINT;
-    IF y IS NULL OR mo IS NULL OR w IS NULL OR d IS NULL OR ns IS NULL THEN RETURN NULL; END IF;
+    IF y IS NULL OR mo IS NULL OR w IS NULL OR d IS NULL OR h IS NULL OR mi IS NULL OR ns IS NULL THEN RETURN NULL; END IF;
     IF unit = 'year' THEN SET y = y + mo DIV 12, mo = mo MOD 12; END IF;
     IF unit = 'week' OR unit = 'day' THEN
         SET d = d + ns DIV 86400000000000, ns = ns MOD 86400000000000;
         IF unit = 'week' THEN SET w = w + d DIV 7, d = d MOD 7; END IF;
         SET unit = 'hour';
     END IF;
-    SET neg = y < 0 OR mo < 0 OR w < 0 OR d < 0 OR ns < 0;
+    SET neg = y < 0 OR mo < 0 OR w < 0 OR d < 0 OR h < 0 OR mi < 0 OR ns < 0;
     IF y <> 0 THEN SET r = CONCAT(r, ABS(y), 'Y'); END IF;
     IF mo <> 0 THEN SET r = CONCAT(r, ABS(mo), 'M'); END IF;
     IF w <> 0 THEN SET r = CONCAT(r, ABS(w), 'W'); END IF;
     IF d <> 0 THEN SET r = CONCAT(r, ABS(d), 'D'); END IF;
-    SET ns = ABS(ns);
-    IF unit = 'hour' AND ns >= 3600000000000 THEN SET t = CONCAT(t, ns DIV 3600000000000, 'H'), ns = ns MOD 3600000000000; END IF;
-    IF unit <> 'second' AND ns >= 60000000000 THEN SET t = CONCAT(t, ns DIV 60000000000, 'M'), ns = ns MOD 60000000000; END IF;
+    SET ns = ABS(ns), h = ABS(h), mi = ABS(mi);
+    IF unit = 'hour' THEN SET h = h + ns DIV 3600000000000, ns = ns MOD 3600000000000; END IF;
+    IF h <> 0 THEN SET t = CONCAT(t, h, 'H'); END IF;
+    IF unit <> 'second' THEN SET mi = mi + ns DIV 60000000000, ns = ns MOD 60000000000; END IF;
+    IF mi <> 0 THEN SET t = CONCAT(t, mi, 'M'); END IF;
     IF ns > 0 THEN
         SET f = ns MOD 1000000000;
         SET t = CONCAT(t, ns DIV 1000000000, IF(f > 0, CONCAT('.', TRIM(TRAILING '0' FROM LPAD(f, 9, '0'))), ''), 'S');
@@ -628,7 +630,7 @@ BEGIN
             END IF;
         END IF;
     END IF;
-    RETURN tsq_duration_text(v_years * negation, v_months * negation, v_weeks * negation, v_days * negation, v_t * negation, 'hour');
+    RETURN tsq_duration_text(v_years * negation, v_months * negation, v_weeks * negation, v_days * negation, 0, 0, v_t * negation, 'hour');
 END
 //
 DELIMITER ;
@@ -743,7 +745,7 @@ BEGIN
     END IF;
     SET v_total = (days1 + sgn * days2) * v_day + (seconds1 + sgn * seconds2) * CAST(1000000000 AS DECIMAL(65, 0)) + nanoseconds1 + sgn * nanoseconds2;
     IF v_largest = 3 THEN SET v_days = (v_total - MOD(v_total, v_day)) DIV v_day; END IF;
-    RETURN tsq_duration_text(0, 0, 0, v_days, v_total - v_days * v_day, CASE WHEN v_largest <= 4 THEN 'hour' WHEN v_largest = 5 THEN 'minute' ELSE 'second' END);
+    RETURN tsq_duration_text(0, 0, 0, v_days, 0, 0, v_total - v_days * v_day, CASE WHEN v_largest <= 4 THEN 'hour' WHEN v_largest = 5 THEN 'minute' ELSE 'second' END);
 END
 //
 DELIMITER ;

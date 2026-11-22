@@ -475,7 +475,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", tsq_duration_text(0, 0, 0, 0, tsq_nanoseconds_between(sys_extract_utc(zoned_at), sys_extract_utc((tsq_zoned_plus_date(zoned_at, 0, :1, 0) + numtodsinterval(:0, 'second')))), 'hour') as "hours", tsq_zoned_until(zoned_at, (tsq_zoned_plus_date(zoned_at, 0, :3, 0) + numtodsinterval(:2, 'second')), 'day', 'nanosecond', 1, 'trunc', 1) as "days", tsq_zoned_until(zoned_at, tsq_zoned_plus_date(zoned_at, :4, :5, 0), 'month', 'month', 1, 'halfExpand', -1) as "months" from zoned_value order by "id""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", tsq_duration_text(0, 0, 0, 0, 0, 0, tsq_nanoseconds_between(sys_extract_utc(zoned_at), sys_extract_utc((tsq_zoned_plus_date(zoned_at, 0, :1, 0) + numtodsinterval(:0, 'second')))), 'hour') as "hours", tsq_zoned_until(zoned_at, (tsq_zoned_plus_date(zoned_at, 0, :3, 0) + numtodsinterval(:2, 'second')), 'day', 'nanosecond', 1, 'trunc', 1) as "days", tsq_zoned_until(zoned_at, tsq_zoned_plus_date(zoned_at, :4, :5, 0), 'month', 'month', 1, 'halfExpand', -1) as "months" from zoned_value order by "id""`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
             "3600",

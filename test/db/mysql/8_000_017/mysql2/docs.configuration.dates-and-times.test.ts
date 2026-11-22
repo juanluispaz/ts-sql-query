@@ -307,7 +307,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as version, tsq_duration_text(0, 0, 0, 0, cast(-timestampdiff(microsecond, deployed_at, published_at) as decimal(65)) * 1000, 'hour') as afterPublishing, date_add(date(deployed_at), interval (floor(time_to_sec(deployed_at)) * 1000000 + microsecond(deployed_at)) div 3600000000 * 3600000000 microsecond) as hour, date_add(date_add(date(deployed_at), interval ((floor(time_to_sec(deployed_at)) * 1000000 + microsecond(deployed_at)) + 3599999999) div 3600000000 * 3600000000 microsecond), interval ? microsecond) as reviewBy from project_release where deployed_at is not null order by version"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as version, tsq_duration_text(0, 0, 0, 0, 0, 0, cast(-timestampdiff(microsecond, deployed_at, published_at) as decimal(65)) * 1000, 'hour') as afterPublishing, date_add(date(deployed_at), interval (floor(time_to_sec(deployed_at)) * 1000000 + microsecond(deployed_at)) div 3600000000 * 3600000000 microsecond) as hour, date_add(date_add(date(deployed_at), interval ((floor(time_to_sec(deployed_at)) * 1000000 + microsecond(deployed_at)) + 3599999999) div 3600000000 * 3600000000 microsecond), interval ? microsecond) as reviewBy from project_release where deployed_at is not null order by version"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             172800000000n,
@@ -508,7 +508,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as version, tsq_duration_text(0, 0, 0, datediff(date(published_at), released_on), 0, 'day') as toPublication, tsq_duration_text(0, 0, 0, 0, cast(-timestampdiff(microsecond, published_at, timestamp(released_on)) as decimal(65)) * 1000, 'hour') as publishedAfter, tsq_duration_round(cast(year(released_on) as signed), cast(month(released_on) as signed), cast(dayofmonth(released_on) as signed), 0, ?, ?, ?, 0, 'month', 'day', 1, 'trunc', 1) as untilEndOfJune from project_release order by version"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as version, tsq_duration_text(0, 0, 0, datediff(date(published_at), released_on), 0, 0, 0, 'day') as toPublication, tsq_duration_text(0, 0, 0, 0, 0, 0, cast(-timestampdiff(microsecond, published_at, timestamp(released_on)) as decimal(65)) * 1000, 'hour') as publishedAfter, tsq_duration_round(cast(year(released_on) as signed), cast(month(released_on) as signed), cast(dayofmonth(released_on) as signed), 0, ?, ?, ?, 0, 'month', 'day', 1, 'trunc', 1) as untilEndOfJune from project_release order by version"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
             "2024",

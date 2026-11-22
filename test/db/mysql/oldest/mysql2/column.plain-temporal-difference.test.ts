@@ -26,7 +26,7 @@ describe(ctx.label, () => {
                 timeSince: ctx.conn.const(Temporal.PlainTime.from('10:00'), 'plainTime').since(Temporal.PlainTime.from('08:30')),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_duration_text(0, 0, 0, datediff(?, ?), 0, 'day') as days, tsq_duration_text(0, 0, 0, -datediff(?, ?), 0, 'day') as daysBefore, tsq_duration_text(0, 0, 0, 0, cast(timestampdiff(microsecond, ?, ?) as decimal(65)) * 1000, 'day') as dateTime, tsq_duration_text(0, 0, 0, 0, ((floor(time_to_sec(?)) * 1000000 + microsecond(?)) - (floor(time_to_sec(?)) * 1000000 + microsecond(?))) * 1000, 'hour') as time, tsq_duration_text(0, 0, 0, 0, -((floor(time_to_sec(?)) * 1000000 + microsecond(?)) - (floor(time_to_sec(?)) * 1000000 + microsecond(?))) * 1000, 'hour') as timeSince"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_duration_text(0, 0, 0, datediff(?, ?), 0, 0, 0, 'day') as days, tsq_duration_text(0, 0, 0, -datediff(?, ?), 0, 0, 0, 'day') as daysBefore, tsq_duration_text(0, 0, 0, 0, 0, 0, cast(timestampdiff(microsecond, ?, ?) as decimal(65)) * 1000, 'day') as dateTime, tsq_duration_text(0, 0, 0, 0, 0, 0, ((floor(time_to_sec(?)) * 1000000 + microsecond(?)) - (floor(time_to_sec(?)) * 1000000 + microsecond(?))) * 1000, 'hour') as time, tsq_duration_text(0, 0, 0, 0, 0, 0, -((floor(time_to_sec(?)) * 1000000 + microsecond(?)) - (floor(time_to_sec(?)) * 1000000 + microsecond(?))) * 1000, 'hour') as timeSince"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
             "2024-03-30",
@@ -117,7 +117,7 @@ describe(ctx.label, () => {
                 weeks: ctx.conn.const(Temporal.PlainDate.from('2024-01-01'), 'plainDate').until(Temporal.PlainDate.from('2024-03-15'), { largestUnit: 'week' }),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_duration_round(?, ?, ?, 0, ?, ?, ?, 0, 'month', 'day', 1, 'trunc', -1) as since, tsq_duration_round(?, ?, ?, 0, ?, ?, ?, 0, 'month', 'day', 1, 'trunc', 1) as untilBack, tsq_duration_text(0, 0, 0, datediff(?, ?), 0, 'week') as weeks"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_duration_round(?, ?, ?, 0, ?, ?, ?, 0, 'month', 'day', 1, 'trunc', -1) as since, tsq_duration_round(?, ?, ?, 0, ?, ?, ?, 0, 'month', 'day', 1, 'trunc', 1) as untilBack, tsq_duration_text(0, 0, 0, datediff(?, ?), 0, 0, 0, 'week') as weeks"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
             "2024",
@@ -149,7 +149,7 @@ describe(ctx.label, () => {
                 months: ctx.conn.const(Temporal.PlainDateTime.from('2024-01-31T10:00'), 'plainDateTime').until(Temporal.PlainDateTime.from('2024-02-29T09:00'), { largestUnit: 'month' }),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_duration_text(0, 0, 0, 0, cast(timestampdiff(microsecond, ?, ?) as decimal(65)) * 1000, 'day') as overnight, tsq_duration_text(0, 0, 0, 0, cast(timestampdiff(microsecond, ?, ?) as decimal(65)) * 1000, 'minute') as inMinutes, tsq_duration_round(?, ?, ?, ?, ?, ?, ?, ?, 'month', 'nanosecond', 1, 'trunc', 1) as months"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_duration_text(0, 0, 0, 0, 0, 0, cast(timestampdiff(microsecond, ?, ?) as decimal(65)) * 1000, 'day') as overnight, tsq_duration_text(0, 0, 0, 0, 0, 0, cast(timestampdiff(microsecond, ?, ?) as decimal(65)) * 1000, 'minute') as inMinutes, tsq_duration_round(?, ?, ?, ?, ?, ?, ?, ?, 'month', 'nanosecond', 1, 'trunc', 1) as months"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
             "2024-01-01T23:00:00",
@@ -180,7 +180,7 @@ describe(ctx.label, () => {
                 hour: ctx.conn.const(Temporal.PlainDateTime.from('2024-03-01T08:00'), 'plainDateTime').until(Temporal.PlainDateTime.from('2024-03-03T10:40'), { smallestUnit: 'hour', roundingMode: 'halfExpand' }),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_duration_text(0, 0, 0, 0, ((((floor(time_to_sec(?)) * 1000000 + microsecond(?)) - (floor(time_to_sec(?)) * 1000000 + microsecond(?))) - case when ((floor(time_to_sec(?)) * 1000000 + microsecond(?)) - (floor(time_to_sec(?)) * 1000000 + microsecond(?))) < 0 then 999999 else 0 end) div 1000000 * 1000000) * 1000, 'hour') as floor, tsq_duration_text(0, 0, 0, 0, (((floor(time_to_sec(?)) * 1000000 + microsecond(?)) - (floor(time_to_sec(?)) * 1000000 + microsecond(?))) div 1000000 * 1000000) * 1000, 'hour') as trunc, tsq_duration_text(0, 0, 0, 0, ((2 * ((floor(time_to_sec(?)) * 1000000 + microsecond(?)) - (floor(time_to_sec(?)) * 1000000 + microsecond(?))) + case when ((floor(time_to_sec(?)) * 1000000 + microsecond(?)) - (floor(time_to_sec(?)) * 1000000 + microsecond(?))) < 0 then -900000000 else 900000000 end) div 1800000000 * 900000000) * 1000, 'hour') as quarter, tsq_duration_text(0, 0, 0, 0, cast(((2 * timestampdiff(microsecond, ?, ?) + case when timestampdiff(microsecond, ?, ?) < 0 then -3600000000 else 3600000000 end) div 7200000000 * 3600000000) as decimal(65)) * 1000, 'day') as hour"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select tsq_duration_text(0, 0, 0, 0, 0, 0, ((((floor(time_to_sec(?)) * 1000000 + microsecond(?)) - (floor(time_to_sec(?)) * 1000000 + microsecond(?))) - case when ((floor(time_to_sec(?)) * 1000000 + microsecond(?)) - (floor(time_to_sec(?)) * 1000000 + microsecond(?))) < 0 then 999999 else 0 end) div 1000000 * 1000000) * 1000, 'hour') as floor, tsq_duration_text(0, 0, 0, 0, 0, 0, (((floor(time_to_sec(?)) * 1000000 + microsecond(?)) - (floor(time_to_sec(?)) * 1000000 + microsecond(?))) div 1000000 * 1000000) * 1000, 'hour') as trunc, tsq_duration_text(0, 0, 0, 0, 0, 0, ((2 * ((floor(time_to_sec(?)) * 1000000 + microsecond(?)) - (floor(time_to_sec(?)) * 1000000 + microsecond(?))) + case when ((floor(time_to_sec(?)) * 1000000 + microsecond(?)) - (floor(time_to_sec(?)) * 1000000 + microsecond(?))) < 0 then -900000000 else 900000000 end) div 1800000000 * 900000000) * 1000, 'hour') as quarter, tsq_duration_text(0, 0, 0, 0, 0, 0, cast(((2 * timestampdiff(microsecond, ?, ?) + case when timestampdiff(microsecond, ?, ?) < 0 then -3600000000 else 3600000000 end) div 7200000000 * 3600000000) as decimal(65)) * 1000, 'day') as hour"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
             "08:30:00.5",
@@ -301,7 +301,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, tsq_duration_text(0, 0, 0, datediff(date(published_at), released_on), 0, 'day') as toPublication, tsq_duration_text(0, 0, 0, 0, cast(-timestampdiff(microsecond, published_at, timestamp(released_on)) as decimal(65)) * 1000, 'hour') as sinceRelease, tsq_duration_text(0, 0, 0, 0, ((floor(time_to_sec(time(published_at))) * 1000000 + microsecond(time(published_at))) - (floor(time_to_sec(cutoff_time)) * 1000000 + microsecond(cutoff_time))) * 1000, 'hour') as cutoffToPublication from project_release order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, tsq_duration_text(0, 0, 0, datediff(date(published_at), released_on), 0, 0, 0, 'day') as toPublication, tsq_duration_text(0, 0, 0, 0, 0, 0, cast(-timestampdiff(microsecond, published_at, timestamp(released_on)) as decimal(65)) * 1000, 'hour') as sinceRelease, tsq_duration_text(0, 0, 0, 0, 0, 0, ((floor(time_to_sec(time(published_at))) * 1000000 + microsecond(time(published_at))) - (floor(time_to_sec(cutoff_time)) * 1000000 + microsecond(cutoff_time))) * 1000, 'hour') as cutoffToPublication from project_release order by id"`)
         expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number; toPublication: Temporal.Duration; sinceRelease: Temporal.Duration; cutoffToPublication: Temporal.Duration }>>>()
         expect(rows.map(row => [row.id, row.toPublication.toString(), row.sinceRelease.toString(), row.cutoffToPublication.toString()])).toEqual([

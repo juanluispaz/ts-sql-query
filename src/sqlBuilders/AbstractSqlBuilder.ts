@@ -5507,12 +5507,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const whole = this._differenceWhole(context, d)
         const unit = "'" + this._differenceBalanceUnit(d) + "'"
         if (d.fields === 'yearMonth') {
-            return this._durationTextFunctionName() + '(0, ' + whole + ', 0, 0, 0, ' + unit + ')'
+            return this._durationTextFunctionName() + '(0, ' + whole + ', 0, 0, 0, 0, 0, ' + unit + ')'
         }
         if (d.fields === 'date') {
-            return this._durationTextFunctionName() + '(0, 0, 0, ' + whole + ', 0, ' + unit + ')'
+            return this._durationTextFunctionName() + '(0, 0, 0, ' + whole + ', 0, 0, 0, ' + unit + ')'
         }
-        return this._durationTextFunctionName() + '(0, 0, 0, 0, ' + this._durationTextTimeArgument(this._nanosecondsOfDifference(whole, d)) + ', ' + unit + ')'
+        return this._durationTextFunctionName() + '(0, 0, 0, 0, 0, 0, ' + this._durationTextTimeArgument(this._nanosecondsOfDifference(whole, d)) + ', ' + unit + ')'
     }
     /** The nanoseconds of the time of a difference as the function of the library takes them: as they are */
     _durationTextTimeArgument(nanoseconds: string): string {

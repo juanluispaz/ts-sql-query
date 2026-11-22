@@ -92,6 +92,11 @@ A `zonedDateTime` has the methods of Temporal that give its parts and its instan
 
 Two zoned dates and times are compared and ordered by their instant, as Temporal's `ZonedDateTime.compare`: `equals` finds the same instant in another zone too, where Temporal's `equals` also compares the zone.
 
+## How each database keeps it
+
+Oracle keeps a zoned date and time in a `TIMESTAMP WITH TIME ZONE`, with its zone. The other databases keep it as its text, like `2024-03-02T12:05:00+01:00[Europe/Madrid]`, in a column like `varchar(100)`; on PostgreSQL a query can also compute one from an instant and a zone. A comparison of a column of text computes the instant of each row, so an index of the column isn't used for it. The detail, and how to declare a column of text on Oracle, is in [How each database keeps a zoned date and time](../advanced/dates-and-times/storage.md#how-each-database-keeps-a-zoned-date-and-time).
+
+
 ## Computing with the zones on the other databases
 
 Taking an instant or a wall clock to a zone, changing the zone of a zoned date and time and its arithmetic (`toZonedDateTimeISO`, `toZonedDateTime`, `withTimeZone`, `add`, `subtract`, `with`, `withPlainTime`, `startOfDay`, `hoursInDay`, `round`, `until`, `since`) are offered only on Oracle and PostgreSQL. On MariaDB, MySQL, SQLite and SQL Server they don't compile, because what these databases have gives other results than Temporal's, without an error:
@@ -206,12 +211,12 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 
 ## The functions of the library it uses
 
-Some operations of this page are computed by functions of the library: create them once in the database with the file of SQL of the functions of your database ([MariaDB](../databases/mariadb/functions.md), [MySQL](../databases/mysql/functions.md), [Oracle](../databases/oracle/functions.md), [PostgreSQL](../databases/postgresql/functions.md), [SQLite](../databases/sqlite/functions.md), [SQL Server](../databases/sqlserver/functions.md)), and on SQLite register them with `registerSqliteFunctions` of the query runner; without them, the query fails with the error of the database for a function that doesn't exist.
+Some operations of this page need functions of the library in the database; without them, the query fails with the error of the database for a function that doesn't exist. Create them once with the file of SQL of your database ([MariaDB](../databases/mariadb/functions.md), [MySQL](../databases/mysql/functions.md), [Oracle](../databases/oracle/functions.md), [PostgreSQL](../databases/postgresql/functions.md), [SQLite](../databases/sqlite/functions.md), [SQL Server](../databases/sqlserver/functions.md)), and on SQLite register them with `registerSqliteFunctions` of the query runner; that page also says how each one computes.
 
-| Function | What it computes | Databases |
+| Operation | Function | Databases |
 |---|---|---|
-| `tsq_zoned_until` | `until` and `since` of two zoned dates and times in days or larger units: it counts the days of the calendar in their zone, with the length of each one there, and rounds as Temporal rounds. Two zoned dates and times in different zones make it fail (`ORA-20001` on Oracle) | Oracle, PostgreSQL |
-| `tsq_zoned_of_wall` | A wall clock taken to its zone as Temporal takes it, which `tsq_zoned_until` uses | Oracle, PostgreSQL |
-| `tsq_duration_text` | The text of the duration, which `tsq_zoned_until` writes | Oracle |
+| `until` and `since` in days or larger units | `tsq_zoned_until` and `tsq_zoned_of_wall`, and `tsq_duration_text` on Oracle | Oracle, PostgreSQL |
 
-With `libraryFunctions = 'installed'` on the connection, a query calls the optional functions of the queries of this page, like `tsq_zoned_of_wall` to take a wall clock to its zone as Temporal disambiguates it; the result is the one of Temporal.
+Two zoned dates and times in different zones make `tsq_zoned_until` fail (`ORA-20001` on Oracle).
+
+With `libraryFunctions = 'installed'` on the connection, a query also calls the optional functions of the library, and its SQL is shorter; the result is the same.

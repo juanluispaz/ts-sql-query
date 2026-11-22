@@ -148,6 +148,11 @@ Two durations of the same length written differently, like `P1D` and `PT24H`, ar
 | An `INTERVAL DAY TO SECOND` of Oracle | Equal | Equal |
 | Its ISO 8601 text | Different: the texts are compared | Different |
 
+## How it is kept
+
+PostgreSQL and Oracle keep a duration in an interval, and the other databases as its ISO 8601 text, like `P1Y2M3DT4H5M6.789S`. A column can keep it as text on any database, or, on Oracle, in an `INTERVAL YEAR TO MONTH`, and the digits of a second kept in a text can be fewer: see [How each database keeps a duration](../advanced/dates-and-times/storage.md#how-each-database-keeps-a-duration).
+
+
 ## The fields of a duration
 
 A duration in a query has the fields and methods of Temporal's: `years()`, `months()`, `weeks()`, `days()`, `hours()`, `minutes()`, `seconds()` (without its fraction), `milliseconds()`, `microseconds()` and `nanoseconds()` (each from 0 to 999) give each field as an `int` with the sign of the duration; `sign()` gives -1, 0 or 1; `negated()` and `abs()` give the duration with the opposite sign and without its sign. Here the fields of the time each rollout took, and that time negated:
@@ -435,13 +440,14 @@ As with `until` and `since`, on PostgreSQL the sum is an interval, which keeps i
 
 ## The functions of the library it uses
 
-Some operations of this page are computed by functions of the library: create them once in the database with the file of SQL of the functions of your database ([MariaDB](../databases/mariadb/functions.md), [MySQL](../databases/mysql/functions.md), [Oracle](../databases/oracle/functions.md), [PostgreSQL](../databases/postgresql/functions.md), [SQLite](../databases/sqlite/functions.md#the-functions-of-durations), [SQL Server](../databases/sqlserver/functions.md)), and on SQLite register them with `registerSqliteFunctions` of the query runner; without them, the query fails with the error of the database for a function that doesn't exist.
+Some operations of this page need functions of the library in the database; without them, the query fails with the error of the database for a function that doesn't exist. Create them once with the file of SQL of your database ([MariaDB](../databases/mariadb/functions.md), [MySQL](../databases/mysql/functions.md), [Oracle](../databases/oracle/functions.md), [PostgreSQL](../databases/postgresql/functions.md), [SQLite](../databases/sqlite/functions.md), [SQL Server](../databases/sqlserver/functions.md)), and on SQLite register them with `registerSqliteFunctions` of the query runner; that page also says how each one computes.
 
-| Function | What it computes | Databases |
+| Operation | Function | Databases |
 |---|---|---|
-| `tsq_duration_part` | Reading the fields, the sign or the total of a duration the database holds, like `tRelease.rolloutTime`, negating it, or adding it to another duration: it reads the parts of its ISO 8601 text. Reading, writing or comparing a duration doesn't need it, and neither does a duration given as a value | MariaDB, MySQL, SQLite, SQL Server, and a column of Oracle or PostgreSQL that keeps a duration as text |
-| `tsq_duration_total` | `total`: it adds the duration to the date of reference and divides with integers, so the `double` is rounded once, as Temporal rounds it | Every database |
-| `tsq_duration_add` | `add` and `subtract` of two durations: it takes, of each duration, its largest field that isn't zero, its days, the whole seconds of its time and the nanoseconds of the second | Every database |
-| `tsq_duration_text` | The text of the sum, which `tsq_duration_add` writes | MariaDB, MySQL, Oracle, SQL Server |
+| Reading the fields, the sign or the total of a duration the database holds, like `tRelease.rolloutTime`, negating it, or adding it to another duration | `tsq_duration_part` | MariaDB, MySQL, SQLite, SQL Server, and a duration kept as text on Oracle or PostgreSQL |
+| `total` | `tsq_duration_total` | Every database |
+| `add` and `subtract` of two durations | `tsq_duration_add`, and `tsq_duration_text` on MariaDB, MySQL, Oracle and SQL Server | Every database |
 
-With `libraryFunctions = 'installed'` on the connection, a query calls `tsq_duration_total_of` and `tsq_duration_sum` instead of `tsq_duration_total` and `tsq_duration_add`, which take each duration whole and write it once, and the other optional functions of the queries of this page; the result is the same.
+Reading, writing or comparing a duration needs none of them, and neither does a duration given as a value.
+
+With `libraryFunctions = 'installed'` on the connection, a query also calls the optional functions of the library, and its SQL is shorter; the result is the same.

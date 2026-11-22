@@ -557,12 +557,14 @@ The query writes the rounding inline, with the value two to four times. With the
 
 ## The functions of the library it uses
 
-Some operations of this page are computed by functions of the library: create them once in the database with the file of SQL of the functions of your database ([MariaDB](../databases/mariadb/functions.md), [MySQL](../databases/mysql/functions.md), [Oracle](../databases/oracle/functions.md), [PostgreSQL](../databases/postgresql/functions.md), [SQLite](../databases/sqlite/functions.md#the-functions-of-durations), [SQL Server](../databases/sqlserver/functions.md)), and on SQLite register them with `registerSqliteFunctions` of the query runner; without them, the query fails with the error of the database for a function that doesn't exist.
+Some operations of this page need functions of the library in the database; without them, the query fails with the error of the database for a function that doesn't exist. Create them once with the file of SQL of your database ([MariaDB](../databases/mariadb/functions.md), [MySQL](../databases/mysql/functions.md), [Oracle](../databases/oracle/functions.md), [PostgreSQL](../databases/postgresql/functions.md), [SQLite](../databases/sqlite/functions.md), [SQL Server](../databases/sqlserver/functions.md)), and on SQLite register them with `registerSqliteFunctions` of the query runner; that page also says how each one computes.
 
-| Function | What it computes | Databases |
+| Operation | Function | Databases |
 |---|---|---|
-| `tsq_duration_part` | Adding to a date a duration the database holds, like `tRelease.rolloutTime`: it reads the parts of its ISO 8601 text. A duration given as a value doesn't need it | MariaDB, MySQL, SQLite, SQL Server, and a column of Oracle or PostgreSQL that keeps a duration as text |
-| `tsq_duration_text` | The text of the duration of `until` and `since` | MariaDB, MySQL, Oracle, SQLite, SQL Server |
-| `tsq_duration_round` | `until` and `since` in months or years, and rounded with a largest unit of a week, a month or a year (a `smallestUnit` or a `roundingIncrement` other than the defaults): it counts the whole months from the first value without passing the second one, as Temporal does and no database does by itself, and rounds them as Temporal does | Every database |
+| Adding to a date a duration the database holds, like `tRelease.rolloutTime` | `tsq_duration_part` | MariaDB, MySQL, SQLite, SQL Server, and a duration kept as text on Oracle or PostgreSQL |
+| `until` and `since` | `tsq_duration_text` | MariaDB, MySQL, Oracle, SQLite, SQL Server |
+| `until` and `since` in months or years, or rounded with a largest unit of a week, a month or a year | `tsq_duration_round` | Every database |
 
-With `libraryFunctions = 'installed'` on the connection, a query calls `tsq_duration_round_of` instead of `tsq_duration_round`, which takes each date or date and time whole and writes it once, and the other optional functions of the queries of this page; the result is the same.
+A duration given as a value doesn't need `tsq_duration_part`.
+
+With `libraryFunctions = 'installed'` on the connection, a query also calls the optional functions of the library, and its SQL is shorter; the result is the same.

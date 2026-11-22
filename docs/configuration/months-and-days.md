@@ -16,7 +16,7 @@ billingMonth = this.column('billing_month', 'plainYearMonth')
 anniversary = this.column('anniversary', 'plainMonthDay')
 ```
 
-A date read is accepted on any day or year, as Temporal's `from` takes one: `2024-03-15` in a column of months of a year is `2024-03`. The reference is part of the value, as in Temporal: a column whose dates another program stored on another day compares with a value of the library only when they are on the same day (see the setting below).
+A date read is accepted on any day or year, as Temporal's `from` takes one: `2024-03-15` in a column of months of a year is `2024-03`. The reference is part of the value, as in Temporal: a column whose dates another program stored on another day compares with a value of the library only when they are on the same day (see [the dates they are kept in](#the-dates-they-are-kept-in)).
 
 `toPlainYearMonth()` and `toPlainMonthDay()` of a `plainDate` give its month of the year and its day of the month. Here the month of each release, the next one and its days, the day of its release, and that day in 2025:
 
@@ -221,3 +221,7 @@ The parameters are: `[ PlainDate 2025-06-01, PlainDate 2025-06-01, PlainDate 202
 | `1.3.0-beta.1` | `P1Y4M` | `P16M` | `P1Y` |
 
 The months between them are computed in the query. Temporal rounds to the year, and to an increment of months with years or in a mode half way (`'halfExpand'`, ...), by the days of the months from the start of the step to the value and to its end: from January 2000 to July 2003, 3 years and 6 months, is `P3Y` rounded half way, the 181 days from January to July being less than half of the 365 of 2003. That rounding needs the function of the library `tsq_duration_round` on every database, as `until` of dates in months does, and, where the database has no interval, `tsq_duration_text` writes the duration (see [The functions of the library it uses](plain-dates-and-times.md#the-functions-of-the-library-it-uses)). On PostgreSQL the interval gives the months as years and months: `P15M` is read as `P1Y3M`.
+
+## The dates they are kept in
+
+A database whose dates were stored by another program on another day or year declares that day or year in the connection: see [The dates a month of a year and a day of a month are stored in](../advanced/dates-and-times/storage.md#the-dates-a-month-of-a-year-and-a-day-of-a-month-are-stored-in).

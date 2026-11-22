@@ -2,13 +2,11 @@
 // queries defined or executed before, and two recursive selects of the same query get different names, also when a
 // query is executed between their definitions. On PGlite and SQLite, the union of two recursive selects runs.
 
-import { Database } from 'bun:sqlite'
 import { describe, expect, test } from '../../lib/testRunner.js'
 import { PostgreSqlConnection } from '../../../src/connections/PostgreSqlConnection.js'
 import { SqliteConnection } from '../../../src/connections/SqliteConnection.js'
 import { MockQueryRunner } from '../../../src/queryRunners/MockQueryRunner.js'
 import { PgLiteQueryRunner } from '../../../src/queryRunners/PgLiteQueryRunner.js'
-import { BunSqliteQueryRunner } from '../../../src/queryRunners/BunSqliteQueryRunner.js'
 import { Table } from '../../../src/Table.js'
 import { isRealDbEnabled } from '../../lib/backends.js'
 
@@ -75,7 +73,10 @@ describe('The name of a recursive select', () => {
         }
     })
 
-    test.skipIf(!isRealDbEnabled('sqlite', 'native', 'newest', 'bun_sqlite'))('sqlite-runs-the-union-of-two-recursive-selects', async () => {
+    test.skipIf(typeof globalThis.Bun === 'undefined' || !isRealDbEnabled('sqlite', 'native', 'newest', 'bun_sqlite'))('sqlite-runs-the-union-of-two-recursive-selects', async () => {
+        // bun:sqlite exists only on Bun: it and its query runner are imported where the test runs
+        const { Database } = await import('bun:sqlite')
+        const { BunSqliteQueryRunner } = await import('../../../src/queryRunners/BunSqliteQueryRunner.js')
         const db = new Database(':memory:')
         try {
             db.run('create table item (id int primary key, parent_id int)')

@@ -7,6 +7,7 @@ import { describe, expect, test } from '../../lib/testRunner.js'
 import { instantDifferenceOptionsOf, instantRoundingOf } from '../../../src/utils/instantOptions.js'
 import { plainTemporalDifferenceOf } from '../../../src/utils/plainTemporalDifference.js'
 import { sqliteScalarFunctions } from '../../../src/utils/sqlite/sqliteFunctions.js'
+import { isTemporalTheReference } from '../../lib/temporalReference.js'
 
 const durationText = sqliteScalarFunctions.find(f => f.name === 'tsq_duration_text')!.fn
 const durationTotal = sqliteScalarFunctions.find(f => f.name === 'tsq_duration_total')!.fn
@@ -18,7 +19,8 @@ const increments = [undefined, 1, 2, 5, 7, 10, 12, 15, 24, 30, 60, 90, 120, 1000
 const modes = [undefined, 'trunc', 'floor', 'halfEven', 'nearest']
 
 describe('InstantOptions', () => {
-    test('until-takes-the-options-temporal-takes-with-its-result', () => {
+    // Its values are the ones of Temporal: compared where the Temporal of the runtime gives the ones of the specification
+    test.skipIf(!isTemporalTheReference())('until-takes-the-options-temporal-takes-with-its-result', () => {
         const differences: string[] = []
         const fromInUtc = from.toZonedDateTimeISO('UTC').toPlainDateTime()
         const toInUtc = to.toZonedDateTimeISO('UTC').toPlainDateTime()

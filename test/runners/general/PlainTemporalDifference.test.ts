@@ -7,6 +7,7 @@
 import { describe, expect, test } from '../../lib/testRunner.js'
 import { plainTemporalDifferenceOf } from '../../../src/utils/plainTemporalDifference.js'
 import { sqliteScalarFunctions } from '../../../src/utils/sqlite/sqliteFunctions.js'
+import { isTemporalTheReference } from '../../lib/temporalReference.js'
 
 const durationText = sqliteScalarFunctions.find(f => f.name === 'tsq_duration_text')!.fn
 const durationRound = sqliteScalarFunctions.find(f => f.name === 'tsq_duration_round')!.fn
@@ -87,7 +88,8 @@ describe('PlainTemporalDifference', () => {
         expect(durationText(null, 0, 0, 0, 0, 'hour')).toBeNull()
     })
 
-    test('tsq-duration-round-gives-the-duration-of-temporal', () => {
+    // Its values are the ones of Temporal: compared where the Temporal of the runtime gives the ones of the specification
+    test.skipIf(!isTemporalTheReference())('tsq-duration-round-gives-the-duration-of-temporal', () => {
         const next = numbers(20261120)
         const differences: string[] = []
         let compared = 0

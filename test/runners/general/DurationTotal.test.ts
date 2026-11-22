@@ -7,6 +7,7 @@
 import { describe, expect, test } from '../../lib/testRunner.js'
 import { durationTotalOf } from '../../../src/utils/durationTotal.js'
 import { sqliteScalarFunctions } from '../../../src/utils/sqlite/sqliteFunctions.js'
+import { isTemporalTheReference } from '../../lib/temporalReference.js'
 
 const durationTotal = sqliteScalarFunctions.find(f => f.name === 'tsq_duration_total')!.fn
 const durationPart = sqliteScalarFunctions.find(f => f.name === 'tsq_duration_part')!.fn
@@ -54,7 +55,8 @@ describe('DurationTotal', () => {
         expect(durationTotalOf({ unit: 'months', relativeTo: Temporal.PlainDateTime.from('2024-01-31T10:00') })).toEqual({ unit: 'month', relativeTo: { year: 2024, month: 1, day: 31 } })
     })
 
-    test('tsq-duration-total-gives-the-total-of-temporal', () => {
+    // Its values are the ones of Temporal: compared where the Temporal of the runtime gives the ones of the specification
+    test.skipIf(!isTemporalTheReference())('tsq-duration-total-gives-the-total-of-temporal', () => {
         const next = numbers(20261121)
         const differences: string[] = []
         let compared = 0

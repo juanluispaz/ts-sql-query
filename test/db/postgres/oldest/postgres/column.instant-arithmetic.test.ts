@@ -233,11 +233,11 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select (date_bin(interval '1 hours', instant_at + interval '30 minutes', date_trunc('day', instant_at)))::timestamp as hour, (instant_at + $1)::timestamp as later, cast((instant_at + $2)::timestamp as date) as earlier, cast(((date '1970-01-01' + cast(((cast(floor(extract(epoch from instant_at) * 1000) as bigint) - ((cast(floor(extract(epoch from instant_at) * 1000) as bigint) % 86400000 + 86400000) % 86400000)) / 86400000) as integer)) + make_interval(secs => (((cast(floor(extract(epoch from instant_at) * 1000) as bigint) % 86400000 + 86400000) % 86400000) * 1000000) / 1000000000.0))::timestamp as date) as day, cast(((date '1970-01-01' + cast(((trunc(extract(epoch from instant_at) * 1000000000) - ((trunc(extract(epoch from instant_at) * 1000000000) % 86400000000000 + 86400000000000) % 86400000000000)) / 86400000000000) as integer)) + make_interval(secs => (((trunc(extract(epoch from instant_at) * 1000000000) % 86400000000000 + 86400000000000) % 86400000000000)) / 1000000000.0))::timestamp as date) as "dayOfNanoseconds" from instant_value where id = $3"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
+        expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
-            Duration {},
-            Duration {},
-            1,
+            "PT3600S",
+            "-PT1800S",
+            "1",
           ]
         `)
         assertType<Exact<typeof rows, Array<{ hour: Temporal.PlainDateTime; later: Temporal.PlainDateTime; earlier: Temporal.PlainDate; day: Temporal.PlainDate; dayOfNanoseconds: Temporal.PlainDate }>>>()

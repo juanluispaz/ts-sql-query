@@ -220,6 +220,7 @@ test/
 │   ├── coords.ts                         ← matrix coordinates
 │   ├── queryIntrospection.ts             ← query introspection escape hatch
 │   ├── setupTimezone.ts                  ← forces UTC
+│   ├── setupTemporal.ts, temporalReference.ts ← Temporal on Node 22/24 (polyfill); is the runtime's Temporal exact
 │   ├── canonical-cell-review-prompt.md   ← validation sub-agent prompt asset
 │   ├── coverage/                         ← bun lcov → html / monocart
 │   ├── docCodeExtractor/                 ← doc snippet → matrix test cell: type-check + mock SQL (DOC_CODE_EXTRACTOR.md)

@@ -24,6 +24,7 @@ test cells that type-check the examples and assert their SQL via mock) see
 - [`testRunner.ts` + `testRuntime.{bun,vitest}.ts` — runtime shim](#testrunnerts--testruntimebunvitestts--runtime-shim)
 - [`assertType.ts` — compile-time type assertions](#asserttypets--compile-time-type-assertions)
 - [`setupTimezone.ts` — force UTC](#setuptimezonets--force-utc)
+- [`setupTemporal.ts` and `temporalReference.ts` — Temporal on every runtime](#setuptemporalts-and-temporalreferencets--temporal-on-every-runtime)
 - [`queryIntrospection.ts` — query introspection escape hatch](#queryintrospectionts--query-introspection-escape-hatch)
 - [`audit/` — the symmetry audit and the content rules](#audit--the-symmetry-audit-and-the-content-rules)
 - [`containerLifecycle.ts` — shared container infra](#containerlifecyclets--shared-container-infra)
@@ -315,6 +316,22 @@ including direct `bun test` / `npx vitest run` invocations on a single file.
 anything — UTC is forced before any test file evaluates. If you ever observe
 snapshots diverging by host timezone, this is the file that failed to
 preload; check the bunfig/vitest config integration.
+
+## `setupTemporal.ts` and `temporalReference.ts` — Temporal on every runtime
+
+[`setupTemporal.ts`](./lib/setupTemporal.ts) gives Temporal to the runtimes that don't have it, Node 22 and 24, with
+the dev dependency `temporal-polyfill`: its `temporal-polyfill/global` installs itself only when `globalThis` has no
+`Temporal`, so Node 26 and Bun run with their own. It is a vitest [`setupFiles`](../vitest.config.ts) entry; Bun needs
+no preload. The library never imports it (it reads `globalThis.Temporal`), so this is about the tests only.
+
+Not every Temporal gives the values of the specification: Node 26.1's adds and subtracts durations, totals them and
+computes `until` wrongly, and the polyfill rounds a `total` one unit off its last digit and accepts
+`smallestUnit: 'auto'` in `until`. A test that takes the Temporal of the runtime as the reference of exact values
+(the fuzz tests of the library functions against Temporal in `test/runners/general/`) runs with
+`test.skipIf(!isTemporalTheReference())`: [`temporalReference.ts`](./lib/temporalReference.ts) checks the cases where
+an implementation was seen to differ. Bun's Temporal passes it, so the Bun job of CI keeps those comparisons. A
+snapshot of parameters that are Temporal values is taken of `ctx.lastParams.map(String)`: each runtime prints a
+Temporal object in its own way.
 
 ## `queryIntrospection.ts` — query introspection escape hatch
 

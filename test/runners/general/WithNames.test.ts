@@ -2,7 +2,6 @@
 // where it is used: quoted when it is a reserved word of the database or has a space, on every database. On PGlite and
 // SQLite, the query runs and returns its rows.
 
-import { Database } from 'bun:sqlite'
 import { describe, expect, test } from '../../lib/testRunner.js'
 import { MariaDBConnection } from '../../../src/connections/MariaDBConnection.js'
 import { MySqlConnection } from '../../../src/connections/MySqlConnection.js'
@@ -12,7 +11,6 @@ import { SqlServerConnection } from '../../../src/connections/SqlServerConnectio
 import { SqliteConnection } from '../../../src/connections/SqliteConnection.js'
 import { MockQueryRunner } from '../../../src/queryRunners/MockQueryRunner.js'
 import { PgLiteQueryRunner } from '../../../src/queryRunners/PgLiteQueryRunner.js'
-import { BunSqliteQueryRunner } from '../../../src/queryRunners/BunSqliteQueryRunner.js'
 import { Table } from '../../../src/Table.js'
 import { Values } from '../../../src/Values.js'
 import { isRealDbEnabled } from '../../lib/backends.js'
@@ -83,7 +81,10 @@ describe('The name of a with', () => {
         ])
     })
 
-    test.skipIf(!isRealDbEnabled('sqlite', 'native', 'newest', 'bun_sqlite'))('sqlite-runs-a-with-named-with-a-reserved-word-and-with-a-space', async () => {
+    test.skipIf(typeof globalThis.Bun === 'undefined' || !isRealDbEnabled('sqlite', 'native', 'newest', 'bun_sqlite'))('sqlite-runs-a-with-named-with-a-reserved-word-and-with-a-space', async () => {
+        // bun:sqlite exists only on Bun: it and its query runner are imported where the test runs
+        const { Database } = await import('bun:sqlite')
+        const { BunSqliteQueryRunner } = await import('../../../src/queryRunners/BunSqliteQueryRunner.js')
         const db = new Database(':memory:')
         try {
             db.run('create table item (id int primary key)')

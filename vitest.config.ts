@@ -6,7 +6,8 @@ export default defineConfig({
         // Force UTC before any test module loads (see
         // test/lib/setupTimezone.ts). Mirrored as a bun `preload` in
         // bunfig.toml so both runners marshal localDateTime identically.
-        setupFiles: ['./test/lib/setupTimezone.ts'],
+        // Temporal from a polyfill where the runtime has none (test/lib/setupTemporal.ts); Bun has its own.
+        setupFiles: ['./test/lib/setupTimezone.ts', './test/lib/setupTemporal.ts'],
         // Per-test timeout. The default 5s is too tight for the
         // docker-backed cells under heavy parallel load (an Oracle
         // `withReseed` drops + recreates the schema and can spike

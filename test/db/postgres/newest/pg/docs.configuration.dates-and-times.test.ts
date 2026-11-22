@@ -309,9 +309,9 @@ describe(ctx.label, () => {
         // doc-end
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as version, (extract(epoch from deployed_at - published_at) || ' seconds')::interval as "afterPublishing", date_bin(interval '1 hours', deployed_at, date_trunc('day', deployed_at)) as hour, date_bin(interval '1 hours', deployed_at + interval '1 hours' - interval '1 microsecond', date_trunc('day', deployed_at)) + $1::interval as "reviewBy" from project_release where deployed_at is not null order by version"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
+        expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
-            Duration {},
+            "PT172800S",
           ]
         `)
         assertType<Exact<typeof deployments, Array<{ version: string; afterPublishing?: Temporal.Duration; hour?: Temporal.Instant; reviewBy?: Temporal.Instant }>>>()

@@ -6,6 +6,7 @@
 import { execFile } from 'node:child_process'
 import { afterAll, beforeAll, describe, expect, test } from '../../lib/testRunner.js'
 import { caseNamesOf, PROBE_ENV, RESULT_MARKER, type TemporalCaseResult, type TemporalDialect } from './localTemporalValuesProbe.js'
+import { probeArguments } from './probeArguments.js'
 
 // Madrid and New York change their offset in summer and are on each side of UTC, and Tokyo is ahead of UTC all year
 export const TEMPORAL_ZONES = ['UTC', 'Europe/Madrid', 'America/New_York', 'Asia/Tokyo'] as const
@@ -28,7 +29,7 @@ export interface ProbeRun {
 
 /** Runs the probe in a child process started with the zone and the environment of the run, and gives what it printed */
 export function runProbe(probe: string, mode: string, run: ProbeRun, connection: unknown): Promise<unknown> {
-    const runtimeArguments = typeof globalThis.Bun !== 'undefined' ? [probe] : ['--import', 'tsx', probe]
+    const runtimeArguments = probeArguments(probe)
     const env: Record<string, string | undefined> = { ...process.env, TZ: run.zone, ORA_SDTZ: undefined, ...run.env }
     env[PROBE_ENV] = JSON.stringify({ mode, runner: run.runner, options: run.options ?? {}, connection })
     for (const key of Object.keys(env)) {

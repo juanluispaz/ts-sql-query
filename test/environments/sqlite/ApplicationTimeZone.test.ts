@@ -6,9 +6,10 @@ import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, test } from '../../lib/testRunner.js'
 import { isEnvironmentVersionSelected } from '../lib/versions.js'
+import { probeArguments } from '../lib/probeArguments.js'
 
 const probe = fileURLToPath(new URL('./applicationTimeZone/probe.ts', import.meta.url))
-const runtimeArguments = typeof globalThis.Bun !== 'undefined' ? [probe] : ['--import', 'tsx', probe]
+const runtimeArguments = probeArguments(probe)
 
 // Madrid and New York change their offset in summer, Kolkata has half hours, London kept +1 all through 1970, and
 // between Pago Pago and Kiritimati the day is different from the UTC one at any time of the day

@@ -388,6 +388,7 @@
         "pg": "^8.23.1",
         "postgres": "^4.1.0",
         "synchronous-promise": "^2.0.18",
+        "temporal-polyfill": "1.0.8",
         "testcontainers": "^12.2.1",
         "tsx": "^4.23.15",
         "typescript": "^7.0.2",

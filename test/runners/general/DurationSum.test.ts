@@ -6,6 +6,7 @@
 
 import { describe, expect, test } from '../../lib/testRunner.js'
 import { sqliteScalarFunctions } from '../../../src/utils/sqlite/sqliteFunctions.js'
+import { isTemporalTheReference } from '../../lib/temporalReference.js'
 
 const durationAdd = sqliteScalarFunctions.find(f => f.name === 'tsq_duration_add')!.fn
 const durationPart = sqliteScalarFunctions.find(f => f.name === 'tsq_duration_part')!.fn
@@ -39,7 +40,8 @@ describe('DurationSum', () => {
         expect(durationPart(null, 'largest')).toBeNull()
     })
 
-    test('tsq-duration-add-gives-the-sum-of-temporal', () => {
+    // Its values are the ones of Temporal: compared where the Temporal of the runtime gives the ones of the specification
+    test.skipIf(!isTemporalTheReference())('tsq-duration-add-gives-the-sum-of-temporal', () => {
         const next = numbers(20261122)
         const differences: string[] = []
         let rejected = 0

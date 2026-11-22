@@ -1,7 +1,7 @@
 // The functions of the library for durations and zoned dates and times that the file of SQL of each database gives
 // (the one its page of functions links) (tsq_duration_part, tsq_duration_text, tsq_duration_round, tsq_duration_total, tsq_duration_add,
 // tsq_zoned_until, tsq_zoned_of_wall, tsq_zoned_wall, tsq_zoned_utc, tsq_zoned_of_text, tsq_zone, tsq_zoned_offset, tsq_round_to, tsq_nanoseconds_between, tsq_ticks_between,
-// tsq_time_of_ticks, tsq_datetime_of_ticks, tsq_zoned_hours_in_day, tsq_zoned_round_day, tsq_zoned_plus_date,
+// tsq_time_of_ticks, tsq_datetime_of_ticks, tsq_zoned_hours_in_day, tsq_zoned_round_day, tsq_zoned_plus_date, tsq_datetime_round,
 // tsq_duration_sum, tsq_duration_total_of, tsq_duration_round_of, tsq_ds_interval_text, tsq_ym_interval_text,
 // tsq_duration_negated, the ones of a value plus a duration tsq_day_in_month_or_error,
 // tsq_utc_of_epoch, tsq_date_with and the SQL macros of Oracle) are the ones the suite creates in the
@@ -101,6 +101,8 @@ describe('DurationPartFunctionDocs', () => {
         expect(documented('sqlserver', 'tsq_ticks_between')).toBe(tested('sqlserver', 'tsq_ticks_between'))
         expect(documented('sqlserver', 'tsq_time_of_ticks')).toBe(tested('sqlserver', 'tsq_time_of_ticks'))
         expect(documented('sqlserver', 'tsq_datetime_of_ticks')).toBe(tested('sqlserver', 'tsq_datetime_of_ticks'))
+        expect(documented('sqlserver', 'tsq_datetime_round')).toBe(tested('sqlserver', 'tsq_datetime_round'))
+        expect(documented('oracle', 'tsq_datetime_round')).toBe(tested('oracle', 'tsq_datetime_round'))
         for (const [db, schema] of [['oracle', 'oracle'], ['postgresql', 'postgres']] as const) {
             expect(documented(db, 'tsq_zoned_hours_in_day')).toBe(tested(schema, 'tsq_zoned_hours_in_day'))
             expect(documented(db, 'tsq_zoned_round_day')).toBe(tested(schema, 'tsq_zoned_round_day'))

@@ -795,6 +795,14 @@ BEGIN
 END;
 /
 
+-- ===== tsq_datetime_round =====
+CREATE OR REPLACE FUNCTION tsq_datetime_round(value IN TIMESTAMP_UNCONSTRAINED, step IN NUMBER, rounding_mode IN VARCHAR2) RETURN TIMESTAMP_UNCONSTRAINED DETERMINISTIC IS
+BEGIN
+    IF value IS NULL OR step IS NULL OR rounding_mode IS NULL THEN RETURN NULL; END IF;
+    RETURN CAST(TRUNC(value) AS TIMESTAMP_UNCONSTRAINED) + NUMTODSINTERVAL(tsq_round_to(TO_NUMBER(TO_CHAR(value, 'SSSSSFF9')), step, rounding_mode) / 1000000000, 'second');
+END;
+/
+
 -- ===== tsq_sql_macros =====
 CREATE OR REPLACE FUNCTION tsq_text_of_date(value IN DATE) RETURN VARCHAR2 SQL_MACRO(SCALAR) IS
 BEGIN

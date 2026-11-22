@@ -527,6 +527,7 @@ DROP FUNCTION IF EXISTS dbo.tsq_duration_round_of;
 DROP FUNCTION IF EXISTS dbo.tsq_instant_plus_duration;
 DROP FUNCTION IF EXISTS dbo.tsq_datetime_plus_duration;
 DROP FUNCTION IF EXISTS dbo.tsq_duration_negated;
+DROP FUNCTION IF EXISTS dbo.tsq_datetime_round;
 GO
 
 -- tsq_duration_part: a part of the ISO 8601 text of a duration (Temporal.Duration), the function of the library that
@@ -946,5 +947,15 @@ BEGIN
     DECLARE @last INT = DAY(EOMONTH(DATEFROMPARTS(@y, @m, 1)));
     IF @d > @last AND @reject = 0 SET @d = @last;
     RETURN DATEFROMPARTS(@y, @m, @d);
+END
+GO
+
+-- tsq_datetime_round: a date and time rounded to a step of hundreds of nanoseconds in a rounding mode of Temporal, as
+-- Temporal's round of a PlainDateTime (and of an Instant, given its date and time in UTC): its time since midnight
+-- rounded with tsq_round_to and added to its date, the next day for the end of the day; the function of the library that
+-- writes the value once (libraryFunctions installed).
+CREATE OR ALTER FUNCTION dbo.tsq_datetime_round(@value DATETIME2(7), @step BIGINT, @rounding_mode VARCHAR(10)) RETURNS DATETIME2(7) WITH SCHEMABINDING AS
+BEGIN
+    RETURN dbo.tsq_datetime_of_ticks(CAST(@value AS DATE), dbo.tsq_round_to(DATEDIFF_BIG(NANOSECOND, CAST('00:00' AS TIME), CAST(@value AS TIME)) / 100, @step, @rounding_mode));
 END
 GO

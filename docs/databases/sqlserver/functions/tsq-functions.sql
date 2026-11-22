@@ -9,6 +9,7 @@ DROP FUNCTION IF EXISTS dbo.tsq_duration_round_of;
 DROP FUNCTION IF EXISTS dbo.tsq_instant_plus_duration;
 DROP FUNCTION IF EXISTS dbo.tsq_datetime_plus_duration;
 DROP FUNCTION IF EXISTS dbo.tsq_duration_negated;
+DROP FUNCTION IF EXISTS dbo.tsq_datetime_round;
 GO
 
 -- ===== tsq_duration_part =====
@@ -377,6 +378,13 @@ BEGIN
     DECLARE @last INT = DAY(EOMONTH(DATEFROMPARTS(@y, @m, 1)));
     IF @d > @last AND @reject = 0 SET @d = @last;
     RETURN DATEFROMPARTS(@y, @m, @d);
+END
+GO
+
+-- ===== tsq_datetime_round =====
+CREATE OR ALTER FUNCTION dbo.tsq_datetime_round(@value DATETIME2(7), @step BIGINT, @rounding_mode VARCHAR(10)) RETURNS DATETIME2(7) WITH SCHEMABINDING AS
+BEGIN
+    RETURN dbo.tsq_datetime_of_ticks(CAST(@value AS DATE), dbo.tsq_round_to(DATEDIFF_BIG(NANOSECOND, CAST('00:00' AS TIME), CAST(@value AS TIME)) / 100, @step, @rounding_mode));
 END
 GO
 

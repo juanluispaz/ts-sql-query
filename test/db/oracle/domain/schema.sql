@@ -1306,6 +1306,16 @@ BEGIN
     RETURN tsq_zoned_of_wall(v_wall + NUMTODSINTERVAL(days, 'day'), TO_CHAR(value, 'TZR'), 'compatible');
 END;
 
+-- tsq_datetime_round: a date and time rounded to a step of nanoseconds in a rounding mode of Temporal, as
+-- Temporal's round of a PlainDateTime (and of an Instant, given its date and time in UTC): its time since midnight
+-- rounded with tsq_round_to and added to its date, the next day for the end of the day; the function of the library that
+-- writes the value once (libraryFunctions installed).
+CREATE OR REPLACE FUNCTION tsq_datetime_round(value IN TIMESTAMP_UNCONSTRAINED, step IN NUMBER, rounding_mode IN VARCHAR2) RETURN TIMESTAMP_UNCONSTRAINED DETERMINISTIC IS
+BEGIN
+    IF value IS NULL OR step IS NULL OR rounding_mode IS NULL THEN RETURN NULL; END IF;
+    RETURN CAST(TRUNC(value) AS TIMESTAMP_UNCONSTRAINED) + NUMTODSINTERVAL(tsq_round_to(TO_NUMBER(TO_CHAR(value, 'SSSSSFF9')), step, rounding_mode) / 1000000000, 'second');
+END;
+
 -- tsq_sql_macros: The SQL macros of the library (used from Oracle 23.4): the conversions a Temporal value leaves and reaches the driver
 -- with, written once in the macro, which Oracle expands where the query uses it (libraryFunctions installed): the text
 -- of a date, of a date and time or a time (a TIMESTAMP on the date of the stored times), of the date and time in UTC of

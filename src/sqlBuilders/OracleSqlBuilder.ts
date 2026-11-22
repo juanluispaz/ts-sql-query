@@ -1462,6 +1462,10 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     _oracleUtcOf(sql: string): string {
         return oracleUtcOfInstantOfUtc(sql) ?? 'sys_extract_utc(cast(' + sql + ' as timestamp(9) with time zone))'
     }
+    /** Oracle keeps nanoseconds: the step is in them */
+    override _dateTimeRoundFunctionName(_tick: bigint): string | undefined {
+        return 'tsq_datetime_round'
+    }
     override _instantOfUtc(_context: SqlBuildContext, sql: string): string {
         return 'from_tz(' + sql + ", '+00:00')"
     }

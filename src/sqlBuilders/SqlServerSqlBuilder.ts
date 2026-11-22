@@ -1351,6 +1351,10 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _durationRoundOfFunctionName(): string {
         return 'dbo.tsq_duration_round_of'
     }
+    /** A step of hundreds of nanoseconds, the ticks SQL Server keeps; a step of nanoseconds is rounded inline */
+    override _dateTimeRoundFunctionName(tick: bigint): string | undefined {
+        return tick === 100n ? 'dbo.tsq_datetime_round' : undefined
+    }
     override _durationRoundOfOperand(context: SqlBuildContext, valueSource: ToSql): string {
         // Its date and time in UTC, as its parts are given
         return 'switchoffset(' + super._durationRoundOfOperand(context, valueSource) + ", '+00:00')"

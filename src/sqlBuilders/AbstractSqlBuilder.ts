@@ -4533,6 +4533,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
             // A step that divides the smallest unit the database keeps: nothing to round
             return this._instantOfUtc(context, this._appendSql(valueSource, context, false))
         }
+        const byFunction = this._dateTimeRoundedByFunction(context, valueSource, rounding, tick)
+        if (byFunction !== undefined) {
+            return this._instantOfUtc(context, byFunction)
+        }
         const date = this._dateOfValue(context, valueSource)
         return this._instantOfUtc(context, this._dateTimeOfTicks(context, date, this._roundedSinceMidnight(context, valueSource, rounding, tick), tick))
     }
@@ -4840,8 +4844,31 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (fields === 'time') {
             return this._timeOfTicks(context, this._roundedSinceMidnight(context, valueSource, rounding, tick), tick)
         }
+        const byFunction = this._dateTimeRoundedByFunction(context, valueSource, rounding, tick)
+        if (byFunction !== undefined) {
+            return byFunction
+        }
         const date = this._dateOfValue(context, valueSource)
         return this._dateTimeOfTicks(context, date, this._roundedSinceMidnight(context, valueSource, rounding, tick), tick)
+    }
+    /**
+     * A date and time rounded by the function of the library that takes it whole (see _dateTimeRoundFunctionName), with
+     * the step in units of tick nanoseconds, writing the value once; undefined without it
+     */
+    _dateTimeRoundedByFunction(context: SqlBuildContext, valueSource: ToSql, rounding: PlainTemporalRounding, tick: bigint): string | undefined {
+        const name = this._libraryFunctionsInstalled() ? this._dateTimeRoundFunctionName(tick) : undefined
+        if (name === undefined) {
+            return undefined
+        }
+        // The step is a number the parameter of the function converts
+        return name + '(' + this._appendSql(valueSource, context, false) + ', ' + String(rounding.step / tick) + ", '" + rounding.mode + "')"
+    }
+    /**
+     * The name of the function of the library that rounds a date and time to a step of units of tick nanoseconds in a
+     * mode, where the SQL without it writes the value several times; undefined where it has none
+     */
+    _dateTimeRoundFunctionName(_tick: bigint): string | undefined {
+        return undefined
     }
     /**
      * The nanoseconds of the smallest unit of time the database keeps (_temporalTick), the unit a rounding is computed in;

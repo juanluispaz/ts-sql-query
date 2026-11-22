@@ -103,9 +103,9 @@ The executed query is:
     ```oracle
     select 
         version as "version", 
-        to_char(released_on, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "releasedOn", 
-        to_char(cast(cutoff_time as timestamp(9)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "cutoffTime", 
-        to_char(cast(published_at as timestamp(9)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "publishedAt" 
+        tsq_text_of_date(released_on) as "releasedOn", 
+        tsq_text_of_timestamp(cutoff_time) as "cutoffTime", 
+        tsq_text_of_timestamp(published_at) as "publishedAt" 
     from project_release 
     where released_on >= to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') 
     order by project_release.released_on
@@ -311,8 +311,8 @@ The executed query is:
     ```oracle
     select 
         version as "version", 
-        to_char(cast(cast(released_on as timestamp(9)) + to_dsinterval('0 ' || to_char(cast(cutoff_time as timestamp(9)), 'HH24:MI:SS.FF9')) as timestamp(9)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "deadline", 
-        to_char(trunc(published_at), 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "publishedOn" 
+        tsq_text_of_timestamp(cast(released_on as timestamp(9)) + to_dsinterval('0 ' || to_char(cast(cutoff_time as timestamp(9)), 'HH24:MI:SS.FF9'))) as "deadline", 
+        tsq_text_of_date(trunc(published_at)) as "publishedOn" 
     from project_release 
     where published_at > (cast(released_on as timestamp(9)) + to_dsinterval('0 ' || to_char(cast(cutoff_time as timestamp(9)), 'HH24:MI:SS.FF9'))) 
     order by cast(project_release.released_on as timestamp(9)) + to_dsinterval('0 ' || to_char(cast(project_release.cutoff_time as timestamp(9)), 'HH24:MI:SS.FF9'))
@@ -387,8 +387,8 @@ The executed query is:
 === "Oracle"
     ```oracle
     select 
-        to_char(trunc(current_timestamp), 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "today", 
-        to_char(localtimestamp, 'YYYY-MM-DD"T"HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "now" 
+        tsq_text_of_date(trunc(current_timestamp)) as "today", 
+        tsq_text_of_timestamp(localtimestamp) as "now" 
     from dual
     ```
 ===+ "PostgreSQL"
@@ -453,7 +453,7 @@ The executed query is:
     ```oracle
     select 
         version as "version", 
-        to_char(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "deployedAt" 
+        tsq_text_of_instant(deployed_at) as "deployedAt" 
     from project_release 
     where deployed_at >= to_timestamp(:0, 'YYYY-MM-DD HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN') 
     order by project_release.deployed_at
@@ -556,9 +556,9 @@ The executed query is:
     ```oracle
     select 
         version as "version", 
-        to_char(trunc(cast(cast(deployed_at as timestamp(9) with time zone) at local as timestamp(9))), 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "deployedOn", 
+        tsq_text_of_date(trunc(cast(cast(deployed_at as timestamp(9) with time zone) at local as timestamp(9)))) as "deployedOn", 
         (trunc(timestamp '1970-01-01 00:00:00' + (deployed_at - timestamp '1970-01-01 00:00:00')) - date '1970-01-01') * 86400000 + to_number(to_char(timestamp '1970-01-01 00:00:00' + (deployed_at - timestamp '1970-01-01 00:00:00'), 'SSSSSFF3')) as "deployedMs", 
-        to_char(sys_extract_utc(cast(published_at as timestamp(9) with time zone)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "published" 
+        tsq_text_of_instant(published_at) as "published" 
     from project_release 
     where deployed_at is not null 
     order by "version"
@@ -644,8 +644,8 @@ The executed query is:
     ```oracle
     select 
         version as "version", 
-        to_char(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "deployedAt", 
-        to_char(tsq_utc_of_epoch((trunc(timestamp '1970-01-01 00:00:00' + (deployed_at - timestamp '1970-01-01 00:00:00')) - date '1970-01-01') * 86400000 + to_number(to_char(timestamp '1970-01-01 00:00:00' + (deployed_at - timestamp '1970-01-01 00:00:00'), 'SSSSSFF3')), 1000000), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "sameInstant" 
+        tsq_text_of_instant(deployed_at) as "deployedAt", 
+        tsq_text_of_utc(tsq_utc_of_epoch((trunc(timestamp '1970-01-01 00:00:00' + (deployed_at - timestamp '1970-01-01 00:00:00')) - date '1970-01-01') * 86400000 + to_number(to_char(timestamp '1970-01-01 00:00:00' + (deployed_at - timestamp '1970-01-01 00:00:00'), 'SSSSSFF3')), 1000000)) as "sameInstant" 
     from project_release 
     where deployed_at < to_timestamp(:0, 'YYYY-MM-DD HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN') 
     order by "version"
@@ -739,8 +739,8 @@ The executed query is:
     select 
         version as "version", 
         tsq_duration_text(0, 0, 0, 0, -tsq_nanoseconds_between(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)), sys_extract_utc(cast(published_at as timestamp(9) with time zone))), 'hour') as "afterPublishing", 
-        to_char(cast(trunc(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone))) as timestamp(9)) + numtodsinterval((tsq_round_to(to_number(to_char(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)), 'SSSSSFF9')), 3600000000000, 'trunc')) / 1000000000, 'second'), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "hour", 
-        to_char(cast(trunc(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone))) as timestamp(9)) + numtodsinterval((tsq_round_to(to_number(to_char(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)), 'SSSSSFF9')), 3600000000000, 'ceil')) / 1000000000, 'second') + numtodsinterval(:0, 'second'), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "reviewBy" 
+        tsq_text_of_utc(cast(trunc(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone))) as timestamp(9)) + numtodsinterval((tsq_round_to(to_number(to_char(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)), 'SSSSSFF9')), 3600000000000, 'trunc')) / 1000000000, 'second')) as "hour", 
+        tsq_text_of_utc(cast(trunc(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone))) as timestamp(9)) + numtodsinterval((tsq_round_to(to_number(to_char(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)), 'SSSSSFF9')), 3600000000000, 'ceil')) / 1000000000, 'second') + numtodsinterval(:0, 'second')) as "reviewBy" 
     from project_release 
     where deployed_at is not null 
     order by "version"
@@ -809,7 +809,7 @@ The executed query is:
     ```
 === "Oracle"
     ```oracle
-    select to_char(sys_extract_utc(cast(systimestamp as timestamp(9) with time zone)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "result" 
+    select tsq_text_of_instant(systimestamp) as "result" 
     from dual
     ```
 ===+ "PostgreSQL"
@@ -861,9 +861,9 @@ The executed query is:
     ```oracle
     select 
         version as "version", 
-        to_char(from_tz(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)), '+00:00') at time zone 'Europe/Madrid', 'YYYY-MM-DD"T"HH24:MI:SS.FF9TZH:TZM BC"["TZR"]"', 'NLS_DATE_LANGUAGE=AMERICAN') as "deployedInMadrid", 
-        to_char(tsq_zoned_of_wall(cast(published_at as timestamp(9)), 'Europe/Madrid', 'compatible'), 'YYYY-MM-DD"T"HH24:MI:SS.FF9TZH:TZM BC"["TZR"]"', 'NLS_DATE_LANGUAGE=AMERICAN') as "publishedInMadrid", 
-        to_char(sys_extract_utc(cast((tsq_zoned_of_wall(cast(published_at as timestamp(9)), 'Europe/Madrid', 'compatible')) as timestamp(9) with time zone)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "publishedInstant" 
+        tsq_text_of_zoned(from_tz(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)), '+00:00') at time zone 'Europe/Madrid') as "deployedInMadrid", 
+        tsq_text_of_zoned(tsq_zoned_of_wall(cast(published_at as timestamp(9)), 'Europe/Madrid', 'compatible')) as "publishedInMadrid", 
+        tsq_text_of_instant((tsq_zoned_of_wall(cast(published_at as timestamp(9)), 'Europe/Madrid', 'compatible'))) as "publishedInstant" 
     from project_release 
     order by "version"
     ```
@@ -984,7 +984,7 @@ The executed query is:
     ```oracle
     select 
         version as "version", 
-        to_char((select tsq_zoned_of_wall((cast(tsq_z.x as timestamp(9)) + numtodsinterval(:0, 'day')), to_char(tsq_z.x, 'TZR'), 'compatible') from (select tsq_zoned_of_wall(cast(published_at as timestamp(9)), 'Europe/Madrid', 'compatible') as x from dual where rownum = 1) tsq_z), 'YYYY-MM-DD"T"HH24:MI:SS.FF9TZH:TZM BC"["TZR"]"', 'NLS_DATE_LANGUAGE=AMERICAN') as "followUp", 
+        tsq_text_of_zoned((select tsq_zoned_of_wall((cast(tsq_z.x as timestamp(9)) + numtodsinterval(:0, 'day')), to_char(tsq_z.x, 'TZR'), 'compatible') from (select tsq_zoned_of_wall(cast(published_at as timestamp(9)), 'Europe/Madrid', 'compatible') as x from dual where rownum = 1) tsq_z)) as "followUp", 
         tsq_zoned_until(tsq_zoned_of_wall(cast(published_at as timestamp(9)), 'Europe/Madrid', 'compatible'), (select tsq_zoned_of_wall((cast(tsq_z.x as timestamp(9)) + numtodsinterval(:1, 'day')), to_char(tsq_z.x, 'TZR'), 'compatible') from (select tsq_zoned_of_wall(cast(published_at as timestamp(9)), 'Europe/Madrid', 'compatible') as x from dual where rownum = 1) tsq_z), 'day', 'nanosecond', 1, 'trunc', 1) as "daysToFollowUp", 
         tsq_duration_text(0, 0, 0, 0, tsq_nanoseconds_between(sys_extract_utc(tsq_zoned_of_wall(cast(published_at as timestamp(9)), 'Europe/Madrid', 'compatible')), sys_extract_utc((select tsq_zoned_of_wall((cast(tsq_z.x as timestamp(9)) + numtodsinterval(:2, 'day')), to_char(tsq_z.x, 'TZR'), 'compatible') from (select tsq_zoned_of_wall(cast(published_at as timestamp(9)), 'Europe/Madrid', 'compatible') as x from dual where rownum = 1) tsq_z))), 'hour') as "hoursToFollowUp", 
         tsq_zoned_hours_in_day((select tsq_zoned_of_wall((cast(tsq_z.x as timestamp(9)) + numtodsinterval(:3, 'day')), to_char(tsq_z.x, 'TZR'), 'compatible') from (select tsq_zoned_of_wall(cast(published_at as timestamp(9)), 'Europe/Madrid', 'compatible') as x from dual where rownum = 1) tsq_z)) as "hoursInThatDay" 
@@ -1396,8 +1396,8 @@ The executed query is:
     ```oracle
     select 
         version as "version", 
-        to_char((add_months(released_on, :0) - greatest(0, extract(day from add_months(released_on, :0)) - extract(day from released_on))), 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "supportEndsOn", 
-        to_char(cast(published_at + rollout_time as timestamp(9)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "rolloutEndedAt" 
+        tsq_text_of_date((add_months(released_on, :0) - greatest(0, extract(day from add_months(released_on, :0)) - extract(day from released_on)))) as "supportEndsOn", 
+        tsq_text_of_timestamp(published_at + rollout_time) as "rolloutEndedAt" 
     from project_release 
     order by "version"
     ```
@@ -1870,8 +1870,8 @@ The executed query is:
     ```oracle
     select 
         version as "version", 
-        to_char(tsq_date_with(released_on, null, null, 1, 0), 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "monthOfRelease", 
-        to_char(cast(timestamp '1972-01-01 00:00:00' + numtodsinterval(mod(tsq_round_to(to_number(to_char(cutoff_time, 'SSSSSFF9')), 21600000000000, 'halfExpand'), 86400000000000) / 1000000000, 'second') as timestamp(9)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "cutoffSlot" 
+        tsq_text_of_date(tsq_date_with(released_on, null, null, 1, 0)) as "monthOfRelease", 
+        tsq_text_of_timestamp(timestamp '1972-01-01 00:00:00' + numtodsinterval(mod(tsq_round_to(to_number(to_char(cutoff_time, 'SSSSSFF9')), 21600000000000, 'halfExpand'), 86400000000000) / 1000000000, 'second')) as "cutoffSlot" 
     from project_release 
     order by "version"
     ```
@@ -2005,11 +2005,11 @@ The executed query is:
     ```oracle
     select 
         version as "version", 
-        to_char(trunc(released_on, 'MM'), 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "month", 
-        to_char((add_months(trunc(released_on, 'MM'), :0) - greatest(0, extract(day from add_months(trunc(released_on, 'MM'), :0)) - extract(day from trunc(released_on, 'MM')))), 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "nextMonth", 
+        tsq_text_of_date(trunc(released_on, 'MM')) as "month", 
+        tsq_text_of_date((add_months(trunc(released_on, 'MM'), :0) - greatest(0, extract(day from add_months(trunc(released_on, 'MM'), :0)) - extract(day from trunc(released_on, 'MM'))))) as "nextMonth", 
         extract(day from last_day(released_on)) as "daysInMonth", 
-        to_char(to_date('1972' || to_char(released_on, 'MMDD'), 'YYYYMMDD'), 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "anniversary", 
-        to_char(tsq_date_with(to_date('1972' || to_char(released_on, 'MMDD'), 'YYYYMMDD'), 2025, null, null, 0), 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "anniversaryIn2025" 
+        tsq_text_of_date(to_date('1972' || to_char(released_on, 'MMDD'), 'YYYYMMDD')) as "anniversary", 
+        tsq_text_of_date(tsq_date_with(to_date('1972' || to_char(released_on, 'MMDD'), 'YYYYMMDD'), 2025, null, null, 0)) as "anniversaryIn2025" 
     from project_release 
     order by "version"
     ```
@@ -2098,7 +2098,7 @@ The executed query is:
         version as version, 
         tsq_duration_text(0, (cast(year(?) as signed) * 12 + cast(month(?) as signed) - (cast(year(cast(date_format(released_on, '%Y-%m-01') as date)) as signed) * 12 + cast(month(cast(date_format(released_on, '%Y-%m-01') as date)) as signed))), 0, 0, 0, 'year') as untilJune, 
         tsq_duration_text(0, (cast(year(?) as signed) * 12 + cast(month(?) as signed) - (cast(year(cast(date_format(released_on, '%Y-%m-01') as date)) as signed) * 12 + cast(month(cast(date_format(released_on, '%Y-%m-01') as date)) as signed))), 0, 0, 0, 'month') as inMonths, 
-        tsq_duration_round(cast(year(cast(date_format(released_on, '%Y-%m-01') as date)) as signed), cast(month(cast(date_format(released_on, '%Y-%m-01') as date)) as signed), 1, 0, ?, ?, 1, 0, 'year', 'year', 1, 'halfExpand', 1) as inYears 
+        tsq_duration_round_of(date_format(cast(date_format(released_on, '%Y-%m-01') as date), '%Y-%m-01'), date_format(?, '%Y-%m-01'), 'year', 'year', 1, 'halfExpand', 1) as inYears 
     from project_release 
     order by version
     ```
@@ -2108,7 +2108,7 @@ The executed query is:
         version as version, 
         tsq_duration_text(0, (cast(year(?) as signed) * 12 + cast(month(?) as signed) - (cast(year(cast(date_format(released_on, '%Y-%m-01') as date)) as signed) * 12 + cast(month(cast(date_format(released_on, '%Y-%m-01') as date)) as signed))), 0, 0, 0, 'year') as untilJune, 
         tsq_duration_text(0, (cast(year(?) as signed) * 12 + cast(month(?) as signed) - (cast(year(cast(date_format(released_on, '%Y-%m-01') as date)) as signed) * 12 + cast(month(cast(date_format(released_on, '%Y-%m-01') as date)) as signed))), 0, 0, 0, 'month') as inMonths, 
-        tsq_duration_round(cast(year(cast(date_format(released_on, '%Y-%m-01') as date)) as signed), cast(month(cast(date_format(released_on, '%Y-%m-01') as date)) as signed), 1, 0, ?, ?, 1, 0, 'year', 'year', 1, 'halfExpand', 1) as inYears 
+        tsq_duration_round_of(date_format(cast(date_format(released_on, '%Y-%m-01') as date), '%Y-%m-01'), date_format(?, '%Y-%m-01'), 'year', 'year', 1, 'halfExpand', 1) as inYears 
     from project_release 
     order by version
     ```
@@ -2118,7 +2118,7 @@ The executed query is:
         version as "version", 
         tsq_duration_text(0, (extract(year from to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')) * 12 + extract(month from to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')) - (extract(year from trunc(released_on, 'MM')) * 12 + extract(month from trunc(released_on, 'MM')))), 0, 0, 0, 'year') as "untilJune", 
         tsq_duration_text(0, (extract(year from to_date(:1, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')) * 12 + extract(month from to_date(:1, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')) - (extract(year from trunc(released_on, 'MM')) * 12 + extract(month from trunc(released_on, 'MM')))), 0, 0, 0, 'month') as "inMonths", 
-        tsq_duration_round(extract(year from trunc(released_on, 'MM')), extract(month from trunc(released_on, 'MM')), 1, 0, :2, :3, 1, 0, 'year', 'year', 1, 'halfExpand', 1) as "inYears" 
+        tsq_duration_round_of(trunc(trunc(released_on, 'MM'), 'MM'), trunc(to_date(:2, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN'), 'MM'), 'year', 'year', 1, 'halfExpand', 1) as "inYears" 
     from project_release 
     order by "version"
     ```
@@ -2128,7 +2128,7 @@ The executed query is:
         version as version, 
         make_interval(months => (cast(extract(year from $1::date) as integer) * 12 + cast(extract(month from $1::date) as integer) - (cast(extract(year from date_trunc('month', released_on)::date) as integer) * 12 + cast(extract(month from date_trunc('month', released_on)::date) as integer)))) as "untilJune", 
         make_interval(months => (cast(extract(year from $2::date) as integer) * 12 + cast(extract(month from $2::date) as integer) - (cast(extract(year from date_trunc('month', released_on)::date) as integer) * 12 + cast(extract(month from date_trunc('month', released_on)::date) as integer)))) as "inMonths", 
-        tsq_duration_round(cast(extract(year from date_trunc('month', released_on)::date) as integer), cast(extract(month from date_trunc('month', released_on)::date) as integer), 1, 0, $3, $4, 1, 0, 'year', 'year', 1, 'halfExpand', 1) as "inYears" 
+        tsq_duration_round_of(date_trunc('month', date_trunc('month', released_on)::date)::date, date_trunc('month', $3::date)::date, 'year', 'year', 1, 'halfExpand', 1) as "inYears" 
     from project_release 
     order by version
     ```
@@ -2138,7 +2138,7 @@ The executed query is:
         version as version, 
         tsq_duration_text(0, (cast(strftime('%Y', ?1) as integer) * 12 + cast(strftime('%m', ?1) as integer) - (cast(strftime('%Y', date(released_on, 'start of month')) as integer) * 12 + cast(strftime('%m', date(released_on, 'start of month')) as integer))), 0, 0, 0, 'year') as untilJune, 
         tsq_duration_text(0, (cast(strftime('%Y', ?2) as integer) * 12 + cast(strftime('%m', ?2) as integer) - (cast(strftime('%Y', date(released_on, 'start of month')) as integer) * 12 + cast(strftime('%m', date(released_on, 'start of month')) as integer))), 0, 0, 0, 'month') as inMonths, 
-        tsq_duration_round(cast(strftime('%Y', date(released_on, 'start of month')) as integer), cast(strftime('%m', date(released_on, 'start of month')) as integer), 1, 0, ?3, ?4, 1, 0, 'year', 'year', 1, 'halfExpand', 1) as inYears 
+        tsq_duration_round_of(strftime('%Y-%m-01', date(released_on, 'start of month')), strftime('%Y-%m-01', ?3), 'year', 'year', 1, 'halfExpand', 1) as inYears 
     from project_release 
     order by version
     ```
@@ -2148,12 +2148,12 @@ The executed query is:
         version as version, 
         dbo.tsq_duration_text(0, (datepart(year, @0) * 12 + datepart(month, @0) - (datepart(year, datefromparts(datepart(year, released_on), datepart(month, released_on), 1)) * 12 + datepart(month, datefromparts(datepart(year, released_on), datepart(month, released_on), 1)))), 0, 0, 0, 'year') as untilJune, 
         dbo.tsq_duration_text(0, (datepart(year, @1) * 12 + datepart(month, @1) - (datepart(year, datefromparts(datepart(year, released_on), datepart(month, released_on), 1)) * 12 + datepart(month, datefromparts(datepart(year, released_on), datepart(month, released_on), 1)))), 0, 0, 0, 'month') as inMonths, 
-        dbo.tsq_duration_round(datepart(year, datefromparts(datepart(year, released_on), datepart(month, released_on), 1)), datepart(month, datefromparts(datepart(year, released_on), datepart(month, released_on), 1)), 1, 0, @2, @3, 1, 0, 'year', 'year', 1, 'halfExpand', 1) as inYears 
+        dbo.tsq_duration_round_of(datefromparts(datepart(year, datefromparts(datepart(year, released_on), datepart(month, released_on), 1)), datepart(month, datefromparts(datepart(year, released_on), datepart(month, released_on), 1)), 1), datefromparts(datepart(year, @2), datepart(month, @2), 1), 'year', 'year', 1, 'halfExpand', 1) as inYears 
     from project_release 
     order by version
     ```
 
-The parameters are: `[ PlainDate 2025-06-01, PlainDate 2025-06-01, 2025, 6 ]` (on MariaDB and MySQL: `[ PlainDate 2025-06-01, PlainDate 2025-06-01, PlainDate 2025-06-01, PlainDate 2025-06-01, 2025, 6 ]`; on SQLite: `[ '2025-06-01', '2025-06-01', 2025, 6 ]`)
+The parameters are: `[ PlainDate 2025-06-01, PlainDate 2025-06-01, PlainDate 2025-06-01 ]` (on MariaDB and MySQL: `[ PlainDate 2025-06-01, PlainDate 2025-06-01, PlainDate 2025-06-01, PlainDate 2025-06-01, PlainDate 2025-06-01 ]`; on SQLite: `[ '2025-06-01', '2025-06-01', '2025-06-01' ]`)
 
 | version | untilJune | inMonths | inYears |
 |---|---|---|---|

@@ -9,7 +9,7 @@ Some queries call a function that Oracle doesn't have built in. This page says w
 They are of these kinds:
 
 - **The ones a query always needs**, the ones of durations and of differences of zoned dates and times in days: a query that uses one calls it (see [Dates and times](../../configuration/dates-and-times.md)).
-- **The optional ones**, `tsq_zoned_of_wall`, `tsq_zoned_of_text`, `tsq_zoned_hours_in_day`, `tsq_zoned_round_day`, `tsq_round_to`, `tsq_nanoseconds_between`, `tsq_duration_sum`, `tsq_duration_total_of`, `tsq_duration_round_of`, `tsq_ds_interval_text`, `tsq_ym_interval_text`, `tsq_duration_negated`, `tsq_time_plus_duration`, `tsq_instant_plus_duration`, `tsq_day_in_month_or_error`, `tsq_utc_of_epoch`, `tsq_date_with` and `tsq_string_util.concat_strict`: a query calls them only with `libraryFunctions = 'installed'` on the connection; without it, the SQL of Oracle does the same with less (see each one).
+- **The optional ones**, `tsq_zoned_of_wall`, `tsq_zoned_of_text`, `tsq_zoned_hours_in_day`, `tsq_zoned_round_day`, `tsq_round_to`, `tsq_nanoseconds_between`, `tsq_duration_sum`, `tsq_duration_total_of`, `tsq_duration_round_of`, `tsq_ds_interval_text`, `tsq_ym_interval_text`, `tsq_duration_negated`, `tsq_time_plus_duration`, `tsq_instant_plus_duration`, `tsq_day_in_month_or_error`, `tsq_utc_of_epoch`, `tsq_date_with`, the SQL macros of the Temporal values and `tsq_string_util.concat_strict`: a query calls them only with `libraryFunctions = 'installed'` on the connection; without it, the SQL of Oracle does the same with less (see each one).
 - **The ones of the uuid strategy** `'custom-functions'`, `tsq_uuid_to_raw` and `tsq_raw_to_uuid`, in two forms to choose, in files of their own.
 
 ## Which function each query needs
@@ -37,6 +37,7 @@ They are of these kinds:
 | [`tsq_day_in_month_or_error`](#tsq_day_in_month_or_error) | `add`, `subtract` or `with` of a date or a date and time with `{ overflow: 'reject' }`, with `libraryFunctions = 'installed'` | — |
 | [`tsq_utc_of_epoch`](#tsq_utc_of_epoch) | `instantFromEpochMilliseconds` or `instantFromEpochNanoseconds` of a value of the query, with `libraryFunctions = 'installed'` | — |
 | [`tsq_date_with`](#tsq_date_with) | `with` of a date, or `toPlainDate` of a month of a year or of a day of a month, with `libraryFunctions = 'installed'` | — |
+| [The SQL macros of the Temporal values](#the-sql-macros-of-the-temporal-values) | a Temporal value is read, with `libraryFunctions = 'installed'`, from Oracle 23.4 | — |
 | [`tsq_string_util.concat_strict`](#tsq_string_utilconcat_strict) | `concat` or an affix pattern is written, with `libraryFunctions = 'installed'` | — |
 | [`tsq_uuid_to_raw` and `tsq_raw_to_uuid`](#tsq_uuid_to_raw-and-tsq_raw_to_uuid) | a uuid is read or written with the `'custom-functions'` uuid strategy | — |
 
@@ -167,6 +168,22 @@ Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 ## `tsq_date_with`
 
 `tsq_date_with` gives a date with the year, the month and the day given in place of its own (a null keeps its own), as Temporal's `with`: a day the month hasn't is its last day, or makes the query fail with `overflow: 'reject'`. With `libraryFunctions = 'installed'` a query calls it for `with` of a date (see [Changing a field and rounding](../../configuration/dates-and-times.md#changing-a-field-and-rounding)) and for `toPlainDate` of a month of a year and of a day of a month (see [A month of a year and a day of a month](../../configuration/dates-and-times.md#a-month-of-a-year-and-a-day-of-a-month)), and writes the date once; without it, the query writes it several times.
+
+Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
+
+## The SQL macros of the Temporal values
+
+oracledb gives a date and a time only as a `Date`, which drops the digits below the millisecond and the years before 1, and the formats of the session decide how a text is read: a query reads each Temporal value as its text, written with a format of its own, all its digits and the era always written, in English whatever the language of the session,, like `to_char(released_on, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')`. The SQL macros of the library are those conversions, written once in a scalar SQL macro, which Oracle expands where the query uses it: the query reads `tsq_text_of_date(released_on)`, and costs what the expression it expands to costs (Oracle doesn't take a macro inside the argument of another one, so the parameters keep their conversion as it is).
+
+| Macro | It is |
+|---|---|
+| `tsq_text_of_date(value)` | the text of a date, `YYYY-MM-DD BC` |
+| `tsq_text_of_timestamp(value)` | the text of a date and time, or of a time (a `TIMESTAMP` on the date of the stored times), `YYYY-MM-DD"T"HH24:MI:SS.FF9 BC` |
+| `tsq_text_of_utc(value)` | the text of the date and time in UTC of an instant the query computes, with a `Z` |
+| `tsq_text_of_instant(value)` | the text of an instant: its date and time in UTC, with a `Z` |
+| `tsq_text_of_zoned(value)` | the text of a zoned date and time: its date and time with its offset, and its zone in brackets |
+
+A query uses them with `libraryFunctions = 'installed'` from Oracle 23.4. Oracle 21 has scalar SQL macros, but fails with `ORA-07445` expanding one whose argument has a scalar subquery, which the arithmetic of the dates and times writes; on Oracle 21 and 19 set `compatibilityVersion` to its version (`21_000_000`, `19_000_000`) and the query writes the conversions inline. The macros are created on Oracle 21 too; on Oracle 19, which hasn't them, creating them fails, and SQL*Plus goes on with the rest of the file.
 
 Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 

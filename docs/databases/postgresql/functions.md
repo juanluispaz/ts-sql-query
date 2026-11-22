@@ -9,7 +9,7 @@ Some queries call a function that PostgreSQL doesn't have built in. This page sa
 They are of these kinds, and all of them are in [one file](#creating-them):
 
 - **The ones a query always needs**, the ones of durations and of differences of zoned dates and times in days: a query that uses one calls it (see [Dates and times](../../configuration/dates-and-times.md)).
-- **The optional ones**, `tsq_zoned_of_wall`, `tsq_zone`, `tsq_zoned_offset`, `tsq_zoned_hours_in_day`, `tsq_zoned_round_day`, `tsq_round_to`, `tsq_duration_sum`, `tsq_duration_total_of`, `tsq_duration_round_of`, `tsq_duration_negated`, `tsq_date_plus_duration`, `tsq_instant_plus_duration`, `tsq_day_in_month_or_error`, `tsq_utc_of_epoch`, `tsq_date_with`, `tsq_greatest_strict` and `tsq_least_strict`: a query calls them only with `libraryFunctions = 'installed'` on the connection; without it, the SQL of PostgreSQL does the same with less (see each one).
+- **The optional ones**, `tsq_zoned_of_wall`, `tsq_zone`, `tsq_zoned_offset`, `tsq_zoned_hours_in_day`, `tsq_zoned_round_day`, `tsq_zoned_plus_date`, `tsq_round_to`, `tsq_duration_sum`, `tsq_duration_total_of`, `tsq_duration_round_of`, `tsq_duration_negated`, `tsq_date_plus_duration`, `tsq_instant_plus_duration`, `tsq_day_in_month_or_error`, `tsq_utc_of_epoch`, `tsq_date_with`, `tsq_greatest_strict` and `tsq_least_strict`: a query calls them only with `libraryFunctions = 'installed'` on the connection; without it, the SQL of PostgreSQL does the same with less (see each one).
 
 ## Which function each query needs
 
@@ -25,6 +25,7 @@ They are of these kinds, and all of them are in [one file](#creating-them):
 | [`tsq_zoned_offset`](#tsq_zoned_offset) | `offset()` of a zoned date and time, with `libraryFunctions = 'installed'` | `tsq_zone` |
 | [`tsq_zoned_hours_in_day`](#tsq_zoned_hours_in_day) | `hoursInDay()` of a zoned date and time, with `libraryFunctions = 'installed'` | `tsq_zone`, `tsq_zoned_of_wall` |
 | [`tsq_zoned_round_day`](#tsq_zoned_round_day) | `round` of a zoned date and time to a day, with `libraryFunctions = 'installed'` | `tsq_zone`, `tsq_zoned_of_wall` |
+| [`tsq_zoned_plus_date`](#tsq_zoned_plus_date) | `add` or `subtract` of a zoned date and time with years, months, weeks or days, with `libraryFunctions = 'installed'` | `tsq_zone`, `tsq_zoned_of_wall`, `tsq_day_in_month_or_error` |
 | [`tsq_round_to`](#tsq_round_to) | `round` in `'halfEven'` of a time, a date and time or an instant, or `until` or `since` with a rounding, with `libraryFunctions = 'installed'` | — |
 | [`tsq_duration_sum`](#tsq_duration_sum) | `add` or `subtract` of two durations, with `libraryFunctions = 'installed'` | `tsq_duration_part`, `tsq_duration_add` |
 | [`tsq_duration_total_of`](#tsq_duration_total_of) | `total` of a duration, with `libraryFunctions = 'installed'` | `tsq_duration_part`, `tsq_duration_total` |
@@ -97,6 +98,12 @@ Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 ## `tsq_zoned_round_day`
 
 `tsq_zoned_round_day` gives `round` of a zoned date and time to a day, as Temporal: the start of its day or of the next one in its zone, the nearer one by the length of its day, in the mode given. With `libraryFunctions = 'installed'` the query calls it and writes the value once; without it, the query writes the start of both days inline, each one twice. It calls `tsq_zone` and `tsq_zoned_of_wall`: create them first.
+
+Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
+
+## `tsq_zoned_plus_date`
+
+`tsq_zoned_plus_date` gives `add` and `subtract` of a zoned date and time with years, months, weeks or days, as Temporal: the months and the days added to its wall clock in its zone, the day kept in the month (or the query failing with `{ overflow: 'reject' }` when the month hasn't it), and that wall clock taken back to its zone as `'compatible'` disambiguates it; the value itself when the duration has none of them. The hours and smaller units of the duration are then added to that instant, outside the function. With `libraryFunctions = 'installed'` the query calls it and writes the value once; without it, the query writes the computation inline, with the wall clock in its zone several times. It calls `tsq_zone`, `tsq_zoned_of_wall` and `tsq_day_in_month_or_error`: create them first.
 
 Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 

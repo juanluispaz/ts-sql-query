@@ -984,10 +984,10 @@ The executed query is:
     ```oracle
     select 
         version as "version", 
-        tsq_text_of_zoned((select tsq_zoned_of_wall((cast(tsq_z.x as timestamp(9)) + numtodsinterval(:0, 'day')), to_char(tsq_z.x, 'TZR'), 'compatible') from (select tsq_zoned_of_wall(cast(published_at as timestamp(9)), 'Europe/Madrid', 'compatible') as x from dual where rownum = 1) tsq_z)) as "followUp", 
-        tsq_zoned_until(tsq_zoned_of_wall(cast(published_at as timestamp(9)), 'Europe/Madrid', 'compatible'), (select tsq_zoned_of_wall((cast(tsq_z.x as timestamp(9)) + numtodsinterval(:1, 'day')), to_char(tsq_z.x, 'TZR'), 'compatible') from (select tsq_zoned_of_wall(cast(published_at as timestamp(9)), 'Europe/Madrid', 'compatible') as x from dual where rownum = 1) tsq_z), 'day', 'nanosecond', 1, 'trunc', 1) as "daysToFollowUp", 
-        tsq_duration_text(0, 0, 0, 0, tsq_nanoseconds_between(sys_extract_utc(tsq_zoned_of_wall(cast(published_at as timestamp(9)), 'Europe/Madrid', 'compatible')), sys_extract_utc((select tsq_zoned_of_wall((cast(tsq_z.x as timestamp(9)) + numtodsinterval(:2, 'day')), to_char(tsq_z.x, 'TZR'), 'compatible') from (select tsq_zoned_of_wall(cast(published_at as timestamp(9)), 'Europe/Madrid', 'compatible') as x from dual where rownum = 1) tsq_z))), 'hour') as "hoursToFollowUp", 
-        tsq_zoned_hours_in_day((select tsq_zoned_of_wall((cast(tsq_z.x as timestamp(9)) + numtodsinterval(:3, 'day')), to_char(tsq_z.x, 'TZR'), 'compatible') from (select tsq_zoned_of_wall(cast(published_at as timestamp(9)), 'Europe/Madrid', 'compatible') as x from dual where rownum = 1) tsq_z)) as "hoursInThatDay" 
+        tsq_text_of_zoned(tsq_zoned_plus_date(tsq_zoned_of_wall(cast(published_at as timestamp(9)), 'Europe/Madrid', 'compatible'), 0, :0, 0)) as "followUp", 
+        tsq_zoned_until(tsq_zoned_of_wall(cast(published_at as timestamp(9)), 'Europe/Madrid', 'compatible'), tsq_zoned_plus_date(tsq_zoned_of_wall(cast(published_at as timestamp(9)), 'Europe/Madrid', 'compatible'), 0, :1, 0), 'day', 'nanosecond', 1, 'trunc', 1) as "daysToFollowUp", 
+        tsq_duration_text(0, 0, 0, 0, tsq_nanoseconds_between(sys_extract_utc(tsq_zoned_of_wall(cast(published_at as timestamp(9)), 'Europe/Madrid', 'compatible')), sys_extract_utc(tsq_zoned_plus_date(tsq_zoned_of_wall(cast(published_at as timestamp(9)), 'Europe/Madrid', 'compatible'), 0, :2, 0))), 'hour') as "hoursToFollowUp", 
+        tsq_zoned_hours_in_day(tsq_zoned_plus_date(tsq_zoned_of_wall(cast(published_at as timestamp(9)), 'Europe/Madrid', 'compatible'), 0, :3, 0)) as "hoursInThatDay" 
     from project_release 
     order by "version"
     ```
@@ -995,10 +995,10 @@ The executed query is:
     ```postgresql
     select 
         version as version, 
-        to_char((tsq_zoned_of_wall((((tsq_zoned_of_wall(published_at, 'Europe/Madrid', 'compatible')) at time zone 'Europe/Madrid') + make_interval(days => $1)), 'Europe/Madrid', 'compatible')) at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z" BC') || '[Europe/Madrid]' as "followUp", 
-        tsq_zoned_until((tsq_zoned_of_wall(published_at, 'Europe/Madrid', 'compatible')), 'Europe/Madrid', (tsq_zoned_of_wall((((tsq_zoned_of_wall(published_at, 'Europe/Madrid', 'compatible')) at time zone 'Europe/Madrid') + make_interval(days => $2)), 'Europe/Madrid', 'compatible')), 'Europe/Madrid', 'day', 'nanosecond', 1, 'trunc', 1) as "daysToFollowUp", 
-        (extract(epoch from ((tsq_zoned_of_wall((((tsq_zoned_of_wall(published_at, 'Europe/Madrid', 'compatible')) at time zone 'Europe/Madrid') + make_interval(days => $3)), 'Europe/Madrid', 'compatible')) at time zone 'UTC') - ((tsq_zoned_of_wall(published_at, 'Europe/Madrid', 'compatible')) at time zone 'UTC')) || ' seconds')::interval as "hoursToFollowUp", 
-        tsq_zoned_hours_in_day((tsq_zoned_of_wall((((tsq_zoned_of_wall(published_at, 'Europe/Madrid', 'compatible')) at time zone 'Europe/Madrid') + make_interval(days => $4)), 'Europe/Madrid', 'compatible')), 'Europe/Madrid') as "hoursInThatDay" 
+        to_char((tsq_zoned_plus_date(tsq_zoned_of_wall(published_at, 'Europe/Madrid', 'compatible'), 'Europe/Madrid', 0, $1, 0)) at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z" BC') || '[Europe/Madrid]' as "followUp", 
+        tsq_zoned_until(tsq_zoned_of_wall(published_at, 'Europe/Madrid', 'compatible'), 'Europe/Madrid', tsq_zoned_plus_date(tsq_zoned_of_wall(published_at, 'Europe/Madrid', 'compatible'), 'Europe/Madrid', 0, $2, 0), 'Europe/Madrid', 'day', 'nanosecond', 1, 'trunc', 1) as "daysToFollowUp", 
+        (extract(epoch from ((tsq_zoned_plus_date(tsq_zoned_of_wall(published_at, 'Europe/Madrid', 'compatible'), 'Europe/Madrid', 0, $3, 0)) at time zone 'UTC') - ((tsq_zoned_of_wall(published_at, 'Europe/Madrid', 'compatible')) at time zone 'UTC')) || ' seconds')::interval as "hoursToFollowUp", 
+        tsq_zoned_hours_in_day(tsq_zoned_plus_date(tsq_zoned_of_wall(published_at, 'Europe/Madrid', 'compatible'), 'Europe/Madrid', 0, $4, 0), 'Europe/Madrid') as "hoursInThatDay" 
     from project_release 
     order by version
     ```

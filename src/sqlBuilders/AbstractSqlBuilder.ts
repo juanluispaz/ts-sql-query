@@ -5151,9 +5151,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
      */
     _durationRoundedToTheCalendar(context: SqlBuildContext, d: PlainTemporalDifferenceSql): string {
         const difference = d.difference
-        if (this._libraryFunctionsInstalled() && d.fields !== 'yearMonth') {
-            // The function of the library that takes each date or date and time whole, writing it once
-            const ofValues = this._durationRoundOfFunctionName() + '(' + this._durationRoundOfOperand(context, d.one) + ', ' + this._durationRoundOfOperand(context, d.two) + ', '
+        if (this._libraryFunctionsInstalled()) {
+            // The function of the library that takes each date or date and time whole, writing it once; a month of a year
+            // is counted from its first day, as Temporal does
+            const one = d.fields === 'yearMonth' ? this._durationRoundOfMonthOperand(context, d.one) : this._durationRoundOfOperand(context, d.one)
+            const two = d.fields === 'yearMonth' ? this._durationRoundOfMonthOperand(context, d.two) : this._durationRoundOfOperand(context, d.two)
+            const ofValues = this._durationRoundOfFunctionName() + '(' + one + ', ' + two + ', '
             return ofValues + "'" + difference.largestUnit + "', '" + difference.smallestUnit + "', " + difference.increment + ", '" + difference.mode + "', " + (difference.negated ? '-1' : '1') + ')'
         }
         let result = this._durationRoundFunctionName() + '('
@@ -5207,6 +5210,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
     /** The name of the function of the library that negates the ISO 8601 text of a duration */
     _durationNegatedFunctionName(): string {
         return 'tsq_duration_negated'
+    }
+    /** The first day of the month of a month of a year, as tsq_duration_round_of takes it */
+    _durationRoundOfMonthOperand(context: SqlBuildContext, valueSource: ToSql): string {
+        return this._makeDate(context, this._integerPart(this._year(context, valueSource)), this._integerPart(this._month(context, valueSource)), '1')
     }
     /** The name of the function of the library that rounds a difference of two values given whole to the calendar */
     _durationRoundOfFunctionName(): string {

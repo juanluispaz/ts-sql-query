@@ -1348,6 +1348,9 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     override _supportNativeDurations(): boolean {
         return false
     }
+    override _durationRoundOfMonthOperand(context: SqlBuildContext, valueSource: ToSql): string {
+        return "strftime('%Y-%m-01', " + this._dateFunctionArgument(context, valueSource) + ')'
+    }
     override _durationRoundOfOperand(context: SqlBuildContext, valueSource: ToSql): string {
         // Its text, as the date functions read it, with its milliseconds
         return "strftime('%Y-%m-%d %H:%M:%f', " + this._dateFunctionArgument(context, valueSource) + ')'

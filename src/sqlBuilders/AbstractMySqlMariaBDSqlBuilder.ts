@@ -998,6 +998,9 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     override _monthCode(context: SqlBuildContext, valueSource: ToSql): string {
         return "date_format(" + this._appendSql(valueSource, context, false) + ", 'M%m')"
     }
+    override _durationRoundOfMonthOperand(context: SqlBuildContext, valueSource: ToSql): string {
+        return "date_format(" + this._appendSql(valueSource, context, this._isConstOperand(valueSource)) + ", '%Y-%m-01')"
+    }
     override _toPlainYearMonth(context: SqlBuildContext, valueSource: ToSql): string {
         // The text of its year and month on the reference day, a date (MariaDB and MySQL dates have 4 digits)
         return 'cast(date_format(' + this._appendSql(valueSource, context, false) + ", '%Y-%m-" + String(this._dayOfStoredYearMonths()).padStart(2, '0') + "') as date)"

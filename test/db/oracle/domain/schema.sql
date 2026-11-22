@@ -1283,6 +1283,36 @@ BEGIN
     RETURN v_first + v_day - 1;
 END;
 
+-- tsq_sql_macros: The SQL macros of the library (used from Oracle 23.4): the conversions a Temporal value leaves and reaches the driver
+-- with, written once in the macro, which Oracle expands where the query uses it (libraryFunctions installed): the text
+-- of a date, of a date and time or a time (a TIMESTAMP on the date of the stored times), of the date and time in UTC of
+-- an instant, of an instant and of a zoned date and time, all of their digits and the era always written, in English
+-- whatever the language of the session.
+CREATE OR REPLACE FUNCTION tsq_text_of_date(value IN DATE) RETURN VARCHAR2 SQL_MACRO(SCALAR) IS
+BEGIN
+    RETURN q'[to_char(value, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')]';
+END;
+
+CREATE OR REPLACE FUNCTION tsq_text_of_timestamp(value IN TIMESTAMP_UNCONSTRAINED) RETURN VARCHAR2 SQL_MACRO(SCALAR) IS
+BEGIN
+    RETURN q'[to_char(cast(value as timestamp(9)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9 BC', 'NLS_DATE_LANGUAGE=AMERICAN')]';
+END;
+
+CREATE OR REPLACE FUNCTION tsq_text_of_utc(value IN TIMESTAMP_UNCONSTRAINED) RETURN VARCHAR2 SQL_MACRO(SCALAR) IS
+BEGIN
+    RETURN q'[to_char(value, 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN')]';
+END;
+
+CREATE OR REPLACE FUNCTION tsq_text_of_instant(value IN TIMESTAMP_TZ_UNCONSTRAINED) RETURN VARCHAR2 SQL_MACRO(SCALAR) IS
+BEGIN
+    RETURN q'[to_char(sys_extract_utc(cast(value as timestamp(9) with time zone)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN')]';
+END;
+
+CREATE OR REPLACE FUNCTION tsq_text_of_zoned(value IN TIMESTAMP_TZ_UNCONSTRAINED) RETURN VARCHAR2 SQL_MACRO(SCALAR) IS
+BEGIN
+    RETURN q'[to_char(value, 'YYYY-MM-DD"T"HH24:MI:SS.FF9TZH:TZM BC"["TZR"]"', 'NLS_DATE_LANGUAGE=AMERICAN')]';
+END;
+
 -- tsq_uuid_to_raw and tsq_raw_to_uuid: a uuid and its RAW(16), the 16 bytes as they are (any version of uuid, any
 -- Oracle), the functions of the library that uuidStrategy 'custom-functions' calls; the text read is in lower case.
 CREATE OR REPLACE FUNCTION tsq_uuid_to_raw(uuid IN VARCHAR2) RETURN RAW DETERMINISTIC IS

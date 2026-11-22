@@ -1786,6 +1786,9 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         // session takes part)
         return "to_date('" + this._yearOfStoredMonthDays() + "' || to_char(" + this._appendSql(valueSource, context, false) + ", 'MMDD'), 'YYYYMMDD')"
     }
+    override _durationRoundOfMonthOperand(context: SqlBuildContext, valueSource: ToSql): string {
+        return 'trunc(' + this._appendSql(valueSource, context, this._isConstOperand(valueSource)) + ", 'MM')"
+    }
     override _toPlainYearMonth(context: SqlBuildContext, valueSource: ToSql): string {
         // The first day of its month, and the days to the reference day
         const day = this._dayOfStoredYearMonths()

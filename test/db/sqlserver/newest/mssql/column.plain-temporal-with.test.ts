@@ -135,6 +135,7 @@ describe(ctx.label, () => {
                 inFebruary: tCalendarValue.bornOn.with({ month: 2 }),
                 in2023: tCalendarValue.dayOf.toPlainDate({ year: 2023 }),
                 day30: tCalendarValue.monthOf.toPlainDate({ day: 30 }),
+                toJune: tCalendarValue.monthOf.until(Temporal.PlainYearMonth.from('2025-06'), { smallestUnit: 'year', roundingMode: 'halfExpand' }),
             })
             .orderBy('id')
             .executeSelectMany()
@@ -150,13 +151,16 @@ describe(ctx.label, () => {
             .executeSelectMany()
         ctx.mockNext([])
         const withFunctions = await query(ctx.withLibraryFunctions())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, month_of as monthOf, day_of as dayOf, born_on as bornOn, dbo.tsq_date_with(born_on, null, null, 31, 0) as lastOfMonth, dbo.tsq_date_with(born_on, null, 2, null, 0) as inFebruary, dbo.tsq_date_with(day_of, 2023, null, null, 0) as in2023, dbo.tsq_date_with(month_of, null, null, 30, 0) as day30 from calendar_value order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, month_of as monthOf, day_of as dayOf, born_on as bornOn, dbo.tsq_date_with(born_on, null, null, 31, 0) as lastOfMonth, dbo.tsq_date_with(born_on, null, 2, null, 0) as inFebruary, dbo.tsq_date_with(day_of, 2023, null, null, 0) as in2023, dbo.tsq_date_with(month_of, null, null, 30, 0) as day30, dbo.tsq_duration_round_of(datefromparts(datepart(year, month_of), datepart(month, month_of), 1), datefromparts(datepart(year, @0), datepart(month, @0), 1), 'year', 'year', 1, 'halfExpand', 1) as toJune from calendar_value order by id"`)
         ctx.mockNext([])
         const withoutFunctions = await query(ctx.conn)
         expect(withFunctions.length).toBe(ctx.realDbEnabled ? 3 : 0)
         type Row = (typeof withFunctions)[number]
-        const read = (row: Row) => [row.id, row.lastOfMonth.toString(), row.inFebruary.toString(), row.in2023.toString(), row.day30.toString()]
-        const ofTemporal = (row: Row) => [row.id, row.bornOn.with({ day: 31 }).toString(), row.bornOn.with({ month: 2 }).toString(), row.dayOf.toPlainDate({ year: 2023 }).toString(), row.monthOf.toPlainDate({ day: 30 }).toString()]
+        const read = (row: Row) => [row.id, row.lastOfMonth.toString(), row.inFebruary.toString(), row.in2023.toString(), row.day30.toString(), row.toJune.years * 12 + row.toJune.months]
+        const ofTemporal = (row: Row) => {
+            const toJune = row.monthOf.until(Temporal.PlainYearMonth.from('2025-06'), { smallestUnit: 'year', roundingMode: 'halfExpand' })
+            return [row.id, row.bornOn.with({ day: 31 }).toString(), row.bornOn.with({ month: 2 }).toString(), row.dayOf.toPlainDate({ year: 2023 }).toString(), row.monthOf.toPlainDate({ day: 30 }).toString(), toJune.years * 12 + toJune.months]
+        }
         expect(withFunctions.map(read)).toEqual(withFunctions.map(ofTemporal))
         expect(withoutFunctions.map(read)).toEqual(withoutFunctions.map(ofTemporal))
         ctx.mockNext([])

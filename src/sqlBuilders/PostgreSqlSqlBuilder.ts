@@ -835,6 +835,9 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         }
         return '(extract(epoch from ' + this._appendSqlParenthesis(d.two, context, false) + ' - ' + this._appendSqlParenthesis(d.one, context, false) + ') * 1000000)::bigint'
     }
+    override _durationRoundOfMonthOperand(context: SqlBuildContext, valueSource: ToSql): string {
+        return "date_trunc('month', " + this._appendSqlForDatePartArgument(valueSource, context) + ')::date'
+    }
     override _toPlainYearMonth(context: SqlBuildContext, valueSource: ToSql): string {
         // The first day of its month, and the days to the reference day
         const day = this._dayOfStoredYearMonths()

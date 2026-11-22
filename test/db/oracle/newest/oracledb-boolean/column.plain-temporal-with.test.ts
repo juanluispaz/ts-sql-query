@@ -135,6 +135,7 @@ describe(ctx.label, () => {
                 inFebruary: tCalendarValue.bornOn.with({ month: 2 }),
                 in2023: tCalendarValue.dayOf.toPlainDate({ year: 2023 }),
                 day30: tCalendarValue.monthOf.toPlainDate({ day: 30 }),
+                toJune: tCalendarValue.monthOf.until(Temporal.PlainYearMonth.from('2025-06'), { smallestUnit: 'year', roundingMode: 'halfExpand' }),
             })
             .orderBy('id')
             .executeSelectMany()
@@ -150,18 +151,21 @@ describe(ctx.label, () => {
             .executeSelectMany()
         ctx.mockNext([])
         const withFunctions = await query(ctx.withLibraryFunctions())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", to_char(month_of, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "monthOf", to_char(day_of, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "dayOf", to_char(born_on, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "bornOn", to_char(tsq_date_with(born_on, null, null, 31, 0), 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "lastOfMonth", to_char(tsq_date_with(born_on, null, 2, null, 0), 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "inFebruary", to_char(tsq_date_with(day_of, 2023, null, null, 0), 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "in2023", to_char(tsq_date_with(month_of, null, null, 30, 0), 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "day30" from calendar_value order by "id""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", tsq_text_of_date(month_of) as "monthOf", tsq_text_of_date(day_of) as "dayOf", tsq_text_of_date(born_on) as "bornOn", tsq_text_of_date(tsq_date_with(born_on, null, null, 31, 0)) as "lastOfMonth", tsq_text_of_date(tsq_date_with(born_on, null, 2, null, 0)) as "inFebruary", tsq_text_of_date(tsq_date_with(day_of, 2023, null, null, 0)) as "in2023", tsq_text_of_date(tsq_date_with(month_of, null, null, 30, 0)) as "day30", tsq_duration_round_of(trunc(month_of, 'MM'), trunc(to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN'), 'MM'), 'year', 'year', 1, 'halfExpand', 1) as "toJune" from calendar_value order by "id""`)
         ctx.mockNext([])
         const withoutFunctions = await query(ctx.conn)
         expect(withFunctions.length).toBe(ctx.realDbEnabled ? 3 : 0)
         type Row = (typeof withFunctions)[number]
-        const read = (row: Row) => [row.id, row.lastOfMonth.toString(), row.inFebruary.toString(), row.in2023.toString(), row.day30.toString()]
-        const ofTemporal = (row: Row) => [row.id, row.bornOn.with({ day: 31 }).toString(), row.bornOn.with({ month: 2 }).toString(), row.dayOf.toPlainDate({ year: 2023 }).toString(), row.monthOf.toPlainDate({ day: 30 }).toString()]
+        const read = (row: Row) => [row.id, row.lastOfMonth.toString(), row.inFebruary.toString(), row.in2023.toString(), row.day30.toString(), row.toJune.years * 12 + row.toJune.months]
+        const ofTemporal = (row: Row) => {
+            const toJune = row.monthOf.until(Temporal.PlainYearMonth.from('2025-06'), { smallestUnit: 'year', roundingMode: 'halfExpand' })
+            return [row.id, row.bornOn.with({ day: 31 }).toString(), row.bornOn.with({ month: 2 }).toString(), row.dayOf.toPlainDate({ year: 2023 }).toString(), row.monthOf.toPlainDate({ day: 30 }).toString(), toJune.years * 12 + toJune.months]
+        }
         expect(withFunctions.map(read)).toEqual(withFunctions.map(ofTemporal))
         expect(withoutFunctions.map(read)).toEqual(withoutFunctions.map(ofTemporal))
         ctx.mockNext([])
         const epochsWithFunctions = await epochs(ctx.withLibraryFunctions())
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as "version", to_char(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "deployedAt", to_char(tsq_utc_of_epoch((trunc(timestamp '1970-01-01 00:00:00' + (deployed_at - timestamp '1970-01-01 00:00:00')) - date '1970-01-01') * 86400000 + to_number(to_char(timestamp '1970-01-01 00:00:00' + (deployed_at - timestamp '1970-01-01 00:00:00'), 'SSSSSFF3')), 1000000), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "ofMilliseconds", to_char(tsq_utc_of_epoch(((trunc(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone))) - date '1970-01-01') * 86400000000000 + to_number(to_char(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)), 'SSSSSFF9'))), 1), 'YYYY-MM-DD"T"HH24:MI:SS.FF9"Z" BC', 'NLS_DATE_LANGUAGE=AMERICAN') as "ofNanoseconds" from project_release where deployed_at is not null order by "version""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as "version", tsq_text_of_instant(deployed_at) as "deployedAt", tsq_text_of_utc(tsq_utc_of_epoch((trunc(timestamp '1970-01-01 00:00:00' + (deployed_at - timestamp '1970-01-01 00:00:00')) - date '1970-01-01') * 86400000 + to_number(to_char(timestamp '1970-01-01 00:00:00' + (deployed_at - timestamp '1970-01-01 00:00:00'), 'SSSSSFF3')), 1000000)) as "ofMilliseconds", tsq_text_of_utc(tsq_utc_of_epoch(((trunc(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone))) - date '1970-01-01') * 86400000000000 + to_number(to_char(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)), 'SSSSSFF9'))), 1)) as "ofNanoseconds" from project_release where deployed_at is not null order by "version""`)
         ctx.mockNext([])
         const epochsWithoutFunctions = await epochs(ctx.conn)
         expect(epochsWithFunctions.length).toBe(ctx.realDbEnabled ? 2 : 0)

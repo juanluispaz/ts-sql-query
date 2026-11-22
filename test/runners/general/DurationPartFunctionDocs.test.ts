@@ -4,7 +4,7 @@
 // tsq_time_of_ticks, tsq_datetime_of_ticks, tsq_zoned_hours_in_day, tsq_zoned_round_day,
 // tsq_duration_sum, tsq_duration_total_of, tsq_duration_round_of, tsq_ds_interval_text, tsq_ym_interval_text,
 // tsq_duration_negated, the ones of a value plus a duration tsq_day_in_month_or_error,
-// tsq_utc_of_epoch and tsq_date_with) are the ones the suite creates in the
+// tsq_utc_of_epoch, tsq_date_with and the SQL macros of Oracle) are the ones the suite creates in the
 // schema of that database (test/db/<db>/domain/schema.sql), which the tests of the arithmetic, the differences of dates,
 // the totals and the sums of durations run against every engine: the text of the page is the tested one.
 
@@ -140,6 +140,10 @@ describe('DurationPartFunctionDocs', () => {
             expect(documented(db, 'tsq_utc_of_epoch')).toBe(tested(schema, 'tsq_utc_of_epoch'))
             expect(documented(db, 'tsq_date_with')).toBe(tested(schema, 'tsq_date_with'))
         }
+    })
+
+    test('the-documented-sql-macros-of-oracle-are-the-tested-ones', () => {
+        expect(documented('oracle', 'tsq_sql_macros')).toBe(tested('oracle', 'tsq_sql_macros'))
     })
 
     test('the-documented-functions-of-the-uuids-of-oracle-are-the-tested-ones', () => {

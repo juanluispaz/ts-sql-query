@@ -1333,3 +1333,14 @@ comes is "bump the image, uncomment", not "implement something".
 The rest of § 2 is **not** a watchlist: those tiers exist precisely to pin
 an old engine's behaviour, so their gaps are permanent by construction.
 
+
+## Oracle 21 fails with ORA-07445 expanding a scalar SQL macro whose argument has a scalar subquery
+
+Oracle 21 has scalar SQL macros (`SQL_MACRO(SCALAR)`), but its server process fails with
+`ORA-07445: exception encountered: core dump [qksptfSubExprContainScalar()+149] [SIGSEGV]` (the driver sees
+`NJS-500`, the connection closed) expanding one whose argument has a scalar subquery, like the one the arithmetic of a
+zoned date and time names its operand with (`(select … from dual where rownum = 1) tsq_z`). Measured on
+`gvenzl/oracle-xe:21-slim-faststart`; Oracle 23 (`gvenzl/oracle-free:23-slim-faststart`) expands it. The library uses
+its SQL macros of the Temporal values (`tsq_text_of_date`, …) from `compatibilityVersion` 23.4, so the `oldest` cell of
+Oracle writes the conversions inline with the functions of the library installed too. Oracle also rejects a scalar SQL
+macro inside the argument of another one (`ORA-64630`), so the library has no macro for the parameters.

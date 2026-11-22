@@ -5,6 +5,7 @@ import { argumentNumber, integerDigits, nativeNameFor, nativeTypeParts } from '.
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import { OracleSqlBuilder, oracleZonedValueSql } from '../sqlBuilders/OracleSqlBuilder.js'
 import { oracleUtcOfInstantOfUtc } from '../utils/oracle/oracleInstantSql.js'
+import { oracleSqlMacrosInstalled } from '../utils/oracle/oracleSqlMacros.js'
 import { AbstractAdvancedConnection } from './AbstractAdvancedConnection.js'
 import type { TransactionIsolationLevel } from './AbstractConnection.js'
 import type { source } from '../utils/symbols.js'
@@ -96,6 +97,8 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
      *   for a negated duration, a value plus an interval of the query and `overflow: 'reject'`, writing each value once.
      * - `tsq_utc_of_epoch` and `tsq_date_with`, for the instant of an epoch and a date with some fields, writing each
      *   value once.
+     * - From Oracle 23.4 (`compatibilityVersion`), the SQL macros of the Temporal values (`tsq_text_of_date`,
+     *   `tsq_text_of_instant`, …): the conversions a Temporal value is read with, which Oracle expands.
      * - `tsq_string_util.concat_strict`, for a concatenation (`concat` and the patterns of `startsWith`, `endsWith` and
      *   `contains`) that gives null for a null operand writing each operand once; without it, a `CASE` repeats them.
      */
@@ -256,6 +259,9 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
             // name whatever its case): the value written once; also inside the JSON of an aggregated array, which would
             // write it with its offset only
             context.comparison = 'equality'
+            if (oracleSqlMacrosInstalled(this.libraryFunctions, this.compatibilityVersion)) {
+                return 'tsq_text_of_zoned(' + sql + ')'
+            }
             return "to_char(" + sql + ", 'YYYY-MM-DD\"T\"HH24:MI:SS.FF9TZH:TZM BC\"[\"TZR\"]\"', 'NLS_DATE_LANGUAGE=AMERICAN')"
         }
         if (context.output === 'resultColumn' && __isInstantClass(context.requestedType)) {
@@ -265,7 +271,11 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
             // like the value but doesn't order like it (a year BC)
             context.comparison = 'equality'
             // An instant the query computed in UTC is that date and time (see oracleUtcOfInstantOfUtc)
-            const utc = oracleUtcOfInstantOfUtc(sql) ?? 'sys_extract_utc(cast(' + sql + ' as timestamp(9) with time zone))'
+            const ofUtc = oracleUtcOfInstantOfUtc(sql)
+            if (oracleSqlMacrosInstalled(this.libraryFunctions, this.compatibilityVersion)) {
+                return ofUtc === undefined ? 'tsq_text_of_instant(' + sql + ')' : 'tsq_text_of_utc(' + ofUtc + ')'
+            }
+            const utc = ofUtc ?? 'sys_extract_utc(cast(' + sql + ' as timestamp(9) with time zone))'
             return "to_char(" + utc + ", 'YYYY-MM-DD\"T\"HH24:MI:SS.FF9\"Z\" BC', 'NLS_DATE_LANGUAGE=AMERICAN')"
         }
         if (this.isDatabaseOutsideUtc()) {
@@ -280,10 +290,16 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
             // year 0), in English whatever the language of the session. It compares like the value but doesn't order like it (a year BC)
             if (isKeptInADateClass(context.requestedType)) {
                 context.comparison = 'equality'
+                if (oracleSqlMacrosInstalled(this.libraryFunctions, this.compatibilityVersion)) {
+                    return 'tsq_text_of_date(' + sql + ')'
+                }
                 return "to_char(" + sql + ", 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')"
             }
             if (__isPlainTimeClass(context.requestedType) || __isPlainDateTimeClass(context.requestedType)) {
                 context.comparison = 'equality'
+                if (oracleSqlMacrosInstalled(this.libraryFunctions, this.compatibilityVersion)) {
+                    return 'tsq_text_of_timestamp(' + sql + ')'
+                }
                 // A DATE has no fraction of a second for 'FF9' (ORA-01821): it is cast to a timestamp, unless it already
                 // is one (the result of toPlainDateTime, or the current date and time)
                 const timestamp = sql === 'localtimestamp' || (sql.startsWith('cast(') && sql.endsWith(' as timestamp(9))')) ? sql : 'cast(' + sql + ' as timestamp(9))'

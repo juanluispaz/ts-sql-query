@@ -137,6 +137,7 @@ describe(ctx.label, () => {
                 inFebruary: tCalendarValue.bornOn.with({ month: 2 }),
                 in2023: tCalendarValue.dayOf.toPlainDate({ year: 2023 }),
                 day30: tCalendarValue.monthOf.toPlainDate({ day: 30 }),
+                toJune: tCalendarValue.monthOf.until(Temporal.PlainYearMonth.from('2025-06'), { smallestUnit: 'year', roundingMode: 'halfExpand' }),
             })
             .orderBy('id')
             .executeSelectMany()
@@ -157,8 +158,11 @@ describe(ctx.label, () => {
         const withoutFunctions = await query(ctx.conn)
         expect(withFunctions.length).toBe(ctx.realDbEnabled ? 3 : 0)
         type Row = (typeof withFunctions)[number]
-        const read = (row: Row) => [row.id, row.lastOfMonth.toString(), row.inFebruary.toString(), row.in2023.toString(), row.day30.toString()]
-        const ofTemporal = (row: Row) => [row.id, row.bornOn.with({ day: 31 }).toString(), row.bornOn.with({ month: 2 }).toString(), row.dayOf.toPlainDate({ year: 2023 }).toString(), row.monthOf.toPlainDate({ day: 30 }).toString()]
+        const read = (row: Row) => [row.id, row.lastOfMonth.toString(), row.inFebruary.toString(), row.in2023.toString(), row.day30.toString(), row.toJune.years * 12 + row.toJune.months]
+        const ofTemporal = (row: Row) => {
+            const toJune = row.monthOf.until(Temporal.PlainYearMonth.from('2025-06'), { smallestUnit: 'year', roundingMode: 'halfExpand' })
+            return [row.id, row.bornOn.with({ day: 31 }).toString(), row.bornOn.with({ month: 2 }).toString(), row.dayOf.toPlainDate({ year: 2023 }).toString(), row.monthOf.toPlainDate({ day: 30 }).toString(), toJune.years * 12 + toJune.months]
+        }
         expect(withFunctions.map(read)).toEqual(withFunctions.map(ofTemporal))
         expect(withoutFunctions.map(read)).toEqual(withoutFunctions.map(ofTemporal))
         ctx.mockNext([])

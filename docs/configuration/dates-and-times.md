@@ -5,7 +5,7 @@ search:
 <!-- doc-code-library-functions -->
 # Dates and times
 
-A date, a time of the day or both reach your code in one of two ways: as a [Temporal](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal) value of JavaScript, or as a `Date`. This page says what each one is, why Temporal is the one we recommend, what you need to use it, how a value goes in a query and how a query gives the current date and time. What a query does with each type, like comparing it, taking its parts or computing with it, is in the page of the type. Where the zone of each value comes from, and how to set up the zones of your database and your application, is in [Time zones](time-zones.md).
+A date, a time of the day or both reach your code in one of two ways: as a [Temporal](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal) value of JavaScript, or as a `Date`. This page says what each one is, why Temporal is the one we recommend, what you need to use it, how a value goes in a query and how a query gives the current date and time. What a query does with each type, like comparing it, taking its parts or computing with it, is in the page of the type. Before using them, check that your database is in UTC: see [Time zones](time-zones.md).
 
 ## The types
 
@@ -19,7 +19,7 @@ The same column of the database can be read either way; you choose with the type
 | `plainYearMonth` | `Temporal.PlainYearMonth` | A month of a year, like the month of an invoice | None                 |
 | `plainMonthDay`  | `Temporal.PlainMonthDay` | A day of a month, like a birthday that repeats every year | None          |
 | `instant`        | `Temporal.Instant`       | An exact moment, the same everywhere, like the one a release was deployed | `localDateTime` |
-| `zonedDateTime`  | `Temporal.ZonedDateTime` | An exact moment in a time zone, like a meeting at 09:00 in Madrid; kept as its text on MariaDB, MySQL, PostgreSQL, SQLite and SQL Server | None |
+| `zonedDateTime`  | `Temporal.ZonedDateTime` | An exact moment in a time zone, like a meeting at 09:00 in Madrid | None |
 | `duration`       | `Temporal.Duration`      | A length of time, like 1 day and 12 hours | None                      |
 
 ```typescriptreact
@@ -29,8 +29,6 @@ publishedAt = this.column('published_at', 'plainDateTime')
 rolloutTime = this.optionalColumn('rollout_time', 'duration')
 deployedAt = this.optionalColumn('deployed_at', 'instant')
 ```
-
-Their classes are `PlainDateType`, `PlainTimeType`, `PlainDateTimeType`, `PlainYearMonthType`, `PlainMonthDayType`, `InstantType`, `ZonedDateTimeType` and `DurationType`, exported by `ts-sql-query`, and a type of yours can extend their families, `PlainDatesType`, `PlainTimesType`, `PlainDateTimesType`, `PlainYearMonthsType`, `PlainMonthDaysType`, `InstantsType`, `ZonedDateTimesType` and `DurationsType`, as in [Data types of your own](../advanced/data-types/own-data-types.md#the-families).
 
 What a query does with each one is in its page: [Dates and times without zone](plain-dates-and-times.md), [Instants](instants.md), [Zoned dates and times](zoned-dates-and-times.md), [Durations](durations.md), and [Months of a year and days of a month](months-and-days.md). The `local…` types, with `Date`, are in [Dates as `Date`](dates-as-date.md).
 
@@ -210,3 +208,9 @@ The executed query is:
     ```
 
 The parameters are: `[]`
+
+## Where to go next
+
+- In which column each database keeps each type, and how many digits of a second it keeps: [How each database keeps dates and times](../advanced/dates-and-times/storage.md).
+- What a database or a driver can't keep or compute: the table "What it offers and what it doesn't" of the page of [your database](../databases/index.md).
+- A data type of your own for dates and times extends one of their families, like `PlainDatesType` or `InstantsType`: see [Data types of your own](../advanced/data-types/own-data-types.md#the-families).

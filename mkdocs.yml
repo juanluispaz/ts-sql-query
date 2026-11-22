@@ -233,13 +233,13 @@ nav:
     - Data types: configuration/data-types.md
     - Dates and times:
       - Dates and times: configuration/dates-and-times.md
+      - Time zones: configuration/time-zones.md
       - Dates and times without zone: configuration/plain-dates-and-times.md
       - Instants: configuration/instants.md
       - Zoned dates and times: configuration/zoned-dates-and-times.md
       - Durations: configuration/durations.md
       - Months of a year and days of a month: configuration/months-and-days.md
       - Dates as Date: configuration/dates-as-date.md
-    - Time zones: configuration/time-zones.md
     - Collations: configuration/collations.md
     - Query runners: configuration/query-runners/index.md
     - General purpose query runners:

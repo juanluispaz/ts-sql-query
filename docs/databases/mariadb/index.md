@@ -36,7 +36,7 @@ What isn't offered doesn't compile on this connection. On a version older than t
 | [Sequences](../../configuration/mapping.md#using-a-sequence) | From MariaDB 10.3 |
 | [Stored procedures](../../configuration/mapping.md#calling-a-stored-procedure) and [functions](../../configuration/mapping.md#calling-a-function-of-the-database) | Yes |
 | [Isolation levels](../../queries/transaction.md#what-each-database-offers) | `read uncommitted`, `read committed`, `snapshot` ([with a limitation](#snapshot-isolation-and-older-versions)), `serializable` |
-| [Zoned dates and times](../../configuration/dates-and-times.md#zoned-dates-and-times) | Kept as their text, with their parts and compared by their instant. What computes with the rules of the zones isn't offered: [Computing with the zones on the other databases](../../configuration/dates-and-times.md#computing-with-the-zones-on-the-other-databases) |
+| [Zoned dates and times](../../configuration/zoned-dates-and-times.md#zoned-dates-and-times) | Kept as their text, with their parts and compared by their instant. What computes with the rules of the zones isn't offered: [Computing with the zones on the other databases](../../configuration/zoned-dates-and-times.md#computing-with-the-zones-on-the-other-databases) |
 
 ## Compatibility version
 

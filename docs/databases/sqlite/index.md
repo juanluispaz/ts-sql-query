@@ -40,7 +40,7 @@ What isn't offered doesn't compile on this connection. On a version older than t
 | [Sequences](../../configuration/mapping.md#using-a-sequence) | Not offered: SQLite doesn't have them |
 | [Stored procedures](../../configuration/mapping.md#calling-a-stored-procedure) and [functions](../../configuration/mapping.md#calling-a-function-of-the-database) | SQLite has no stored procedures, and rejects the statement. A function exists only if you register it in the driver |
 | [Isolation levels](../../queries/transaction.md#what-each-database-offers) | You can't choose one: transactions are always serializable |
-| [Zoned dates and times](../../configuration/dates-and-times.md#zoned-dates-and-times) | Kept as their text, with their parts and compared by their instant. What computes with the rules of the zones isn't offered: [Computing with the zones on the other databases](../../configuration/dates-and-times.md#computing-with-the-zones-on-the-other-databases) |
+| [Zoned dates and times](../../configuration/zoned-dates-and-times.md#zoned-dates-and-times) | Kept as their text, with their parts and compared by their instant. What computes with the rules of the zones isn't offered: [Computing with the zones on the other databases](../../configuration/zoned-dates-and-times.md#computing-with-the-zones-on-the-other-databases) |
 
 ## Working with Date and Time
 
@@ -198,7 +198,7 @@ The zone must be set when the process starts, with `TZ` or in the operating syst
 
 !!! warning "A date outside UTC-10 to UTC+13"
 
-    Outside that range, a `localDate` you read gives another day in the local getters of JavaScript, as [Time zones](../../configuration/time-zones.md#read-the-values-with-the-utc-getters) says. If you write that `Date` back, that other day is stored.
+    Outside that range, a `localDate` you read gives another day in the local getters of JavaScript, as [Time zones](../../configuration/dates-as-date.md#read-the-values-with-the-utc-getters) says. If you write that `Date` back, that other day is stored.
 
 ## Dealing with different date and time formats coming from the database
 

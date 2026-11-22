@@ -773,7 +773,7 @@ The executed query is:
         version as version, 
         dbo.tsq_duration_text(0, 0, 0, 0, cast(-dbo.tsq_ticks_between(cast(switchoffset(deployed_at, '+00:00') as datetime2), cast(switchoffset(published_at, '+00:00') as datetime2)) as decimal(38)) * 100, 'hour') as afterPublishing, 
         dbo.tsq_datetime_of_ticks(cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as date), dbo.tsq_round_to((datediff_big(nanosecond, cast('00:00' as time), cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as time)) / 100), cast(36000000000 as bigint), 'trunc')) as hour, 
-        dateadd(day, @0, cast(switchoffset(dbo.tsq_datetime_of_ticks(cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as date), dbo.tsq_round_to((datediff_big(nanosecond, cast('00:00' as time), cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as time)) / 100), cast(36000000000 as bigint), 'ceil')), '+00:00') as datetime2)) as reviewBy 
+        dateadd(day, @0, dbo.tsq_datetime_of_ticks(cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as date), dbo.tsq_round_to((datediff_big(nanosecond, cast('00:00' as time), cast(cast(switchoffset(deployed_at, '+00:00') as datetime2) as time)) / 100), cast(36000000000 as bigint), 'ceil'))) as reviewBy 
     from project_release 
     where deployed_at is not null 
     order by version

@@ -178,6 +178,8 @@ interface TypeAdapterProjectionContext extends TypeAdapterContext {
 }
 
 interface TypeAdapterValueFromDBContext extends TypeAdapterContext {
+    /** Where the value left the database: a column of the result, or a value inside an aggregated array */
+    readonly output: ProjectionOutput
     setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'dnumDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime' | DataTypeClass): void
     setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'dnumDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime' | DataTypeClass, typeAdapter: TypeAdapter): void
     resetRequestedType(): void

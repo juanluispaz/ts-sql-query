@@ -232,11 +232,11 @@ For a row with the amount `12345678901234567890.1234567891` and the price `1.50`
 
 A value read has the decimals of the first of these that knows them:
 
-1. The [SQL data type](#the-type-of-the-column-in-the-database) of the column, when you declare it with its scale, like `numeric(10, 2)`: the value has those decimals on every database, also on one that doesn't keep them, like SQLite.
-2. What the driver says of the column: on Oracle, a `NUMBER(10, 2)` column is read with its 2 decimals, which Oracle doesn't write in the text of the number. A value of a `returning` comes in an OUT bind, which doesn't say them: it has the decimals of 3.
-3. The text the database gives: MariaDB, MySQL, PostgreSQL and SQL Server give the scale of the column or of the computation (`1.50`); Oracle gives a computed value with only the decimals it needs (`price * 2` is `3`), and SQLite, by default, every value in its canonical text (`1.5`).
+1. The database. MariaDB, MySQL, PostgreSQL and SQL Server write the scale of the column or of the computation in the text of the value (`1.50` for a `decimal(10, 2)`). Oracle doesn't, but its driver says the scale of a `NUMBER(10, 2)` column, and the value gets it.
+2. The [SQL data type](#the-type-of-the-column-in-the-database) of the column, when you declare it with its scale, like `numeric(10, 2)`, where the database doesn't say the decimals: on SQLite, which keeps the text of the value as it is, and on Oracle for a computed value, a value of a `returning` and a value inside an [array aggregate](../queries/aggregate-as-object-array.md).
+3. The value received: the decimals of its text. On Oracle a computed value has only the decimals it needs (`price * 2` is `3`), and on SQLite, by default, every value is in its canonical text (`1.5`).
 
-To give a value the decimals of 1., zeros are added or removed at the end of its decimals; a digit other than a zero is never removed, so the value never loses a digit: with 3 decimals `1.50` is `1.500`, and with 2 decimals `0.0000000000` is `0.00` and `12345678901234567890.1234567891` stays as it is. The decimals are the same for a `stringDecimal` (`'1.500'`), a `dnumDecimal` (`[1500n, 3]`) and a decimal of yours.
+To give a value the decimals of the database or of its SQL data type, zeros are added or removed at the end of its decimals; a digit other than a zero is never removed, so the value never loses a digit: with 3 decimals `1.50` is `1.500`, and with 2 decimals `0.0000000000` is `0.00` and `12345678901234567890.1234567891` stays as it is. The decimals are the same for a `stringDecimal` (`'1.500'`), a `dnumDecimal` (`[1500n, 3]`) and a decimal of yours.
 
 A query with `dnumDecimal` columns, here `tDnumAmount`, the same table as before:
 
@@ -317,7 +317,7 @@ The executed query is:
 
 The parameters are: `[ '2', '1.5' ]`
 
-For the rows with the prices `1.50` and `1234.56`, the rows read are `[{ id: 1, price: [150n, 2], twice: [300n, 2] }, { id: 5, price: [123456n, 2], twice: [246912n, 2] }]`. On Oracle the computed value has the decimals it needs (`[3n, 0]` and `[246912n, 2]`), and on SQLite every value its canonical text (`[15n, 1]` and `[3n, 0]`), unless the SQL data type of the column says its decimals.
+For the rows with the prices `1.50` and `1234.56`, the rows read are `[{ id: 1, price: [150n, 2], twice: [300n, 2] }, { id: 5, price: [123456n, 2], twice: [246912n, 2] }]`. On Oracle the computed value has the decimals it needs (`[3n, 0]` and `[246912n, 2]`). On SQLite every value has its canonical text (`[15n, 1]` and `[3n, 0]`); a price whose column declares the SQL data type `numeric(10, 2)` is `[150n, 2]` there too.
 
 ### What each database keeps
 
@@ -326,7 +326,7 @@ What each database keeps, for a `decimal(38, 10)` and a `decimal(10, 2)` column:
 | Database | Reading a value | Sending a value | Adding, comparing and ordering |
 |---|---|---|---|
 | MariaDB, MySQL | All the digits, with the scale of the column: `'1.50'` | As text, written as `cast(? as decimal(P, S))` with the digits of the value where it isn't assigned to a column; a value wider than `decimal(65, 30)` is rejected | Exact |
-| Oracle | All the digits, with the scale of the column: `'1.50'`; a computed value, and a value of a `returning`, without the zeros at the end of its decimals: `'3'` for `1.50 * 2` | As text; a value of more than 38 significant digits is rejected | Exact |
+| Oracle | All the digits, with the scale of the column: `'1.50'`; a computed value, a value of a `returning` and a value in an array aggregate, without the zeros at the end of its decimals (`'3'` for `1.50 * 2`), unless the SQL data type of the column says its decimals | As text; a value of more than 38 significant digits is rejected | Exact |
 | PostgreSQL | All the digits, with the scale of the column: `'1.50'` | As a `numeric` | Exact |
 | SQLite | By default, the canonical text: `'1.5'` for `1.50`; with a strategy without the canonical text, the text stored. With the decimals of the column when its SQL data type says them | By default, the canonical text; otherwise the text, as it is | Exact or rejected, by the decimal strategy: see below |
 | SQL Server | All the digits, with the scale of the column: `'1.50'`; the outermost query converts the value to text with `convert(nvarchar(41), …)` | As an `nvarchar`, written as `cast(@0 as decimal(P, S))` with the digits of the value where it isn't assigned to a column; a value wider than `decimal(38)` is rejected | Exact |

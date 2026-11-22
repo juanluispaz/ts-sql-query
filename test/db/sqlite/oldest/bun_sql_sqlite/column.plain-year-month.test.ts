@@ -116,6 +116,43 @@ describe(ctx.label, () => {
         ])
     })
 
+    // NOT-SUPPORTED: Bun SQL's sqlite adapter exposes neither a user-defined-function API nor its bun:sqlite `Database`, so the functions of the library can't be registered
+    /*
+    test('the-years-and-months-from-the-month-of-a-date-to-another-with-and-without-the-functions-of-the-library', async () => {
+        // The month of the year of a date counts from the year and the month of that date: the values are the ones of
+        // Temporal for the dates read, with and without the functions of the library (the mock answers no rows: there
+        // it is the SQL that is checked)
+        const june2025 = Temporal.PlainYearMonth.from('2025-06')
+        const query = (conn: typeof ctx.conn) => conn.selectFrom(tCalendarValue)
+            .select({
+                id: tCalendarValue.id,
+                bornOn: tCalendarValue.bornOn,
+                untilJune: tCalendarValue.bornOn.toPlainYearMonth().until(june2025),
+                inMonths: tCalendarValue.bornOn.toPlainYearMonth().until(june2025, { largestUnit: 'month' }),
+                inYears: tCalendarValue.bornOn.toPlainYearMonth().until(june2025, { smallestUnit: 'year', roundingMode: 'halfExpand' }),
+                sinceInYears: tCalendarValue.bornOn.toPlainYearMonth().since(june2025, { smallestUnit: 'year', roundingMode: 'halfExpand' }),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        ctx.mockNext([])
+        const withFunctions = await query(ctx.withLibraryFunctions())
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        ctx.mockNext([])
+        const withoutFunctions = await query(ctx.conn)
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(withFunctions.length).toBe(ctx.realDbEnabled ? 3 : 0)
+        type Row = (typeof withFunctions)[number]
+        const months = (duration: Temporal.Duration) => duration.years * 12 + duration.months
+        const read = (row: Row) => [row.id, months(row.untilJune), months(row.inMonths), months(row.inYears), months(row.sinceInYears)]
+        const ofTemporal = (row: Row) => {
+            const month = row.bornOn.toPlainYearMonth()
+            return [row.id, months(month.until(june2025)), months(month.until(june2025, { largestUnit: 'month' })), months(month.until(june2025, { smallestUnit: 'year', roundingMode: 'halfExpand' })), months(month.since(june2025, { smallestUnit: 'year', roundingMode: 'halfExpand' }))]
+        }
+        expect(withFunctions.map(read)).toEqual(withFunctions.map(ofTemporal))
+        expect(withoutFunctions.map(read)).toEqual(withoutFunctions.map(ofTemporal))
+    })
+    */
+
     test('months-of-a-year-are-compared-and-ordered-days-of-a-month-only-compared', async () => {
         ctx.mockNext([{ id: 2 }, { id: 1 }])
         const before2025 = await ctx.conn.selectFrom(tCalendarValue)

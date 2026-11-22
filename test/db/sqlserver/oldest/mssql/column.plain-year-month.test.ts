@@ -116,6 +116,40 @@ describe(ctx.label, () => {
         ])
     })
 
+    test('the-years-and-months-from-the-month-of-a-date-to-another-with-and-without-the-functions-of-the-library', async () => {
+        // The month of the year of a date counts from the year and the month of that date: the values are the ones of
+        // Temporal for the dates read, with and without the functions of the library (the mock answers no rows: there
+        // it is the SQL that is checked)
+        const june2025 = Temporal.PlainYearMonth.from('2025-06')
+        const query = (conn: typeof ctx.conn) => conn.selectFrom(tCalendarValue)
+            .select({
+                id: tCalendarValue.id,
+                bornOn: tCalendarValue.bornOn,
+                untilJune: tCalendarValue.bornOn.toPlainYearMonth().until(june2025),
+                inMonths: tCalendarValue.bornOn.toPlainYearMonth().until(june2025, { largestUnit: 'month' }),
+                inYears: tCalendarValue.bornOn.toPlainYearMonth().until(june2025, { smallestUnit: 'year', roundingMode: 'halfExpand' }),
+                sinceInYears: tCalendarValue.bornOn.toPlainYearMonth().since(june2025, { smallestUnit: 'year', roundingMode: 'halfExpand' }),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        ctx.mockNext([])
+        const withFunctions = await query(ctx.withLibraryFunctions())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, born_on as bornOn, dbo.tsq_duration_text(0, (datepart(year, @0) * 12 + datepart(month, @0) - (datepart(year, born_on) * 12 + datepart(month, born_on))), 0, 0, 0, 'year') as untilJune, dbo.tsq_duration_text(0, (datepart(year, @1) * 12 + datepart(month, @1) - (datepart(year, born_on) * 12 + datepart(month, born_on))), 0, 0, 0, 'month') as inMonths, dbo.tsq_duration_round_of(datefromparts(datepart(year, born_on), datepart(month, born_on), 1), datefromparts(datepart(year, @2), datepart(month, @2), 1), 'year', 'year', 1, 'halfExpand', 1) as inYears, dbo.tsq_duration_round_of(datefromparts(datepart(year, born_on), datepart(month, born_on), 1), datefromparts(datepart(year, @3), datepart(month, @3), 1), 'year', 'year', 1, 'halfExpand', -1) as sinceInYears from calendar_value order by id"`)
+        ctx.mockNext([])
+        const withoutFunctions = await query(ctx.conn)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, born_on as bornOn, dbo.tsq_duration_text(0, (datepart(year, @0) * 12 + datepart(month, @0) - (datepart(year, born_on) * 12 + datepart(month, born_on))), 0, 0, 0, 'year') as untilJune, dbo.tsq_duration_text(0, (datepart(year, @1) * 12 + datepart(month, @1) - (datepart(year, born_on) * 12 + datepart(month, born_on))), 0, 0, 0, 'month') as inMonths, dbo.tsq_duration_round(datepart(year, born_on), datepart(month, born_on), 1, 0, @2, @3, 1, 0, 'year', 'year', 1, 'halfExpand', 1) as inYears, dbo.tsq_duration_round(datepart(year, born_on), datepart(month, born_on), 1, 0, @4, @5, 1, 0, 'year', 'year', 1, 'halfExpand', -1) as sinceInYears from calendar_value order by id"`)
+        expect(withFunctions.length).toBe(ctx.realDbEnabled ? 3 : 0)
+        type Row = (typeof withFunctions)[number]
+        const months = (duration: Temporal.Duration) => duration.years * 12 + duration.months
+        const read = (row: Row) => [row.id, months(row.untilJune), months(row.inMonths), months(row.inYears), months(row.sinceInYears)]
+        const ofTemporal = (row: Row) => {
+            const month = row.bornOn.toPlainYearMonth()
+            return [row.id, months(month.until(june2025)), months(month.until(june2025, { largestUnit: 'month' })), months(month.until(june2025, { smallestUnit: 'year', roundingMode: 'halfExpand' })), months(month.since(june2025, { smallestUnit: 'year', roundingMode: 'halfExpand' }))]
+        }
+        expect(withFunctions.map(read)).toEqual(withFunctions.map(ofTemporal))
+        expect(withoutFunctions.map(read)).toEqual(withoutFunctions.map(ofTemporal))
+    })
+
     test('months-of-a-year-are-compared-and-ordered-days-of-a-month-only-compared', async () => {
         ctx.mockNext([{ id: 2 }, { id: 1 }])
         const before2025 = await ctx.conn.selectFrom(tCalendarValue)

@@ -10,6 +10,7 @@ import { __newSqlOperation2ValueSource, __operation0, __operation1 } from '../no
 import { __newSqlOperationConstValueSource } from '../nodes/constants.js'
 import { getOptionalType2 } from '../nodes/operands.js'
 import { isValueSource } from '../nodes/NodeStrategy.js'
+import { __dateOfCalendarValue } from '../nodes/dateOfCalendarValue.js'
 import { __typeClassOf } from '../nodes/dataTypeClassOf.js'
 import { __computedClassOf } from '../nodes/adaptedTypeClass.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
@@ -68,20 +69,7 @@ function difference(valueSource: unknown, operation: '_until' | '_since', other:
 
 /** A part of the date of the value: an int */
 function partOf(valueSource: unknown, operation: keyof SqlFunction0): any {
-    return __operation0(receiverOf(valueSource), operation, IntType)
-}
-
-/**
- * The value source a part of a month of a year or of a day of a month is read from: the date (or date and time) it was
- * taken from with toPlainYearMonth or toPlainMonthDay, which has the same part, instead of the date of its reference
- * computed from it
- */
-function receiverOf(valueSource: unknown): any {
-    const operation = (valueSource as { __operation?: unknown }).__operation
-    if (isValueSource(valueSource) && (operation === '_toPlainYearMonth' || operation === '_toPlainMonthDay')) {
-        return (valueSource as unknown as { __valueSource: unknown }).__valueSource
-    }
-    return valueSource
+    return __operation0(__dateOfCalendarValue(valueSource as any), operation, IntType)
 }
 
 /**
@@ -105,7 +93,7 @@ export abstract class PlainYearMonthsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE
     /** The code of the month, `'M01'` to `'M12'`: Temporal's `monthCode` */
     monthCode(): ValueSource<SourceOf<this>, StringType, OptionalityOf<this>>
     monthCode(): any {
-        return __operation0(receiverOf(this), '_monthCode', StringType)
+        return __operation0(__dateOfCalendarValue(this), '_monthCode', StringType)
     }
     /** The days of the month, from 28 to 31, as an int: Temporal's `daysInMonth` */
     daysInMonth(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>
@@ -125,7 +113,7 @@ export abstract class PlainYearMonthsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE
     /** Whether the year is a leap year, with a February 29: Temporal's `inLeapYear` */
     inLeapYear(): ValueSource<SourceOf<this>, BooleanType, OptionalityOf<this>>
     inLeapYear(): any {
-        return __operation0(receiverOf(this), '_inLeapYearOf', BooleanConditionType)
+        return __operation0(__dateOfCalendarValue(this), '_inLeapYearOf', BooleanConditionType)
     }
 
     /** The month of the year plus the duration of years and months given, as Temporal's `add` (a Temporal.Duration or its fields) */
@@ -189,7 +177,7 @@ export abstract class PlainMonthDaysType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
     /** The code of the month, `'M01'` to `'M12'`: Temporal's `monthCode` (a Temporal.PlainMonthDay has no `month`) */
     monthCode(): ValueSource<SourceOf<this>, StringType, OptionalityOf<this>>
     monthCode(): any {
-        return __operation0(receiverOf(this), '_monthCode', StringType)
+        return __operation0(__dateOfCalendarValue(this), '_monthCode', StringType)
     }
     /** The day of the month, from 1 to 31, as an int: Temporal's `day` */
     day(): ValueSource<SourceOf<this>, IntType, OptionalityOf<this>>

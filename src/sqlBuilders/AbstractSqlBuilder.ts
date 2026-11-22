@@ -26,6 +26,7 @@ import { __durationSqlDataTypeOf, __isIntegerSql, __isJsonDocumentSql, __sqlFami
 import { type DurationTotalDate, type DurationTotalUnit } from '../utils/durationTotal.js'
 import type { SqlOperation0ValueSource, SqlOperation2ValueSource } from '../nodes/operations.js'
 import { __temporalIfAvailable, type TemporalDuration } from '../typeSystem/temporal.js'
+import { __dateOfCalendarValue } from '../nodes/dateOfCalendarValue.js'
 import { durationIsoText, durationOfArgument, durationOfParts, durationPartsFor, isZeroDuration, type DurationParts, type DurationPartsSql } from '../utils/durationValues.js'
 import { plainTemporalFieldsOf, type PlainTemporalFields } from '../utils/plainTemporalFields.js'
 import { dateOfStoredTimesOf, dayOfStoredYearMonthsOf, yearOfStoredMonthDaysOf } from '../utils/temporalReference.js'
@@ -5050,9 +5051,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value: options, typeName: 'duration' }, 'Invalid options of ' + (since ? 'since' : 'until') + ': ' + JSON.stringify(options))
         }
         if (fields === 'yearMonth') {
-            // Counted in months: a year is 12 of them
+            // Counted in months: a year is 12 of them. Only the year and the month of each value are used: of the date a
+            // value was taken from with toPlainYearMonth, which has them, instead of the date of its reference
             const step = (difference.smallestUnit === 'year' ? 12n : 1n) * BigInt(difference.increment)
-            return { one: this._temporalOperand(valueSource), two: this._temporalOperand(other), fields, difference, step, tick: 1n, inNanoseconds: false }
+            return { one: this._temporalOperand(__dateOfCalendarValue(valueSource)), two: this._temporalOperand(__dateOfCalendarValue(other)), fields, difference, step, tick: 1n, inNanoseconds: false }
         }
         const unit = nanosecondsOfUnit[difference.smallestUnit]
         const step = unit === undefined ? 0n : unit * BigInt(difference.increment)

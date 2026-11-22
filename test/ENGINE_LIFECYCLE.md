@@ -479,11 +479,13 @@ is the whole point. They consume some RAM in the background while you
 iterate, and the next `bun run tests --docker` (or `tests <coord> --docker`)
 invocation attaches to them in ~1 s instead of paying the full container
 start-up. `tests:stop-containers` isn't a clean-up step: the maintainer runs it
-whenever no tests are running, and an agent only when it changes the kind of run
-(after a round of `--docker-version closest` or `--all-versions`, whose
+whenever no tests are running, and an agent, without asking, only when it changes
+the kind of run: when it switches between the older-version engines and the newest
+ones (after a round of `--docker-version closest` or `--all-versions`, whose
 older-version engines would take the memory of the newest ones in a whole
-`--docker` run), so the engines aren't started over and over. A subagent never
-runs it.
+`--docker` run), so the engines aren't started over and over. Before switching it
+runs what it can on the engines already up, so each switch is paid once. A
+subagent never runs it.
 
 Stop them explicitly only when you actually want to start clean — to free
 RAM at the end of a long session, recover from a wedged container, or rebuild

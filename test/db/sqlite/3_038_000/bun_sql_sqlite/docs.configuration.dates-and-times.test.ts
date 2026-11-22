@@ -460,6 +460,37 @@ describe(ctx.label, () => {
     })
     */
 
+    // NOT-SUPPORTED: Bun SQL's sqlite adapter exposes neither a user-defined-function API nor its bun:sqlite `Database`, so the tsq_duration_part UDF can't be registered
+    /*
+    test('docs:dates-and-times/a-duration-of-fields-of-the-query', async () => {
+        ctx.mockNext([
+            { version: '0.9.0', support: null },
+            { version: '1.2.0', support: '1 year 6 mons' },
+            { version: '1.3.0-beta.1', support: '3 mons' },
+        ])
+        const connection = ctx.conn
+
+        // doc-start
+        const releases = await connection.selectFrom(tRelease)
+            .select({
+                version: tRelease.version,
+                support: connection.duration({ months: tRelease.supportMonths }),
+            })
+            .orderBy('version')
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams).toMatchInlineSnapshot()
+        assertType<Exact<typeof releases, Array<{ version: string; support?: Temporal.Duration }>>>()
+        expect(releases.map(release => [release.version, release.support && Temporal.Duration.compare(release.support, { months: release.version === '1.2.0' ? 18 : 3 }, { relativeTo: '2024-01-01' })])).toEqual([
+            ['0.9.0', undefined],
+            ['1.2.0', 0],
+            ['1.3.0-beta.1', 0],
+        ])
+    })
+    */
+
     test('docs:dates-and-times/a-field-of-the-duration-from-the-query', async () => {
         ctx.mockNext([
             { version: '0.9.0', supportMonths: null, supportEndsOn: null },

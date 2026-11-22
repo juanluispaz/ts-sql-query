@@ -84,6 +84,12 @@ function _typeNegatives() {
     void connection.selectFrom(tColMatrixPlain)
         // @ts-expect-error tIssue.priority is not reachable from tColMatrixPlain alone
         .select({ earlier: tColMatrixPlain.mDatetime.subtract({ hours: tIssue.priority }) })
+    // The same for a field of a duration of the query
+    void connection.selectFrom(tColMatrixPlain)
+        .select({ grace: connection.duration({ days: tColMatrixPlain.mInt, hours: 1 }) })
+    void connection.selectFrom(tColMatrixPlain)
+        // @ts-expect-error tIssue.priority is not reachable from tColMatrixPlain alone
+        .select({ grace: connection.duration({ days: tIssue.priority }) })
     // The same for a field of with
     void connection.selectFrom(tColMatrixPlain)
         // @ts-expect-error tIssue.priority is not reachable from tColMatrixPlain alone

@@ -4668,8 +4668,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
      */
     _durationHasUnitsBelowMonthsSql(context: SqlBuildContext, duration: ToSql): string | undefined {
         if (__durationFieldsOf(duration)) {
-            // Its fields are years and months
-            return undefined
+            // Of the parts its fields give
+            let condition = ''
+            if (this._durationHasPart(duration, 'D')) { condition += this._durationTextPart(context, duration, 'D') + ' <> 0' }
+            if (this._durationHasPart(duration, 'S')) { condition += (condition === '' ? '' : ' or ') + this._durationTextPart(context, duration, 'S') + ' <> 0' }
+            if (this._durationHasPart(duration, 'N')) { condition += (condition === '' ? '' : ' or ') + this._durationTextPart(context, duration, 'N') + ' <> 0' }
+            return condition === '' ? undefined : condition
         }
         if (this._isDurationKeptAsText(duration)) {
             return this._durationTextPart(context, duration, 'D') + ' <> 0 or ' + this._durationTextPart(context, duration, 'S') + ' <> 0 or ' + this._durationTextPart(context, duration, 'N') + ' <> 0'
@@ -4734,6 +4738,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         const duration = __asNodeValueSource(value)
         const operator = sign < 0 ? ' - ' : ' + '
+        if (__durationFieldsOf(duration)) {
+            // Written by the parts its fields give, however the database keeps a duration
+            return this._appendWithDurationOfFields(context, valueSource, duration, fields, operator, typed)
+        }
         if (!this._isDurationKeptAsText(duration)) {
             if (fields !== 'date') {
                 return this._appendSqlParenthesis(valueSource, context, typed) + operator + this._appendSqlParenthesis(duration, context, false)
@@ -4742,9 +4750,6 @@ export class AbstractSqlBuilder implements SqlBuilder {
             const months = '(extract(year from ' + interval + ') * 12 + extract(month from ' + interval + '))::integer'
             const days = '(extract(day from ' + interval + ') + trunc(extract(epoch from ' + interval + " - date_trunc('day', " + interval + ')) / 86400))::integer'
             return 'cast(' + this._appendSqlParenthesis(valueSource, context, typed) + operator + 'make_interval(months => ' + months + ', days => ' + days + ') as date)'
-        }
-        if (__durationFieldsOf(duration)) {
-            return this._appendWithDurationOfFields(context, valueSource, duration, fields, operator, typed)
         }
         const months = this._durationTextPart(context, duration, 'M')
         const days = this._durationTextPart(context, duration, 'D')
@@ -4871,8 +4876,55 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * A duration written by itself, of fields of the query: no operation writes it whole, each writes the parts it uses
      * (see _durationOfFieldsPart)
      */
-    _durationOfFields(_context: SqlBuildContext, _valueSource: ToSql): string {
-        throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid value source' }, 'A duration of fields of the query is written by the operation that adds it')
+    _durationOfFields(context: SqlBuildContext, valueSource: ToSql): string {
+        const fields = __durationFieldsOf(valueSource)!
+        const text = this._durationTextOfFields(context, fields)
+        const condition = this._signOfDurationFieldsCondition(context, fields)
+        return condition === undefined ? text : this._textOrErrorWhen(context, text, condition)
+    }
+    /**
+     * The ISO 8601 text of a duration of fields of the query, as Temporal's toString writes it for the duration of those
+     * fields: each field as given, the seconds with their fraction (see tsq_duration_text)
+     */
+    _durationTextOfFields(context: SqlBuildContext, fields: DurationFieldsGiven): string {
+        return this._durationTextFunctionName() + '(' + this._durationFieldArgument(context, fields.years) + ', ' + this._durationFieldArgument(context, fields.months) + ', '
+            + this._durationFieldArgument(context, fields.weeks) + ', ' + this._durationFieldArgument(context, fields.days) + ', ' + this._durationFieldArgument(context, fields.hours) + ', '
+            + this._durationFieldArgument(context, fields.minutes) + ', ' + this._durationTextTimeArgument(this._durationNanosecondsOfFields(context, fields)) + ", 'second')"
+    }
+    /** A field of a duration as an argument: a number as it is, 0 when it isn't given, a field of the query written here */
+    _durationFieldArgument(context: SqlBuildContext, field: unknown): string {
+        if (field === undefined) {
+            return '0'
+        }
+        return typeof field === 'number' ? String(field) : this._appendSqlParenthesis(field as ToSql, context, false)
+    }
+    /** The nanoseconds of the seconds and the fraction of the fields of a duration, a bigint (a number when they are numbers) */
+    _durationNanosecondsOfFields(context: SqlBuildContext, fields: DurationFieldsGiven): string {
+        let sql = this._durationNanosecondsTerm(context, '', fields.seconds, '1000000000')
+        sql = this._durationNanosecondsTerm(context, sql, fields.milliseconds, '1000000')
+        sql = this._durationNanosecondsTerm(context, sql, fields.microseconds, '1000')
+        sql = this._durationNanosecondsTerm(context, sql, fields.nanoseconds, '')
+        const constant = nanosecondsOfNumberFields(fields)
+        if (sql === '') {
+            return String(constant)
+        }
+        return constant === 0n ? sql : sql + ' + ' + constant
+    }
+    /** The sum of nanoseconds given plus a field of the query in its unit (a bigint), or the sum as it is for another field */
+    _durationNanosecondsTerm(context: SqlBuildContext, sql: string, field: unknown, factor: string): string {
+        if (field === undefined || typeof field === 'number') {
+            return sql
+        }
+        const term = this._bigintOfDurationField(this._appendSqlParenthesis(field as ToSql, context, false))
+        return (sql === '' ? '' : sql + ' + ') + (factor === '' ? term : term + ' * ' + factor)
+    }
+    /** An int of the query given as a field of a duration, as a bigint the nanoseconds of the duration are computed with */
+    _bigintOfDurationField(sql: string): string {
+        return this._bigintOfInteger(sql)
+    }
+    /** A text, or an error of the query when the condition holds (see _anyValueOrErrorWhen) */
+    _textOrErrorWhen(context: SqlBuildContext, text: string, condition: string): string {
+        return this._anyValueOrErrorWhen(context, text, condition)
     }
     /**
      * A part of a duration of fields of the query, as tsq_duration_part reads one of a text, or undefined when no field
@@ -4986,9 +5038,14 @@ export class AbstractSqlBuilder implements SqlBuilder {
      */
     _withSignOfDurationFieldsChecked(context: SqlBuildContext, value: string, duration: unknown, fields: 'date' | 'time' | 'timestamp'): string {
         const given = __durationFieldsOf(duration)
-        if (!given) {
-            return value
-        }
+        const condition = given ? this._signOfDurationFieldsCondition(context, given) : undefined
+        return condition === undefined ? value : this._valueOrErrorWhen(context, value, condition, fields)
+    }
+    /**
+     * The condition that the fields of a duration of fields of the query have different signs, which Temporal rejects;
+     * undefined when they can't: one field of the query and no number, or numbers of one sign known
+     */
+    _signOfDurationFieldsCondition(context: SqlBuildContext, given: DurationFieldsGiven): string | undefined {
         let numberSign = 0
         let ofTheQuery = 0
         for (let i = 0, length = durationFieldNamesInOrder.length; i < length; i++) {
@@ -5002,7 +5059,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
         }
         if (numberSign === 0 && ofTheQuery < 2) {
-            return value
+            return undefined
         }
         let positive = ''
         let negative = ''
@@ -5018,8 +5075,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 negative += (negative === '' ? '' : ' or ') + this._appendSqlParenthesis(field as ToSql, context, false) + ' < 0'
             }
         }
-        const condition = numberSign > 0 ? negative : numberSign < 0 ? positive : '(' + positive + ') and (' + negative + ')'
-        return this._valueOrErrorWhen(context, value, condition, fields)
+        return numberSign > 0 ? negative : numberSign < 0 ? positive : '(' + positive + ') and (' + negative + ')'
     }
     /** An integer division that truncates toward zero, as Temporal balances a time into days: a division of integers */
     _truncatedDivision(dividend: string, divisor: string): string {
@@ -5428,7 +5484,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             return this._appendValue(parts.months, context, __registeredDataType('int'), false)
         }
         const duration = __asNodeValueSource(value as AnyValueSource)
-        if (this._isDurationKeptAsText(duration)) {
+        if (this._isDurationKeptAsText(duration) || __durationFieldsOf(duration)) {
             return this._signedDurationTextPart(context, duration, 'M', sign)
         }
         const interval = this._appendSqlParenthesis(duration, context, false)
@@ -5811,8 +5867,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     /** Whether a duration value source is kept as its ISO 8601 text: on a database without intervals, or a text column */
     _isDurationKeptAsText(valueSource: ToSql): boolean {
-        if (!this._supportNativeDurations() || __durationFieldsOf(valueSource)) {
-            // A duration of fields of the query is read by its parts, as a text (see _durationTextPart)
+        if (!this._supportNativeDurations()) {
             return true
         }
         if (__isDurationSum(valueSource)) {
@@ -5833,10 +5888,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _durationTextPart(context: SqlBuildContext, valueSource: ToSql, part: 'M' | 'D' | 'S' | 'N' | 'sign' | 'largest' | 'years' | 'months' | 'weeks' | 'days' | 'hours' | 'minutes' | 'seconds'): string {
         const fields = __durationFieldsOf(valueSource)
         if (fields) {
-            if (part !== 'M' && part !== 'D' && part !== 'S' && part !== 'N') {
-                throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid value source' }, 'A duration of fields of the query has no part ' + part)
+            if (part === 'M' || part === 'D' || part === 'S' || part === 'N') {
+                return this._durationOfFieldsPart(context, fields, part) ?? '0'
             }
-            return this._durationOfFieldsPart(context, fields, part) ?? '0'
+            // Another part of the duration as it is kept: of its text
         }
         return this._durationPartFunctionName() + '(' + this._appendSql(valueSource, context, false) + ", '" + part + "')"
     }
@@ -7019,11 +7074,21 @@ function timeOfDurationFieldsIsOfTheQuery(fields: DurationFieldsGiven): boolean 
     return false
 }
 
+/** The nanoseconds of the seconds and the fraction of a duration of fields that are numbers */
+function nanosecondsOfNumberFields(fields: DurationFieldsGiven): bigint {
+    return (typeof fields.seconds === 'number' ? BigInt(fields.seconds) * 1_000_000_000n : 0n) + (typeof fields.milliseconds === 'number' ? BigInt(fields.milliseconds) * 1_000_000n : 0n)
+        + (typeof fields.microseconds === 'number' ? BigInt(fields.microseconds) * 1000n : 0n) + (typeof fields.nanoseconds === 'number' ? BigInt(fields.nanoseconds) : 0n)
+}
+
 /** The whole seconds of the time of a duration of fields that are numbers */
 function secondsOfNumberFields(fields: DurationFieldsGiven): number {
-    const number = (field: unknown, factor: number): number => typeof field === 'number' ? field * factor : 0
-    return number(fields.hours, 3600) + number(fields.minutes, 60) + number(fields.seconds, 1)
-        + Math.trunc((number(fields.milliseconds, 1_000_000) + number(fields.microseconds, 1000) + number(fields.nanoseconds, 1)) / 1_000_000_000)
+    return numberField(fields.hours, 3600) + numberField(fields.minutes, 60) + numberField(fields.seconds, 1)
+        + Math.trunc((numberField(fields.milliseconds, 1_000_000) + numberField(fields.microseconds, 1000) + numberField(fields.nanoseconds, 1)) / 1_000_000_000)
+}
+
+/** A field that is a number, times its factor; 0 for another field */
+function numberField(field: unknown, factor: number): number {
+    return typeof field === 'number' ? field * factor : 0
 }
 
 /** Whether a field given adds something: a field of the query, or a number that isn't 0 */

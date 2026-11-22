@@ -1980,7 +1980,8 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
      * there is no interval
      */
     override _isDurationKeptAsText(valueSource: ToSql): boolean {
-        return isDifference(valueSource) || super._isDurationKeptAsText(valueSource)
+        // A duration of fields of the query is its text, as a difference: an interval keeps days to seconds or years to months
+        return isDifference(valueSource) || __durationFieldsOf(valueSource) !== undefined || super._isDurationKeptAsText(valueSource)
     }
     override _durationHasDaysSql(context: SqlBuildContext, duration: ToSql): string {
         if (this._isDurationKeptAsText(duration)) {
@@ -2066,13 +2067,37 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return 'tsq_duration_text(0, 0, 0, extract(day from ' + interval + '), extract(hour from ' + interval + '), extract(minute from ' + interval + '), extract(second from ' + interval + ") * 1000000000, 'second')"
     }
     override _durationTextAsInterval(context: SqlBuildContext, valueSource: ToSql, column: ToSql): string {
-        // The interval of its parts the column keeps; the query fails, as the value would be rejected, when it has others
+        // The interval of its parts the column keeps; the query fails, as the value would be rejected, when it has others,
+        // or, for a duration of fields of the query, when they have different signs, as Temporal throws
+        const fields = __durationFieldsOf(valueSource)
+        let condition = ''
+        let interval: string
         if (this._isYearToMonthDuration(column)) {
-            const others = this._durationTextPart(context, valueSource, 'D') + ' <> 0 or ' + this._durationTextPart(context, valueSource, 'S') + ' <> 0 or ' + this._durationTextPart(context, valueSource, 'N') + ' <> 0'
-            return this._anyValueOrErrorWhen(context, "numtoyminterval(" + this._durationTextPart(context, valueSource, 'M') + ", 'month')", others)
+            condition = this._durationPartsCondition(context, valueSource, 'D', 'S', 'N')
+            interval = "numtoyminterval(" + this._durationTextPart(context, valueSource, 'M') + ", 'month')"
+        } else {
+            condition = this._durationPartsCondition(context, valueSource, 'M', undefined, undefined)
+            const days = this._durationHasPart(valueSource, 'D') ? "numtodsinterval(" + this._durationTextPart(context, valueSource, 'D') + ", 'day')" : undefined
+            const hasSeconds = this._durationHasPart(valueSource, 'S')
+            const hasNanoseconds = this._durationHasPart(valueSource, 'N')
+            const seconds = hasSeconds || hasNanoseconds
+                ? "numtodsinterval(" + (hasSeconds ? this._durationTextPart(context, valueSource, 'S') : '') + (hasSeconds && hasNanoseconds ? ' + ' : '') + (hasNanoseconds ? this._durationTextPart(context, valueSource, 'N') + ' / 1000000000' : '') + ", 'second')"
+                : undefined
+            interval = days === undefined ? (seconds ?? "numtodsinterval(0, 'second')") : seconds === undefined ? days : days + ' + ' + seconds
         }
-        const interval = "numtodsinterval(" + this._durationTextPart(context, valueSource, 'D') + ", 'day') + numtodsinterval(" + this._durationTextPart(context, valueSource, 'S') + ' + ' + this._durationTextPart(context, valueSource, 'N') + " / 1000000000, 'second')"
-        return this._anyValueOrErrorWhen(context, interval, this._durationTextPart(context, valueSource, 'M') + ' <> 0')
+        const sign = fields ? this._signOfDurationFieldsCondition(context, fields) : undefined
+        if (sign !== undefined) {
+            condition = condition === '' ? sign : '(' + condition + ') or (' + sign + ')'
+        }
+        return condition === '' ? interval : this._anyValueOrErrorWhen(context, interval, condition)
+    }
+    /** The condition that a duration has a part that isn't 0 of the ones given (the ones its fields give, for fields of the query) */
+    _durationPartsCondition(context: SqlBuildContext, valueSource: ToSql, a: 'M' | 'D' | 'S' | 'N', b: 'M' | 'D' | 'S' | 'N' | undefined, c: 'M' | 'D' | 'S' | 'N' | undefined): string {
+        let condition = ''
+        if (this._durationHasPart(valueSource, a)) { condition += this._durationTextPart(context, valueSource, a) + ' <> 0' }
+        if (b !== undefined && this._durationHasPart(valueSource, b)) { condition += (condition === '' ? '' : ' or ') + this._durationTextPart(context, valueSource, b) + ' <> 0' }
+        if (c !== undefined && this._durationHasPart(valueSource, c)) { condition += (condition === '' ? '' : ' or ') + this._durationTextPart(context, valueSource, c) + ' <> 0' }
+        return condition
     }
     override _durationPartsForSum(context: SqlBuildContext, valueSource: ToSql): string {
         if (this._isDurationKeptAsText(valueSource)) {

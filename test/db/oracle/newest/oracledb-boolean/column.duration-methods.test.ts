@@ -904,7 +904,7 @@ describe(ctx.label, () => {
             expect(ctx.lastSql).toMatchInlineSnapshot(`"update duration_value set span_text = tsq_duration_text(0, 0, 0, extract(day from span), extract(hour from span), extract(minute from span), extract(second from span) * 1000000000, 'second') where id in (:0, :1)"`)
             ctx.mockNext(1)
             await ctx.conn.update(tDurationValue).set({ span: tDurationValue.spanText.valueWhenNull(Temporal.Duration.from('PT0S')) }).where(tDurationValue.id.equals(3)).executeUpdate()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update duration_value set span = case when extract(day from to_date((2001) || '-' || (2) || '-' || (case when tsq_duration_part(nvl(span_text, :3), 'M') <> 0 then 29 else 28 end), 'YYYY-MM-DD')) = 28 then numtodsinterval(tsq_duration_part(nvl(span_text, :0), 'D'), 'day') + numtodsinterval(tsq_duration_part(nvl(span_text, :1), 'S') + tsq_duration_part(nvl(span_text, :2), 'N') / 1000000000, 'second') end where id = :4"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update duration_value set span = case when extract(day from to_date((2001) || '-' || (2) || '-' || (case when tsq_duration_part(nvl(span_text, :0), 'M') <> 0 then 29 else 28 end), 'YYYY-MM-DD')) = 28 then numtodsinterval(tsq_duration_part(nvl(span_text, :1), 'D'), 'day') + numtodsinterval(tsq_duration_part(nvl(span_text, :2), 'S') + tsq_duration_part(nvl(span_text, :3), 'N') / 1000000000, 'second') end where id = :4"`)
             ctx.mockNext([
                 { id: 1, spanText: 'P3DT4H5M6.789S', days: 3, hours: 4, minutes: 5, span: 'P3DT4H5M6.789S' },
                 { id: 2, spanText: '-P1DT2H', days: -1, hours: -2, minutes: 0, span: '-P1DT2H' },

@@ -4,9 +4,10 @@
 // 8601 text P1Y2M3DT4H5M6.789S, -PT26H and PT90M. project_release: rollout_time 1 day 12:00:00, 00:45:00 and 2 days,
 // for the versions 1.2.0, 1.3.0-beta.1 and 0.9.0.
 
-import { afterAll, beforeAll, beforeEach, describe } from '../../../../lib/testRunner.js'
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { TsSqlError } from '../../../../../src/exports/v2/index.js'
 import { ctx } from './setup.js'
+import { tColMatrixPlain } from '../../domain/connection.js'
 
 async function rejectionOf(query: Promise<unknown>): Promise<boolean> {
     try {
@@ -256,6 +257,74 @@ describe(ctx.label, () => {
         ctx.mockNext([])
         const failsWithoutFunctions = await instantQuery(ctx.conn, 1).then(() => false, () => true)
         expect([failsWithFunctions, failsWithoutFunctions]).toEqual([ctx.realDbEnabled, ctx.realDbEnabled])
+    })
+    */
+
+    // NOT-SUPPORTED: Bun SQL's sqlite adapter exposes neither a user-defined-function API nor its bun:sqlite `Database`, so the tsq_duration_part UDF can't be registered
+    /*
+    test('a-duration-of-fields-of-the-query', async () => {
+        // Temporal's Duration.from of the int 42 of the row: as days with an hour and a half, as milliseconds times 100,
+        // negated as days with -1 hour; plus minutes of the query, as Temporal's add; its days
+        const expected = {
+            ofDays: Temporal.Duration.from({ days: 42, hours: 1, minutes: 30 }),
+            ofMilliseconds: Temporal.Duration.from({ milliseconds: 4200 }),
+            negated: Temporal.Duration.from({ days: -42, hours: -1 }),
+            plusMinutes: Temporal.Duration.from({ hours: 42 }).add({ minutes: 42 }),
+        }
+        ctx.mockNext([{ ofDays: '42 days 01:30:00', ofMilliseconds: '00:00:04.2', negated: '-42 days -01:00:00', plusMinutes: '42:42:00', days: 42 }])
+        const negated = ctx.conn.const(0, 'int').subtract(tColMatrixPlain.mInt)
+        const rows = await ctx.conn.selectFrom(tColMatrixPlain)
+            .where(tColMatrixPlain.id.equals(1))
+            .select({
+                ofDays: ctx.conn.duration({ days: tColMatrixPlain.mInt, hours: 1, minutes: 30 }),
+                ofMilliseconds: ctx.conn.duration({ milliseconds: tColMatrixPlain.mInt.multiply(ctx.conn.const(100, 'int')) }),
+                negated: ctx.conn.duration({ days: negated, hours: -1 }),
+                plusMinutes: ctx.conn.duration({ hours: tColMatrixPlain.mInt }).add({ minutes: tColMatrixPlain.mInt }),
+                days: ctx.conn.duration({ days: tColMatrixPlain.mInt }).days(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams.map(String)).toMatchInlineSnapshot()
+        assertType<Exact<typeof rows, Array<{ ofDays: Temporal.Duration; ofMilliseconds: Temporal.Duration; negated: Temporal.Duration; plusMinutes: Temporal.Duration; days: number }>>>()
+        expect(rows.map(row => [row.ofDays.toString(), row.ofMilliseconds.toString(), row.negated.toString(), row.plusMinutes.toString(), row.days]))
+            .toEqual([[expected.ofDays.toString(), expected.ofMilliseconds.toString(), expected.negated.toString(), expected.plusMinutes.toString(), 42]])
+    })
+    */
+
+    test('a-duration-of-fields-of-the-query-with-different-signs-makes-the-query-fail', async () => {
+        // As Temporal throws: the int 42 of the row as days with -1 hour
+        ctx.mockNext([{ value: '42 days' }])
+        const failed = await rejectionOf(ctx.conn.selectFrom(tColMatrixPlain)
+            .where(tColMatrixPlain.id.equals(1))
+            .select({ value: ctx.conn.duration({ days: tColMatrixPlain.mInt, hours: -1 }) })
+            .executeSelectMany())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select case when m_int > 0 then abs(-9223372036854775807 - 1) else tsq_duration_text(0, 0, 0, m_int, -1, 0, cast(0 as text), 'second') end as value from col_matrix where id = ?1"`)
+        expect(failed).toBe(ctx.realDbEnabled)
+    })
+
+    // NOT-SUPPORTED: Bun SQL's sqlite adapter exposes neither a user-defined-function API nor its bun:sqlite `Database`, so the tsq_duration_part UDF can't be registered
+    /*
+    test('a-duration-of-fields-of-the-query-is-written-as-the-column-keeps-it', async () => {
+        // In span_text, the text of Temporal's toString of its fields, as a duration sent is written: an hour and 90 minutes
+        // of the query keep their 90 minutes; in span, as span keeps a duration
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tDurationValue)
+                .set({
+                    spanText: ctx.conn.duration({ hours: 1, minutes: ctx.conn.const(90, 'int') }),
+                    span: ctx.conn.duration({ days: ctx.conn.const(2, 'int'), hours: 3 }),
+                })
+                .where(tDurationValue.id.equals(3))
+                .executeUpdate()
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            ctx.mockNext([{ spanText: 'PT1H90M', minutes: 90, span: '2 days 03:00:00' }])
+            const rows = await ctx.conn.selectFrom(tDurationValue)
+                .where(tDurationValue.id.equals(3))
+                .select({ spanText: tDurationValue.spanText, minutes: tDurationValue.spanText.minutes(), span: tDurationValue.span })
+                .executeSelectMany()
+            expect(rows.map(row => [row.spanText?.toString(), row.minutes, row.span.toString()]))
+                .toEqual([[Temporal.Duration.from({ hours: 1, minutes: 90 }).toString(), 90, Temporal.Duration.from({ days: 2, hours: 3 }).toString()]])
+        })
     })
     */
 })

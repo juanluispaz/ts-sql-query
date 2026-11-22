@@ -1,8 +1,9 @@
 import type { SqlDataType } from '../TypeAdapter.js'
 import { EqualableType } from './equalable.js'
-import type { TemporalDayOrTimeUnit, TemporalDuration, TemporalDurationLike, TemporalPlainDate, TemporalPlainDateTime, TemporalRelativeTotalOptions, TemporalTotalOptions } from './temporal.js'
+import type { IntOfQuery, TemporalDurationLikeOfQuery, TemporalDayOrTimeUnit, TemporalDuration, TemporalDurationLike, TemporalPlainDate, TemporalPlainDateTime, TemporalRelativeTotalOptions, TemporalTotalOptions } from './temporal.js'
 import type { DataTypeOf, IValueWithType, OptionalityOf, SourceOf, ValueSource } from './base.js'
-import type { CombinedOptionality } from './valueSource.js'
+import type { CombinedOptionality, CombinedOptionalityOfUnion, OptionalType } from './valueSource.js'
+import type { NSource } from '../utils/sourceName.js'
 import { __newSqlOperation2ValueSource, __operation0, __operation1 } from '../nodes/operations.js'
 import { DoubleType, IntType } from './number.js'
 import { getOptionalType2 } from '../nodes/operands.js'
@@ -195,8 +196,10 @@ export abstract class DurationsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME 
      * field of the two. A duration with years, months or weeks fails the query, as Temporal throws
      */
     add<VALUE extends IValueWithType<'type:duration:'>>(other: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    /** The duration plus the one of the fields given, as Temporal's `add`, where a field is an integer or an int of the query, like a column (`{ hours: tShift.extraHours }`). A duration with years, months or weeks fails the query, as Temporal throws */
+    add<SOURCE2 extends NSource, OPTIONAL_TYPE2 extends OptionalType>(other: TemporalDurationLikeOfQuery<IntOfQuery<SOURCE2, OPTIONAL_TYPE2>>): ValueSource<SourceOf<this> | SOURCE2, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, CombinedOptionalityOfUnion<OPTIONAL_TYPE2>>>
     add(other: unknown): any {
-        return sumOf(this, '_durationAdd', other)
+        return sumOf(this, '_durationAdd', __durationArgument(other, durationFieldNames))
     }
     /**
      * The duration minus the one given, as Temporal's `subtract`: the other one negated, added. A duration with years,
@@ -205,8 +208,10 @@ export abstract class DurationsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME 
     subtract(other: TemporalDuration | TemporalDurationLike): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     /** The duration minus the one given, as Temporal's `subtract`: the other one negated, added */
     subtract<VALUE extends IValueWithType<'type:duration:'>>(other: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    /** The duration minus the one of the fields given, as Temporal's `subtract`, where a field is an integer or an int of the query, like a column */
+    subtract<SOURCE2 extends NSource, OPTIONAL_TYPE2 extends OptionalType>(other: TemporalDurationLikeOfQuery<IntOfQuery<SOURCE2, OPTIONAL_TYPE2>>): ValueSource<SourceOf<this> | SOURCE2, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, CombinedOptionalityOfUnion<OPTIONAL_TYPE2>>>
     subtract(other: unknown): any {
-        return sumOf(this, '_durationSubtract', other)
+        return sumOf(this, '_durationSubtract', __durationArgument(other, durationFieldNames))
     }
 }
 

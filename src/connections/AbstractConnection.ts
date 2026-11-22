@@ -32,6 +32,7 @@ import type { ResultObjectValuesProjectedAsNullableForAggregatedArray } from '..
 import { __isAggregatedArrayClass, __isBigintClass, __isBooleanClass, __isDoubleClass, __isExactDecimalClass, __isIntClass, __isLocalDateClass, __isLocalDateTimeClass, __isLocalTimeClass, __isPlainDateClass, __isPlainMonthDayClass, __isPlainYearMonthClass, __isPlainDateTimeClass, __isPlainTimeClass, __isStringClass, __isDurationClass, __isInstantClass, __isUuidClass, __isZonedDateTimeClass } from '../typeSystem/dataTypeQuestions.js'
 import { __durationSqlDataTypeOf } from '../typeSystem/dataTypes.js'
 import { parseUtcDateTimeText } from '../utils/utcDateTimeText.js'
+import type { CombinedOptionalityOfUnion, OptionalType } from '../typeSystem/valueSource.js'
 import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, ValueSourceOf, TypedValueSource } from '../typeSystem/valueSource.js'
 import type { DataTypeName, DataTypeOfName, DataTypeValueOfName, DataTypeValueSources, DataTypeFragments } from '../typeSystem/dataTypeNames.js'
 import { DoubleType, IntType } from '../typeSystem/number.js'
@@ -44,11 +45,14 @@ import type { NullableType } from '../typeSystem/nullable.js'
 import { type AlwaysIfValueSource, type IfValueSource, BooleanConditionType, BooleanType } from '../typeSystem/logical.js'
 import type { FragmentExpression } from '../typeSystem/fragments.js'
 import { LocalDateTimeType, LocalTimeType, LocalDateType } from '../typeSystem/localDates.js'
-import { __temporal, type TemporalPlainDateTime } from '../typeSystem/temporal.js'
+import { __temporal, type IntOfQuery, type TemporalDurationLike, type TemporalDurationLikeOfQuery, type TemporalPlainDateTime } from '../typeSystem/temporal.js'
 import { PlainDateTimeType, PlainDateType, PlainTimeType } from '../typeSystem/plainDates.js'
 import { InstantType, __instantFromEpoch } from '../typeSystem/instants.js'
 import { parseInstantText, parsePlainDateTimeText, parseStoredZonedDateTimeText, parseZonedDateTimeText, plainDateTimeOfUtcDate, zonedDateTimeText } from '../utils/plainDateTimeText.js'
-import { durationIsoText, durationOfReceivedValue, isDurationValue } from '../utils/durationValues.js'
+import { durationIsoText, durationOfArgument, durationOfReceivedValue, isDurationValue } from '../utils/durationValues.js'
+import { DurationType, __durationArgument } from '../typeSystem/durations.js'
+import { durationFieldNames } from '../nodes/durationOfFields.js'
+import { isValueSource } from '../nodes/NodeStrategy.js'
 import { dayOfStoredYearMonthsOf, yearOfStoredMonthDaysOf } from '../utils/temporalReference.js'
 import type { NumberType } from '../typeSystem/number.js'
 import type { BigintType } from '../typeSystem/bigint.js'
@@ -677,6 +681,26 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     currentInstant(): ValueSource<NNoTableOrViewRequired<DB>, InstantType, 'required'>
     currentInstant(): any {
         return __createStatic0('_currentInstant', InstantType, 'required')
+    }
+    /** The duration of the fields given, as Temporal's `Temporal.Duration.from`: integers with one sign, sent as a value */
+    duration(fields: TemporalDurationLike): ValueSource<NNoTableOrViewRequired<DB>, DurationType, 'required'>
+    /**
+     * The duration of the fields given, as Temporal's `Temporal.Duration.from`, where a field is an integer or an int of
+     * the query, like a column (`{ days: tInvoice.graceDays }`): the database writes it as it keeps a duration (its ISO
+     * 8601 text, as Temporal's toString, or its interval), and the query fails, as Temporal throws, for a row where the
+     * fields have different signs. It has the sources of its fields, and is optional when one of them is
+     */
+    duration<SOURCE2 extends NSource, OPTIONAL_TYPE2 extends OptionalType>(fields: TemporalDurationLikeOfQuery<IntOfQuery<SOURCE2, OPTIONAL_TYPE2>>): ValueSource<NNoTableOrViewRequired<DB> | SOURCE2, DurationType, CombinedOptionalityOfUnion<OPTIONAL_TYPE2>>
+    duration(fields: unknown): any {
+        const argument = __durationArgument(fields, durationFieldNames)
+        if (isValueSource(argument)) {
+            return argument
+        }
+        const value = durationOfArgument(fields, 'duration')
+        if (!value) {
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value: fields, typeName: 'duration' }, 'Invalid fields of a duration: ' + JSON.stringify(fields))
+        }
+        return this.const(value as any, 'duration')
     }
     /**
      * The instant of the milliseconds since 1970-01-01T00:00Z given, as Temporal's `Temporal.Instant.fromEpochMilliseconds`:

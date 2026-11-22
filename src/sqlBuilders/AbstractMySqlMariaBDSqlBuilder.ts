@@ -1248,6 +1248,10 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
      * The value plus the duration, or an error of the query when the day of the value isn't in the month the months of
      * the duration reach (a subquery of two rows): each part written again where it appears, in the order of the text
      */
+    override _textOrErrorWhen(_context: SqlBuildContext, text: string, condition: string): string {
+        // A subquery of two rows is the error, after the text, as the parameters appear
+        return 'concat(' + text + ", case when " + condition + " then (select 1 union all select 1) else '' end)"
+    }
     override _valueOrErrorWhen(_context: SqlBuildContext, value: string, condition: string, _fields: 'date' | 'time' | 'timestamp'): string {
         // No date fails: a subquery of two rows is the error; the condition after the value, as the parameters appear
         return 'date_add(' + value + ', interval case when ' + condition + ' then (select 1 union all select 1) else 0 end day)'

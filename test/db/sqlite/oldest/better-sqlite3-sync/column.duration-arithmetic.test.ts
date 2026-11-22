@@ -7,7 +7,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { TsSqlError } from '../../../../../src/exports/v2/index.js'
-import { tDurationValue, tRelease } from '../../domain/connection.js'
+import { tDurationValue, tRelease, tColMatrixPlain } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import { sync } from '../../../../../src/extras/sync.js'
 
@@ -253,5 +253,74 @@ describe(ctx.label, () => {
         ctx.mockNext([])
         const failsWithoutFunctions = (() => { try { sync(instantQuery(ctx.conn, 1)); return false } catch { return true } })()
         expect([failsWithFunctions, failsWithoutFunctions]).toEqual([ctx.realDbEnabled, ctx.realDbEnabled])
+    })
+
+    test('a-duration-of-fields-of-the-query', async () => {
+        // Temporal's Duration.from of the int 42 of the row: as days with an hour and a half, as milliseconds times 100,
+        // negated as days with -1 hour; plus minutes of the query, as Temporal's add; its days
+        const expected = {
+            ofDays: Temporal.Duration.from({ days: 42, hours: 1, minutes: 30 }),
+            ofMilliseconds: Temporal.Duration.from({ milliseconds: 4200 }),
+            negated: Temporal.Duration.from({ days: -42, hours: -1 }),
+            plusMinutes: Temporal.Duration.from({ hours: 42 }).add({ minutes: 42 }),
+        }
+        ctx.mockNext([{ ofDays: '42 days 01:30:00', ofMilliseconds: '00:00:04.2', negated: '-42 days -01:00:00', plusMinutes: '42:42:00', days: 42 }])
+        const negated = ctx.conn.const(0, 'int').subtract(tColMatrixPlain.mInt)
+        const rows = sync(ctx.conn.selectFrom(tColMatrixPlain)
+            .where(tColMatrixPlain.id.equals(1))
+            .select({
+                ofDays: ctx.conn.duration({ days: tColMatrixPlain.mInt, hours: 1, minutes: 30 }),
+                ofMilliseconds: ctx.conn.duration({ milliseconds: tColMatrixPlain.mInt.multiply(ctx.conn.const(100, 'int')) }),
+                negated: ctx.conn.duration({ days: negated, hours: -1 }),
+                plusMinutes: ctx.conn.duration({ hours: tColMatrixPlain.mInt }).add({ minutes: tColMatrixPlain.mInt }),
+                days: ctx.conn.duration({ days: tColMatrixPlain.mInt }).days(),
+            })
+            .executeSelectMany())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select case when m_int < 0 then abs(-9223372036854775807 - 1) else tsq_duration_text(0, 0, 0, m_int, 1, 30, cast(0 as text), 'second') end as ofDays, tsq_duration_text(0, 0, 0, 0, 0, 0, cast(cast((m_int * ?1) as integer) * 1000000 as text), 'second') as ofMilliseconds, case when (?3 - m_int) > 0 then abs(-9223372036854775807 - 1) else tsq_duration_text(0, 0, 0, (?2 - m_int), -1, 0, cast(0 as text), 'second') end as negated, tsq_duration_add(tsq_duration_part(tsq_duration_text(0, 0, 0, 0, m_int, 0, cast(0 as text), 'second'), 'largest'), tsq_duration_part(tsq_duration_text(0, 0, 0, 0, m_int, 0, cast(0 as text), 'second'), 'days'), (m_int * 3600), 0, tsq_duration_part(tsq_duration_text(0, 0, 0, 0, 0, m_int, cast(0 as text), 'second'), 'largest'), tsq_duration_part(tsq_duration_text(0, 0, 0, 0, 0, m_int, cast(0 as text), 'second'), 'days'), (m_int * 60), 0, 1) as plusMinutes, tsq_duration_part(tsq_duration_text(0, 0, 0, m_int, 0, 0, cast(0 as text), 'second'), 'days') as days from col_matrix where id = ?4"`)
+        expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
+          [
+            "100",
+            "0",
+            "0",
+            "1",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ ofDays: Temporal.Duration; ofMilliseconds: Temporal.Duration; negated: Temporal.Duration; plusMinutes: Temporal.Duration; days: number }>>>()
+        expect(rows.map(row => [row.ofDays.toString(), row.ofMilliseconds.toString(), row.negated.toString(), row.plusMinutes.toString(), row.days]))
+            .toEqual([[expected.ofDays.toString(), expected.ofMilliseconds.toString(), expected.negated.toString(), expected.plusMinutes.toString(), 42]])
+    })
+
+    test('a-duration-of-fields-of-the-query-with-different-signs-makes-the-query-fail', async () => {
+        // As Temporal throws: the int 42 of the row as days with -1 hour
+        ctx.mockNext([{ value: '42 days' }])
+        const failed = await rejectionOf(ctx.conn.selectFrom(tColMatrixPlain)
+            .where(tColMatrixPlain.id.equals(1))
+            .select({ value: ctx.conn.duration({ days: tColMatrixPlain.mInt, hours: -1 }) })
+            .executeSelectMany())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select case when m_int > 0 then abs(-9223372036854775807 - 1) else tsq_duration_text(0, 0, 0, m_int, -1, 0, cast(0 as text), 'second') end as value from col_matrix where id = ?1"`)
+        expect(failed).toBe(ctx.realDbEnabled)
+    })
+
+    test('a-duration-of-fields-of-the-query-is-written-as-the-column-keeps-it', async () => {
+        // In span_text, the text of Temporal's toString of its fields, as a duration sent is written: an hour and 90 minutes
+        // of the query keep their 90 minutes; in span, as span keeps a duration
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            sync(ctx.conn.update(tDurationValue)
+                .set({
+                    spanText: ctx.conn.duration({ hours: 1, minutes: ctx.conn.const(90, 'int') }),
+                    span: ctx.conn.duration({ days: ctx.conn.const(2, 'int'), hours: 3 }),
+                })
+                .where(tDurationValue.id.equals(3))
+                .executeUpdate())
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update duration_value set span_text = case when ?2 < 0 then abs(-9223372036854775807 - 1) else tsq_duration_text(0, 0, 0, 0, 1, ?1, cast(0 as text), 'second') end, span = case when ?4 < 0 then abs(-9223372036854775807 - 1) else tsq_duration_text(0, 0, 0, ?3, 3, 0, cast(0 as text), 'second') end where id = ?5"`)
+            ctx.mockNext([{ spanText: 'PT1H90M', minutes: 90, span: '2 days 03:00:00' }])
+            const rows = sync(ctx.conn.selectFrom(tDurationValue)
+                .where(tDurationValue.id.equals(3))
+                .select({ spanText: tDurationValue.spanText, minutes: tDurationValue.spanText.minutes(), span: tDurationValue.span })
+                .executeSelectMany())
+            expect(rows.map(row => [row.spanText?.toString(), row.minutes, row.span.toString()]))
+                .toEqual([[Temporal.Duration.from({ hours: 1, minutes: 90 }).toString(), 90, Temporal.Duration.from({ days: 2, hours: 3 }).toString()]])
+        })
     })
 })

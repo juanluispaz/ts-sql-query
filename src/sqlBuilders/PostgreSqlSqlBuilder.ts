@@ -1094,15 +1094,52 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         return { months: negative + months, days: negative + days, seconds: negative + '(' + sql + " - date_trunc('day', " + sql + '))', hasDate: months + ' <> 0 or ' + days + ' <> 0' }
     }
     override _datePlusDurationMonths(context: SqlBuildContext, valueSource: ToSql, duration: ToSql, sign: 1 | -1): string {
-        if (this._isDurationKeptAsText(duration)) {
+        if (this._isDurationKeptAsText(duration) || __durationFieldsOf(duration)) {
             return super._datePlusDurationMonths(context, valueSource, duration, sign)
         }
         // An interval that is its months (else the query fails): added as it is, the day kept in the month
         return 'cast(' + this._appendSqlParenthesis(valueSource, context, false) + (sign < 0 ? ' - ' : ' + ') + this._appendSqlParenthesis(duration, context, false) + ' as date)'
     }
     override _durationIntervalAsText(context: SqlBuildContext, valueSource: ToSql): string {
+        if (__durationFieldsOf(valueSource)) {
+            // The text of its fields, as given, as the library writes a duration it sends (an interval would balance its time)
+            return super._durationOfFields(context, valueSource)
+        }
         // The text the library writes for a duration it sends, of the function of the library
         return 'tsq_interval_text(' + this._appendSql(valueSource, context, false) + ')'
+    }
+    /** A duration of fields of the query, an interval of them; an error of the query when they have different signs */
+    override _durationOfFields(context: SqlBuildContext, valueSource: ToSql): string {
+        const fields = __durationFieldsOf(valueSource)!
+        let interval = ''
+        interval = this._makeIntervalArgument(context, interval, 'years', fields.years)
+        interval = this._makeIntervalArgument(context, interval, 'months', fields.months)
+        interval = this._makeIntervalArgument(context, interval, 'weeks', fields.weeks)
+        interval = this._makeIntervalArgument(context, interval, 'days', fields.days)
+        interval = this._makeIntervalArgument(context, interval, 'hours', fields.hours)
+        interval = this._makeIntervalArgument(context, interval, 'mins', fields.minutes)
+        const seconds = this._durationSecondsOfFields(context, fields)
+        if (seconds !== undefined) {
+            interval += (interval === '' ? '' : ', ') + 'secs => ' + seconds
+        }
+        const value = 'make_interval(' + interval + ')'
+        const condition = this._signOfDurationFieldsCondition(context, fields)
+        return condition === undefined ? value : this._valueOrErrorWhen(context, value, condition, 'timestamp')
+    }
+    /** The arguments of make_interval given plus the one of a field, when it is given */
+    _makeIntervalArgument(context: SqlBuildContext, interval: string, name: string, field: unknown): string {
+        if (field === undefined) {
+            return interval
+        }
+        return (interval === '' ? '' : interval + ', ') + name + ' => ' + this._durationFieldArgument(context, field)
+    }
+    /** The seconds with their fraction of the fields of a duration, a double; undefined when none is given */
+    _durationSecondsOfFields(context: SqlBuildContext, fields: { readonly seconds?: unknown, readonly milliseconds?: unknown, readonly microseconds?: unknown, readonly nanoseconds?: unknown }): string | undefined {
+        let seconds = fields.seconds === undefined ? '' : this._durationFieldArgument(context, fields.seconds)
+        if (fields.milliseconds !== undefined) { seconds += (seconds === '' ? '' : ' + ') + this._durationFieldArgument(context, fields.milliseconds) + ' / 1000.0' }
+        if (fields.microseconds !== undefined) { seconds += (seconds === '' ? '' : ' + ') + this._durationFieldArgument(context, fields.microseconds) + ' / 1000000.0' }
+        if (fields.nanoseconds !== undefined) { seconds += (seconds === '' ? '' : ' + ') + this._durationFieldArgument(context, fields.nanoseconds) + ' / 1000000000.0' }
+        return seconds === '' ? undefined : seconds
     }
     override _durationTextAsInterval(context: SqlBuildContext, valueSource: ToSql, _column: ToSql): string {
         // The interval of its parts, each with its sign (PostgreSQL reads no sign before the P of an ISO 8601 text)

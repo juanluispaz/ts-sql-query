@@ -916,6 +916,8 @@ interface Connection {
     /** The instant of now in the database, as Temporal's Now.instant(), with the digits of the fraction of a second it gives */
     currentInstant(): InstantValueSource
     /** The instant of the milliseconds since 1970-01-01T00:00Z, as Temporal's Instant.fromEpochMilliseconds: a number is sent as the instant */
+    /** A duration of the fields given, as Temporal's Duration.from, where a field is a number or an int of the query */
+    duration(fields: DurationLikeOfQuery): DurationValueSource
     instantFromEpochMilliseconds(epochMilliseconds: number | NumberValueSource | BigintValueSource): InstantValueSource
     /** The instant of the nanoseconds since 1970-01-01T00:00Z, as Temporal's Instant.fromEpochNanoseconds: a bigint is sent as the instant */
     instantFromEpochNanoseconds(epochNanoseconds: bigint | BigintValueSource | NumberValueSource): InstantValueSource

@@ -596,6 +596,15 @@ function _typeNegatives() {
     void tColMatrixPlain.mDate.add({ days: connection.const('3', 'string') })
     // @ts-expect-error a field of a duration is a number: a duration isn't one
     void tColMatrixPlain.mDate.add({ days: tDurationValue.span })
+    // A duration of fields of the query, and a duration plus fields of the query; optional when a field is
+    void connection.duration({ days: tColMatrixPlain.mInt })
+    void tDurationValue.span.add({ hours: tColMatrixPlain.mInt })
+    const optionalDuration = connection.duration({ days: tColMatrixPlain.mInt, hours: connection.optionalConst(1, 'int') })
+    assertType<Exact<OptionalityOf<typeof optionalDuration>, 'optional'>>()
+    // @ts-expect-error a field of a duration is an integer: a double isn't one, as in Temporal
+    void connection.duration({ days: tColMatrixPlain.mInt.divide(2) })
+    // @ts-expect-error a field a duration doesn't have
+    void connection.duration({ decades: tColMatrixPlain.mInt })
     // with takes the fields of the type
     void tColMatrixPlain.mDate.with({ day: 1 })
     void tColMatrixPlain.mDatetime.with({ month: 2, hour: 0 })

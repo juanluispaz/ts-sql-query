@@ -1532,6 +1532,10 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
      * The nanoseconds of the time of a difference as the function of JavaScript takes them: as their text, since a
      * driver gives an integer beyond 2^53 (a difference of more than 104 days) to a function as a rounded number
      */
+    override _bigintOfDurationField(sql: string): string {
+        // An integer: a driver may bind an int given as a value as a real
+        return 'cast(' + sql + ' as integer)'
+    }
     override _durationTextTimeArgument(nanoseconds: string): string {
         return 'cast(' + nanoseconds + ' as text)'
     }
@@ -1595,6 +1599,9 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     override _validDayOrError(context: SqlBuildContext, year: string, month: string, day: string): string {
         // SQLite has no date that fails: an integer overflow is the error
         return 'case when ' + day + ' > ' + this._daysInMonth(context, year, month) + ' then abs(-9223372036854775807 - 1) else ' + day + ' end'
+    }
+    override _textOrErrorWhen(context: SqlBuildContext, text: string, condition: string): string {
+        return this._valueOrErrorWhen(context, text, condition, 'date')
     }
     override _valueOrErrorWhen(_context: SqlBuildContext, value: string, condition: string, _fields: 'date' | 'time' | 'timestamp'): string {
         // SQLite has no date that fails: an integer overflow is the error

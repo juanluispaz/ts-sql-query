@@ -1024,6 +1024,45 @@ BEGIN
 END
 $$;
 
+-- tsq_duration_text: the ISO 8601 text of a duration of its fields, as Temporal's toString writes it: its years, months,
+-- weeks, days, hours and minutes as given, and the nanoseconds of its time balanced up to the unit given; the function of
+-- the library that writes a duration of fields of the query in a column of text (docs/databases/postgresql/functions)
+CREATE OR REPLACE FUNCTION tsq_duration_text(y bigint, mo bigint, w bigint, d bigint, h bigint, mi bigint, ns numeric, unit text) RETURNS text LANGUAGE plpgsql IMMUTABLE AS $$
+DECLARE
+    r text := '';
+    t text := '';
+    neg boolean;
+    f bigint;
+BEGIN
+    IF y IS NULL OR mo IS NULL OR w IS NULL OR d IS NULL OR h IS NULL OR mi IS NULL OR ns IS NULL THEN RETURN NULL; END IF;
+    IF unit = 'year' THEN y := y + mo / 12; mo := mo % 12; END IF;
+    IF unit = 'week' OR unit = 'day' THEN
+        d := d + div(ns, 86400000000000)::bigint;
+        ns := mod(ns, 86400000000000);
+        IF unit = 'week' THEN w := w + d / 7; d := d % 7; END IF;
+        unit := 'hour';
+    END IF;
+    neg := y < 0 OR mo < 0 OR w < 0 OR d < 0 OR h < 0 OR mi < 0 OR ns < 0;
+    IF y <> 0 THEN r := r || abs(y) || 'Y'; END IF;
+    IF mo <> 0 THEN r := r || abs(mo) || 'M'; END IF;
+    IF w <> 0 THEN r := r || abs(w) || 'W'; END IF;
+    IF d <> 0 THEN r := r || abs(d) || 'D'; END IF;
+    ns := abs(ns);
+    h := abs(h);
+    mi := abs(mi);
+    IF unit = 'hour' THEN h := h + div(ns, 3600000000000)::bigint; ns := mod(ns, 3600000000000); END IF;
+    IF h <> 0 THEN t := t || h || 'H'; END IF;
+    IF unit <> 'second' THEN mi := mi + div(ns, 60000000000)::bigint; ns := mod(ns, 60000000000); END IF;
+    IF mi <> 0 THEN t := t || mi || 'M'; END IF;
+    IF ns > 0 THEN
+        f := mod(ns, 1000000000)::bigint;
+        t := t || div(ns, 1000000000) || CASE WHEN f > 0 THEN '.' || rtrim(lpad(f::text, 9, '0'), '0') ELSE '' END || 'S';
+    END IF;
+    IF r = '' AND t = '' THEN RETURN 'PT0S'; END IF;
+    RETURN CASE WHEN neg THEN '-' ELSE '' END || 'P' || r || CASE WHEN t = '' THEN '' ELSE 'T' || t END;
+END
+$$;
+
 -- tsq_interval_text: the ISO 8601 text of an interval, as the library writes a duration in a column that keeps its text:
 -- its years and months, its days and its time in hours, minutes and seconds, as PostgreSQL keeps them, with the sign of
 -- the duration; an interval with parts of different signs, which a Temporal.Duration can't hold, is an error. The

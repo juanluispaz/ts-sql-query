@@ -131,11 +131,11 @@ async function createRunner(): Promise<{ runner: QueryRunner, raw: (sql: string)
             const { PgLiteQueryRunner } = await import('../../../../src/queryRunners/PgLiteQueryRunner.js')
             // A database created in Madrid: its session is in Madrid, whatever the zone of the process
             const db = await PGlite.create('memory://', { postgresqlconf: [`timezone = '${zone}'`] })
-            // The functions of the library a difference in days of zoned dates and times uses, as the schema of the tests has them
+            // Every function of the library, as the schema of the tests creates them: the connection says they are installed
             const schema = await readFile(new URL('../../../db/postgres/domain/schema.sql', import.meta.url), 'utf8')
-            for (const name of ['tsq_zoned_of_wall', 'tsq_zoned_until']) {
-                const start = schema.indexOf('CREATE OR REPLACE FUNCTION ' + name + '(')
-                await db.exec(schema.slice(start, schema.indexOf('$$;', start) + 3))
+            for (let start = schema.indexOf('CREATE OR REPLACE FUNCTION tsq_'); start >= 0; start = schema.indexOf('CREATE OR REPLACE FUNCTION tsq_', start + 1)) {
+                const body = schema.indexOf('$$', start)
+                await db.exec(schema.slice(start, schema.indexOf('$$;', body + 2) + 3))
             }
             return { runner: new PgLiteQueryRunner(db, oidTypes), raw: async (sql) => (await db.query<any>(sql)).rows, close: () => db.close() }
         }

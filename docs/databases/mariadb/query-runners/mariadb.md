@@ -83,7 +83,7 @@ Nothing is rejected: the query runner gives each of its queries the options it n
 
 So large integers need nothing: a `bigint` column is exact, and an `int` column with a value past `Number.MAX_SAFE_INTEGER` is rejected with `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` rather than rounded; read it as `bigint`.
 
-**Required and not checked**: the server's `time_zone` in UTC, which is the zone of the database, and the session left in it: a `TIMESTAMP` column and `now()` follow the session. mariadb sets no session zone unless you give it `timezone`; don't give it one other than the zone of the database. The query runner can't read the configuration of the connection, nor the zones without a query of its own. See [Time zones](../../../advanced/dates-and-times/column-kinds-and-session.md#the-zone-of-the-database-and-the-session).
+**Required and not checked**: the server's `time_zone` in UTC, which is the zone of the database, and the session left in it: a `TIMESTAMP` column and `now()` follow the session. mariadb sets no session zone unless you give it `timezone`; don't give it one other than the zone of the database. The query runner can't read the configuration of the connection, nor the zones without a query of its own. See [The zone of the database and the session](../../../advanced/dates-and-times/column-kinds-and-session.md#the-zone-of-the-database-and-the-session).
 
 A date outside the calendar, that the SQL mode `ALLOW_INVALID_DATES` keeps, or a zero date, kept without `NO_ZERO_DATE`, is rejected when it's read: see [A value outside the calendar](../../../configuration/dates-as-date.md#a-value-outside-the-calendar).
 

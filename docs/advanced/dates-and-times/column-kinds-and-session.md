@@ -10,17 +10,18 @@ What each database does with the zone of a temporal column, and with the zone of
 
 What the library does is the same for all of them. They differ in what the **engine** does with the value, and that decides whether the database session's zone takes part.
 
+| Kind | What the engine does | What the program gets | Examples |
+|---|---|---|---|
+| 1 | Stores and returns the wall clock as it is | A wall clock | PostgreSQL `date`, `time`, `timestamp`; MariaDB and MySQL `DATE`, `TIME`, `DATETIME`; Oracle `DATE`, `TIMESTAMP`; SQL Server `date`, `time`, `datetime`, `datetime2`, `smalldatetime` |
+| 2 | Converts it in and out with the zone of the session | A wall clock | MariaDB and MySQL `TIMESTAMP`; Oracle `TIMESTAMP WITH LOCAL TIME ZONE` |
+| 3 | Stores one normalized instant | An instant | PostgreSQL `timestamptz` |
+| 4 | Keeps the zone of each value | The value and its zone | Oracle `TIMESTAMP WITH TIME ZONE`; SQL Server `datetimeoffset`; PostgreSQL `timetz` |
+
+The table of each database is in its page, in the section *Time zones*.
+
 ### 1. No time-zone handling at all
 
-The value is a wall clock, stored and returned verbatim. The engine never converts it, and the session zone doesn't touch it. This is the most common kind. With the rule above, the library stores and reads its digits as UTC.
-
-Verified on PostgreSQL: the session zone has no effect on a `timestamp` column:
-
-```
-session UTC      2024-01-14 12:30:00
-session Madrid   2024-01-14 12:30:00
-session Tokyo    2024-01-14 12:30:00
-```
+The value is a wall clock, stored and returned verbatim. The engine never converts it, and the session zone doesn't touch it. This is the most common kind. With the database in UTC, as [the rule](../../configuration/time-zones.md#the-rule-the-database-and-its-session-in-utc) asks, its digits are the date and time in UTC.
 
 ### 2. Pinned to a zone, delivered without it
 

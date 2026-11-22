@@ -1,4 +1,4 @@
-import type { IValueWithType, OptionalityOf, SourceOf, ValueSource } from './base.js'
+import type { OptionalityOf, SourceOf, ValueSource, OperandOf } from './base.js'
 import { NullableType } from './nullable.js'
 import type { BooleanType, IfValueSource } from './logical.js'
 import type { IExecutableSelectQuery, CombinedOptionality, CombinedOptionalityOfUnion, OptionalType } from './valueSource.js'
@@ -42,7 +42,7 @@ export abstract class EqualableType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME 
      * Whether this value is equal to the one given, SQL `=`. With a null on either side the result is
      * null, which a `where` doesn't match: use `is` to match a null
      */
-    equals<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    equals<VALUE extends OperandOf<this>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     equals(value: any): any {
         return __newSqlOperation1ValueSource('_equals', this, value, __internalDataType('condition'), getOptionalType2(this, value))
     }
@@ -63,7 +63,7 @@ export abstract class EqualableType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME 
      * Whether this value is different from the one given, SQL `<>`. With a null on either side the
      * result is null, which a `where` doesn't match: use `isNot` to compare with a null
      */
-    notEquals<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    notEquals<VALUE extends OperandOf<this>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     notEquals(value: any): any {
         return __newSqlOperation1ValueSource('_notEquals', this, value, __internalDataType('condition'), getOptionalType2(this, value))
     }
@@ -95,7 +95,7 @@ export abstract class EqualableType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME 
      * result is never null (`is not distinct from`, `<=>` on MariaDB and MySQL, `is` on SQLite, an
      * equivalent expression on Oracle and SQL Server)
      */
-    is<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, 'required'>
+    is<VALUE extends OperandOf<this>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, 'required'>
     is(value: any): any {
         return __newSqlOperation1ValueSource('_is', this, value, __internalDataType('condition'), 'required')
     }
@@ -119,7 +119,7 @@ export abstract class EqualableType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME 
      * from any value and not from another null, and the result is never null (`is distinct from`, `not
      * <=>` on MariaDB and MySQL, `is not` on SQLite, an equivalent expression on Oracle and SQL Server)
      */
-    isNot<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, 'required'>
+    isNot<VALUE extends OperandOf<this>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, 'required'>
     isNot(value: any): any {
         return __newSqlOperation1ValueSource('_isNot', this, value, __internalDataType('condition'), 'required')
     }
@@ -141,17 +141,17 @@ export abstract class EqualableType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME 
      * Whether this value is one of the given ones, SQL `in`: a list of values, a value of the same data
      * type, or the rows of a select of one column. An empty list is always false
      */
-    in<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    in<VALUE extends OperandOf<this>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     /**
      * Whether this value is one of the given ones, SQL `in`: a list of values, a value of the same data
      * type, or the rows of a select of one column. An empty list is always false
      */
-    in<SOURCE2 extends NSource>(select: IExecutableSelectQuery<SOURCE2, IValueWithType<this[typeof operandTypeName]>, VALUE_TYPE>): ValueSource<SourceOf<this> | SOURCE2, BooleanType, OptionalityOf<this>>
+    in<SOURCE2 extends NSource>(select: IExecutableSelectQuery<SOURCE2, OperandOf<this>, VALUE_TYPE>): ValueSource<SourceOf<this> | SOURCE2, BooleanType, OptionalityOf<this>>
     /**
      * Whether this value is one of the given ones, SQL `in`: a list of values, a value of the same data
      * type, or the rows of a select of one column. An empty list is always false
      */
-    in<SOURCE2 extends NSource>(select: IExecutableSelectQuery<SOURCE2, IValueWithType<this[typeof operandTypeName]>, VALUE_TYPE | null | undefined>): ValueSource<SourceOf<this> | SOURCE2, BooleanType, 'optional'>
+    in<SOURCE2 extends NSource>(select: IExecutableSelectQuery<SOURCE2, OperandOf<this>, VALUE_TYPE | null | undefined>): ValueSource<SourceOf<this> | SOURCE2, BooleanType, 'optional'>
     in(value: any): any {
         return __newSqlOperationInValueSource('_in', this, value, __internalDataType('condition'), getOptionalTypeOfIn(this, value))
     }
@@ -175,19 +175,19 @@ export abstract class EqualableType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME 
      * data type, or the rows of a select of one column. An empty list is always true. If the select
      * returns a null, no row matches: take the nulls out of it
      */
-    notIn<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    notIn<VALUE extends OperandOf<this>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     /**
      * Whether this value is none of the given ones, SQL `not in`: a list of values, a value of the same
      * data type, or the rows of a select of one column. An empty list is always true. If the select
      * returns a null, no row matches: take the nulls out of it
      */
-    notIn<SOURCE2 extends NSource>(select: IExecutableSelectQuery<SOURCE2, IValueWithType<this[typeof operandTypeName]>, VALUE_TYPE>): ValueSource<SourceOf<this> | SOURCE2, BooleanType, OptionalityOf<this>>
+    notIn<SOURCE2 extends NSource>(select: IExecutableSelectQuery<SOURCE2, OperandOf<this>, VALUE_TYPE>): ValueSource<SourceOf<this> | SOURCE2, BooleanType, OptionalityOf<this>>
     /**
      * Whether this value is none of the given ones, SQL `not in`: a list of values, a value of the same
      * data type, or the rows of a select of one column. An empty list is always true. If the select
      * returns a null, no row matches: take the nulls out of it
      */
-    notIn<SOURCE2 extends NSource>(select: IExecutableSelectQuery<SOURCE2, IValueWithType<this[typeof operandTypeName]>, VALUE_TYPE | null | undefined>): ValueSource<SourceOf<this> | SOURCE2, BooleanType, 'optional'>
+    notIn<SOURCE2 extends NSource>(select: IExecutableSelectQuery<SOURCE2, OperandOf<this>, VALUE_TYPE | null | undefined>): ValueSource<SourceOf<this> | SOURCE2, BooleanType, 'optional'>
     notIn(value: any): any {
         return __newSqlOperationInValueSource('_notIn', this, value, __internalDataType('condition'), getOptionalTypeOfIn(this, value))
     }
@@ -200,7 +200,7 @@ export abstract class EqualableType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME 
      * As `in`, with the values given as arguments: each one a value or a value source of the same data
      * type. Without arguments it is always false
      */
-    inN<SOURCE2 extends NSource, OPTIONAL_TYPE2 extends OptionalType>(...value: Array<VALUE_TYPE | (IValueWithType<this[typeof operandTypeName]> & { [source]: SOURCE2, [optionalType]: OPTIONAL_TYPE2 })>): ValueSource<SourceOf<this> | SOURCE2, BooleanType, CombinedOptionality<OptionalityOf<this>, CombinedOptionalityOfUnion<OPTIONAL_TYPE2>>>
+    inN<SOURCE2 extends NSource, OPTIONAL_TYPE2 extends OptionalType>(...value: Array<VALUE_TYPE | (OperandOf<this> & { [source]: SOURCE2, [optionalType]: OPTIONAL_TYPE2 })>): ValueSource<SourceOf<this> | SOURCE2, BooleanType, CombinedOptionality<OptionalityOf<this>, CombinedOptionalityOfUnion<OPTIONAL_TYPE2>>>
     inN(...value: any[]): any {
         return __newSqlOperationInValueSource('_in', this, value, __internalDataType('condition'), getOptionalTypeN(this, value))
     }
@@ -213,7 +213,7 @@ export abstract class EqualableType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME 
      * As `notIn`, with the values given as arguments: each one a value or a value source of the same
      * data type. Without arguments it is always true
      */
-    notInN<SOURCE2 extends NSource, OPTIONAL_TYPE2 extends OptionalType>(...value: Array<VALUE_TYPE | (IValueWithType<this[typeof operandTypeName]> & { [source]: SOURCE2, [optionalType]: OPTIONAL_TYPE2 })>): ValueSource<SourceOf<this> | SOURCE2, BooleanType, CombinedOptionality<OptionalityOf<this>, CombinedOptionalityOfUnion<OPTIONAL_TYPE2>>>
+    notInN<SOURCE2 extends NSource, OPTIONAL_TYPE2 extends OptionalType>(...value: Array<VALUE_TYPE | (OperandOf<this> & { [source]: SOURCE2, [optionalType]: OPTIONAL_TYPE2 })>): ValueSource<SourceOf<this> | SOURCE2, BooleanType, CombinedOptionality<OptionalityOf<this>, CombinedOptionalityOfUnion<OPTIONAL_TYPE2>>>
     notInN(...value: any[]): any {
         return __newSqlOperationInValueSource('_notIn', this, value, __internalDataType('condition'), getOptionalTypeN(this, value))
     }

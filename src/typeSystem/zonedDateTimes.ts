@@ -1,7 +1,7 @@
 import type { DataTypeClass, SqlDataType } from '../TypeAdapter.js'
 import { ComparableType } from './comparable.js'
 import { __temporal, type TemporalDateUnit, type TemporalDifferenceOptions, type TemporalDisambiguation, type TemporalDuration, type TemporalDurationLike, type TemporalOffsetOption, type TemporalOverflowOptions, type TemporalPlainDateFields, type TemporalPlainTime, type TemporalPlainTimeFields, type TemporalRoundingOptions, type TemporalTimeUnit, type TemporalZonedDateTime, type IntOfQuery, type TemporalDurationLikeOfQuery, type TemporalPlainDateFieldsOfQuery, type TemporalPlainTimeFieldsOfQuery } from './temporal.js'
-import type { DataTypeOf, IValueWithType, OptionalityOf, SourceOf, ValueSource } from './base.js'
+import type { DataTypeOf, IValueWithType, OptionalityOf, SourceOf, ValueSource, OperandOf } from './base.js'
 import type { CombinedOptionality, CombinedOptionalityOfUnion, OptionalType } from './valueSource.js'
 import type { NSource } from '../utils/sourceName.js'
 import type { HasSource } from '../utils/ITableOrView.js'
@@ -11,7 +11,6 @@ import { __newSqlOperationConstValueSource } from '../nodes/constants.js'
 import { getOptionalType2 } from '../nodes/operands.js'
 import { isValueSource } from '../nodes/NodeStrategy.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
-import type { operandTypeName } from '../utils/symbols.js'
 import { compatibleInterpretation, isZonedDisambiguation, preferringOffsetInterpretation, zonedWithInterpretationOf } from '../utils/zonedOptions.js'
 import { plainTemporalDifferenceOf } from '../utils/plainTemporalDifference.js'
 import { plainTemporalRoundingOf } from '../utils/plainTemporalRounding.js'
@@ -357,14 +356,14 @@ export abstract class ZonedDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
      */
     until(this: OfDatabaseWithZoneRules, other: VALUE_TYPE, options?: TemporalDifferenceOptions<TemporalDateUnit | TemporalTimeUnit>): ValueSource<SourceOf<this>, DurationType, OptionalityOf<this>>
     /** The duration from this zoned date and time to the other one, as Temporal's `until` */
-    until<VALUE extends IValueWithType<this[typeof operandTypeName]>>(this: OfDatabaseWithZoneRules, other: VALUE, options?: TemporalDifferenceOptions<TemporalDateUnit | TemporalTimeUnit>): ValueSource<SourceOf<this> | SourceOf<VALUE>, DurationType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    until<VALUE extends OperandOf<this>>(this: OfDatabaseWithZoneRules, other: VALUE, options?: TemporalDifferenceOptions<TemporalDateUnit | TemporalTimeUnit>): ValueSource<SourceOf<this> | SourceOf<VALUE>, DurationType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     until(other: unknown, options?: unknown): any {
         return difference(this, '_until', other, options)
     }
     /** The duration from the other zoned date and time to this one, as Temporal's `since`: `until` with the rounding mode inverted, negated */
     since(this: OfDatabaseWithZoneRules, other: VALUE_TYPE, options?: TemporalDifferenceOptions<TemporalDateUnit | TemporalTimeUnit>): ValueSource<SourceOf<this>, DurationType, OptionalityOf<this>>
     /** The duration from the other zoned date and time to this one, as Temporal's `since` */
-    since<VALUE extends IValueWithType<this[typeof operandTypeName]>>(this: OfDatabaseWithZoneRules, other: VALUE, options?: TemporalDifferenceOptions<TemporalDateUnit | TemporalTimeUnit>): ValueSource<SourceOf<this> | SourceOf<VALUE>, DurationType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    since<VALUE extends OperandOf<this>>(this: OfDatabaseWithZoneRules, other: VALUE, options?: TemporalDifferenceOptions<TemporalDateUnit | TemporalTimeUnit>): ValueSource<SourceOf<this> | SourceOf<VALUE>, DurationType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     since(other: unknown, options?: unknown): any {
         return difference(this, '_since', other, options)
     }

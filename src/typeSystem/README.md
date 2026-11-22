@@ -71,9 +71,12 @@ relative, so a method of a base gives back the data type of the value source it 
 
 ```ts
 abstract asOptional(): ValueSource<SourceOf<this>, DataTypeOf<this>, 'optional'>
-abstract equals<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE):
+abstract equals<VALUE extends OperandOf<this>>(value: VALUE):
     ValueSource<SourceOf<this> | SourceOf<VALUE>, BooleanType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
 ```
+
+An operand of the data type of the value source is `OperandOf<this>` (`IValueWithType<this[typeof operandTypeName]>`),
+the public type a class of the user writes its methods with: the library's own classes use it too.
 
 **A family is named in plural, its data types in singular.** A class in plural is a family: the base that its data
 types extend, which has their shared methods and no type of its own (`UuidsType` for `UuidType`; `LocalDatesType` for

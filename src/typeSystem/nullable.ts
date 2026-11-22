@@ -1,4 +1,4 @@
-import type { IValueWithType, OptionalityOf, SourceOf, DataTypeOf, ValueSource, TypeClass, AnyTypeClass, ValueTypeOf } from './base.js'
+import type { OptionalityOf, SourceOf, DataTypeOf, ValueSource, TypeClass, AnyTypeClass, ValueTypeOf, OperandOf } from './base.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
 import type { DataTypeName, DataTypeOfName, DataTypeValueOfName, DataTypeValueSources } from './dataTypeNames.js'
 import type { DataTypeFragmentExpression } from './fragments.js'
@@ -10,7 +10,6 @@ import { __internalDataType, __registeredDataType } from './dataTypeRegistry.js'
 import type { BooleanType } from './logical.js'
 import type { DoubleType, IntType, NumberType } from './number.js'
 import type { ColumnMarkersOf } from './valueSource.js'
-import type { operandTypeName } from '../utils/symbols.js'
 import { exposeFilterOperations, filterOperation } from './filterOperations.js'
 import { __sameTypeClassOf, __typeClassOf } from '../nodes/dataTypeClassOf.js'
 import { getOptionalType2 } from '../nodes/operands.js'
@@ -91,7 +90,7 @@ export abstract class NullableType</*in|out*/ VALUE_TYPE> extends ValueSourceBas
      * database that does the same, like `nvl` on Oracle). The result is optional only if the
      * value given is. An int with a fallback with decimals is a double
      */
-    valueWhenNull<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, CoalesceTypeOf<this, DataTypeOf<VALUE>>, OptionalityOf<VALUE>>
+    valueWhenNull<VALUE extends OperandOf<this>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, CoalesceTypeOf<this, DataTypeOf<VALUE>>, OptionalityOf<VALUE>>
     valueWhenNull(value: any): any {
         const vs = __asNodeValueSource(this)
         let typeClass = __typeClassOf(vs)
@@ -134,7 +133,7 @@ export abstract class NullableType</*in|out*/ VALUE_TYPE> extends ValueSourceBas
      * Null when this value is equal to the one given, and this value otherwise: SQL `nullif`.
      * The result is optional
      */
-    nullIfValue<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, 'optional'>
+    nullIfValue<VALUE extends OperandOf<this>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, 'optional'>
     nullIfValue(value: any): any {
         return __newSqlOperation1ValueSource('_nullIfValue', this, value, __keptClassOf(this, __typeClassOf(this)), 'optional')
     }

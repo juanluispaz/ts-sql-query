@@ -4,7 +4,7 @@ import { localDateSqlDataType, localDateTimeSqlDataType, localTimeSqlDataType } 
 import { LocalDateTimeType, LocalDateType, LocalTimeType } from './localDates.js'
 import type { TemporalDateUnit, TemporalDifferenceOptions, TemporalDisambiguationOptions, TemporalDuration, TemporalDurationLike, TemporalPlainDate, TemporalPlainDateFields, TemporalPlainDateTime, TemporalPlainTime, TemporalPlainTimeFields, TemporalOverflowOptions, TemporalRoundingOptions, TemporalTimeUnit, IntOfQuery, TemporalDurationLikeOfQuery, TemporalPlainDateFieldsOfQuery, TemporalPlainTimeFieldsOfQuery } from './temporal.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
-import type { DataTypeOf, IValueWithType, OptionalityOf, SourceOf, ValueSource } from './base.js'
+import type { DataTypeOf, IValueWithType, OptionalityOf, SourceOf, ValueSource, OperandOf } from './base.js'
 import type { CombinedOptionality, CombinedOptionalityOfUnion, OptionalType } from './valueSource.js'
 import type { NSource } from '../utils/sourceName.js'
 import type { SqlFunction0 } from '../sqlBuilders/SqlBuilder.js'
@@ -17,7 +17,6 @@ import { durationFieldNames, __hasWithFieldOfTheQuery, __newWithFieldsValueSourc
 import type { DataTypeClass } from '../TypeAdapter.js'
 import { InstantType } from './instants.js'
 import { ZonedDateTimeType, __zonedOfWallClock, type OfDatabaseWithZoneRules } from './zonedDateTimes.js'
-import type { operandTypeName } from '../utils/symbols.js'
 import { IntType } from './number.js'
 import { StringType } from './strings.js'
 import { BooleanConditionType, BooleanType } from './logical.js'
@@ -219,7 +218,7 @@ export abstract class PlainDatesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME
      * default; `largestUnit` asks for larger ones, and `smallestUnit`, `roundingIncrement` and `roundingMode` round it
      * (`{ largestUnit: 'month' }` from Jan 31 to Mar 30 is P1M30D)
      */
-    until<VALUE extends IValueWithType<this[typeof operandTypeName]>>(other: VALUE, options?: TemporalDifferenceOptions<TemporalDateUnit>): ValueSource<SourceOf<this> | SourceOf<VALUE>, DurationType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    until<VALUE extends OperandOf<this>>(other: VALUE, options?: TemporalDifferenceOptions<TemporalDateUnit>): ValueSource<SourceOf<this> | SourceOf<VALUE>, DurationType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     until(other: unknown, options?: unknown): any {
         return difference(this, '_until', other, options)
     }
@@ -232,7 +231,7 @@ export abstract class PlainDatesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME
      * The duration from the other date to this one, as Temporal's `since`: `until` from this one to the other, with
      * the rounding mode inverted (floor for ceil), negated
      */
-    since<VALUE extends IValueWithType<this[typeof operandTypeName]>>(other: VALUE, options?: TemporalDifferenceOptions<TemporalDateUnit>): ValueSource<SourceOf<this> | SourceOf<VALUE>, DurationType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    since<VALUE extends OperandOf<this>>(other: VALUE, options?: TemporalDifferenceOptions<TemporalDateUnit>): ValueSource<SourceOf<this> | SourceOf<VALUE>, DurationType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     since(other: unknown, options?: unknown): any {
         return difference(this, '_since', other, options)
     }
@@ -338,7 +337,7 @@ export abstract class PlainTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME
      * default; `largestUnit` asks for larger ones, and `smallestUnit`, `roundingIncrement` and `roundingMode` round it
      * (from 10:00 to 08:30 is -PT1H30M)
      */
-    until<VALUE extends IValueWithType<this[typeof operandTypeName]>>(other: VALUE, options?: TemporalDifferenceOptions<TemporalTimeUnit>): ValueSource<SourceOf<this> | SourceOf<VALUE>, DurationType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    until<VALUE extends OperandOf<this>>(other: VALUE, options?: TemporalDifferenceOptions<TemporalTimeUnit>): ValueSource<SourceOf<this> | SourceOf<VALUE>, DurationType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     until(other: unknown, options?: unknown): any {
         return difference(this, '_until', other, options)
     }
@@ -351,7 +350,7 @@ export abstract class PlainTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME
      * The duration from the other time to this one, as Temporal's `since`: `until` from this one to the other, with
      * the rounding mode inverted (floor for ceil), negated
      */
-    since<VALUE extends IValueWithType<this[typeof operandTypeName]>>(other: VALUE, options?: TemporalDifferenceOptions<TemporalTimeUnit>): ValueSource<SourceOf<this> | SourceOf<VALUE>, DurationType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    since<VALUE extends OperandOf<this>>(other: VALUE, options?: TemporalDifferenceOptions<TemporalTimeUnit>): ValueSource<SourceOf<this> | SourceOf<VALUE>, DurationType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     since(other: unknown, options?: unknown): any {
         return difference(this, '_since', other, options)
     }
@@ -549,7 +548,7 @@ export abstract class PlainDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
      * default; `largestUnit` asks for larger ones, and `smallestUnit`, `roundingIncrement` and `roundingMode` round it
      * (`{ smallestUnit: 'hour', roundingMode: 'halfExpand' }` to the nearest hour)
      */
-    until<VALUE extends IValueWithType<this[typeof operandTypeName]>>(other: VALUE, options?: TemporalDifferenceOptions<TemporalDateUnit | TemporalTimeUnit>): ValueSource<SourceOf<this> | SourceOf<VALUE>, DurationType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    until<VALUE extends OperandOf<this>>(other: VALUE, options?: TemporalDifferenceOptions<TemporalDateUnit | TemporalTimeUnit>): ValueSource<SourceOf<this> | SourceOf<VALUE>, DurationType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     until(other: unknown, options?: unknown): any {
         return difference(this, '_until', other, options)
     }
@@ -562,7 +561,7 @@ export abstract class PlainDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
      * The duration from the other date and time to this one, as Temporal's `since`: `until` from this one to the other, with
      * the rounding mode inverted (floor for ceil), negated
      */
-    since<VALUE extends IValueWithType<this[typeof operandTypeName]>>(other: VALUE, options?: TemporalDifferenceOptions<TemporalDateUnit | TemporalTimeUnit>): ValueSource<SourceOf<this> | SourceOf<VALUE>, DurationType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    since<VALUE extends OperandOf<this>>(other: VALUE, options?: TemporalDifferenceOptions<TemporalDateUnit | TemporalTimeUnit>): ValueSource<SourceOf<this> | SourceOf<VALUE>, DurationType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     since(other: unknown, options?: unknown): any {
         return difference(this, '_since', other, options)
     }

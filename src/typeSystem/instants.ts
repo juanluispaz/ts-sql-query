@@ -1,7 +1,7 @@
 import type { SqlDataType } from '../TypeAdapter.js'
 import { ComparableType } from './comparable.js'
 import { __temporal, type TemporalDifferenceOptions, type TemporalDuration, type TemporalInstant, type TemporalRoundingOptions, type TemporalTimeDurationLike, type TemporalTimeUnit, type IntOfQuery, type TemporalTimeDurationLikeOfQuery } from './temporal.js'
-import type { DataTypeOf, IValueWithType, OptionalityOf, SourceOf, ValueSource } from './base.js'
+import type { DataTypeOf, IValueWithType, OptionalityOf, SourceOf, ValueSource, OperandOf } from './base.js'
 import type { CombinedOptionality, CombinedOptionalityOfUnion, OptionalType } from './valueSource.js'
 import type { NSource } from '../utils/sourceName.js'
 import { __newSqlOperation2ValueSource, __operation0, __operation1 } from '../nodes/operations.js'
@@ -11,7 +11,6 @@ import { isValueSource } from '../nodes/NodeStrategy.js'
 import { __typeClassOf } from '../nodes/dataTypeClassOf.js'
 import { __computedClassOf, __wallClockClassOf } from '../nodes/adaptedTypeClass.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
-import type { operandTypeName } from '../utils/symbols.js'
 import { instantDifferenceOptionsOf } from '../utils/instantOptions.js'
 import { DurationType, __durationArgument, timeDurationFieldNames } from './durations.js'
 import { IntType } from './number.js'
@@ -192,14 +191,14 @@ export abstract class InstantsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME e
      * The duration from this instant to the other one, as Temporal's `until`: in seconds and smaller units by default;
      * `largestUnit` asks for minutes or hours, and `smallestUnit`, `roundingIncrement` and `roundingMode` round it
      */
-    until<VALUE extends IValueWithType<this[typeof operandTypeName]>>(other: VALUE, options?: TemporalDifferenceOptions<TemporalTimeUnit>): ValueSource<SourceOf<this> | SourceOf<VALUE>, DurationType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    until<VALUE extends OperandOf<this>>(other: VALUE, options?: TemporalDifferenceOptions<TemporalTimeUnit>): ValueSource<SourceOf<this> | SourceOf<VALUE>, DurationType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     until(other: unknown, options?: unknown): any {
         return difference(this, '_until', other, options)
     }
     /** The duration from the other instant to this one, as Temporal's `since`: `until` with the rounding mode inverted, negated */
     since(other: VALUE_TYPE, options?: TemporalDifferenceOptions<TemporalTimeUnit>): ValueSource<SourceOf<this>, DurationType, OptionalityOf<this>>
     /** The duration from the other instant to this one, as Temporal's `since`: `until` with the rounding mode inverted, negated */
-    since<VALUE extends IValueWithType<this[typeof operandTypeName]>>(other: VALUE, options?: TemporalDifferenceOptions<TemporalTimeUnit>): ValueSource<SourceOf<this> | SourceOf<VALUE>, DurationType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    since<VALUE extends OperandOf<this>>(other: VALUE, options?: TemporalDifferenceOptions<TemporalTimeUnit>): ValueSource<SourceOf<this> | SourceOf<VALUE>, DurationType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     since(other: unknown, options?: unknown): any {
         return difference(this, '_since', other, options)
     }

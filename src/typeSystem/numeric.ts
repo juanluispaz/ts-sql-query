@@ -1,9 +1,9 @@
 import type { SqlDataType } from '../TypeAdapter.js'
 import { ComparableType } from './comparable.js'
 import type { IntType } from './number.js'
-import type { INumberValue, IValueWithType, OptionalityOf, SourceOf, DataTypeOf, ValueSource } from './base.js'
+import type { INumberValue, OptionalityOf, SourceOf, DataTypeOf, ValueSource, OperandOf } from './base.js'
 import type { CombinedOptionality } from './valueSource.js'
-import type { additiveValueSource, operandTypeName } from '../utils/symbols.js'
+import type { additiveValueSource } from '../utils/symbols.js'
 import type { NSource } from '../utils/sourceName.js'
 import type { TypedValueSource } from './valueSource.js'
 import { __registeredDataType } from './dataTypeRegistry.js'
@@ -65,7 +65,7 @@ export abstract class AdditiveType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME e
      * The number, but at least the one given: the greater of the two, `greatest(x, value)` (a lower bound), of the same
      * data type; null when either is null
      */
-    minValue<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    minValue<VALUE extends OperandOf<this>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     minValue(value: any): any {
         return __operation1(this, '_maximumBetweenTwoValues', value, __keptClassOf(this, __typeClassOf(this)))
     }
@@ -78,21 +78,21 @@ export abstract class AdditiveType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME e
      * The number, but at most the one given: the smaller of the two, `least(x, value)` (an upper bound), of the same
      * data type; null when either is null
      */
-    maxValue<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    maxValue<VALUE extends OperandOf<this>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     maxValue(value: any): any {
         return __operation1(this, '_minimumBetweenTwoValues', value, __keptClassOf(this, __typeClassOf(this)))
     }
     /** The sum of the number and the one given, `x + value`, of the same data type; null when either is null */
     add(value: VALUE_TYPE): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     /** The sum of the number and the one given, `x + value`, of the same data type; null when either is null */
-    add<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    add<VALUE extends OperandOf<this>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     add(value: any): any {
         return __operation1(this, '_add', value, __computedClassOf(this, __typeClassOf(this)))
     }
     /** The number minus the one given, `x - value`, of the same data type; null when either is null */
     subtract(value: VALUE_TYPE): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     /** The number minus the one given, `x - value`, of the same data type; null when either is null */
-    subtract<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    subtract<VALUE extends OperandOf<this>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     subtract(value: any): any {
         return __operation1(this, '_subtract', value, __computedClassOf(this, __typeClassOf(this)))
     }
@@ -105,7 +105,7 @@ export abstract class AdditiveType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME e
      * The remainder of dividing the number by the one given, `x % value` (`mod(x, value)` on Oracle), with the sign of
      * the number, of the same data type; null when either is null
      */
-    modulo<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    modulo<VALUE extends OperandOf<this>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     modulo(value: any): any {
         return __operation1(this, '_modulo', value, __computedClassOf(this, __typeClassOf(this)))
     }
@@ -116,7 +116,7 @@ export abstract class MultipliableType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NA
     /** The product of the number and the one given, `x * value`, of the same data type; null when either is null */
     multiply(value: VALUE_TYPE): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     /** The product of the number and the one given, `x * value`, of the same data type; null when either is null */
-    multiply<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    multiply<VALUE extends OperandOf<this>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     multiply(value: any): any {
         return __operation1(this, '_multiply', value, __computedClassOf(this, __typeClassOf(this)))
     }
@@ -136,7 +136,7 @@ export abstract class DivisibleType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME 
     /** The number divided by the one given, `x / value`, of the same data type; null when either is null */
     divide(value: VALUE_TYPE): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     /** The number divided by the one given, `x / value`, of the same data type; null when either is null */
-    divide<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    divide<VALUE extends OperandOf<this>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     divide(value: any): any {
         return __operation1(this, '_divide', value, __computedClassOf(this, __typeClassOf(this)))
     }
@@ -188,7 +188,7 @@ export abstract class RealsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME exte
      * (2.5 gives 3, -2.5 gives -3), unless the connection sets `usePlatformDependentRound`. A number of decimals given
      * with a fraction is rounded to an integer; null when either is null
      */
-    roundn<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    roundn<VALUE extends OperandOf<this>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     /**
      * The number rounded to the decimals given, `round(x, decimals)`, of the same data type; ties go away from zero
      * (2.5 gives 3, -2.5 gives -3), unless the connection sets `usePlatformDependentRound`. A number of decimals given
@@ -264,7 +264,7 @@ export abstract class RealsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME exte
     /** The number raised to the power given, `power(x, value)`, as the same data type; null when either is null */
     power(value: VALUE_TYPE): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     /** The number raised to the power given, `power(x, value)`, as the same data type; null when either is null */
-    power<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    power<VALUE extends OperandOf<this>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     power(value: any): any {
         return __operation1(this, '_power', value, __typeClassOf(this))
     }
@@ -277,7 +277,7 @@ export abstract class RealsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME exte
      * The logarithm of the number in the base given, `log(base, x)` (`log(x, base)` on SQL Server), as the same data
      * type; null when either is null
      */
-    logn<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    logn<VALUE extends OperandOf<this>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     logn(value: any): any {
         return __operation1(this, '_logn', value, __typeClassOf(this))
     }
@@ -290,7 +290,7 @@ export abstract class RealsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME exte
      * The arc tangent of the number divided by the one given, `atan2(x, value)` (`atn2` on SQL Server), in radians and
      * in the quadrant of the signs of both, as the same data type; null when either is null
      */
-    atan2<VALUE extends IValueWithType<this[typeof operandTypeName]>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    atan2<VALUE extends OperandOf<this>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     atan2(value: any): any {
         return __operation1(this, '_atan2', value, __typeClassOf(this))
     }

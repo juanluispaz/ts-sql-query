@@ -3,7 +3,7 @@ import { ComparableType } from './comparable.js'
 import { EqualableType } from './equalable.js'
 import { localDateSqlDataType } from './dateTimeSqlDataTypes.js'
 import type { TemporalDifferenceOptions, TemporalDuration, TemporalOverflowOptions, TemporalPlainMonthDay, TemporalPlainMonthDayFields, TemporalPlainYearMonth, TemporalPlainYearMonthFields, TemporalYearMonthDurationLike, TemporalYearMonthUnit, IntOfQuery, TemporalYearMonthDurationLikeOfQuery, TemporalPlainMonthDayFieldsOfQuery, TemporalPlainYearMonthFieldsOfQuery } from './temporal.js'
-import type { DataTypeOf, IValueWithType, OptionalityOf, SourceOf, ValueSource } from './base.js'
+import type { DataTypeOf, IValueWithType, OptionalityOf, SourceOf, ValueSource, OperandOf } from './base.js'
 import type { CombinedOptionality, CombinedOptionalityOfUnion, OptionalType } from './valueSource.js'
 import type { NSource } from '../utils/sourceName.js'
 import type { SqlFunction0 } from '../sqlBuilders/SqlBuilder.js'
@@ -16,7 +16,6 @@ import { __typeClassOf } from '../nodes/dataTypeClassOf.js'
 import { __computedClassOf } from '../nodes/adaptedTypeClass.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import { plainTemporalFieldsOf } from '../utils/plainTemporalFields.js'
-import type { operandTypeName } from '../utils/symbols.js'
 import { DurationType, __durationArgument, yearMonthDurationFieldNames } from './durations.js'
 import { PlainDateType, __withFieldsArgument } from './plainDates.js'
 import { IntType } from './number.js'
@@ -171,14 +170,14 @@ export abstract class PlainYearMonthsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE
      */
     until(other: VALUE_TYPE, options?: TemporalDifferenceOptions<TemporalYearMonthUnit>): ValueSource<SourceOf<this>, DurationType, OptionalityOf<this>>
     /** The duration from this month of the year to the other one, as Temporal's `until` */
-    until<VALUE extends IValueWithType<this[typeof operandTypeName]>>(other: VALUE, options?: TemporalDifferenceOptions<TemporalYearMonthUnit>): ValueSource<SourceOf<this> | SourceOf<VALUE>, DurationType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    until<VALUE extends OperandOf<this>>(other: VALUE, options?: TemporalDifferenceOptions<TemporalYearMonthUnit>): ValueSource<SourceOf<this> | SourceOf<VALUE>, DurationType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     until(other: unknown, options?: unknown): any {
         return difference(this, '_until', other, options)
     }
     /** The duration from the other month of the year to this one, as Temporal's `since`: `until` with the mode inverted, negated */
     since(other: VALUE_TYPE, options?: TemporalDifferenceOptions<TemporalYearMonthUnit>): ValueSource<SourceOf<this>, DurationType, OptionalityOf<this>>
     /** The duration from the other month of the year to this one, as Temporal's `since` */
-    since<VALUE extends IValueWithType<this[typeof operandTypeName]>>(other: VALUE, options?: TemporalDifferenceOptions<TemporalYearMonthUnit>): ValueSource<SourceOf<this> | SourceOf<VALUE>, DurationType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
+    since<VALUE extends OperandOf<this>>(other: VALUE, options?: TemporalDifferenceOptions<TemporalYearMonthUnit>): ValueSource<SourceOf<this> | SourceOf<VALUE>, DurationType, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     since(other: unknown, options?: unknown): any {
         return difference(this, '_since', other, options)
     }

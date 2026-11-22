@@ -36,6 +36,7 @@ What isn't offered doesn't compile on this connection. On a version older than t
 | [Sequences](../../configuration/mapping.md#using-a-sequence) | Yes |
 | [Stored procedures](../../configuration/mapping.md#calling-a-stored-procedure) and [functions](../../configuration/mapping.md#calling-a-function-of-the-database) | Yes |
 | [Isolation levels](../../queries/transaction.md#what-each-database-offers) | `read committed`, `snapshot` |
+| [Known limits of the dates and times](../../configuration/dates-and-times.md#known-limits) | `year()` of a date before the year 1; a `plainTime` kept in a `DATE` or a `TIMESTAMP`; grouping by the arithmetic of a zoned date and time that isn't a column; a zoned date and time in local mean time |
 
 ## Compatibility version
 
@@ -297,6 +298,12 @@ Read back, the value is `'2024-07-01T10:30:15.123000000+09:00'`. The format of `
 
 To keep the name of a region, write `TZR` in the `to_char` instead of `TZH:TZM`, with a space before it (`'YYYY-MM-DD"T"HH24:MI:SS.FF9 TZR'`): a value written with a region is read as `'2024-07-01T07:45:00.000000000 EUROPE/MADRID'`, and one written with an offset as `'2024-06-30T22:00:00.000000000 -05:00'`.
 
+## A duration in an interval
+
+On Oracle, declare the precision of the column: `INTERVAL DAY TO SECOND` keeps up to 99 days and six digits of fraction, and a duration of 100 days is rejected by Oracle; `INTERVAL DAY(9) TO SECOND(9)` keeps up to 999999999 days and nanoseconds. The same for the years of `INTERVAL YEAR(9) TO MONTH`.
+
+An interval of Oracle holds either years and months or days to seconds, never both: a duration that doesn't fit the one of its column, like `P1M` for an `INTERVAL DAY TO SECOND` or `P1D` for an `INTERVAL YEAR TO MONTH`, is rejected with `INVALID_VALUE_TO_SEND_TO_DATABASE` instead of losing a part.
+
 ## The comment of the binds
 
 The query runner executes a statement with parameters with a comment at its end that says the type of each one, like `select :0 as "result" from dual /* binds: n */`: a letter for each parameter (`n` a number, `t` a text, `d` a date, `-` a null, …), followed by the times it repeats when it does three or more times (`/* binds: tn500 */`). You see it in what Oracle shows of the statements it runs, like `v$sql`; your logs, interceptors and mocks see the query without it.
@@ -471,3 +478,16 @@ SELECT sessiontimezone, to_char(systimestamp, 'TZR') FROM dual;
 ```
 
 A `DATE` or `TIMESTAMP` holding a wall clock that doesn't exist in the zone of the process comes back moved: see [Known limits](../../configuration/time-zones.md#known-limits).
+
+### A database outside UTC
+
+With the zone of the database declared in the connection (`databaseTimeZone`, see [A database outside UTC](../../configuration/time-zones.md#a-database-outside-utc)), what the library writes for each value, in `Europe/Madrid`:
+
+| | What the library writes | Example, in `Europe/Madrid` |
+|---|---|---|
+| A `localDateTime` sent as the value of a column (an insert, the set of an update) | `:0`, the parameter sent as a `TIMESTAMP WITH LOCAL TIME ZONE` | `2024-01-14T09:15:30.123Z` is stored as `2024-01-14 10:15:30.123` |
+| A `localDateTime` compared | `starts_at = cast(:0 as timestamp)`, or `cast(:0 as date)` for a value of whole seconds of a `DATE` column; the index of the column is used | `2024-01-14T09:15:30.123Z` finds `2024-01-14 10:15:30.123` |
+| A `localDateTime` read | `cast(starts_at as timestamp with time zone)` | `2024-01-14 10:15:30.123` is read as `2024-01-14T09:15:30.123Z` |
+| The date functions | `extract(hour from sys_extract_utc(cast(starts_at as timestamp with time zone)))` | `getHours()` gives `9`, the hour of the `Date` in UTC |
+| A `localTime` sent, as the value of a column or compared | its time of the day on the date Oracle stores times on, `dateOfStoredTimes` (see [Oracle](#a-time-of-the-day)): `timestamp '1972-01-01 00:00:00' + (cast(:0 as timestamp) - trunc(cast(:0 as timestamp)))` | `1970-01-01T17:00:00.000Z` is stored as `1972-01-01 18:00:00`, and `1969-12-31T23:30:00.000Z` as `1972-01-01 00:30:00` |
+| A `localTime` read | completed with a date, the `dateToConvertTimesBetweenZones`, instead of the date it is stored with: `cast(timestamp '1972-01-01 00:00:00' + (t - trunc(t)) as timestamp with time zone)` | `18:00` is read as `1972-01-01T17:00:00.000Z` |

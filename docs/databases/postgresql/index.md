@@ -36,6 +36,7 @@ What isn't offered doesn't compile on this connection. On a version older than t
 | [Sequences](../../configuration/mapping.md#using-a-sequence) | Yes |
 | [Stored procedures](../../configuration/mapping.md#calling-a-stored-procedure) and [functions](../../configuration/mapping.md#calling-a-function-of-the-database) | Yes |
 | [Isolation levels](../../queries/transaction.md#what-each-database-offers) | `read committed`, `snapshot`, `serializable` |
+| [Known limits of the dates and times](../../configuration/dates-and-times.md#known-limits) | With Bun SQL, a `timestamp` is read to the millisecond; `year()` of a date before the year 1; an interval with fields of different signs; a `plainDateTime` of a column with zone |
 
 ## Compatibility version
 
@@ -237,3 +238,17 @@ SHOW TimeZone;
 ```
 
 PGlite writes the zone of the process into its database when it creates it, as a fixed offset, unless it's created with `postgresqlconf: ["timezone = 'UTC'"]`, and a database in a directory keeps that zone: see [pglite → Connection requirements](query-runners/pglite.md#connection-requirements).
+
+### A database outside UTC
+
+With the zone of the database declared in the connection (`databaseTimeZone`, see [A database outside UTC](../../configuration/time-zones.md#a-database-outside-utc)), what the library writes for each value, in `Europe/Madrid`:
+
+| | What the library writes | Example, in `Europe/Madrid` |
+|---|---|---|
+| A `localDateTime` sent | `$1::timestamptz` (pg, Bun SQL), or the parameter sent as a `timestamptz` (postgres.js, PGlite) | `2024-01-14T09:15:30.123Z` is stored as `2024-01-14 10:15:30.123`, and compared with it |
+| A `localDateTime` read | `starts_at::timestamptz` | `2024-01-14 10:15:30.123` is read as `2024-01-14T09:15:30.123Z` |
+| The date functions | `extract(hour from (starts_at::timestamptz at time zone 'UTC'))` | `getHours()` gives `9`, the hour of the `Date` in UTC |
+| A `localTime` sent | `$1::timestamptz::time` (pg, Bun SQL), or the parameter sent as a `timestamptz` and `$1::time` (postgres.js, PGlite): its wall clock | `1970-01-01T17:00:00.000Z` is stored as `18:00` |
+| A `localTime` read | completed with a date, the `dateToConvertTimesBetweenZones` | `18:00` is read as `1972-01-01T17:00:00.000Z` |
+
+On PostgreSQL a `localDateTime` and a `localTime` are sent as a `timestamptz` also when `driverTypeOf` of postgres.js or PGlite gives another type for them: that type would store the instant as UTC digits.

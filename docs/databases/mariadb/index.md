@@ -37,6 +37,7 @@ What isn't offered doesn't compile on this connection. On a version older than t
 | [Stored procedures](../../configuration/mapping.md#calling-a-stored-procedure) and [functions](../../configuration/mapping.md#calling-a-function-of-the-database) | Yes |
 | [Isolation levels](../../queries/transaction.md#what-each-database-offers) | `read uncommitted`, `read committed`, `snapshot` ([with a limitation](#snapshot-isolation-and-older-versions)), `serializable` |
 | [Zoned dates and times](../../configuration/zoned-dates-and-times.md#zoned-dates-and-times) | Kept as their text, with their parts and compared by their instant. What computes with the rules of the zones isn't offered: [Computing with the zones on the other databases](../../configuration/zoned-dates-and-times.md#computing-with-the-zones-on-the-other-databases) |
+| [Known limits of the dates and times](../../configuration/dates-and-times.md#known-limits) | With Bun SQL, a `datetime` is read to the millisecond |
 
 ## Compatibility version
 

@@ -152,26 +152,8 @@ A database that has always been in the zone it was installed in, like `Europe/Ma
 
 The library then lets the database complete the zone of a `localDateTime` or a `localTime` with its session, which must be in that zone: a `Date` is still an instant, and the database turns it into its wall clock and back. On PostgreSQL leave the session unset, or set it to that same zone. On Oracle set the environment variable `ORA_SDTZ` to that same zone, `ORA_SDTZ=Europe/Madrid`: without it oracledb gives the session the offset of the process, which doesn't follow summer time (see [oracledb → Connection requirements](../databases/oracle/query-runners/oracledb.md#connection-requirements)).
 
-=== "Oracle"
-    | | What the library writes | Example, in `Europe/Madrid` |
-    |---|---|---|
-    | A `localDateTime` sent as the value of a column (an insert, the set of an update) | `:0`, the parameter sent as a `TIMESTAMP WITH LOCAL TIME ZONE` | `2024-01-14T09:15:30.123Z` is stored as `2024-01-14 10:15:30.123` |
-    | A `localDateTime` compared | `starts_at = cast(:0 as timestamp)`, or `cast(:0 as date)` for a value of whole seconds of a `DATE` column; the index of the column is used | `2024-01-14T09:15:30.123Z` finds `2024-01-14 10:15:30.123` |
-    | A `localDateTime` read | `cast(starts_at as timestamp with time zone)` | `2024-01-14 10:15:30.123` is read as `2024-01-14T09:15:30.123Z` |
-    | The date functions | `extract(hour from sys_extract_utc(cast(starts_at as timestamp with time zone)))` | `getHours()` gives `9`, the hour of the `Date` in UTC |
-    | A `localTime` sent, as the value of a column or compared | its time of the day on the date Oracle stores times on, `dateOfStoredTimes` (see [Oracle](../databases/oracle/index.md#a-time-of-the-day)): `timestamp '1972-01-01 00:00:00' + (cast(:0 as timestamp) - trunc(cast(:0 as timestamp)))` | `1970-01-01T17:00:00.000Z` is stored as `1972-01-01 18:00:00`, and `1969-12-31T23:30:00.000Z` as `1972-01-01 00:30:00` |
-    | A `localTime` read | completed with a date, the `dateToConvertTimesBetweenZones`, instead of the date it is stored with: `cast(timestamp '1972-01-01 00:00:00' + (t - trunc(t)) as timestamp with time zone)` | `18:00` is read as `1972-01-01T17:00:00.000Z` |
+What the library writes for each value is in the page of each one: [Oracle](../databases/oracle/index.md#a-database-outside-utc) and [PostgreSQL](../databases/postgresql/index.md#a-database-outside-utc).
 
-===+ "PostgreSQL"
-    | | What the library writes | Example, in `Europe/Madrid` |
-    |---|---|---|
-    | A `localDateTime` sent | `$1::timestamptz` (pg, Bun SQL), or the parameter sent as a `timestamptz` (postgres.js, PGlite) | `2024-01-14T09:15:30.123Z` is stored as `2024-01-14 10:15:30.123`, and compared with it |
-    | A `localDateTime` read | `starts_at::timestamptz` | `2024-01-14 10:15:30.123` is read as `2024-01-14T09:15:30.123Z` |
-    | The date functions | `extract(hour from (starts_at::timestamptz at time zone 'UTC'))` | `getHours()` gives `9`, the hour of the `Date` in UTC |
-    | A `localTime` sent | `$1::timestamptz::time` (pg, Bun SQL), or the parameter sent as a `timestamptz` and `$1::time` (postgres.js, PGlite): its wall clock | `1970-01-01T17:00:00.000Z` is stored as `18:00` |
-    | A `localTime` read | completed with a date, the `dateToConvertTimesBetweenZones` | `18:00` is read as `1972-01-01T17:00:00.000Z` |
-
-On PostgreSQL a `localDateTime` and a `localTime` are sent as a `timestamptz` also when `driverTypeOf` of postgres.js or PGlite gives another type for them: that type would store the instant as UTC digits.
 
 A `localDate` doesn't change: a date has no instant. A column with zone (`timestamptz`, `TIMESTAMP WITH TIME ZONE`) reads the same as before, its instant.
 

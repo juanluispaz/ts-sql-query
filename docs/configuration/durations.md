@@ -159,7 +159,7 @@ PostgreSQL and Oracle have a type for a length of time, an interval; the other d
 | Oracle | `INTERVAL YEAR TO MONTH`, when the column says it (below) | Years and months | `P14M` as `P1Y2M` |
 | MariaDB, MySQL, SQLite, SQL Server | A text, like `varchar(64)` | The ISO 8601 text of the duration, all of it, up to the nanosecond | The same text: `PT24H` as `PT24H`, `P2W` as `P2W` |
 
-On Oracle, declare the precision of the column: `INTERVAL DAY TO SECOND` keeps up to 99 days and six digits of fraction, and a duration of 100 days is rejected by Oracle; `INTERVAL DAY(9) TO SECOND(9)` keeps up to 999999999 days and nanoseconds. The same for the years of `INTERVAL YEAR(9) TO MONTH`.
+On Oracle, declare the precision of an interval column: see [A duration in an interval](../databases/oracle/index.md#a-duration-in-an-interval).
 
 ## The digits of the fraction of a second kept in a text
 
@@ -193,7 +193,7 @@ spanText = this.column('span_text', 'duration', withSqlDataType({ family: 'chara
 spanCalendar = this.column('span_calendar', 'duration', withSqlDataType({ family: 'interval', fields: 'year to month' }))
 ```
 
-An interval of Oracle holds either years and months or days to seconds, never both: a duration that doesn't fit the one of its column, like `P1M` for an `INTERVAL DAY TO SECOND` or `P1D` for an `INTERVAL YEAR TO MONTH`, is rejected with `INVALID_VALUE_TO_SEND_TO_DATABASE` instead of losing a part.
+An interval of Oracle holds either years and months or days to seconds, never both: a duration that doesn't fit the one of its column is rejected (see [A duration in an interval](../databases/oracle/index.md#a-duration-in-an-interval)).
 
 ## The fields of a duration
 

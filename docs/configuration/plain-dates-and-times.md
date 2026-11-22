@@ -427,8 +427,8 @@ The executed query is:
     ```mariadb
     select 
         version as version, 
-        tsq_duration_text(0, 0, 0, datediff(date(published_at), released_on), 0, 'day') as toPublication, 
-        tsq_duration_text(0, 0, 0, 0, cast(-timestampdiff(microsecond, published_at, timestamp(released_on)) as decimal(65)) * 1000, 'hour') as publishedAfter, 
+        tsq_duration_text(0, 0, 0, datediff(date(published_at), released_on), 0, 0, 0, 'day') as toPublication, 
+        tsq_duration_text(0, 0, 0, 0, 0, 0, cast(-timestampdiff(microsecond, published_at, timestamp(released_on)) as decimal(65)) * 1000, 'hour') as publishedAfter, 
         tsq_duration_round_of(released_on, ?, 'month', 'day', 1, 'trunc', 1) as untilEndOfJune 
     from project_release 
     order by version
@@ -437,8 +437,8 @@ The executed query is:
     ```mysql
     select 
         version as version, 
-        tsq_duration_text(0, 0, 0, datediff(date(published_at), released_on), 0, 'day') as toPublication, 
-        tsq_duration_text(0, 0, 0, 0, cast(-timestampdiff(microsecond, published_at, timestamp(released_on)) as decimal(65)) * 1000, 'hour') as publishedAfter, 
+        tsq_duration_text(0, 0, 0, datediff(date(published_at), released_on), 0, 0, 0, 'day') as toPublication, 
+        tsq_duration_text(0, 0, 0, 0, 0, 0, cast(-timestampdiff(microsecond, published_at, timestamp(released_on)) as decimal(65)) * 1000, 'hour') as publishedAfter, 
         tsq_duration_round_of(released_on, ?, 'month', 'day', 1, 'trunc', 1) as untilEndOfJune 
     from project_release 
     order by version
@@ -447,8 +447,8 @@ The executed query is:
     ```oracle
     select 
         version as "version", 
-        tsq_duration_text(0, 0, 0, (trunc(published_at) - released_on), 0, 'day') as "toPublication", 
-        tsq_duration_text(0, 0, 0, 0, -tsq_nanoseconds_between(published_at, cast(released_on as timestamp(9))), 'hour') as "publishedAfter", 
+        tsq_duration_text(0, 0, 0, (trunc(published_at) - released_on), 0, 0, 0, 'day') as "toPublication", 
+        tsq_duration_text(0, 0, 0, 0, 0, 0, -tsq_nanoseconds_between(published_at, cast(released_on as timestamp(9))), 'hour') as "publishedAfter", 
         tsq_duration_round_of(released_on, to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN'), 'month', 'day', 1, 'trunc', 1) as "untilEndOfJune" 
     from project_release 
     order by "version"
@@ -467,8 +467,8 @@ The executed query is:
     ```sqlite
     select 
         version as version, 
-        tsq_duration_text(0, 0, 0, cast(julianday(date(date(published_at))) - julianday(date(released_on)) as integer), 0, 'day') as toPublication, 
-        tsq_duration_text(0, 0, 0, 0, cast(-cast(round((julianday(strftime('%Y-%m-%dT%H:%M:%fZ', released_on)) - julianday(published_at)) * 86400000) as integer) * 1000000 as text), 'hour') as publishedAfter, 
+        tsq_duration_text(0, 0, 0, cast(julianday(date(date(published_at))) - julianday(date(released_on)) as integer), 0, 0, 0, 'day') as toPublication, 
+        tsq_duration_text(0, 0, 0, 0, 0, 0, cast(-cast(round((julianday(strftime('%Y-%m-%dT%H:%M:%fZ', released_on)) - julianday(published_at)) * 86400000) as integer) * 1000000 as text), 'hour') as publishedAfter, 
         tsq_duration_round_of(strftime('%Y-%m-%d %H:%M:%f', released_on), strftime('%Y-%m-%d %H:%M:%f', ?1), 'month', 'day', 1, 'trunc', 1) as untilEndOfJune 
     from project_release 
     order by version
@@ -477,8 +477,8 @@ The executed query is:
     ```sqlserver
     select 
         version as version, 
-        dbo.tsq_duration_text(0, 0, 0, datediff(day, released_on, cast(switchoffset(published_at, '+00:00') as date)), 0, 'day') as toPublication, 
-        dbo.tsq_duration_text(0, 0, 0, 0, cast(-dbo.tsq_ticks_between(published_at, cast(released_on as datetime2)) as decimal(38)) * 100, 'hour') as publishedAfter, 
+        dbo.tsq_duration_text(0, 0, 0, datediff(day, released_on, cast(switchoffset(published_at, '+00:00') as date)), 0, 0, 0, 'day') as toPublication, 
+        dbo.tsq_duration_text(0, 0, 0, 0, 0, 0, cast(-dbo.tsq_ticks_between(published_at, cast(released_on as datetime2)) as decimal(38)) * 100, 'hour') as publishedAfter, 
         dbo.tsq_duration_round_of(switchoffset(released_on, '+00:00'), switchoffset(@0, '+00:00'), 'month', 'day', 1, 'trunc', 1) as untilEndOfJune 
     from project_release 
     order by version

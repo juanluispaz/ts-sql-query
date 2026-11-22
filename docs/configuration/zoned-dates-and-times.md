@@ -144,7 +144,7 @@ The executed query is:
         version as "version", 
         tsq_text_of_zoned(tsq_zoned_plus_date(tsq_zoned_of_wall(cast(published_at as timestamp(9)), 'Europe/Madrid', 'compatible'), 0, :0, 0)) as "followUp", 
         tsq_zoned_until(tsq_zoned_of_wall(cast(published_at as timestamp(9)), 'Europe/Madrid', 'compatible'), tsq_zoned_plus_date(tsq_zoned_of_wall(cast(published_at as timestamp(9)), 'Europe/Madrid', 'compatible'), 0, :1, 0), 'day', 'nanosecond', 1, 'trunc', 1) as "daysToFollowUp", 
-        tsq_duration_text(0, 0, 0, 0, tsq_nanoseconds_between(sys_extract_utc(tsq_zoned_of_wall(cast(published_at as timestamp(9)), 'Europe/Madrid', 'compatible')), sys_extract_utc(tsq_zoned_plus_date(tsq_zoned_of_wall(cast(published_at as timestamp(9)), 'Europe/Madrid', 'compatible'), 0, :2, 0))), 'hour') as "hoursToFollowUp", 
+        tsq_duration_text(0, 0, 0, 0, 0, 0, tsq_nanoseconds_between(sys_extract_utc(tsq_zoned_of_wall(cast(published_at as timestamp(9)), 'Europe/Madrid', 'compatible')), sys_extract_utc(tsq_zoned_plus_date(tsq_zoned_of_wall(cast(published_at as timestamp(9)), 'Europe/Madrid', 'compatible'), 0, :2, 0))), 'hour') as "hoursToFollowUp", 
         tsq_zoned_hours_in_day(tsq_zoned_plus_date(tsq_zoned_of_wall(cast(published_at as timestamp(9)), 'Europe/Madrid', 'compatible'), 0, :3, 0)) as "hoursInThatDay" 
     from project_release 
     order by "version"

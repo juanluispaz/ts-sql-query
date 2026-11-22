@@ -55,7 +55,7 @@ Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 
 ## `tsq_duration_text`
 
-`tsq_duration_text` writes the ISO 8601 text of a duration from its fields, the text of Temporal's `toString`. A query calls it to give the duration that `until` or `since` computes (see [The duration between two dates and times](../../configuration/plain-dates-and-times.md#the-duration-between-two-dates-and-times)), and `tsq_duration_round`, `tsq_duration_add` and `tsq_zoned_until` call it to write their result: create it before them.
+`tsq_duration_text` writes the ISO 8601 text of a duration from its fields, the text of Temporal's `toString`: its years, months, weeks, days, hours and minutes as they are given, and the time in nanoseconds balanced up to the unit it is given (Temporal balances a duration a query computes, and not the fields of `Temporal.Duration.from`). A query calls it to give the duration that `until` or `since` computes (see [The duration between two dates and times](../../configuration/plain-dates-and-times.md#the-duration-between-two-dates-and-times)), and `tsq_duration_round`, `tsq_duration_add` and `tsq_zoned_until` call it to write their result: create it before them.
 
 Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 

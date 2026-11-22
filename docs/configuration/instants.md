@@ -311,7 +311,7 @@ The executed query is:
     ```mariadb
     select 
         version as version, 
-        tsq_duration_text(0, 0, 0, 0, cast(-timestampdiff(microsecond, deployed_at, published_at) as decimal(65)) * 1000, 'hour') as afterPublishing, 
+        tsq_duration_text(0, 0, 0, 0, 0, 0, cast(-timestampdiff(microsecond, deployed_at, published_at) as decimal(65)) * 1000, 'hour') as afterPublishing, 
         date_add(date(deployed_at), interval tsq_round_to((floor(time_to_sec(deployed_at)) * 1000000 + microsecond(deployed_at)), 3600000000, 'trunc') microsecond) as hour, 
         date_add(date_add(date(deployed_at), interval tsq_round_to((floor(time_to_sec(deployed_at)) * 1000000 + microsecond(deployed_at)), 3600000000, 'ceil') microsecond), interval ? microsecond) as reviewBy 
     from project_release 
@@ -322,7 +322,7 @@ The executed query is:
     ```mysql
     select 
         version as version, 
-        tsq_duration_text(0, 0, 0, 0, cast(-timestampdiff(microsecond, deployed_at, published_at) as decimal(65)) * 1000, 'hour') as afterPublishing, 
+        tsq_duration_text(0, 0, 0, 0, 0, 0, cast(-timestampdiff(microsecond, deployed_at, published_at) as decimal(65)) * 1000, 'hour') as afterPublishing, 
         date_add(date(deployed_at), interval tsq_round_to((floor(time_to_sec(deployed_at)) * 1000000 + microsecond(deployed_at)), 3600000000, 'trunc') microsecond) as hour, 
         date_add(date_add(date(deployed_at), interval tsq_round_to((floor(time_to_sec(deployed_at)) * 1000000 + microsecond(deployed_at)), 3600000000, 'ceil') microsecond), interval ? microsecond) as reviewBy 
     from project_release 
@@ -333,7 +333,7 @@ The executed query is:
     ```oracle
     select 
         version as "version", 
-        tsq_duration_text(0, 0, 0, 0, -tsq_nanoseconds_between(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)), sys_extract_utc(cast(published_at as timestamp(9) with time zone))), 'hour') as "afterPublishing", 
+        tsq_duration_text(0, 0, 0, 0, 0, 0, -tsq_nanoseconds_between(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)), sys_extract_utc(cast(published_at as timestamp(9) with time zone))), 'hour') as "afterPublishing", 
         tsq_text_of_utc(tsq_datetime_round(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)), 3600000000000, 'trunc')) as "hour", 
         tsq_text_of_utc(tsq_datetime_round(sys_extract_utc(cast(deployed_at as timestamp(9) with time zone)), 3600000000000, 'ceil') + numtodsinterval(:0, 'second')) as "reviewBy" 
     from project_release 
@@ -355,7 +355,7 @@ The executed query is:
     ```sqlite
     select 
         version as version, 
-        tsq_duration_text(0, 0, 0, 0, cast(-cast(round((julianday(published_at) - julianday(deployed_at)) * 86400000) as integer) * 1000000 as text), 'hour') as afterPublishing, 
+        tsq_duration_text(0, 0, 0, 0, 0, 0, cast(-cast(round((julianday(published_at) - julianday(deployed_at)) * 86400000) as integer) * 1000000 as text), 'hour') as afterPublishing, 
         strftime('%Y-%m-%dT%H:%M:%fZ', date(deployed_at), ((cast(tsq_round_to(cast(cast(round((julianday(deployed_at) - julianday(date(deployed_at))) * 86400000) as integer) as text), 3600000, 'trunc') as integer)) / 1000.0) || ' seconds') as hour, 
         strftime('%Y-%m-%dT%H:%M:%fZ', strftime('%Y-%m-%dT%H:%M:%fZ', date(deployed_at), ((cast(tsq_round_to(cast(cast(round((julianday(deployed_at) - julianday(date(deployed_at))) * 86400000) as integer) as text), 3600000, 'ceil') as integer)) / 1000.0) || ' seconds'), ?1) as reviewBy 
     from project_release 
@@ -366,7 +366,7 @@ The executed query is:
     ```sqlserver
     select 
         version as version, 
-        dbo.tsq_duration_text(0, 0, 0, 0, cast(-dbo.tsq_ticks_between(cast(switchoffset(deployed_at, '+00:00') as datetime2), cast(switchoffset(published_at, '+00:00') as datetime2)) as decimal(38)) * 100, 'hour') as afterPublishing, 
+        dbo.tsq_duration_text(0, 0, 0, 0, 0, 0, cast(-dbo.tsq_ticks_between(cast(switchoffset(deployed_at, '+00:00') as datetime2), cast(switchoffset(published_at, '+00:00') as datetime2)) as decimal(38)) * 100, 'hour') as afterPublishing, 
         dbo.tsq_datetime_round(cast(switchoffset(deployed_at, '+00:00') as datetime2), 36000000000, 'trunc') as hour, 
         dateadd(day, @0, dbo.tsq_datetime_round(cast(switchoffset(deployed_at, '+00:00') as datetime2), 36000000000, 'ceil')) as reviewBy 
     from project_release 

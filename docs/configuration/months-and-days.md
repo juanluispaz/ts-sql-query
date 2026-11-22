@@ -155,8 +155,8 @@ The executed query is:
     ```mariadb
     select 
         version as version, 
-        tsq_duration_text(0, (cast(year(?) as signed) * 12 + cast(month(?) as signed) - (cast(year(released_on) as signed) * 12 + cast(month(released_on) as signed))), 0, 0, 0, 'year') as untilJune, 
-        tsq_duration_text(0, (cast(year(?) as signed) * 12 + cast(month(?) as signed) - (cast(year(released_on) as signed) * 12 + cast(month(released_on) as signed))), 0, 0, 0, 'month') as inMonths, 
+        tsq_duration_text(0, (cast(year(?) as signed) * 12 + cast(month(?) as signed) - (cast(year(released_on) as signed) * 12 + cast(month(released_on) as signed))), 0, 0, 0, 0, 0, 'year') as untilJune, 
+        tsq_duration_text(0, (cast(year(?) as signed) * 12 + cast(month(?) as signed) - (cast(year(released_on) as signed) * 12 + cast(month(released_on) as signed))), 0, 0, 0, 0, 0, 'month') as inMonths, 
         tsq_duration_round_of(date_format(released_on, '%Y-%m-01'), date_format(?, '%Y-%m-01'), 'year', 'year', 1, 'halfExpand', 1) as inYears 
     from project_release 
     order by version
@@ -165,8 +165,8 @@ The executed query is:
     ```mysql
     select 
         version as version, 
-        tsq_duration_text(0, (cast(year(?) as signed) * 12 + cast(month(?) as signed) - (cast(year(released_on) as signed) * 12 + cast(month(released_on) as signed))), 0, 0, 0, 'year') as untilJune, 
-        tsq_duration_text(0, (cast(year(?) as signed) * 12 + cast(month(?) as signed) - (cast(year(released_on) as signed) * 12 + cast(month(released_on) as signed))), 0, 0, 0, 'month') as inMonths, 
+        tsq_duration_text(0, (cast(year(?) as signed) * 12 + cast(month(?) as signed) - (cast(year(released_on) as signed) * 12 + cast(month(released_on) as signed))), 0, 0, 0, 0, 0, 'year') as untilJune, 
+        tsq_duration_text(0, (cast(year(?) as signed) * 12 + cast(month(?) as signed) - (cast(year(released_on) as signed) * 12 + cast(month(released_on) as signed))), 0, 0, 0, 0, 0, 'month') as inMonths, 
         tsq_duration_round_of(date_format(released_on, '%Y-%m-01'), date_format(?, '%Y-%m-01'), 'year', 'year', 1, 'halfExpand', 1) as inYears 
     from project_release 
     order by version
@@ -175,8 +175,8 @@ The executed query is:
     ```oracle
     select 
         version as "version", 
-        tsq_duration_text(0, (extract(year from to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')) * 12 + extract(month from to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')) - (extract(year from released_on) * 12 + extract(month from released_on))), 0, 0, 0, 'year') as "untilJune", 
-        tsq_duration_text(0, (extract(year from to_date(:1, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')) * 12 + extract(month from to_date(:1, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')) - (extract(year from released_on) * 12 + extract(month from released_on))), 0, 0, 0, 'month') as "inMonths", 
+        tsq_duration_text(0, (extract(year from to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')) * 12 + extract(month from to_date(:0, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')) - (extract(year from released_on) * 12 + extract(month from released_on))), 0, 0, 0, 0, 0, 'year') as "untilJune", 
+        tsq_duration_text(0, (extract(year from to_date(:1, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')) * 12 + extract(month from to_date(:1, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN')) - (extract(year from released_on) * 12 + extract(month from released_on))), 0, 0, 0, 0, 0, 'month') as "inMonths", 
         tsq_duration_round_of(trunc(released_on, 'MM'), trunc(to_date(:2, 'YYYY-MM-DD BC', 'NLS_DATE_LANGUAGE=AMERICAN'), 'MM'), 'year', 'year', 1, 'halfExpand', 1) as "inYears" 
     from project_release 
     order by "version"
@@ -195,8 +195,8 @@ The executed query is:
     ```sqlite
     select 
         version as version, 
-        tsq_duration_text(0, (cast(strftime('%Y', ?1) as integer) * 12 + cast(strftime('%m', ?1) as integer) - (cast(strftime('%Y', released_on) as integer) * 12 + cast(strftime('%m', released_on) as integer))), 0, 0, 0, 'year') as untilJune, 
-        tsq_duration_text(0, (cast(strftime('%Y', ?2) as integer) * 12 + cast(strftime('%m', ?2) as integer) - (cast(strftime('%Y', released_on) as integer) * 12 + cast(strftime('%m', released_on) as integer))), 0, 0, 0, 'month') as inMonths, 
+        tsq_duration_text(0, (cast(strftime('%Y', ?1) as integer) * 12 + cast(strftime('%m', ?1) as integer) - (cast(strftime('%Y', released_on) as integer) * 12 + cast(strftime('%m', released_on) as integer))), 0, 0, 0, 0, 0, 'year') as untilJune, 
+        tsq_duration_text(0, (cast(strftime('%Y', ?2) as integer) * 12 + cast(strftime('%m', ?2) as integer) - (cast(strftime('%Y', released_on) as integer) * 12 + cast(strftime('%m', released_on) as integer))), 0, 0, 0, 0, 0, 'month') as inMonths, 
         tsq_duration_round_of(strftime('%Y-%m-01', released_on), strftime('%Y-%m-01', ?3), 'year', 'year', 1, 'halfExpand', 1) as inYears 
     from project_release 
     order by version
@@ -205,8 +205,8 @@ The executed query is:
     ```sqlserver
     select 
         version as version, 
-        dbo.tsq_duration_text(0, (datepart(year, @0) * 12 + datepart(month, @0) - (datepart(year, released_on) * 12 + datepart(month, released_on))), 0, 0, 0, 'year') as untilJune, 
-        dbo.tsq_duration_text(0, (datepart(year, @1) * 12 + datepart(month, @1) - (datepart(year, released_on) * 12 + datepart(month, released_on))), 0, 0, 0, 'month') as inMonths, 
+        dbo.tsq_duration_text(0, (datepart(year, @0) * 12 + datepart(month, @0) - (datepart(year, released_on) * 12 + datepart(month, released_on))), 0, 0, 0, 0, 0, 'year') as untilJune, 
+        dbo.tsq_duration_text(0, (datepart(year, @1) * 12 + datepart(month, @1) - (datepart(year, released_on) * 12 + datepart(month, released_on))), 0, 0, 0, 0, 0, 'month') as inMonths, 
         dbo.tsq_duration_round_of(datefromparts(datepart(year, released_on), datepart(month, released_on), 1), datefromparts(datepart(year, @2), datepart(month, @2), 1), 'year', 'year', 1, 'halfExpand', 1) as inYears 
     from project_release 
     order by version

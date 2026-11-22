@@ -83,7 +83,7 @@ Each data type with a `Date` keeps its values in the same columns as a [Temporal
 | `instant` | `toLocalDateTime()` | The same instant, a `localDateTime` |
 | `zonedDateTime` | `toLocalDateTime()` | Its instant, a `localDateTime` |
 
-Each conversion keeps the optionality of the value. The SQL changes only where a database must take an instant to its date and time: a `localDateTime` can be kept in a column with zone, like a `timestamptz`.
+Each conversion keeps the optionality of the value. The SQL changes only where a database must take an instant to its date and time: a `localDateTime` can be kept in a column with zone, like a `timestamptz`. A column declared without zone is written as it is there too (see [A date and time without zone](../advanced/data-types/sql-data-types.md#a-date-and-time-without-zone)).
 
 A `localDate` or a `localTime` has no instant: a day has no time of the day, a time has no day, and neither has a zone, so there's no `toInstant()`. A `plainYearMonth`, a `plainMonthDay` and a `duration` have no data type with a `Date`. For a `plainDate` as a `localDateTime`, give it a time of the day first: `toPlainDateTime().toLocalDateTime()`.
 

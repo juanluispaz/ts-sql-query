@@ -83,7 +83,7 @@ Start with the file of the area of your task. These files are written for you: o
 
 | To | Read | Tokens |
 |---|---|---|
-| Write a data type of your own, branded or opaque, with its methods, its type in the database and its conversions | [`llms-data-types-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-data-types-postgresql.txt) | 23k |
+| Write a data type of your own, branded or opaque, with its methods, its type in the database and its conversions | [`llms-data-types-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-data-types-postgresql.txt) | 24k |
 | Look up what a class of a data type, a type adapter or a SQL data type has | [`llms-api-data-types.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-api-data-types.txt) | 12k |
 | Wrap, log or write a query runner, run queries without promises, or read what a query runner receives | [`llms-execution.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-execution.txt) | 12k |
 
@@ -102,7 +102,7 @@ Start with the file of the area of your task. These files are written for you: o
 | Find what writes a SQL keyword | [`llms-keywords.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-keywords.txt) | 12k |
 | Know what the library is, and what it can't do | [`llms-general.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-general.txt) | 8k |
 | Move a project from v1 to v2 | [`llms-migrating-from-v1.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-migrating-from-v1.txt) | 17k |
-| See what changed in a version | [`llms-changelog-v2.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-changelog-v2.txt), or `llms-changelog-v1.txt` | 46k |
+| See what changed in a version | [`llms-changelog-v2.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-changelog-v2.txt), or `llms-changelog-v1.txt` | 47k |
 
 The files with `<database>` also come with all the databases, like `llms-queries-all.txt`, to compare them or to move code between them. Otherwise use the one of your database, which is smaller.
 

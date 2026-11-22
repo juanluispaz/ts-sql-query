@@ -6,7 +6,7 @@ import { MockQueryRunner } from '../../../../../src/queryRunners/MockQueryRunner
 import { SqlServerConnection } from '../../../../../src/connections/SqlServerConnection.js'
 import { DocCodeMockRunner } from '../../../../lib/mockRunners/DocCodeMockRunner.js'
 import { Table } from '../../../../../src/Table.js'
-import { CustomBooleanTypeAdapter, type DefaultTypeAdapter, type TypeAdapter, type TypeAdapterValueFromDBContext, type TypeAdapterValueToDBContext, type TypeAdapterPlaceholderContext, type TypeAdapterProjectionContext } from '../../../../../src/TypeAdapter.js'
+import { CustomBooleanTypeAdapter, withSqlDataType, type DefaultTypeAdapter, type TypeAdapter, type TypeAdapterValueFromDBContext, type TypeAdapterValueToDBContext, type TypeAdapterPlaceholderContext, type TypeAdapterProjectionContext } from '../../../../../src/TypeAdapter.js'
 import { View } from '../../../../../src/View.js'
 import { Values } from '../../../../../src/Values.js'
 
@@ -230,6 +230,8 @@ const tFlight = new class TFlight extends Table<DBConnection, 'TFlight'> {
     }
 }()
 void tFlight
+
+void withSqlDataType
 
 /******************** 
  * Generated code

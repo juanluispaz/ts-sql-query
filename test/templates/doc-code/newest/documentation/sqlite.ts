@@ -6,7 +6,7 @@ import { MockQueryRunner } from '../../../../../src/queryRunners/MockQueryRunner
 import { SqliteConnection } from '../../../../../src/connections/SqliteConnection.js'
 import { DocCodeMockRunner } from '../../../../lib/mockRunners/DocCodeMockRunner.js'
 import { Table } from '../../../../../src/Table.js'
-import { CustomBooleanTypeAdapter } from '../../../../../src/TypeAdapter.js'
+import { CustomBooleanTypeAdapter, withSqlDataType } from '../../../../../src/TypeAdapter.js'
 import { View } from '../../../../../src/View.js'
 import { Values } from '../../../../../src/Values.js'
 
@@ -206,6 +206,8 @@ const tRelease = new class TRelease extends Table<DBConnection, 'TRelease'> {
     }
 }()
 void tRelease
+
+void withSqlDataType
 
 /******************** 
  * Generated code

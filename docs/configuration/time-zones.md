@@ -4,48 +4,121 @@ search:
 ---
 # Time zones
 
-A JavaScript `Date` is an **instant**: a single number, milliseconds since the epoch. It is not "half past twelve"; it is a fixed point on the world's timeline that *happens to be* half past twelve if you look at it from a particular place.
+A date and time either has a known zone or it doesn't:
 
-Many temporal columns are not instants. `TIMESTAMP` / `DATETIME` stores a **wall clock**: the characters `2024-01-14 12:30:00`, and nothing else. It doesn't record whether that is half past twelve in Madrid or in Tokyo, two instants hours apart. So turning that column into a `Date` needs a zone, and the column doesn't supply one.
+- An **instant** is an exact moment, the same everywhere: a `Temporal.Instant`, a JavaScript `Date`, a PostgreSQL `timestamptz`.
+- A **date and time without zone** is only its digits, `2024-01-14 12:30:00`: a `Temporal.PlainDateTime`, or a `timestamp` or `datetime` column. It doesn't say whether that is half past twelve in Madrid or in Tokyo, two instants hours apart.
 
-ts-sql-query answers that with one rule: **every value in the database is in UTC.** The digits of a column without zone are the UTC digits of the `Date`, when it's sent and when it's read, whatever zone your application runs in. This page answers:
+When an instant is stored in a column without zone, or such a column is read as an instant, the zone that is missing has to come from somewhere. The library takes it from one rule: **the database is in UTC, and the session of each connection stays in the zone of the database.** This page says what that rule means for each type, how to check it and how to set it up.
 
-- What `Date` you receive for each data type, and which getters to read it with.
-- What still depends on a zone: the zone of the database, which must be UTC, and the zone of the session, which must stay the database's.
-- What each driver needs from its connection, the limits that remain, and what to do with data already written in another zone.
+## The rule: the database and its session in UTC
 
-!!! tip "A Temporal value has no zone to keep in mind"
+The zone your application runs in doesn't change the values the library sends and reads. What matters is the zone of the database, the one in which it gives its current date and time (`now()`, `current_timestamp`, a default), and the zone of the session, which takes the zone of the database when nothing sets another.
 
-    With the `plainDate`, `plainTime` and `plainDateTime` types the value in your code is a `Temporal.PlainDate`, a `Temporal.PlainTime` or a `Temporal.PlainDateTime`: the digits of the column, not an instant, so no zone of your application takes part and there are no getters to choose. The zone of the database still says what a column with a zone, like `timestamptz`, gives: the date and time it has in that zone. See [Dates and times](dates-and-times.md).
+What each type gives with the database in UTC:
 
-It is not about collations, the other setting of a session: see [Collations & case sensitivity](collations.md). On SQLite the library writes and reads the text or the number itself, with the strategy you choose; see [SQLite → Working with Date and Time](../databases/sqlite/index.md#working-with-date-and-time).
+| Type | The value in your code | What the zone of the database does to it |
+|---|---|---|
+| `plainDate`, `plainTime`, `plainDateTime` | The digits of the column | Nothing: no zone takes part. Only a column with zone, like `timestamptz`, gives its date and time in the zone of the database |
+| `instant` | The exact moment | In a column without zone, it is kept as its date and time in UTC |
+| `zonedDateTime` | The exact moment and its zone | Nothing: the value carries its own zone |
+| `localDate`, `localTime`, `localDateTime` | A `Date` | See [Dates as `Date`](dates-as-date.md) |
 
-## Per database
+A database installed on a machine outside UTC, with nothing configured, is in the zone of that machine: its values without zone are in that zone, and an instant or a `Date` read from them, or written to them, is off by the difference, an hour in Madrid in winter. The library can't see that zone without a query of its own, so it doesn't detect it: you put the database in UTC, or you [declare its zone](#when-your-database-isnt-in-utc).
 
-Which column types of each database fall in which kind, and what its zone of the database and of the session does, is in the page of the database: [MariaDB](../databases/mariadb/index.md#time-zones), [MySQL](../databases/mysql/index.md#time-zones), [Oracle](../databases/oracle/index.md#time-zones), [PostgreSQL](../databases/postgresql/index.md#time-zones), [SQLite](../databases/sqlite/index.md#time-zones), [SQL Server](../databases/sqlserver/index.md#time-zones).
+## Check the zone of your database
 
-## Setting the zones to UTC
+=== "MariaDB"
+    The database is in UTC when `now()` and `utc_timestamp()` give the same time:
 
-None of what the library sends and reads requires the application to run in UTC. Running it in UTC is still the advice:
+    ```mariadb
+    SELECT @@global.time_zone, @@session.time_zone, now(), utc_timestamp();
+    ```
+=== "MySQL"
+    The database is in UTC when `now()` and `utc_timestamp()` give the same time:
+
+    ```mysql
+    SELECT @@global.time_zone, @@session.time_zone, now(), utc_timestamp();
+    ```
+=== "Oracle"
+    Both must be UTC, or `+00:00`:
+
+    ```oracle
+    SELECT sessiontimezone, to_char(systimestamp, 'TZR') FROM dual;
+    ```
+===+ "PostgreSQL"
+    It must show `UTC` or `Etc/UTC`:
+
+    ```postgresql
+    SHOW TimeZone;
+    ```
+=== "SQLite"
+    SQLite has no server and no session: it runs inside your process, and the library writes and reads the text or the number of each date itself, with the [strategy of dates](../databases/sqlite/index.md#working-with-date-and-time) you choose.
+=== "SQL Server"
+    SQL Server uses the zone of the operating system of the server, and it has no session zone:
+
+    ```sqlserver
+    SELECT CURRENT_TIMEZONE();
+    ```
+
+What each database does with each type of its columns, and with its zone and the one of the session, is in the page of the database: [MariaDB](../databases/mariadb/index.md#time-zones), [MySQL](../databases/mysql/index.md#time-zones), [Oracle](../databases/oracle/index.md#time-zones), [PostgreSQL](../databases/postgresql/index.md#time-zones), [SQLite](../databases/sqlite/index.md#time-zones), [SQL Server](../databases/sqlserver/index.md#time-zones).
+
+## Putting the database in UTC
+
+**A container.** The official images of the databases already run in UTC (`postgres`, `mysql`, `mariadb`, `mcr.microsoft.com/mssql/server`, `gvenzl/oracle-free`), so a stock container needs nothing. To make it explicit, or on a base image you don't control, one environment variable covers every engine: it sets the zone of the operating system of the container, which each engine picks up.
+
+```bash
+docker run -e TZ=UTC postgres:18
+```
+
+```yaml
+services:
+  db:
+    image: postgres:18
+    environment:
+      TZ: UTC
+```
+
+If your integration tests start the database with Testcontainers, the same variable goes in the environment of the container:
+
+```typescriptreact
+const container = await new PostgreSqlContainer('postgres:18')
+    .withEnvironment({ TZ: 'UTC' })
+    .start()
+```
+
+**A database installed on a machine** takes the zone of the machine. Put the server in UTC before it holds data:
+
+| Database | How |
+|---|---|
+| MariaDB | `SET GLOBAL time_zone = '+00:00'`, or the same in its configuration |
+| MySQL | `SET PERSIST time_zone = '+00:00'` |
+| Oracle | `TIME_AT_DBTIMEZONE = DATABASE` with `DBTIMEZONE` in UTC, set in the pluggable database with `scope = spfile` and the pluggable database reopened |
+| PostgreSQL | `timezone = 'UTC'` in `postgresql.conf`, or `ALTER SYSTEM SET timezone = 'UTC'` and a reload of the configuration |
+| SQL Server | Only with the zone of its operating system |
+
+!!! warning "Changing the zone of a database that already holds values"
+
+    It changes the zone of the database, not the values: the values without zone written before stay in the old zone, next to the new ones. Convert them first: see [You already have a database](../advanced/dates-and-times/outside-utc.md#you-already-have-a-database).
+
+**The session.** Don't set the zone of the session, not even to UTC over a database that isn't in UTC: setting the session doesn't change the zone of the data. On Oracle, oracledb sets the session itself: set the environment variable `ORA_SDTZ=UTC`, which the query runner requires when the process doesn't run in UTC. A session put in another zone by `ORA_SDTZ`, by the `options` of pg (`-c TimeZone=…`) or by the `connection` of postgres.js is rejected at the first query.
+
+## The application's zone
+
+The application doesn't need to run in UTC. Running it in UTC is still the advice:
 
 - The query runners of Oracle and SQL Server need nothing from you: `ORA_SDTZ` and `useUTC` are only required when the process doesn't run in UTC.
-- The Oracle limit above disappears.
-- Your own code agrees with the database: `new Date(2024, 0, 14)`, `getHours()`, `toString()`, a log line, a library that formats in the local zone.
+- On Oracle, a `DATE` or a `TIMESTAMP` holding a wall clock that the zone of the process skips is read exactly (see [oracledb](../databases/oracle/query-runners/oracledb.md#a-wall-clock-that-doesnt-exist-in-the-zone-of-the-process)).
+- Your own code that uses `Date` agrees with the database: `new Date(2024, 0, 14)`, `toString()`, a log line, a library that formats in the local zone.
 - On SQLite, the `localdate` strategies and the date functions agree with the other databases.
 
-It is what cloud providers give you by default, regardless of where the region physically is. Your development machine is the exception: it runs in your own zone.
-
-### The application's zone
-
-Either of these works; the environment variable is not required.
-
-**From the environment:**
+It is what cloud providers give you by default. Your development machine is the exception: it runs in your own zone. Set it when the process starts:
 
 ```bash
 TZ=UTC node app.js
 ```
 
-**From JavaScript**, useful when you do not control how the process is launched, like a serverless entry point, a test runner or a bundled CLI:
+Or from JavaScript, when you don't control how the process is launched, like a serverless entry point, a test runner or a bundled CLI:
 
 ```ts
 process.env.TZ = 'UTC'
@@ -60,66 +133,12 @@ process.env.TZ = 'UTC'
     process.env.TZ = 'UTC'
     ```
 
-The query runners that need a setting only outside UTC decide whether the process runs in UTC when they are created: by `process.env.TZ` when it is set, with a name of UTC like `UTC`, `Etc/UTC` or `GMT`, and otherwise by the zone the runtime resolves. Never by the current offset, which is 0 in London only in winter.
+The query runners that need a setting only outside UTC decide whether the process runs in UTC when they are created: by `process.env.TZ` when it is set, with a name of UTC like `UTC`, `Etc/UTC` or `GMT`, and otherwise by the zone the runtime resolves.
 
-### The database's zone
+## When your database isn't in UTC
 
-The database must be in UTC, and the session left in it:
+- **On PostgreSQL and Oracle**, declare the zone of the database in the connection, with `databaseTimeZone` and an IANA name like `'Europe/Madrid'`: see [A database outside UTC](../advanced/dates-and-times/outside-utc.md#a-database-outside-utc).
+- **On MariaDB, MySQL, SQLite and SQL Server** that isn't supported: a `databaseTimeZone` other than UTC is rejected at the first query with `INVALID_CONFIGURATION`, before anything is sent. On SQLite, the [strategy of dates](../databases/sqlite/index.md#working-with-date-and-time) says in which zone each date is kept.
+- **When the values already stored were written in another zone**, see [You already have a database](../advanced/dates-and-times/outside-utc.md#you-already-have-a-database).
 
-- **A container**: the official images already are (below).
-- **A database installed on your machine** takes the zone of the machine: PostgreSQL's `initdb` writes it into `postgresql.conf`, MySQL and MariaDB use it through `time_zone = SYSTEM`, SQL Server and Oracle use the one of the operating system. Put the server in UTC before it holds data: on PostgreSQL `timezone = 'UTC'` in `postgresql.conf`, or `ALTER SYSTEM SET timezone = 'UTC'` and a reload of the configuration; on MySQL `SET PERSIST time_zone = '+00:00'`; on MariaDB `SET GLOBAL time_zone = '+00:00'`, or the same in its configuration; on Oracle `TIME_AT_DBTIMEZONE = DATABASE` with `DBTIMEZONE` in UTC, set in the pluggable database with `scope = spfile` and the pluggable database reopened; on SQL Server only with the zone of its operating system.
-- **The session**: don't set it to another zone, not even UTC over a database that isn't. On Oracle, oracledb sets it itself: set `ORA_SDTZ=UTC`, which the query runner requires when the process doesn't run in UTC. A session put in another zone by `ORA_SDTZ`, by the `options` of pg (`-c TimeZone=…`) or by the `connection` of postgres.js is rejected at the first query.
-
-!!! warning "Changing the zone of a database that already holds values"
-
-    It changes the zone of the database, not the values: the values without zone written before stay in the old zone, next to the new ones. Convert them first, see [You already have a database](../advanced/dates-and-times/outside-utc.md#you-already-have-a-database).
-
-### The database's zone in Docker
-
-**The official images already run in UTC.** Every one of these images reports UTC out of the box:
-
-| image | container zone |
-|---|---|
-| `postgres:18-alpine` | `UTC +0000` |
-| `mysql:9` | `UTC +0000` |
-| `mariadb:latest` | `UTC +0000` |
-| `mcr.microsoft.com/mssql/server:2025-latest` | `UTC +0000` |
-| `gvenzl/oracle-free:23-slim-faststart` | `UTC +0000` (and `DBTIMEZONE` / `SESSIONTIMEZONE` both `+00:00`) |
-
-So a stock container usually needs nothing. Pin it explicitly when you build on a base image you do not control, or when you want the setting visible rather than inherited. **One environment variable covers every engine**: it sets the container's operating-system zone, which each engine then picks up:
-
-```bash
-docker run -e TZ=UTC postgres:18
-```
-
-```yaml
-services:
-  db:
-    image: postgres:18
-    environment:
-      TZ: UTC
-```
-
-That it reaches the engine, and not just the container's shell:
-
-```
-docker run -e TZ=Europe/Madrid …
-
-PostgreSQL   SHOW TimeZone         ->  Europe/Madrid
-MySQL        @@system_time_zone    ->  CEST          (now() 14:54 while utc_timestamp() 12:54)
-SQL Server   CURRENT_TIMEZONE()    ->  (UTC+01:00) Brussels, Copenhagen, Madrid, Paris
-```
-
-### Testcontainers
-
-If your integration tests start the database themselves, the same variable goes through the environment the container is built with:
-
-```typescriptreact
-const container = await new PostgreSqlContainer('postgres:18')
-    .withEnvironment({ TZ: 'UTC' })
-    .start()
-```
-
-!!! warning "A suite that never leaves UTC can't see a mistake of zones"
-
-    With the test process and the database both in UTC, local and UTC getters coincide, so code that reads a value with `getHours()` instead of `getUTCHours()`, or builds one with `new Date(2024, 0, 14)`, passes. If your application will run where the zone is another, at least one test should run in that zone, in a process started with it: the zone of a running process can't be changed reliably.
+What each kind of temporal column does with the zone, like a `timestamptz` of PostgreSQL or a `TIMESTAMP` of MySQL, and what the session changes, is in [Temporal columns and the session](../advanced/dates-and-times/column-kinds-and-session.md).

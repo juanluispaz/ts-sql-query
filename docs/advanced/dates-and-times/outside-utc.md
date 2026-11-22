@@ -52,7 +52,7 @@ On Oracle, `DBTIMEZONE`, the zone in which Oracle keeps its `TIMESTAMP WITH LOCA
 The rule assumes that the digits of every column without zone are UTC. Check that before anything else:
 
 1. **Find out which kind your temporal columns are.** Kind 3 and kind 4 hold instants, and nothing on this page can shift them.
-2. **Find out the zone of the database**, with the query of its [Per database](../../configuration/time-zones.md#per-database) tab. If it isn't UTC, declare it in the connection on PostgreSQL or Oracle (see [A database outside UTC](#a-database-outside-utc)); on the other databases it isn't supported: its values without zone are in its zone, and the library takes them as UTC.
+2. **Find out the zone of the database**, with the query of [Check the zone of your database](../../configuration/time-zones.md#check-the-zone-of-your-database). If it isn't UTC, declare it in the connection on PostgreSQL or Oracle (see [A database outside UTC](#a-database-outside-utc)); on the other databases it isn't supported: its values without zone are in its zone, and the library takes them as UTC.
 3. **For kind 1 and kind 2, find out in which zone the digits were written.** If the database is in UTC and whoever wrote them wrote UTC, there is nothing to do.
 4. **If some were written in another zone**, the library reads them as UTC, so each one comes out shifted by that zone's offset. Convert the stored values to UTC once, or, if you can't, read and write that column through a type adapter (below).
 

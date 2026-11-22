@@ -59,6 +59,10 @@ Use the UTC getters (`getUTCFullYear`, `getUTCMonth`, `getUTCDate`, `getUTCHours
 
 A `localDate` is at 10:00 UTC so that its local getters still give the same day from UTC-10 to UTC+13; outside that range they give another day. Its UTC getters give the stored day everywhere. Its time and `getTime()` mean nothing for a date with no time.
 
+!!! warning "A suite that never leaves UTC can't see a mistake of zones"
+
+    With the test process and the database both in UTC, local and UTC getters coincide, so code that reads a value with `getHours()` instead of `getUTCHours()`, or builds one with `new Date(2024, 0, 14)`, passes. If your application will run where the zone is another, at least one test should run in that zone, in a process started with it: the zone of a running process can't be changed reliably.
+
 ## The date functions of a query give the parts in UTC
 
 `getFullYear()`, `getMonth()`, `getDate()`, `getDay()`, `getHours()`, `getMinutes()`, `getSeconds()` and `getMilliseconds()` of a value in a query are computed by the database, and give the parts in UTC: the same as the `getUTCFullYear()`, `getUTCMonth()`, … of the `Date` you read, not its local getters. `getTime()` gives the same as the `getTime()` of that `Date` (see [What `getTime()` does and does not promise](#what-gettime-does-and-does-not-promise)). In a column without zone the parts are its digits; in a column with zone, the parts of the instant in UTC. On SQLite, `sqliteRunsInApplicationTimeZone` makes them work in the zone of the application instead (see [SQLite](../databases/sqlite/index.md#the-date-functions-and-the-time-zone)).

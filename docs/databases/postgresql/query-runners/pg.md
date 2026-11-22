@@ -101,7 +101,7 @@ pool.on('connect', (client) => {
 });
 ```
 
-This is what the [Time zones page](../../../configuration/time-zones.md#the-databases-zone) recommends aligning on connect. PostgreSQL has **no session collation** (unlike Oracle), so a case-insensitive comparison is set on the column / database collation or per value with [`.collate()`](../../../configuration/collations.md#collate-force-a-collation-per-value) instead — see the [Collations page](../../../configuration/collations.md#on-the-connection-the-session-collation).
+This is what the [Time zones page](../../../configuration/time-zones.md#putting-the-database-in-utc) recommends aligning on connect. PostgreSQL has **no session collation** (unlike Oracle), so a case-insensitive comparison is set on the column / database collation or per value with [`.collate()`](../../../configuration/collations.md#collate-force-a-collation-per-value) instead — see the [Collations page](../../../configuration/collations.md#on-the-connection-the-session-collation).
 
 ## Inside a transaction something else manages
 

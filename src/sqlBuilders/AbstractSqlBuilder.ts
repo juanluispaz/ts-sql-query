@@ -5730,7 +5730,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         const zone = this._connectionConfiguration.databaseTimeZone
         if (!this._supportDatabaseOutsideUtc()) {
-            throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'databaseTimeZone', value: zone }, 'A databaseTimeZone other than UTC is not supported on this database (' + zone + '): it can\'t complete the zone of a value without zone for every date (see the known limits of the time zones in the documentation)')
+            throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'databaseTimeZone', value: zone }, 'A databaseTimeZone other than UTC is not supported on this database (' + zone + '): it can\'t complete the zone of a value without zone for every date (see "A database outside UTC" in the documentation)')
         }
         const referenceDate = this._connectionConfiguration.dateToConvertTimesBetweenZones
         if (referenceDate !== undefined && referenceDate !== 'today' && !/^\d{4}-\d{2}-\d{2}$/.test(referenceDate)) {

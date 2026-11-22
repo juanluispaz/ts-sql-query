@@ -35,6 +35,8 @@ PostgreSQL and Oracle have a type for a length of time, an interval; the other d
 
 On Oracle, declare the precision of an interval column: see [A duration in an interval](../../databases/oracle/index.md#a-duration-in-an-interval).
 
+A duration of the query written in a column that keeps it another way, like an interval column in an `update` of a column of text, is kept as that column keeps it: in a column of text, its ISO 8601 text, the one the library writes for a duration it sends; in an interval, the interval of its parts. On PostgreSQL the text is written by the function of the library [`tsq_interval_text`](../../databases/postgresql/functions.md#tsq_interval_text); on Oracle a duration with a part the interval of the column doesn't keep (months in an `INTERVAL DAY TO SECOND`) makes the query fail.
+
 ## The digits of the fraction of a second of a duration kept in a text
 
 A duration kept as text is written with every digit of its fraction of a second, up to the nanosecond: `PT1.123456789S`. To keep fewer, which takes less space, the connection says how many with the protected method `getDurationFractionDigits`, from 0 to 9; the digits beyond are truncated, as Temporal's `toString({ fractionalSecondDigits, roundingMode: 'trunc' })` does. With 3, the milliseconds:

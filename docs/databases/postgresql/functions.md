@@ -19,6 +19,7 @@ They are of these kinds, and all of them are in [one file](#creating-them):
 | [`tsq_duration_round`](#tsq_duration_round) | `until` or `since` in months or years, or rounded to a week, a month or a year | — |
 | [`tsq_duration_total`](#tsq_duration_total) | `total` of a duration | — |
 | [`tsq_duration_add`](#tsq_duration_add) | `add` or `subtract` of two durations | — |
+| [`tsq_interval_text`](#tsq_interval_text) | a duration of the query kept in an interval is written in a column that keeps its text | — |
 | [`tsq_zoned_of_wall`](#tsq_zoned_of_wall) | a wall clock is taken to its zone, with `libraryFunctions = 'installed'` | — |
 | [`tsq_zoned_until`](#tsq_zoned_until) | `until` or `since` of two zoned dates and times, in days or larger units | `tsq_zoned_of_wall` |
 | [`tsq_zone`](#tsq_zone) | a zoned date and time whose zone is a value of the query, like the text of a column, is seen in its zone, with `libraryFunctions = 'installed'` | — |
@@ -62,6 +63,12 @@ Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 ## `tsq_duration_add`
 
 `tsq_duration_add` adds or subtracts two durations, as Temporal's `add` and `subtract` of a `Temporal.Duration`: a day is 24 hours, the sum is written up to the largest field of the two, and a duration with years, months or weeks makes it fail. A query calls it for `add` and `subtract` of a duration to another one (see [Durations added and subtracted together](../../configuration/durations.md#durations-added-and-subtracted-together)). It takes, of each duration, its largest field that isn't zero, which `tsq_duration_part` gives with `'largest'`.
+
+Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
+
+## `tsq_interval_text`
+
+`tsq_interval_text` writes the ISO 8601 text of an interval, the one the library writes for a duration it sends: its years and months, its days and its time in hours, minutes and seconds, as PostgreSQL keeps them, with the sign of the duration. A query calls it when it writes a duration of the query kept in an interval, like an `interval` column, in a column that keeps its text (see [How each database keeps a duration](../../advanced/dates-and-times/storage.md#how-each-database-keeps-a-duration)). An interval with parts of different signs, like `-1 days +02:00:00`, which a `Temporal.Duration` can't hold, makes it fail.
 
 Its code is in [`tsq-functions.sql`](functions/tsq-functions.sql).
 

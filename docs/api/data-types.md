@@ -114,7 +114,7 @@ declare module 'ts-sql-query' {
 }
 ```
 
-`DataTypeName` is the union of the names of `DataTypes`: the ones of the library (`'int'`, `'string'`, ...) and the ones you declare.
+`DataTypeName` is the union of the names of `DataTypes`: the ones of the library (`'int'`, `'string'`, ...), the ones you declare, and the names of the scaled bigints of every scale, `` `ScaledBigInt<${number}>` `` with a scale of 0 or more (`'ScaledBigInt<2>'` is the data type of `scaledBigIntType(2)`), which need no registration.
 
 | Situation | Result |
 |---|---|

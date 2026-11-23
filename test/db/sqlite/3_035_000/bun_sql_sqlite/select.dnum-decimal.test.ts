@@ -12,6 +12,7 @@ import type { DynamicCondition, DynamicConditionForModel } from '../../../../../
 import { withSqlDataType, type Dnum, type DnumDecimalType, type FilterOf, type OrderByForModel } from '../../../../../src/exports/v2/index.js'
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+import * as dn from 'dnum'
 
 
 const tExactAmount = new class TExactAmount extends Table<DBConnection, 'TExactAmount'> {
@@ -60,6 +61,32 @@ describe(ctx.label, () => {
             { id: 4 },
             { id: 5, amount: [98765432109876543210987654321n, 9], price: [123456n, 2] },
         ])
+    })
+
+    test('dnum-decimal/the-values-go-to-dnum-and-come-from-it', async () => {
+        // The type Dnum is the one of dnum: a value of dnum goes to a query, and a value read goes to its functions
+        assertType<Exact<Dnum, dn.Dnum>>()
+        ctx.mockNext([1])
+        ctx.mockNext({ amount: '12345678901234567890.1234567891', price: '1.5' })
+        const ids = await ctx.conn.selectFrom(tExactAmount)
+            .where(tExactAmount.price.equals(dn.from('1.5')))
+            .selectOneColumn(tExactAmount.id)
+            .executeSelectMany()
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "1.5",
+          ]
+        `)
+        expect(ids).toEqual([1])
+        const row = await ctx.conn.selectFrom(tExactAmount)
+            .where(tExactAmount.id.equals(1))
+            .select({ amount: tExactAmount.amount, price: tExactAmount.price })
+            .executeSelectOne()
+        assertType<Exact<typeof row, { amount?: Dnum; price?: Dnum }>>()
+        const amount = row.amount ?? [0n, 0]
+        const price = row.price ?? [0n, 0]
+        expect(dn.equal(dn.multiply(price, 3), [45n, 1])).toBe(true)
+        expect(dn.equal(dn.add(amount, [9n, 10]), [1234567890123456789012345679n, 8])).toBe(true)
     })
 
     test('dnum-decimal/compares-the-number-whatever-its-decimals', async () => {

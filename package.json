@@ -379,6 +379,7 @@
         "@vitest/coverage-v8": "^5.0.5",
         "@vitest/ui": "^5.0.5",
         "better-sqlite3": "^13.0.3",
+        "dnum": "^2.18.1",
         "lcov-parse": "^1.0.0",
         "mariadb": "^3.5.4",
         "monocart-coverage-reports": "^3.0.0",

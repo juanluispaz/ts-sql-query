@@ -16,7 +16,8 @@ import type { OrderByForModel } from '../../../../../src/dynamic/orderBy.js'
 import { tIssue, tIssueWorklog, tProject, tOrganization } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import { sync } from '../../../../../src/extras/sync.js'
-import type { EnumType } from '../../../../../src/exports/v2/index.js'
+import type { EnumType, ComparableType } from '../../../../../src/exports/v2/index.js'
+import type { DeepPickPaths } from '../../../../../src/extras/deepUtilities.js'
 
 // Business model (upper layer) — no ts-sql-query types.
 interface IssueModel {
@@ -260,6 +261,44 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.name as name, organization.id as "organization.id", organization.name as "organization.name" from project left outer join organization as organization on organization.id = project.organization_id order by "organization.name" asc nulls last, name desc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+    })
+
+    test('from-model/temporal-values-and-branded-scalars-are-values-of-the-model', () => {
+        // A value of Temporal is a value, like a Date: it is filtered and ordered by, and none of its properties is a
+        // path; a branded string or number is compared
+        type Code = string & { readonly __brand: 'Code' }
+        type Cents = number & { readonly __brand: 'Cents' }
+        interface CalendarModel {
+            id:       number
+            code:     Code
+            price:    Cents
+            day:      Temporal.PlainDate
+            time:     Temporal.PlainTime
+            dayTime:  Temporal.PlainDateTime
+            month:    Temporal.PlainYearMonth
+            birthday: Temporal.PlainMonthDay
+            took:     Temporal.Duration
+            at:       Temporal.Instant
+            zoned:    Temporal.ZonedDateTime
+        }
+        type Definition = DynamicDefinitionForModel<CalendarModel>
+        assertType<Exact<Definition, {
+            id:       'int'
+            code:     ComparableType<Code, string>
+            price:    ComparableType<Cents, string>
+            day:      'plainDate'
+            time:     'plainTime'
+            dayTime:  'plainDateTime'
+            month:    'plainYearMonth'
+            birthday: 'plainMonthDay'
+            took:     'duration'
+            at:       'instant'
+            zoned:    'zonedDateTime'
+        }>>()
+        type Leaves = 'id' | 'code' | 'price' | 'day' | 'time' | 'dayTime' | 'month' | 'birthday' | 'took' | 'at' | 'zoned'
+        assertType<Exact<Extract<OrderByForModel<CalendarModel>, Leaves>, Leaves>>()
+        assertType<Exact<Extract<OrderByForModel<CalendarModel>, `${string}.${string}`>, never>>()
+        assertType<Exact<DeepPickPaths<CalendarModel>, Leaves>>()
     })
 
     test('from-model/forwards-the-extension-type-argument', () => {

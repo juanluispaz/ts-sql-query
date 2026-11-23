@@ -47,10 +47,10 @@ type DynamicDefinitionLeafForModel<T> =
     never
 
 // Whether a value of the model is a nested object, whose properties are filtered one level deeper. Date, the Temporal
-// values without zone, a dnum and the scalars are leaves; any other terminal value object (RegExp, binary, …) or non-value object (arrays, Map/Set, …) is
+// values, a dnum and the scalars are leaves; any other terminal value object (RegExp, binary, …) or non-value object (arrays, Map/Set, …) is
 // not filterable
 type IsNestedModel<T> =
-    [T] extends [boolean | bigint | number | string | Date | TemporalPlainDate | TemporalPlainTime | TemporalPlainDateTime | TemporalDuration | TemporalInstant | TemporalZonedDateTime] ? false :
+    [T] extends [boolean | bigint | number | string] ? false :
     [T] extends [TerminalValueObject | NonValueObject] ? false :
     [T] extends [object] ? true :
     false

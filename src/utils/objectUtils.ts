@@ -1,3 +1,5 @@
+import type { TemporalDuration, TemporalInstant, TemporalPlainDate, TemporalPlainDateTime, TemporalPlainMonthDay, TemporalPlainTime, TemporalPlainYearMonth, TemporalZonedDateTime } from '../typeSystem/temporal.js'
+
 /*
  * Force TS to show the real structure type
  * https://stackoverflow.com/questions/57683303/how-can-i-see-the-full-expanded-contract-of-a-typescript-type/57683652#57683652
@@ -55,14 +57,11 @@ export type RequiredKeys<T> = NonNullable<keyof SubType<Undefined<T>, never>>
  * the deep pick/omit helpers and the model-first dynamic-condition / order-by types).
  *
  * - `PrimitiveValue`: TypeScript primitives.
- * - `TerminalValueObject`: built-in objects that represent a SINGLE value (a date, a binary
- *   buffer, a regexp). They are leaves — never a nested projection to descend into.
- *   TODO: when column values map to the `Temporal` API, register its terminal types HERE
- *   (this single place feeds every consumer): `Temporal.Instant | Temporal.ZonedDateTime |
- *   Temporal.PlainDate | Temporal.PlainTime | Temporal.PlainDateTime | Temporal.PlainYearMonth |
- *   Temporal.PlainMonthDay | Temporal.Duration`. They are immutable single values like `Date`,
- *   so without this the path-walking types would descend into their accessors. Can't be added
- *   until `Temporal` is in the TypeScript lib (or a types dependency).
+ * - `TerminalValueObject`: built-in objects that represent a SINGLE value (a date, a value of
+ *   Temporal, a binary buffer, a regexp). They are leaves — never a nested projection to descend
+ *   into: without them, the path-walking types would descend into their accessors (`day.year`).
+ *   The types of Temporal are `never` when the `lib` of the user doesn't declare it (see
+ *   typeSystem/temporal.ts), so they add nothing there.
  * - `NonValueObject`: collections and callables — neither a single value nor a nested
  *   projection (arrays, maps, sets, weak maps/sets, functions, promises).
  * - `TerminalValue`: the union of the three above — anything that is NOT a nested plain
@@ -70,6 +69,6 @@ export type RequiredKeys<T> = NonNullable<keyof SubType<Undefined<T>, never>>
  *   projection to recurse into.
  */
 export type PrimitiveValue = string | number | boolean | bigint | symbol | null | undefined
-export type TerminalValueObject = Date | RegExp | ArrayBuffer | SharedArrayBuffer | ArrayBufferView
+export type TerminalValueObject = Date | TemporalPlainDate | TemporalPlainTime | TemporalPlainDateTime | TemporalPlainYearMonth | TemporalPlainMonthDay | TemporalDuration | TemporalInstant | TemporalZonedDateTime | RegExp | ArrayBuffer | SharedArrayBuffer | ArrayBufferView
 export type NonValueObject = ((...args: any[]) => any) | ReadonlyArray<any> | ReadonlyMap<any, any> | ReadonlySet<any> | WeakMap<object, any> | WeakSet<object> | Promise<any>
 export type TerminalValue = PrimitiveValue | TerminalValueObject | NonValueObject

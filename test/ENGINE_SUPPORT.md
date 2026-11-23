@@ -734,6 +734,20 @@ tests are `insert.on-conflict-set-reads-the-row-before` →
 `an-on-conflict-update-that-swaps-two-columns-swaps-them` (the refusal in the
 MySQL cells and in the MariaDB cells below 10.5).
 
+### MariaDB returns in RETURNING only the rows an UPDATE changes
+
+An `UPDATE … RETURNING` returns only the rows whose values change: a row the
+`where` matches whose new values are the ones it already had isn't returned. In
+`update t set price = 2.00 where id in (1, 2) returning id` with the row 2 already
+at `2.00`, MariaDB returns the row 1 alone; PostgreSQL, Oracle, SQL Server and
+SQLite return both (measured on MariaDB 13.0.2 with SQL written by hand in the
+client and with the mariadb driver, with `foundRows` on and off). No SQL makes
+MariaDB return the unchanged rows, and reading them would need another query, so
+the library leaves it as MariaDB gives it: `executeUpdateOne` gives `NO_RESULT`
+and `executeUpdateMany` misses the row. The test is `update.returning` →
+`update-returning-a-row-the-update-leaves-as-it-was`, whose expected rows on the
+MariaDB cells are only the changed one.
+
 ### MariaDB drops the rows of RETURNING when the set reads the updated table through a derived table
 
 An `UPDATE … RETURNING` whose set has a subquery over a derived table of the

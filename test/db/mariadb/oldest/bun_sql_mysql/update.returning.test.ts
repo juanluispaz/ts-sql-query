@@ -80,6 +80,26 @@ describe(ctx.label, () => {
 
     // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092), newer than this tier's engine.
     /*
+    test('update-returning-a-row-the-update-leaves-as-it-was', async () => {
+        // Issue 1 already has the priority 2 and issue 2 has 1: the update changes only issue 2. MariaDB returns only
+        // the rows the update changes, so issue 1 isn't returned (see ENGINE_SUPPORT.md)
+        ctx.mockNext([2])
+        await ctx.withRollback(async () => {
+            const ids = await ctx.conn.update(tIssue)
+                .set({ priority: 2 })
+                .where(tIssue.id.in([1, 2]))
+                .returningOneColumn(tIssue.id)
+                .executeUpdateMany()
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof ids, number[]>>()
+            expect([...ids].sort((a, b) => a - b)).toEqual([2])
+        })
+    })
+    */
+
+    // NOT-SUPPORTED: see ENGINE_SUPPORT.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092), newer than this tier's engine.
+    /*
     test('update-returning-many', async () => {
         // Update every issue with priority 1 and return one row per
         // touched record. Exercises `executeUpdateMany`.

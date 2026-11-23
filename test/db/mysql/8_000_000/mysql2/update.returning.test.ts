@@ -73,6 +73,25 @@ describe(ctx.label, () => {
     })
     */
 
+    // NOT-APPLICABLE: MySQL has no RETURNING
+    /*
+    test('update-returning-a-row-the-update-leaves-as-it-was', async () => {
+        // Issue 1 already has the priority 2 and issue 2 has 1: the update changes only issue 2, and returns both
+        ctx.mockNext([1, 2])
+        await ctx.withRollback(async () => {
+            const ids = await ctx.conn.update(tIssue)
+                .set({ priority: 2 })
+                .where(tIssue.id.in([1, 2]))
+                .returningOneColumn(tIssue.id)
+                .executeUpdateMany()
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof ids, number[]>>()
+            expect([...ids].sort((a, b) => a - b)).toEqual([1, 2])
+        })
+    })
+    */
+
     // mysql does not support the RETURNING clause; the library refuses
     // `.returning({...}).executeUpdateMany()` at compile time. Kept here
     // commented for symmetry.

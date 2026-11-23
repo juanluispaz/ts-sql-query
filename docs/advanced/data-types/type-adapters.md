@@ -271,6 +271,62 @@ The query runner sends the parameter as a text, the type requested: where the da
 
 An adapter whose `transformProjection` requests a `string`, like the text of a date (see [The SQL of a value read from the database](#the-sql-of-a-value-read-from-the-database)), receives that text in `transformValueFromDB`; when it gives `next` a value of the original type, it requests the original type again with `resetRequestedType()`.
 
+The type `transformProjection` requests counts only when it changes the SQL: with the same SQL, the database gives the value of the original type. What it requests always counts is the SQL data type, with `setRequestedSqlDataType`: the query runner reads the value by it, so the driver gives it without loss. For example, a column whose values are integers beyond the 4 bytes its type says, read as a `bigint`:
+
+```ts
+import { IntegersType, type TypeAdapter } from "ts-sql-query"
+
+type Downloads = bigint & { readonly __downloads: true }
+
+const asBigint: TypeAdapter = {
+    transformValueToDB(value, context, next) {
+        context.setRequestedType('bigint')
+        return next.transformValueToDB(value, context)
+    },
+    transformProjection(sql, context, next) {
+        // The SQL doesn't change: the query runner reads the value as an integer of 8 bytes
+        context.setRequestedSqlDataType({ family: 'exact numeric', scale: 0, bytes: 8 })
+        return next.transformProjection(sql, context)
+    },
+    transformValueFromDB(value, context, next) {
+        context.setRequestedType('bigint')
+        return next.transformValueFromDB(value, context)
+    },
+}
+
+const tProjectRelease = new class TProjectRelease extends Table<DBConnection, 'TProjectRelease'> {
+    id = this.primaryKey('id', 'int')
+    downloads = this.optionalColumn('download_count', IntegersType.of<Downloads, 'Downloads'>('Downloads'), asBigint)
+    constructor() {
+        super('project_release')
+    }
+}()
+
+const release = await connection.selectFrom(tProjectRelease)
+    .where(tProjectRelease.id.equals(1))
+    .select({
+        downloads: tProjectRelease.downloads
+    })
+    .executeSelectOne()
+```
+
+```postgresql
+select download_count as downloads 
+from project_release 
+where id = $1
+```
+
+The parameters are: `[ 1 ]`
+
+The result type is:
+```tsx
+const release: Promise<{
+    downloads?: Downloads;
+}>
+```
+
+For the release with 4200000042 downloads, the row read is `{ downloads: 4200000042n }`. On Oracle the query runner reads it as text because of the SQL data type; without it, a value beyond 2^53 arrives rounded and is rejected with `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE`. A type used in many places says it in its class instead: `static override readonly sqlDataType`.
+
 ## The SQL of a value read from the database
 
 `transformValueFromDB` receives the value as the driver gives it. When the database must give the value in another form, for example as a text the driver doesn't change, `transformProjection` writes the SQL of the value as it leaves the database, and `transformValueFromDB` reads what arrives. It's the pair of `transformPlaceholder`, which writes the SQL of a value sent to the database.

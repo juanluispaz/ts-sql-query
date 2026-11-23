@@ -9,7 +9,7 @@ import { Table } from '../../../../../src/Table.js'
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import type { DefaultTypeAdapter, TypeAdapter, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext, TypeAdapterPlaceholderContext, TypeAdapterProjectionContext } from '../../../../../src/TypeAdapter.js'
-import { EqualableType, LocalDatesType } from '../../../../../src/exports/v2/index.js'
+import { EqualableType, LocalDatesType, IntegersType } from '../../../../../src/exports/v2/index.js'
 
 // The data types of the values of the user, each one a class of the family of its values
 abstract class RgbColorType extends EqualableType<RgbColor, 'RgbColor'> { static override readonly type = 'RgbColor' }
@@ -119,6 +119,28 @@ const tReleaseBirthdaySentAsText = new class TReleaseBirthdaySentAsText extends 
     constructor() {
         super('project_release')
     }
+}()
+
+// An integer of yours whose values are bigints, in a type that says 4 bytes: read by its SQL data type, without loss
+type Downloads = bigint & { readonly __downloads: true }
+const asBigint: TypeAdapter = {
+    transformValueToDB(value, context, next) {
+        context.setRequestedType('bigint')
+        return next.transformValueToDB(value, context)
+    },
+    transformProjection(sql, context, next) {
+        context.setRequestedSqlDataType({ family: 'exact numeric', scale: 0, bytes: 8 })
+        return next.transformProjection(sql, context)
+    },
+    transformValueFromDB(value, context, next) {
+        context.setRequestedType('bigint')
+        return next.transformValueFromDB(value, context)
+    },
+}
+const tProjectReleaseDownloads = new class TProjectReleaseDownloads extends Table<DBConnection, 'TProjectReleaseDownloads'> {
+    id = this.primaryKey('id', 'int')
+    downloads = this.optionalColumn('download_count', IntegersType.of<Downloads, 'Downloads'>('Downloads'), asBigint)
+    constructor() { super('project_release') }
 }()
 
 describe(ctx.label, () => {
@@ -244,6 +266,40 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof customers, { id: number }[]>>()
         expect(customers).toEqual([{ id: 1 }])
+    })
+
+    test('docs:type-adapters/requested-sql-data-type-reads-without-loss', async () => {
+        ctx.mockNext({ downloads: '4200000042' })
+        const connection = ctx.conn
+        const tProjectRelease = tProjectReleaseDownloads
+        // doc-start
+        const release = await connection.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({
+                downloads: tProjectRelease.downloads
+            })
+            .executeSelectOne()
+        // doc-end
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select download_count as downloads from project_release where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof release, { downloads?: Downloads }>>()
+        expect(release).toEqual({ downloads: 4200000042n })
+    })
+
+    test('docs-extra:type-adapters/requested-sql-data-type-reads-a-value-beyond-2-53', async () => {
+        // 4200000042 * 3000000 = 12600000126000000, beyond Number.MAX_SAFE_INTEGER
+        ctx.mockNext('12600000126000000')
+        const value = await ctx.conn.selectFrom(tProjectReleaseDownloads)
+            .where(tProjectReleaseDownloads.id.equals(1))
+            .selectOneColumn(ctx.conn.fragmentWithType(IntegersType.of<Downloads, 'Downloads'>('Downloads'), 'required', asBigint).sql`${tProjectReleaseDownloads.downloads} * 3000000`)
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select download_count * 3000000 as result from project_release where id = $1"`)
+        assertType<Exact<typeof value, Downloads>>()
+        expect(value).toBe(12600000126000000n)
     })
 
 })

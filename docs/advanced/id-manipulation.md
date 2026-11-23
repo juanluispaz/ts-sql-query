@@ -66,13 +66,14 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 
 ```
 
-In the table, the id is a column of a class that extends `EqualableType` or `ComparableType`, with the type name `encryptedID`, and `string`, the type of the encrypted text, as its TypeScript type:
+In the table, the id is a column of a class that extends `EqualableType` or `ComparableType`, with the type name `encryptedID`, `string`, the type of the encrypted text, as its TypeScript type, and the SQL data type of the id in the database, an integer of 8 bytes, so that the query runner reads every id without loss, also one beyond 2^53 on Oracle:
 
 ```typescriptreact
-import { ComparableType, Table } from "ts-sql-query"
+import { ComparableType, Table, type SqlDataType } from "ts-sql-query"
 
 abstract class EncryptedIdType extends ComparableType<string, 'encryptedID'> {
     static override readonly type = 'encryptedID'
+    static override readonly sqlDataType: SqlDataType = { family: 'exact numeric', scale: 0, bytes: 8 }
 }
 
 const tCompany = new class TCompany extends Table<DBConnection, 'TCompany'> {
@@ -174,16 +175,18 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 
 ```
 
-In the table, the id is a column of a class that extends `EqualableType` or `ComparableType`, whose type name is `ID_` followed by the prefix, and `string` as its TypeScript type:
+In the table, the id is a column of a class that extends `EqualableType` or `ComparableType`, whose type name is `ID_` followed by the prefix, `string` as its TypeScript type, and the SQL data type of the id in the database, an integer of 8 bytes:
 
 ```typescriptreact
-import { ComparableType, Table } from "ts-sql-query"
+import { ComparableType, Table, type SqlDataType } from "ts-sql-query"
 
 abstract class CompanyIdType extends ComparableType<string, 'ID_co'> {
     static override readonly type = 'ID_co'
+    static override readonly sqlDataType: SqlDataType = { family: 'exact numeric', scale: 0, bytes: 8 }
 }
 abstract class CustomerIdType extends ComparableType<string, 'ID_cu'> {
     static override readonly type = 'ID_cu'
+    static override readonly sqlDataType: SqlDataType = { family: 'exact numeric', scale: 0, bytes: 8 }
 }
 
 const tCompany = new class TCompany extends Table<DBConnection, 'TCompany'> {

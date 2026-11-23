@@ -15,11 +15,18 @@ import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import { sync } from '../../../../../src/extras/sync.js'
 import type { TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../../../../../src/TypeAdapter.js'
-import { ComparableType } from '../../../../../src/exports/v2/index.js'
+import { ComparableType, type SqlDataType } from '../../../../../src/exports/v2/index.js'
+import { TsSqlError } from '../../../../../src/TsSqlError.js'
 
 // The data types of the values of the user, each one a class of the family of its values
-abstract class EncryptedIDType extends ComparableType<string, 'encryptedID'> { static override readonly type = 'encryptedID' }
-abstract class ID_coType extends ComparableType<string, 'ID_co'> { static override readonly type = 'ID_co' }
+abstract class EncryptedIDType extends ComparableType<string, 'encryptedID'> {
+    static override readonly type = 'encryptedID'
+    static override readonly sqlDataType: SqlDataType = { family: 'exact numeric', scale: 0, bytes: 8 }
+}
+abstract class ID_coType extends ComparableType<string, 'ID_co'> {
+    static override readonly type = 'ID_co'
+    static override readonly sqlDataType: SqlDataType = { family: 'exact numeric', scale: 0, bytes: 8 }
+}
 
 class EncryptedIdConnection extends DBConnection {
     private encrypter = new IDEncrypter('3zTvzr3p67VC61jm', '60iP0h6vJoEaJo8c')
@@ -341,6 +348,37 @@ describe(ctx.label, () => {
         assertType<Exact<typeof company, { id: string; name: string }>>()
         // Comes back encrypted: the value the page documents for id 1.
         expect(company).toEqual({ id: 'uftSdCUhUTBQ0111', name: 'Acme Corp' })
+    })
+
+    test('docs-extra:id-manipulation/connection-encrypted-id-beyond-2-53-round-trip', async () => {
+        // An id beyond Number.MAX_SAFE_INTEGER goes decrypted and comes back encrypted, every digit kept
+        const connection = ctx.withConnection(EncryptedIdConnection)
+        const encrypter = new IDEncrypter('3zTvzr3p67VC61jm', '60iP0h6vJoEaJo8c')
+        const encrypted = encrypter.encrypt(9007199254740993n)
+        ctx.mockNext('9007199254740993')
+        const query = connection.selectFromNoTable()
+            .selectOneColumn(connection.const(encrypted, EncryptedIDType))
+        if (ctx.realDbEnabled && ctx.withSafeIntegers) {
+            // node:sqlite refuses to read an integer beyond 2^53 unless its exact-integer mode is on, which this
+            // connection doesn't have: the value is rejected, with its digits, never returned wrong
+            let error: unknown
+            try {
+                sync(query.executeSelectOne())
+            } catch (e) {
+                error = e
+            }
+            expect(error instanceof TsSqlError ? error.errorReason : undefined).toEqual({ reason: 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE', value: '9007199254740993', typeName: '' })
+            return
+        }
+        const id = sync(query.executeSelectOne())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ?1 as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            9007199254740993n,
+          ]
+        `)
+        assertType<Exact<typeof id, string>>()
+        expect(id).toBe(encrypted)
     })
 
     test('docs-extra:id-manipulation/connection-encrypted-id-null-passthrough', async () => {

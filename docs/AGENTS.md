@@ -83,7 +83,7 @@ Start with the file of the area of your task. These files are written for you: o
 
 | To | Read | Tokens |
 |---|---|---|
-| Write a data type of your own, branded or opaque, with its methods, its type in the database and its conversions | [`llms-data-types-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-data-types-postgresql.txt) | 24k |
+| Write a data type of your own, branded or opaque, with its methods, its type in the database and its conversions | [`llms-data-types-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-data-types-postgresql.txt) | 25k |
 | Look up what a class of a data type, a type adapter or a SQL data type has | [`llms-api-data-types.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-api-data-types.txt) | 13k |
 | Wrap, log or write a query runner, run queries without promises, or read what a query runner receives | [`llms-execution.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-execution.txt) | 12k |
 

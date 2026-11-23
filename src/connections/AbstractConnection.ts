@@ -34,7 +34,7 @@ import { __durationSqlDataTypeOf } from '../typeSystem/dataTypes.js'
 import { parseUtcDateTimeText } from '../utils/utcDateTimeText.js'
 import type { CombinedOptionalityOfUnion, OptionalType } from '../typeSystem/valueSource.js'
 import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, ValueSourceOf, TypedValueSource } from '../typeSystem/valueSource.js'
-import type { DataTypeName, DataTypeOfName, DataTypeValueOfName, DataTypeValueSources, DataTypeFragments } from '../typeSystem/dataTypeNames.js'
+import type { DataTypeName, DataTypeOfName, DataTypeValueOfName, DataTypeValueSourceOfName, DataTypeFragmentOfName } from '../typeSystem/dataTypeNames.js'
 import { DoubleType, IntType } from '../typeSystem/number.js'
 import type { IAnyAdditiveValueSource } from '../typeSystem/numeric.js'
 import type { IAnyComparableValueSource } from '../typeSystem/comparable.js'
@@ -730,13 +730,13 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         return __instantFromEpoch(epochNanoseconds, '_instantFromEpochNanoseconds')
     }
 
-    const<TYPE extends DataTypeName>(value: DataTypeValueOfName<TYPE>, type: TYPE, adapter?: TypeAdapter): DataTypeValueSources<NNoTableOrViewRequired<DB>, 'required'>[TYPE]
+    const<TYPE extends DataTypeName>(value: DataTypeValueOfName<TYPE>, type: TYPE, adapter?: TypeAdapter): DataTypeValueSourceOfName<TYPE, NNoTableOrViewRequired<DB>, 'required'>
     const<TYPE extends NullableType<any>>(value: ValueTypeOf<TYPE>, type: TypeClass<TYPE>, adapter?: TypeAdapter): ValueSource<NNoTableOrViewRequired<DB>, TYPE, 'required'>
     const(value: any, type: string | AnyTypeClass, adapter?: TypeAdapter): any { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         return __createConst(value, __adaptedTypeClassOf(__dataTypeClassFrom(type), adapter), 'required')
     }
 
-    optionalConst<TYPE extends DataTypeName>(value: DataTypeValueOfName<TYPE> | null | undefined, type: TYPE, adapter?: TypeAdapter): DataTypeValueSources<NNoTableOrViewRequired<DB>, 'optional'>[TYPE]
+    optionalConst<TYPE extends DataTypeName>(value: DataTypeValueOfName<TYPE> | null | undefined, type: TYPE, adapter?: TypeAdapter): DataTypeValueSourceOfName<TYPE, NNoTableOrViewRequired<DB>, 'optional'>
     optionalConst<TYPE extends NullableType<any>>(value: ValueTypeOf<TYPE> | null | undefined, type: TypeClass<TYPE>, adapter?: TypeAdapter): ValueSource<NNoTableOrViewRequired<DB>, TYPE, 'optional'>
     optionalConst(value: any, type: string | AnyTypeClass, adapter?: TypeAdapter): any { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         return __createConst(value, __adaptedTypeClassOf(__dataTypeClassFrom(type), adapter), 'optional')
@@ -830,9 +830,9 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         return queryRunner.createRejectedPromise(new TsSqlQueryExecutionError(source, queryRunner.getErrorReason(error), error))
     }
 
-    fragmentWithType<TYPE extends DataTypeName>(type: TYPE, required: 'required', adapter?: TypeAdapter): DataTypeFragments<NNoTableOrViewRequired<DB>, 'required'>[TYPE]
+    fragmentWithType<TYPE extends DataTypeName>(type: TYPE, required: 'required', adapter?: TypeAdapter): DataTypeFragmentOfName<TYPE, NNoTableOrViewRequired<DB>, 'required'>
     fragmentWithType<TYPE extends NullableType<any>>(type: TypeClass<TYPE>, required: 'required', adapter?: TypeAdapter): FragmentExpression<NNoTableOrViewRequired<DB>, TYPE, 'required'>
-    fragmentWithType<TYPE extends DataTypeName>(type: TYPE, required: 'optional', adapter?: TypeAdapter): DataTypeFragments<NNoTableOrViewRequired<DB>, 'optional'>[TYPE]
+    fragmentWithType<TYPE extends DataTypeName>(type: TYPE, required: 'optional', adapter?: TypeAdapter): DataTypeFragmentOfName<TYPE, NNoTableOrViewRequired<DB>, 'optional'>
     fragmentWithType<TYPE extends NullableType<any>>(type: TypeClass<TYPE>, required: 'optional', adapter?: TypeAdapter): FragmentExpression<NNoTableOrViewRequired<DB>, TYPE, 'optional'>
     fragmentWithType(type: string | AnyTypeClass, required: string, adapter?: TypeAdapter): any {
         return new FragmentQueryBuilder(__dataTypeClassFrom(type), required as any, adapter)
@@ -889,9 +889,9 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     // value source carries the aggregate marker (NAggregate<DB> in its source
     // + __isAggregate at runtime), so a custom aggregate written as a fragment
     // is rejected outside aggregate-legal clauses, just like a built-in aggregate.
-    aggregateFragmentWithType<TYPE extends DataTypeName>(type: TYPE, required: 'required', adapter?: TypeAdapter): DataTypeFragments<NNoTableOrViewRequired<DB>, 'required', NAggregate<DB>>[TYPE]
+    aggregateFragmentWithType<TYPE extends DataTypeName>(type: TYPE, required: 'required', adapter?: TypeAdapter): DataTypeFragmentOfName<TYPE, NNoTableOrViewRequired<DB>, 'required', NAggregate<DB>>
     aggregateFragmentWithType<TYPE extends NullableType<any>>(type: TypeClass<TYPE>, required: 'required', adapter?: TypeAdapter): FragmentExpression<NNoTableOrViewRequired<DB>, TYPE, 'required', NAggregate<DB>>
-    aggregateFragmentWithType<TYPE extends DataTypeName>(type: TYPE, required: 'optional', adapter?: TypeAdapter): DataTypeFragments<NNoTableOrViewRequired<DB>, 'optional', NAggregate<DB>>[TYPE]
+    aggregateFragmentWithType<TYPE extends DataTypeName>(type: TYPE, required: 'optional', adapter?: TypeAdapter): DataTypeFragmentOfName<TYPE, NNoTableOrViewRequired<DB>, 'optional', NAggregate<DB>>
     aggregateFragmentWithType<TYPE extends NullableType<any>>(type: TypeClass<TYPE>, required: 'optional', adapter?: TypeAdapter): FragmentExpression<NNoTableOrViewRequired<DB>, TYPE, 'optional', NAggregate<DB>>
     aggregateFragmentWithType(type: string | AnyTypeClass, required: string, adapter?: TypeAdapter): any {
         return new FragmentQueryBuilder(__dataTypeClassFrom(type), required as any, adapter, true)

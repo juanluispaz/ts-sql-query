@@ -37,6 +37,13 @@ const tPricedAmount = new class TPricedAmount extends Table<DBConnection, 'TPric
     constructor() { super('exact_amount') }
 }()
 
+// The same columns by the name of their data type, as TypeScript writes it
+const tNamedAmount = new class TNamedAmount extends Table<DBConnection, 'TNamedAmount'> {
+    id    = this.primaryKey('id', 'int')
+    price = this.optionalColumn('price', 'ScaledBigInt<2>')
+    constructor() { super('exact_amount') }
+}()
+
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
@@ -234,6 +241,29 @@ describe(ctx.label, () => {
         expect(row).toEqual({ price: 150n })
     })
 
+    test('scaled-bigint/a-scale-by-the-name-of-its-data-type', async () => {
+        // 'ScaledBigInt<2>' is the data type of scaledBigIntType(2), with no registration, wherever a type name goes
+        ctx.mockNext([{ id: 1, price: '1.50', twice: '1.50' }])
+        const rows = await ctx.conn.selectFrom(tNamedAmount)
+            .where(tNamedAmount.price.equals(ctx.conn.const(scaledBigInt(150n, 2), 'ScaledBigInt<2>')))
+            .select({
+                id: tNamedAmount.id,
+                price: tNamedAmount.price,
+                twice: ctx.conn.fragmentWithType('ScaledBigInt<2>', 'optional').sql`${tNamedAmount.price}`,
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", price as "price", price as "twice" from exact_amount where price = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "1.50",
+          ]
+        `)
+        assertType<Exact<typeof rows, { id: number; price?: ScaledBigInt<2>; twice?: ScaledBigInt<2> }[]>>()
+        expect(rows).toEqual([{ id: 1, price: 150n, twice: 150n }])
+        type Condition = DynamicCondition<{ price: 'ScaledBigInt<2>' }>
+        assertType<Exact<NonNullable<Condition['price']>, FilterOf<ScaledBigIntType<2>>>>()
+    })
+
     test('scaled-bigint/the-classes-of-a-scale', () => {
         // One class for each scale, with its type name and its SQL data type
         expect(scaledBigIntType(2)).toBe(scaledBigIntType(2))
@@ -258,6 +288,14 @@ describe(ctx.label, () => {
         }
         expect(fraction instanceof TsSqlError ? fraction.errorReason : undefined).toEqual({ reason: 'INVALID_CONFIGURATION', name: 'scale', value: 1.5 })
         expect(negative instanceof TsSqlError ? negative.errorReason : undefined).toEqual({ reason: 'INVALID_CONFIGURATION', name: 'scale', value: -2 })
+        // A name whose scale isn't an integer has no data type
+        let unknownName: unknown
+        try {
+            ctx.conn.fragmentWithType('ScaledBigInt<1.5>', 'required')
+        } catch (e) {
+            unknownName = e
+        }
+        expect(unknownName instanceof TsSqlError ? unknownName.errorReason : undefined).toEqual({ reason: 'UNKNOWN_DATA_TYPE', typeName: 'ScaledBigInt<1.5>' })
     })
 
     test('scaled-bigint/a-dynamic-condition-and-a-model', async () => {

@@ -2601,6 +2601,8 @@ interface DataTypes {
     localDate: LocalDateValueSource, localTime: LocalTimeValueSource, localDateTime: LocalDateTimeValueSource,
     plainDate: PlainDateValueSource, plainTime: PlainTimeValueSource, plainDateTime: PlainDateTimeValueSource,
     duration: DurationValueSource, instant: InstantValueSource, zonedDateTime: ZonedDateTimeValueSource
+    /** The scaled bigints of every scale, by their name: `'ScaledBigInt<2>'`, with no registration */
+    [name: `ScaledBigInt<${number}>`]: ScaledBigIntsValueSource<any, any>
 }
 type DataTypeName = keyof DataTypes
 /** Registers a data type of the user by the type name of its class (its static type) */

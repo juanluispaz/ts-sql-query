@@ -15,7 +15,7 @@ import type { QueryColumns, WithValuesData } from './sqlBuilders/SqlBuilder.js'
 import { isUsableValue } from './sqlBuilders/SqlBuilder.js'
 import { TsSqlProcessingError } from './TsSqlError.js'
 import type { AnyValueSource } from './typeSystem/valueSource.js'
-import type { DataTypeName, DataTypeValueSources, DataTypeInputs, DataTypeFragments } from './typeSystem/dataTypeNames.js'
+import type { DataTypeName, DataTypeValueSourceOfName, DataTypeInputOfName, DataTypeFragmentOfName } from './typeSystem/dataTypeNames.js'
 import type { AnyTypeClass, IValueSource, TypeClass, ValueSource } from './typeSystem/base.js'
 import type { NullableType } from './typeSystem/nullable.js'
 import type { FragmentExpression } from './typeSystem/fragments.js'
@@ -112,7 +112,7 @@ class ValuesOf</*in|out*/ SOURCE extends NValues<any, any>> extends ValuesRuntim
         return result as any
     }
 
-    protected column<TYPE extends DataTypeName>(type: TYPE, adapter?: TypeAdapter): DataTypeValueSources<SOURCE, 'required'>[TYPE] & Column
+    protected column<TYPE extends DataTypeName>(type: TYPE, adapter?: TypeAdapter): DataTypeValueSourceOfName<TYPE, SOURCE, 'required'> & Column
     protected column<TYPE extends NullableType<any>>(type: TypeClass<TYPE>, adapter?: TypeAdapter): ValueSource<SOURCE, TYPE, 'required'> & Column
     protected column(type: string | AnyTypeClass, adapter?: TypeAdapter): any { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         // A `Values` view is writable: each real column receives a value in the
@@ -122,20 +122,20 @@ class ValuesOf</*in|out*/ SOURCE extends NValues<any, any>> extends ValuesRuntim
         return __asColumn(__createDBColumn(this, '', __adaptedTypeClassOf(__dataTypeClassFrom(type), adapter)))
     }
 
-    protected optionalColumn<TYPE extends DataTypeName>(type: TYPE, adapter?: TypeAdapter): DataTypeValueSources<SOURCE, 'optional'>[TYPE] & Column
+    protected optionalColumn<TYPE extends DataTypeName>(type: TYPE, adapter?: TypeAdapter): DataTypeValueSourceOfName<TYPE, SOURCE, 'optional'> & Column
     protected optionalColumn<TYPE extends NullableType<any>>(type: TypeClass<TYPE>, adapter?: TypeAdapter): ValueSource<SOURCE, TYPE, 'optional'> & Column
     protected optionalColumn(type: string | AnyTypeClass, adapter?: TypeAdapter): any { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         return __asOptionalColumn(__createDBColumn(this, '', __adaptedTypeClassOf(__dataTypeClassFrom(type), adapter)))
     }
 
-    protected virtualColumnFromFragment<TYPE extends DataTypeName>(type: TYPE, fn: (fragment: DataTypeFragments<NNoTableOrViewRequiredFrom<SOURCE>, 'required'>[TYPE]) => DataTypeInputs<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'required'>[TYPE], adapter?: TypeAdapter): DataTypeValueSources<SOURCE, 'required'>[TYPE]
+    protected virtualColumnFromFragment<TYPE extends DataTypeName>(type: TYPE, fn: (fragment: DataTypeFragmentOfName<TYPE, NNoTableOrViewRequiredFrom<SOURCE>, 'required'>) => DataTypeInputOfName<TYPE, NSourceAllowingNoTableOrViewRequired<SOURCE>, 'required'>, adapter?: TypeAdapter): DataTypeValueSourceOfName<TYPE, SOURCE, 'required'>
     protected virtualColumnFromFragment<TYPE extends NullableType<any>>(type: TypeClass<TYPE>, fn: (fragment: FragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, TYPE, 'required'>) => IValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, TYPE, 'required'>, adapter?: TypeAdapter): ValueSource<SOURCE, TYPE, 'required'>
     protected virtualColumnFromFragment(type: string | AnyTypeClass, fn: (fragment: any) => AnyValueSource, adapter?: TypeAdapter): any { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         const fragmentBuilder =  new FragmentQueryBuilder(__dataTypeClassFrom(type), 'required', adapter)
         return __createValueSourceFromBuilder(fn, fragmentBuilder, __dataTypeClassFrom(type), 'required', adapter)
     }
 
-    protected optionalVirtualColumnFromFragment<TYPE extends DataTypeName>(type: TYPE, fn: (fragment: DataTypeFragments<NNoTableOrViewRequiredFrom<SOURCE>, 'optional'>[TYPE]) => DataTypeInputs<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'optional'>[TYPE], adapter?: TypeAdapter): DataTypeValueSources<SOURCE, 'optional'>[TYPE]
+    protected optionalVirtualColumnFromFragment<TYPE extends DataTypeName>(type: TYPE, fn: (fragment: DataTypeFragmentOfName<TYPE, NNoTableOrViewRequiredFrom<SOURCE>, 'optional'>) => DataTypeInputOfName<TYPE, NSourceAllowingNoTableOrViewRequired<SOURCE>, 'optional'>, adapter?: TypeAdapter): DataTypeValueSourceOfName<TYPE, SOURCE, 'optional'>
     protected optionalVirtualColumnFromFragment<TYPE extends NullableType<any>>(type: TypeClass<TYPE>, fn: (fragment: FragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, TYPE, 'optional'>) => IValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, TYPE, 'optional'>, adapter?: TypeAdapter): ValueSource<SOURCE, TYPE, 'optional'>
     protected optionalVirtualColumnFromFragment(type: string | AnyTypeClass, fn: (fragment: any) => AnyValueSource, adapter?: TypeAdapter): any { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         const fragmentBuilder =  new FragmentQueryBuilder(__dataTypeClassFrom(type), 'optional', adapter)

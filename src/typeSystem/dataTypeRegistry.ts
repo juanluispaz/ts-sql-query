@@ -45,9 +45,20 @@ export function __registerDataType(name: string, dataType: DataTypeClass): void 
     dataTypes[name] = dataType
 }
 
+/**
+ * The data types known by a name of a pattern, as the scaled bigints of every scale (`'ScaledBigInt<2>'`), given by the
+ * module that registers the data types of the library: the class of the name, or undefined when it isn't one of them
+ */
+let dataTypeOfPatternName: ((name: string) => DataTypeClass | undefined) | undefined
+
+/** Says how to find the data type of a name of a pattern (see dataTypeOfPatternName); only registerDataTypes calls it */
+export function __registerDataTypeOfPatternName(resolver: (name: string) => DataTypeClass | undefined): void {
+    dataTypeOfPatternName = resolver
+}
+
 /** The class of the data type registered with that type name; a name nobody registered is an error */
 export function __registeredDataType(name: string): DataTypeClass {
-    const result = dataTypes[name]
+    const result = dataTypes[name] ?? dataTypeOfPatternName?.(name)
     if (!result) {
         throw new TsSqlProcessingError({ reason: 'UNKNOWN_DATA_TYPE', typeName: name }, 'Unknown data type: ' + name + '; a data type of yours is given by its class, or by its type name once registered with registerDataType')
     }

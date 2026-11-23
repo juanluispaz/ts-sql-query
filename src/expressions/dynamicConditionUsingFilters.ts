@@ -3,7 +3,7 @@ import type { UsableKeyOf } from '../utils/objectUtils.js'
 import type { AnyValueSource, IExecutableSelectQuery, TypedValueSource } from '../typeSystem/valueSource.js'
 import type { AnyType, ILogicalValueSource, ValueSource } from '../typeSystem/base.js'
 import type { valueSourceType } from '../utils/symbols.js'
-import type { DataTypeName, DataTypeOfName } from '../typeSystem/dataTypeNames.js'
+import type { DataTypeName, DataTypeOfName, ScaledBigIntName } from '../typeSystem/dataTypeNames.js'
 import type { BooleanType } from '../typeSystem/logical.js'
 import type { FilterOperationNamesOf } from '../typeSystem/filterOperations.js'
 
@@ -29,6 +29,8 @@ type FiltersOfNames = { [NAME in DataTypeName]: FilterOf<DataTypeOfName<NAME>> }
 
 export type FilterTypeOf<TYPE> =
     // The name of a data type, a built-in one or one of the user (`total: 'Money'`)
+    // The name of a scaled bigint of a scale (`'ScaledBigInt<2>'`), whose entry in FiltersOfNames is the same for every scale
+    TYPE extends ScaledBigIntName ? FilterOf<DataTypeOfName<TYPE>> :
     TYPE extends DataTypeName ? FiltersOfNames[TYPE] :
     TYPE extends { [valueSourceType]: infer DATA_TYPE } ? FilterOf<DATA_TYPE> :
     // A data type, like the class of a type of the user (`total: MoneyType`)

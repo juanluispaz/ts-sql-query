@@ -1,6 +1,6 @@
 import type { OptionalityOf, SourceOf, DataTypeOf, ValueSource, TypeClass, AnyTypeClass, ValueTypeOf, OperandOf } from './base.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
-import type { DataTypeName, DataTypeOfName, DataTypeValueOfName, DataTypeValueSources } from './dataTypeNames.js'
+import type { DataTypeName, DataTypeOfName, DataTypeValueOfName, DataTypeValueSourceOfName } from './dataTypeNames.js'
 import type { DataTypeFragmentExpression } from './fragments.js'
 import { FragmentQueryBuilder } from '../queryBuilders/FragmentQueryBuilder.js'
 import { __createConst } from './valueSourceFactory.js'
@@ -54,14 +54,14 @@ export abstract class NullableType</*in|out*/ VALUE_TYPE> extends ValueSourceBas
      * A value of a data type, for a method of a class of a data type of the user, as `const` of the connection: a value
      * given to the method, used in a fragment (`this.fragmentWithType('boolean', 'required').sql\`${this} > ${this.const(n, 'int')}\``)
      */
-    protected const<TYPE extends DataTypeName>(value: DataTypeValueOfName<TYPE>, type: TYPE, adapter?: TypeAdapter): DataTypeValueSources<never, 'required'>[TYPE]
+    protected const<TYPE extends DataTypeName>(value: DataTypeValueOfName<TYPE>, type: TYPE, adapter?: TypeAdapter): DataTypeValueSourceOfName<TYPE, never, 'required'>
     protected const<TYPE extends NullableType<any>>(value: ValueTypeOf<TYPE>, type: TypeClass<TYPE>, adapter?: TypeAdapter): ValueSource<never, TYPE, 'required'>
     protected const(value: any, type: string | AnyTypeClass, adapter?: TypeAdapter): any {
         return __createConst(value, __adaptedTypeClassOf(__dataTypeClassFrom(type), adapter), 'required')
     }
 
     /** A value of a data type that can be null, for a method of a class of a data type of the user, as `optionalConst` of the connection */
-    protected optionalConst<TYPE extends DataTypeName>(value: DataTypeValueOfName<TYPE> | null | undefined, type: TYPE, adapter?: TypeAdapter): DataTypeValueSources<never, 'optional'>[TYPE]
+    protected optionalConst<TYPE extends DataTypeName>(value: DataTypeValueOfName<TYPE> | null | undefined, type: TYPE, adapter?: TypeAdapter): DataTypeValueSourceOfName<TYPE, never, 'optional'>
     protected optionalConst<TYPE extends NullableType<any>>(value: ValueTypeOf<TYPE> | null | undefined, type: TypeClass<TYPE>, adapter?: TypeAdapter): ValueSource<never, TYPE, 'optional'>
     protected optionalConst(value: any, type: string | AnyTypeClass, adapter?: TypeAdapter): any {
         return __createConst(value, __adaptedTypeClassOf(__dataTypeClassFrom(type), adapter), 'optional')

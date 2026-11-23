@@ -1,4 +1,4 @@
-import { __registerDataType, __registerInternalDataType } from './dataTypeRegistry.js'
+import { __registerDataType, __registerDataTypeOfPatternName, __registerInternalDataType } from './dataTypeRegistry.js'
 import { BooleanConditionType, BooleanType } from './logical.js'
 import { DoubleType, IntType } from './number.js'
 import { BigintType } from './bigint.js'
@@ -11,6 +11,7 @@ import { PlainMonthDayType, PlainYearMonthType } from './plainYearMonths.js'
 import { DurationType } from './durations.js'
 import { InstantType } from './instants.js'
 import { ZonedDateTimeType } from './zonedDateTimes.js'
+import { scaledBigIntType } from './scaledBigInts.js'
 
 // THE ONLY MODULE OF THE LIBRARY WITH SIDE EFFECTS (declared in `sideEffects` of package.json): it registers the data
 // types of the library in dataTypeRegistry.ts when it is loaded, the same way the user registers its own ones. The
@@ -38,4 +39,13 @@ __registerDataType('plainMonthDay', PlainMonthDayType)
 __registerDataType('duration', DurationType)
 __registerDataType('instant', InstantType)
 __registerDataType('zonedDateTime', ZonedDateTimeType)
-
+// The scaled bigints of every scale, by the name of their data type: 'ScaledBigInt<2>' is scaledBigIntType(2), made
+// once for each scale when it is first asked for
+__registerDataTypeOfPatternName((name: string) => {
+    const match = /^ScaledBigInt<(0|[1-9][0-9]*)>$/.exec(name)
+    if (!match) {
+        return undefined
+    }
+    const scale = Number(match[1])
+    return Number.isSafeInteger(scale) ? scaledBigIntType<number>(scale) : undefined
+})

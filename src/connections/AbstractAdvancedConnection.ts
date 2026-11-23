@@ -5,7 +5,7 @@ import type { Sequence } from '../expressions/sequence.js'
 import { AbstractConnection } from './AbstractConnection.js'
 import { SequenceQueryBuilder } from '../queryBuilders/SequenceQueryBuilder.js'
 import type { NDB, NNoTableOrViewRequired } from '../utils/sourceName.js'
-import type { DataTypeName, DataTypeValueSources } from '../typeSystem/dataTypeNames.js'
+import type { DataTypeName, DataTypeValueSourceOfName } from '../typeSystem/dataTypeNames.js'
 import type { AnyTypeClass, TypeClass, ValueSource } from '../typeSystem/base.js'
 import type { NullableType } from '../typeSystem/nullable.js'
 import { __dataTypeClassFrom } from '../typeSystem/dataTypeClasses.js'
@@ -16,7 +16,7 @@ export abstract class AbstractAdvancedConnection</*in|out*/ DB extends NDB> exte
         super(queryRunner, sqlBuilder)
     }
 
-    protected sequence<TYPE extends DataTypeName>(name: string, type: TYPE, adapter?: TypeAdapter): Sequence<DataTypeValueSources<NNoTableOrViewRequired<DB>, 'required'>[TYPE]>
+    protected sequence<TYPE extends DataTypeName>(name: string, type: TYPE, adapter?: TypeAdapter): Sequence<DataTypeValueSourceOfName<TYPE, NNoTableOrViewRequired<DB>, 'required'>>
     protected sequence<TYPE extends NullableType<any>>(name: string, type: TypeClass<TYPE>, adapter?: TypeAdapter): Sequence<ValueSource<NNoTableOrViewRequired<DB>, TYPE, 'required'>>
     protected sequence<_T>(name: string, type: string | AnyTypeClass, adapter?: TypeAdapter): Sequence<any> {
         return new SequenceQueryBuilder(name, __dataTypeClassFrom(type), adapter)

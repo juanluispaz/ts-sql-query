@@ -35,6 +35,14 @@ const otherScaleSum = tScaledAmount.price.add(scaledBigInt(1n, 3))
 // @ts-expect-error a negative scale
 const negativeScale = () => scaledBigIntType(-2)
 
+// Rule: a name of a scaled bigint has a scale of 0 or more (a function never called: the name is unknown at run time).
+const negativeScaleName = () => new class TNegativeName extends Table<DBConnection, 'TNegativeName'> {
+    id       = this.primaryKey('id', 'int')
+    // @ts-expect-error a negative scale is no name of a data type
+    hundreds = this.optionalColumn('hundreds', 'ScaledBigInt<-2>')
+    constructor() { super('exact_amount') }
+}()
+
 // Rule: two scaled bigints aren't multiplied nor divided: the product has another scale (functions never called:
 // the methods don't exist).
 // @ts-expect-error a scaled bigint has no multiply
@@ -45,6 +53,6 @@ const quotient = () => tScaledAmount.price.divide(scaledBigInt(2n, 2))
 test('compile-time-only', () => {
     void PriceType
     void OtherScaleType
-    void [sameScale, otherScale, plainBigint, otherScaleSum, product, quotient, negativeScale]
+    void [sameScale, otherScale, plainBigint, otherScaleSum, product, quotient, negativeScale, negativeScaleName]
     expect(true).toBe(true)
 })

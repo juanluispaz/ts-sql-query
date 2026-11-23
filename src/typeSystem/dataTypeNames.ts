@@ -54,7 +54,7 @@ export interface DataTypes {
     zonedDateTime: ZonedDateTimeType
     /**
      * The scaled bigints of every scale, by the name of their data type as TypeScript writes it: `'ScaledBigInt<2>'`
-     * is the data type of `scaledBigIntType(2)`, with no registration
+     * is the data type of `ScaledBigIntType.of(2)`, with no registration
      */
     [name: ScaledBigIntName]: ScaledBigIntsType<ScaledBigInt<number>, string>
 }

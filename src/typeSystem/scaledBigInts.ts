@@ -40,12 +40,16 @@ export function scaledBigInt<SCALE extends number>(value: bigint, scale: SCALE):
  * text of the decimal (`12345n` with the scale 2 is `123.45`). The scale is the one of its values, so an operation
  * that would give more decimals isn't offered: they are added, subtracted and rounded, not multiplied nor divided; a
  * computation that can't be exact gives a double. A value read with a digit beyond the scale is rejected, never cut.
- * Its classes are made by scale: `scaledBigIntType(2)`, and `scaledBigIntsType(2)` to extend for a type of yours
+ * A type of yours extends it, with the scale in its SQL data type: `class PriceType extends ScaledBigIntsType<Price,
+ * 'Price'> { static override readonly type = 'Price'; static override readonly sqlDataType = { family: 'exact numeric',
+ * scale: 2 } }`; the one of the library of a scale is `ScaledBigIntType.of(2)`, of the type name 'ScaledBigInt<2>'
  */
 export abstract class ScaledBigIntsType</*in|out*/ VALUE_TYPE extends ScaledBigInt<number>, /*in|out*/ TYPE_NAME extends string> extends AdditiveType<VALUE_TYPE, TYPE_NAME> {
+    /**
+     * The type of the values in the database, which says their scale, the number of their decimals:
+     * `{ family: 'exact numeric', scale: 2 }`. The family says none: a class of yours says the scale of its values
+     */
     static override readonly sqlDataType: SqlDataType | undefined = decimalSqlDataType
-    /** The scale of the values of the data type: the number of its decimals, 0 or more */
-    static readonly scale: number = 0
 
     /**
      * A number of JavaScript given to an arithmetic operation (the decimals of `roundn`, the exponent of `power`, ...)
@@ -189,72 +193,39 @@ export abstract class ScaledBigIntsType</*in|out*/ VALUE_TYPE extends ScaledBigI
     }
 }
 
-/** The statics of the class of a data type of the family of the scaled bigints, with the scale of its values */
-type ScaledBigIntsTypeStatics<SCALE extends number> = Pick<typeof ScaledBigIntsType, Exclude<keyof typeof ScaledBigIntsType, 'prototype'>> & { readonly scale: SCALE }
-
-/**
- * The family of the scaled bigints of one scale, to extend for a type of yours whose values are of that scale:
- * `const Cents2 = scaledBigIntsType(2)`, `class PriceType extends Cents2<Price, 'Price'> { ... }`, where `Price` is a
- * `ScaledBigInt<2>` (it can't be of another scale)
- */
-export type ScaledBigIntsTypeOfScale<SCALE extends number> = ScaledBigIntsTypeStatics<SCALE> & (abstract new <VALUE_TYPE extends ScaledBigInt<SCALE>, TYPE_NAME extends string>(...args: any[]) => ScaledBigIntsType<VALUE_TYPE, TYPE_NAME>)
-
-/** The data type of the values `ScaledBigInt<SCALE>`, of the type name `ScaledBigInt<SCALE>` */
-export type ScaledBigIntType<SCALE extends number> = ScaledBigIntsType<ScaledBigInt<SCALE>, `ScaledBigInt<${SCALE}>`>
-
-/** The class of the data type of the values `ScaledBigInt<SCALE>` (see scaledBigIntType) */
-export type ScaledBigIntTypeClass<SCALE extends number> = ScaledBigIntsTypeStatics<SCALE> & { readonly prototype: ScaledBigIntType<SCALE> } & (abstract new (...args: any[]) => ScaledBigIntType<SCALE>)
-
-/** The families of the scaled bigints, by their scale */
-const familiesOfScale: Array<ScaledBigIntsTypeOfScale<number> | undefined> = []
-/** The classes of the data type of the scaled bigints, by their scale */
-const typesOfScale: Array<ScaledBigIntTypeClass<number> | undefined> = []
-
 /** A scale literal that is negative is never: a scale is 0 or more */
 type NonNegativeScale<SCALE extends number> = `${SCALE}` extends `-${string}` ? never : unknown
 
-/** Rejects a scale that isn't an integer of 0 or more */
-function checkScale(scale: number): void {
-    if (!Number.isSafeInteger(scale) || scale < 0) {
-        throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'scale', value: scale }, 'Invalid scale of a scaled bigint: ' + scale + ' is not an integer of 0 or more')
-    }
-}
+/** The class of the data type of the values `ScaledBigInt<SCALE>` (see ScaledBigIntType.of) */
+export type ScaledBigIntTypeClass<SCALE extends number> = Pick<typeof ScaledBigIntsType, Exclude<keyof typeof ScaledBigIntsType, 'prototype'>> & { readonly prototype: ScaledBigIntType<SCALE> } & (abstract new (...args: any[]) => ScaledBigIntType<SCALE>)
+
+/** The classes of the data type of the scaled bigints, by their scale */
+const typesOfScale: Array<ScaledBigIntTypeClass<number> | undefined> = []
 
 /**
- * The family of the scaled bigints of that scale, created once for each scale, to extend for a type of yours:
- * `const Cents2 = scaledBigIntsType(2)`, `class PriceType extends Cents2<Price, 'Price'> { static override readonly
- * type = 'Price' }`. The scale is an integer of 0 or more
+ * The data type of the values `ScaledBigInt<SCALE>`, of the type name `ScaledBigInt<SCALE>`, `'ScaledBigInt<2>'`: the
+ * class of a scale is `ScaledBigIntType.of(2)`, and its name can be given wherever a type name goes
  */
-export function scaledBigIntsType<SCALE extends number>(scale: SCALE & NonNegativeScale<SCALE>): ScaledBigIntsTypeOfScale<SCALE> {
-    checkScale(scale)
-    let result = familiesOfScale[scale]
-    if (!result) {
-        const sqlDataType: SqlDataType = { family: 'exact numeric', scale }
-        abstract class ScaledBigIntsTypeOfThatScale extends ScaledBigIntsType<ScaledBigInt<SCALE>, string> {
-            static override readonly sqlDataType: SqlDataType | undefined = sqlDataType
-            static override readonly scale: number = scale
+export abstract class ScaledBigIntType</*in|out*/ SCALE extends number> extends ScaledBigIntsType<ScaledBigInt<SCALE>, `ScaledBigInt<${SCALE}>`> {
+    /**
+     * The class of the data type of the values `ScaledBigInt<SCALE>`, made once for each scale: a scale is an integer of
+     * 0 or more (another one is rejected with INVALID_CONFIGURATION)
+     */
+    static of<SCALE extends number>(scale: SCALE & NonNegativeScale<SCALE>): ScaledBigIntTypeClass<SCALE> {
+        if (!Number.isSafeInteger(scale) || scale < 0) {
+            throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'scale', value: scale }, 'Invalid scale of a scaled bigint: ' + scale + ' is not an integer of 0 or more')
         }
-        result = ScaledBigIntsTypeOfThatScale as unknown as ScaledBigIntsTypeOfScale<number>
-        familiesOfScale[scale] = result
-    }
-    return result as unknown as ScaledBigIntsTypeOfScale<SCALE>
-}
-
-/**
- * The class of the data type of the values `ScaledBigInt<SCALE>`, of the type name `ScaledBigInt<SCALE>`, created once
- * for each scale: `this.column('price', scaledBigIntType(2))`, whose values are `ScaledBigInt<2>`
- */
-export function scaledBigIntType<SCALE extends number>(scale: SCALE & NonNegativeScale<SCALE>): ScaledBigIntTypeClass<SCALE> {
-    checkScale(scale)
-    let result = typesOfScale[scale]
-    if (!result) {
-        const family = scaledBigIntsType<number>(scale) as unknown as abstract new () => ScaledBigIntsType<ScaledBigInt<number>, string>
-        const type = 'ScaledBigInt<' + scale + '>'
-        abstract class ScaledBigIntTypeOfThatScale extends family {
-            static readonly type: string = type
+        let result = typesOfScale[scale]
+        if (!result) {
+            const type = 'ScaledBigInt<' + scale + '>'
+            const sqlDataType: SqlDataType = { family: 'exact numeric', scale }
+            abstract class ScaledBigIntTypeOfThatScale extends ScaledBigIntType<number> {
+                static override readonly type: string = type
+                static override readonly sqlDataType: SqlDataType | undefined = sqlDataType
+            }
+            result = ScaledBigIntTypeOfThatScale as unknown as ScaledBigIntTypeClass<number>
+            typesOfScale[scale] = result
         }
-        result = ScaledBigIntTypeOfThatScale as unknown as ScaledBigIntTypeClass<number>
-        typesOfScale[scale] = result
+        return result as unknown as ScaledBigIntTypeClass<SCALE>
     }
-    return result as unknown as ScaledBigIntTypeClass<SCALE>
 }

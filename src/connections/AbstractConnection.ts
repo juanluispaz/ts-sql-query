@@ -7,7 +7,7 @@ import type { UpdateExpression, UpdateExpressionAllowingNoWhere } from '../expre
 import type { DeleteExpression, DeleteExpressionAllowingNoWhere } from '../expressions/delete.js'
 import type { NoTableOrViewRequired, ITableOrView, ITable, SameDB, HasSource, ForUseInLeftJoin, AnyTableOrView } from '../utils/ITableOrView.js'
 import type { SelectExpression, SelectExpressionFromNoTable, SelectExpressionSubquery } from '../expressions/select.js'
-import type { ProjectionOutput, SqlDataType, TypeAdapter, DefaultTypeAdapter, TypeAdapterPlaceholderContext, TypeAdapterProjectionContext, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
+import type { DataTypeClass, ProjectionOutput, SqlDataType, TypeAdapter, DefaultTypeAdapter, TypeAdapterPlaceholderContext, TypeAdapterProjectionContext, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import type { IConnection } from '../utils/IConnection.js'
 import type { FragmentBuilder0, FragmentBuilder1, FragmentBuilder2, FragmentBuilder3, FragmentBuilder4, FragmentBuilder5, FragmentBuilder0IfValue, FragmentBuilder1IfValue, FragmentBuilder2IfValue, FragmentBuilder3IfValue, FragmentBuilder4IfValue, FragmentBuilder5IfValue, FragmentBuilderMaybeOptional0, FragmentBuilderMaybeOptional1, FragmentBuilderMaybeOptional2, FragmentBuilderMaybeOptional3, FragmentBuilderMaybeOptional4, FragmentBuilderMaybeOptional5 } from '../expressions/fragment.js'
@@ -29,7 +29,7 @@ import type { NAggregate, NDB, NNoTableOrViewRequired, NNotNestedAggregate, NSou
 import type { DataToProject, GetDataToProjectSource } from '../complexProjections/dataToProject.js'
 import type { ResultObjectValuesForAggregatedArray } from '../complexProjections/resultWithOptionalsAsUndefined.js'
 import type { ResultObjectValuesProjectedAsNullableForAggregatedArray } from '../complexProjections/resultWithOptionalsAsNull.js'
-import { __isAggregatedArrayClass, __isBigintClass, __isBooleanClass, __isDoubleClass, __isDnumDecimalClass, __isExactDecimalClass, __scaleOfScaledBigIntClass, __isIntClass, __isLocalDateClass, __isLocalDateTimeClass, __isLocalTimeClass, __isPlainDateClass, __isPlainMonthDayClass, __isPlainYearMonthClass, __isPlainDateTimeClass, __isPlainTimeClass, __isStringClass, __isDurationClass, __isInstantClass, __isUuidClass, __isZonedDateTimeClass } from '../typeSystem/dataTypeQuestions.js'
+import { __isAggregatedArrayClass, __isBigintClass, __isBooleanClass, __isDoubleClass, __isDnumDecimalClass, __isExactDecimalClass, __isScaledBigIntClass, __scaleOfScaledBigIntClass, __isIntClass, __isLocalDateClass, __isLocalDateTimeClass, __isLocalTimeClass, __isPlainDateClass, __isPlainMonthDayClass, __isPlainYearMonthClass, __isPlainDateTimeClass, __isPlainTimeClass, __isStringClass, __isDurationClass, __isInstantClass, __isUuidClass, __isZonedDateTimeClass } from '../typeSystem/dataTypeQuestions.js'
 import { __durationSqlDataTypeOf } from '../typeSystem/dataTypes.js'
 import { parseUtcDateTimeText } from '../utils/utcDateTimeText.js'
 import type { CombinedOptionalityOfUnion, OptionalType } from '../typeSystem/valueSource.js'
@@ -1071,6 +1071,17 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     }
     /** Converts a value received from the database as the requested type */
     /**
+     * The scale of the values of a class of the scaled bigints, the one of its SQL data type: a class that doesn't say
+     * one (a class of yours of the family without its SQL data type) has no values to convert
+     */
+    private __scaleOfScaledBigInt(typeClass: DataTypeClass): number {
+        const scale = __scaleOfScaledBigIntClass(typeClass)
+        if (scale === undefined) {
+            throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'sqlDataType', value: typeClass.sqlDataType }, 'The data type ' + typeClass.type + ' of the family of the scaled bigints says no scale of its values in its SQL data type: give its class a static sqlDataType like { family: \'exact numeric\', scale: 2 }')
+        }
+        return scale
+    }
+    /**
      * Whether the text of an exact decimal received from that output lacks the decimals the database gives the value,
      * so the ones of its SQL data type complete it: the database writes them in the text (MariaDB, MySQL, PostgreSQL,
      * SQL Server)
@@ -1214,8 +1225,8 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             }
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid double value received from the db: ' + String(value))
         }
-        const scale = __scaleOfScaledBigIntClass(context.requestedType)
-        if (scale !== undefined) {
+        if (__isScaledBigIntClass(context.requestedType)) {
+            const scale = this.__scaleOfScaledBigInt(context.requestedType)
             // The value of a scaled bigint is the integer of its digits at the scale of its data type: the decimals
             // the database gives don't matter, only that the value keeps every digit
             let text: string
@@ -1490,8 +1501,8 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             }
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid double value to send to the db: ' + String(value))
         }
-        const scale = __scaleOfScaledBigIntClass(context.requestedType)
-        if (scale !== undefined) {
+        if (__isScaledBigIntClass(context.requestedType)) {
+            const scale = this.__scaleOfScaledBigInt(context.requestedType)
             // A scaled bigint is sent as the text of its decimal, at the scale of its data type (`12345n` with the
             // scale 2 is `123.45`)
             if (typeof value === 'bigint') {

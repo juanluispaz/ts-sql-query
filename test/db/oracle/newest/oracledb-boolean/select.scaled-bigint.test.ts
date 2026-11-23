@@ -9,31 +9,31 @@ import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { Table } from '../../../../../src/Table.js'
 import { TsSqlError } from '../../../../../src/TsSqlError.js'
 import type { DynamicCondition, DynamicConditionForModel } from '../../../../../src/dynamic/condition.js'
-import { scaledBigInt, scaledBigIntsType, scaledBigIntType, type BigintType, type FilterOf, type ScaledBigInt, type ScaledBigIntsType, type ScaledBigIntType, type ScaleOf } from '../../../../../src/exports/v2/index.js'
+import { scaledBigInt, ScaledBigIntType, type BigintType, type FilterOf, type ScaledBigInt, type ScaleOf, ScaledBigIntsType, type SqlDataType } from '../../../../../src/exports/v2/index.js'
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 const tScaledAmount = new class TScaledAmount extends Table<DBConnection, 'TScaledAmount'> {
     id       = this.primaryKey('id', 'int')
-    amount   = this.optionalColumn('amount', scaledBigIntType(10))
-    price    = this.optionalColumn('price', scaledBigIntType(2))
-    hundreds = this.optionalColumn('hundreds', scaledBigIntType(0))
+    amount   = this.optionalColumn('amount', ScaledBigIntType.of(10))
+    price    = this.optionalColumn('price', ScaledBigIntType.of(2))
+    hundreds = this.optionalColumn('hundreds', ScaledBigIntType.of(0))
     constructor() { super('exact_amount') }
 }()
 
-// A type of yours of the scale 2, made from the family of that scale
+// A type of yours of the scale 2: a class of the family, with the scale in its SQL data type
 type Price = ScaledBigInt<2> & { readonly __brand: 'Price' }
-const ScaledBigIntsOf2 = scaledBigIntsType(2)
-abstract class PriceType extends ScaledBigIntsOf2<Price, 'Price'> {
+abstract class PriceType extends ScaledBigIntsType<Price, 'Price'> {
     static override readonly type = 'Price'
+    static override readonly sqlDataType: SqlDataType = { family: 'exact numeric', scale: 2 }
 }
 
 const tPricedAmount = new class TPricedAmount extends Table<DBConnection, 'TPricedAmount'> {
     id    = this.primaryKey('id', 'int')
     price = this.optionalColumn('price', PriceType)
     // The same columns read at another scale than the one of their values
-    amountInCents   = this.optionalColumn('amount', scaledBigIntType(2))
-    priceInTenths   = this.optionalColumn('price', scaledBigIntType(4))
+    amountInCents   = this.optionalColumn('amount', ScaledBigIntType.of(2))
+    priceInTenths   = this.optionalColumn('price', ScaledBigIntType.of(4))
     constructor() { super('exact_amount') }
 }()
 
@@ -242,7 +242,7 @@ describe(ctx.label, () => {
     })
 
     test('scaled-bigint/a-scale-by-the-name-of-its-data-type', async () => {
-        // 'ScaledBigInt<2>' is the data type of scaledBigIntType(2), with no registration, wherever a type name goes
+        // 'ScaledBigInt<2>' is the data type of ScaledBigIntType.of(2), with no registration, wherever a type name goes
         ctx.mockNext([{ id: 1, price: '1.50', twice: '1.50' }])
         const rows = await ctx.conn.selectFrom(tNamedAmount)
             .where(tNamedAmount.price.equals(ctx.conn.const(scaledBigInt(150n, 2), 'ScaledBigInt<2>')))
@@ -264,25 +264,40 @@ describe(ctx.label, () => {
         assertType<Exact<NonNullable<Condition['price']>, FilterOf<ScaledBigIntType<2>>>>()
     })
 
+    test('scaled-bigint/a-type-of-yours-says-its-scale-in-its-sql-data-type', async () => {
+        // A class of the family that doesn't say the scale of its values has no values to convert
+        abstract class NoScaleType extends ScaledBigIntsType<ScaledBigInt<2>, 'NoScale'> {
+            static override readonly type = 'NoScale'
+        }
+        let error: unknown
+        try {
+            await ctx.conn.selectFromNoTable()
+                .selectOneColumn(ctx.conn.const(scaledBigInt(150n, 2), NoScaleType))
+                .executeSelectOne()
+        } catch (e) {
+            error = e
+        }
+        expect(error instanceof TsSqlError ? error.errorReason : undefined).toEqual({ reason: 'INVALID_CONFIGURATION', name: 'sqlDataType', value: { family: 'exact numeric' } })
+    })
+
     test('scaled-bigint/the-classes-of-a-scale', () => {
         // One class for each scale, with its type name and its SQL data type
-        expect(scaledBigIntType(2)).toBe(scaledBigIntType(2))
-        expect(scaledBigIntsType(4)).toBe(scaledBigIntsType(4))
-        expect(scaledBigIntType(2).type).toBe('ScaledBigInt<2>')
-        expect(scaledBigIntType(4).scale).toBe(4)
-        expect(scaledBigIntType(2).sqlDataType).toEqual({ family: 'exact numeric', scale: 2 })
-        assertType<Exact<InstanceType<ReturnType<typeof scaledBigIntType<2>>>, ScaledBigIntType<2>>>()
+        expect(ScaledBigIntType.of(2)).toBe(ScaledBigIntType.of(2))
+        expect(ScaledBigIntType.of(4)).toBe(ScaledBigIntType.of(4))
+        expect(ScaledBigIntType.of(2).type).toBe('ScaledBigInt<2>')
+        expect(ScaledBigIntType.of(2).sqlDataType).toEqual({ family: 'exact numeric', scale: 2 })
+        assertType<Exact<InstanceType<ReturnType<typeof ScaledBigIntType.of<2>>>, ScaledBigIntType<2>>>()
         let fraction: unknown
         try {
-            scaledBigIntType(1.5)
+            ScaledBigIntType.of(1.5)
         } catch (e) {
             fraction = e
         }
-        // A scale is 0 or more: an integer of a column of a negative scale is of the scale 0
+        // A scale is 0 or more
         const scaleOfAColumn: number = -2
         let negative: unknown
         try {
-            scaledBigIntsType(scaleOfAColumn)
+            ScaledBigIntType.of(scaleOfAColumn)
         } catch (e) {
             negative = e
         }
@@ -341,13 +356,13 @@ describe(ctx.label, () => {
         let withExponent: unknown
         try {
             await ctx.conn.selectFromNoTable()
-                .select({ value: ctx.conn.fragmentWithType(scaledBigIntType(2), 'required').sql`'1e3'` })
+                .select({ value: ctx.conn.fragmentWithType(ScaledBigIntType.of(2), 'required').sql`'1e3'` })
                 .executeSelectOne()
         } catch (e) {
             withExponent = e
         }
         const aNumber = await ctx.conn.selectFromNoTable()
-            .select({ value: ctx.conn.fragmentWithType(scaledBigIntType(2), 'required').sql`1.5d` })
+            .select({ value: ctx.conn.fragmentWithType(ScaledBigIntType.of(2), 'required').sql`1.5d` })
             .executeSelectOne()
         expect(withExponent instanceof TsSqlError ? withExponent.errorReason : undefined).toEqual({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value: '1e3', typeName: 'ScaledBigInt<2>', columnPath: 'value' })
         expect(aNumber).toEqual({ value: 150n })

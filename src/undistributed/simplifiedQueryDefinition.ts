@@ -403,7 +403,7 @@ type ScaledBigInt<SCALE extends number> = bigint & { readonly __scale: SCALE }
 
 /**
  * Represents an exact decimal number kept as a ScaledBigInt, of a type that extends ScaledBigIntsType
- * (`scaledBigIntType(2)`), sent to and received from the database as its text; it has no multiply nor divide, whose
+ * (`ScaledBigIntType.of(2)`, `'ScaledBigInt<2>'`), sent to and received from the database as its text; it has no multiply nor divide, whose
  * result would have another scale. The functions whose result can't be exact return a double
  */
 interface ScaledBigIntsValueSource<T extends ScaledBigInt<number>, TYPE_NAME extends string> extends AdditiveValueSource<T, TYPE_NAME> {

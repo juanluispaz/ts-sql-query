@@ -56,12 +56,21 @@ export function __isDoubleClass(typeClass: DataTypeClass): boolean {
 export function __isExactDecimalClass(typeClass: DataTypeClass): boolean {
     return isOf(typeClass, DecimalsType) || isOf(typeClass, ScaledBigIntsType)
 }
+/** An exact decimal whose value is a scaled bigint: a class of the family ScaledBigIntsType */
+export function __isScaledBigIntClass(typeClass: DataTypeClass): boolean {
+    return isOf(typeClass, ScaledBigIntsType)
+}
 /**
- * The scale of an exact decimal whose value is a scaled bigint (a class of the family ScaledBigIntsType), or undefined
- * for any other class
+ * The scale of the values of a scaled bigint, the one of the SQL data type of its class (`{ family: 'exact numeric',
+ * scale: 2 }`), or undefined when it doesn't say an integer of 0 or more
  */
 export function __scaleOfScaledBigIntClass(typeClass: DataTypeClass): number | undefined {
-    return isOf(typeClass, ScaledBigIntsType) ? (typeClass as unknown as typeof ScaledBigIntsType).scale : undefined
+    const sqlDataType = typeClass.sqlDataType
+    if (sqlDataType?.family !== 'exact numeric') {
+        return undefined
+    }
+    const scale = sqlDataType.scale
+    return scale !== undefined && Number.isSafeInteger(scale) && scale >= 0 ? scale : undefined
 }
 /** An exact decimal whose value is a dnum: a dnumDecimal or a decimal of the user of the dnum family */
 export function __isDnumDecimalClass(typeClass: DataTypeClass): boolean {

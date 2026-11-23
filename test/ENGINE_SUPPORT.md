@@ -1248,84 +1248,72 @@ line moves.)*
 
 
 
-### Reading an integer beyond 2^53: exact when the driver is configured for it, a loud error otherwise
+### Reading an integer beyond 2^53: exact, or a loud error on the native SQLite drivers
 
-`bigint` columns and any arithmetic that grows past `Number.MAX_SAFE_INTEGER`
-(`9_007_199_254_740_991`) arrive **rounded** on several connectors, because their
-driver reads every integer as a JavaScript `number` by default. The library
-cannot recover a value the driver already rounded, but it no longer accepts it
-silently: `transformValueFromDB`'s integer arms (`int`, `bigint`)
-reject a `number` outside the safe-integer range with
-`PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` rather than return a clean, **wrong**
-value. So every connector either returns the exact integer or throws — no path
-returns a silently-corrupted one.
+An integer beyond `Number.MAX_SAFE_INTEGER` (`9_007_199_254_740_991`) is read
+exactly on every connector except the native SQLite drivers in their default
+mode. Where a driver still hands it over rounded, the library doesn't accept it
+silently: the integer arms of `transformValueFromDB` (`int`, `bigint`) reject a
+`number` outside the safe-integer range with
+`PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` rather than return a clean,
+**wrong** value. So every connector either returns the exact integer or throws.
 
-**Making it exact is the application's driver configuration, not the library's.**
-v2 explicitly *removed* the forced `safeIntegers(true)` from
-`BetterSqlite3QueryRunner` so every SQLite runner behaves the same way, and left
-the choice to the application — see the
-*Safe Integers* note on each driver's page under
-[`docs/configuration/query-runners/`](../docs/configuration/query-runners/).
+**Exact by the query runner.** The runners ask the driver for the value without
+loss on every query, whatever the user configured on the driver (see
+[`CONTRACT.md` § 3.1](../src/queryRunners/CONTRACT.md#31-per-runner-what-it-sets-per-query-and-what-it-delivers)):
+
+| connector | how the value arrives |
+|---|---|
+| `pg`, `postgres`, `pglite`, `bun_sql_postgres` | an `int8` exact: as its text on `pg`, as each driver gives it on the others |
+| `mysql2` | a `BIGINT` as its text: the runner sets `supportBigNumbers` and `bigNumberStrings` |
+| `mariadb` | a `BIGINT` as a `bigint`: the runner sets `bigIntAsNumber: false` |
+| `bun_sql_mysql` | a `BIGINT` exact, as Bun SQL gives it (its text on MySQL) |
+| `mssql` | a `BIGINT` as its text (tedious) |
+| `oracledb` | a column whose SQL data type is an integer wider than a number, as its text: the runner's `fetchTypeHandler` reads it by the SQL data type requested for the column (the one of its type, or the one a type adapter requests in `transformProjection`); an integer whose SQL data type fits in a number, like an `int` or a type of the user that doesn't say 8 bytes, is fetched as a `number`, so a value beyond 2^53 there raises `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` |
+| `sqlite-wasm-OO1` | a `bigint` for an integer beyond the safe range (the OO1 API) |
+
+**The native SQLite drivers: exact only in the driver's exact-integer mode.**
+v2 removed the forced `safeIntegers(true)` from `BetterSqlite3QueryRunner`, so
+every native SQLite runner behaves the same way, and left the choice to the
+application: the mode makes the driver give **every** integer column as a
+`bigint`, which only the application can decide (see the *Safe Integers* note on
+each driver's page under [`docs/databases/sqlite/query-runners/`](../docs/databases/sqlite/query-runners/)).
 The library does not touch the connection object the application hands it.
 
-| connector | how the application makes it exact |
-|---|---|
-| `mysql2` | `supportBigNumbers: true` on the connection — only out-of-range values change (they arrive as strings), so nothing else is affected |
-| `oracledb` | an `oracledb.fetchTypeHandler` fetching wide `NUMBER` columns as strings |
-| `better-sqlite3` | `safeIntegers` on the database |
-| `node_sqlite` | `setReadBigInts` on the statement |
-| `bun_sqlite`, `bun_sql_sqlite` | `safeIntegers` in the configuration |
+| connector | default | how the application makes it exact |
+|---|---|---|
+| `better-sqlite3` | rounds → `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` | `safeIntegers` on the database |
+| `bun_sqlite`, `bun_sql_sqlite` | rounds → `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` | `safeIntegers` in the configuration |
+| `node_sqlite` | the driver refuses the value (an `ERR_OUT_OF_RANGE`), which `NodeSqliteErrorMapper` reports as `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE`, with the exact digits as text and an empty `typeName` (the type isn't known at that layer) | `setReadBigInts` on the statement |
 
-**How the suite validates it.** The test
-`asBigint-on-double-keeps-bigint-arithmetic-exact`
-(`select.value-source.casts.test.ts`) computes `2 + 9007199254740993`
-(= 9007199254740995, the first sum past 2^53). It reaches one of two outcomes by
-connector, and asserts whichever applies:
+**How the suite validates it.**
 
-- **Default reader already exact** — PostgreSQL, SQL Server, MariaDB and
-  sqlite-wasm read wide integers exactly out of the box (e.g.
-  `postgres/newest/pg`, where node-postgres returns the `bigint` column as a
-  string that `BigInt(...)` reconstructs), so the test asserts the exact `bigint`
-  straight through the shared `ctx.conn` under `--docker` / `--wasm`.
-- **Native SQLite behind an opt-in exact reader** — `bun:sqlite` and
-  `better-sqlite3` round `9007199254740995` to `9007199254740996` and
-  `node:sqlite` throws a `RangeError` past 2^53 by default, so the test reads the
-  value through a **second, opt-in connection** returned by
-  `ctx.withSafeIntegers()` (see [`runners.ts`](db/sqlite/runners.ts)), which
-  turns the driver's exact-integer mode (`safeIntegers` / `setReadBigInts`) on
-  **per statement** and asserts the exact `bigint`. That per-statement scope
-  matters: the mode is otherwise all-or-nothing — it makes the driver hand back
-  **every** integer column as `bigint` (so `id` would arrive as `1n`) — and the
-  in-memory db is a singleton shared across every test file, so a db-wide flip
-  would corrupt every other test's `number` reads.
-- **Reader rounds and stays that way** — on `mysql2` (no `supportBigNumbers`)
-  and `oracledb` (no `fetchTypeHandler`), the sum arrives as a rounded `number`, so the same test
-  asserts the marshaller **throws** `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE`
-  instead of returning a clean-but-wrong `bigint`. The mock is seeded with the
-  rounded number the real driver returns, so mock and real agree. Wiring
-  `supportBigNumbers` / `fetchTypeHandler` on them would flip
-  them into the exact branch, at the cost of those cells no longer reflecting a
-  default setup; that is a suite-design call, not a library one.
+- `marshalling/bigint-column-scalar-read-past-2p53` (`select.value-marshalling.test.ts`)
+  writes `9007199254740993` into the `bigint` `view_count` column and reads it back
+  as a scalar column through the shared `ctx.conn`: the exact value on every
+  connector of the first table, `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` on
+  the native SQLite drivers. The mock seeds what the real driver returns, so mock
+  and real agree.
+- `asBigint-on-double-keeps-bigint-arithmetic-exact` (`select.value-source.casts.test.ts`)
+  computes `2 + 9007199254740993` (= 9007199254740995, the first sum past 2^53) and
+  asserts the exact `bigint` everywhere: on the native SQLite drivers, under
+  `--docker` / real native runs, it reads the value through a **second, opt-in
+  connection** returned by `ctx.withSafeIntegers()` (see [`runners.ts`](db/sqlite/runners.ts)),
+  which turns the driver's exact-integer mode on **per statement**. That scope
+  matters: the mode is otherwise all-or-nothing, and the in-memory database is a
+  singleton shared across every test file, so a database-wide flip would make
+  every other test's `number` read a `bigint`.
+- `docs-extra:type-adapters/requested-sql-data-type-reads-a-value-beyond-2-53` and
+  `docs-extra:id-manipulation/connection-encrypted-id-beyond-2-53-round-trip`
+  read a value beyond 2^53 through a type adapter that requests the SQL data type
+  of 8 bytes, and through a type whose class says it: exact on Oracle too, which
+  reads the value by that SQL data type.
 
 The two config layers are kept distinct on purpose: the `config.*` tests pin
 *ts-sql-query connection-level* config (`insensitiveCollation`, `uuidStrategy`,
 the datetime format) through the sanctioned `withXxx` factories over the shared
 driver connection, whereas `withSafeIntegers()` reaches the *driver-level* reader
 and so returns a separate connection.
-
-**The default reader is also validated on a plain column read** — not just the
-arithmetic form above. `marshalling/bigint-column-scalar-read-past-2p53`
-(`select.value-marshalling.test.ts`) writes `9007199254740993` into the `bigint`
-`view_count` column and reads it back **directly as a scalar column** (outside any
-JSON aggregate) through the shared `ctx.conn`, i.e. the driver's default reader.
-Every connector asserts its default-reader outcome: the exact-by-default readers
-return the value intact, and every rounding reader (`mysql2`, `oracledb`,
-`better-sqlite3`, `bun:sqlite`, Bun SQL's sqlite adapter) raises
-`PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE`. `node:sqlite` is special — its
-driver *refuses* to return the value (a `RangeError`) rather than rounding it; the
-library **normalizes that driver error to the same
-`PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE`** (see `NodeSqliteErrorMapper`), so
-the reason is uniform across every connector.
 
 
 

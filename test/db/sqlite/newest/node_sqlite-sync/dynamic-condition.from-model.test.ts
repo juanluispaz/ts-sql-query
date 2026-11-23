@@ -16,7 +16,7 @@ import type { OrderByForModel } from '../../../../../src/dynamic/orderBy.js'
 import { tIssue, tIssueWorklog, tProject, tOrganization } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import { sync } from '../../../../../src/extras/sync.js'
-import type { EnumType, ComparableType } from '../../../../../src/exports/v2/index.js'
+import type { EnumType, ComparableType, ScaledBigInt, ScaledBigIntsType, ScaledBigIntType } from '../../../../../src/exports/v2/index.js'
 import type { DeepPickPaths } from '../../../../../src/extras/deepUtilities.js'
 
 // Business model (upper layer) — no ts-sql-query types.
@@ -265,13 +265,18 @@ describe(ctx.label, () => {
 
     test('from-model/temporal-values-and-branded-scalars-are-values-of-the-model', () => {
         // A value of Temporal is a value, like a Date: it is filtered and ordered by, and none of its properties is a
-        // path; a branded string or number is compared
+        // path; a branded string or number is compared; a ScaledBigInt is our data type of its scale, and one with a brand
+        // the family of the scaled bigints
         type Code = string & { readonly __brand: 'Code' }
         type Cents = number & { readonly __brand: 'Cents' }
+        type Fee = ScaledBigInt<2> & { readonly __brand: 'Fee' }
         interface CalendarModel {
             id:       number
             code:     Code
             price:    Cents
+            amount:   ScaledBigInt<2>
+            hundreds: ScaledBigInt<-2>
+            fee:      Fee
             day:      Temporal.PlainDate
             time:     Temporal.PlainTime
             dayTime:  Temporal.PlainDateTime
@@ -286,6 +291,9 @@ describe(ctx.label, () => {
             id:       'int'
             code:     ComparableType<Code, string>
             price:    ComparableType<Cents, string>
+            amount:   ScaledBigIntType<2>
+            hundreds: ScaledBigIntType<-2>
+            fee:      ScaledBigIntsType<Fee, string>
             day:      'plainDate'
             time:     'plainTime'
             dayTime:  'plainDateTime'
@@ -295,7 +303,7 @@ describe(ctx.label, () => {
             at:       'instant'
             zoned:    'zonedDateTime'
         }>>()
-        type Leaves = 'id' | 'code' | 'price' | 'day' | 'time' | 'dayTime' | 'month' | 'birthday' | 'took' | 'at' | 'zoned'
+        type Leaves = 'id' | 'code' | 'price' | 'amount' | 'hundreds' | 'fee' | 'day' | 'time' | 'dayTime' | 'month' | 'birthday' | 'took' | 'at' | 'zoned'
         assertType<Exact<Extract<OrderByForModel<CalendarModel>, Leaves>, Leaves>>()
         assertType<Exact<Extract<OrderByForModel<CalendarModel>, `${string}.${string}`>, never>>()
         assertType<Exact<DeepPickPaths<CalendarModel>, Leaves>>()

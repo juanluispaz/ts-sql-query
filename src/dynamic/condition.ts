@@ -1,7 +1,7 @@
 import type { TemporalDuration, TemporalInstant, TemporalPlainDate, TemporalPlainDateTime, TemporalPlainMonthDay, TemporalPlainTime, TemporalPlainYearMonth, TemporalZonedDateTime } from '../typeSystem/temporal.js'
 import type { TerminalValueObject, NonValueObject } from '../utils/objectUtils.js'
 import type { Dnum } from '../typeSystem/decimals.js'
-import type { ScaledBigInt, ScaledBigIntsType } from '../typeSystem/scaledBigInts.js'
+import type { ScaledBigInt, ScaledBigIntsType, ScaledBigIntType } from '../typeSystem/scaledBigInts.js'
 import type { DynamicCondition, DynamicConditionExtension } from '../expressions/dynamicConditionUsingFilters.js'
 import type { ComparableType } from '../typeSystem/comparable.js'
 import type { EnumType } from '../typeSystem/enum.js'
@@ -32,7 +32,9 @@ type IsBrandOf<T, BASE> = [Exclude<keyof T, keyof BASE>] extends [never] ? false
 // The descriptor of a scalar value of the model; never for anything else
 type DynamicDefinitionLeafForModel<T> =
     [T] extends [boolean] ? 'boolean' :
-    [T] extends [ScaledBigInt<number>] ? ScaledBigIntsType<T, string> :
+    // A ScaledBigInt of a scale is our data type of that scale; one of yours (a brand on it) can't be known from the
+    // model, so it is the family, without its type name
+    [T] extends [ScaledBigInt<infer SCALE extends number>] ? ([ScaledBigInt<SCALE>] extends [T] ? ScaledBigIntType<SCALE> : ScaledBigIntsType<T, string>) :
     [T] extends [bigint] ? 'bigint' :
     [T] extends [number] ? ([number] extends [T] ? 'int' : IsBrandOf<T, number> extends true ? ComparableType<T, string> : EnumType<T, string>) :
     [T] extends [string] ? ([string] extends [T] ? 'string' : IsBrandOf<T, string> extends true ? ComparableType<T, string> : EnumType<T, string>) :

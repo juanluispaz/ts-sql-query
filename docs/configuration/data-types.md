@@ -95,7 +95,7 @@ Choose by the values your code handles, not only by the type of the column in th
 | A date with no time as a `Date` | `localDate` | A `Date` at 10:00 UTC of the day: read it with `getUTCFullYear`, `getUTCMonth` and `getUTCDate`. See [Read the values with the UTC getters](dates-as-date.md#read-the-values-with-the-utc-getters). |
 | A time as a `Date` | `localTime` | A `Date` on 1970-01-01: read it with `getUTCHours`, `getUTCMinutes` and `getUTCSeconds`. |
 | A date with time as a `Date` | `localDateTime` | A `Date` whose UTC getters are the stored digits, in any zone of your application. This is the type for a column that stores an instant too, like `timestamptz` on PostgreSQL, which gives the instant. See [Time zones](time-zones.md). |
-| One of a fixed list of values | `enum` | With a union of your values as its TypeScript type. |
+| One of a fixed list of values, like a status | A class that extends `EnumType` | With a union of your values as its TypeScript type, compared for equality: see [Your own types](#your-own-types). |
 | A value your code gives a type of its own, like an id with a TypeScript brand | A class of the [family](../advanced/data-types/own-data-types.md#the-families) with the operations it needs | It's converted as its family says, like an `IntegersType` as an `int`. |
 | A value that only your code understands, like a JSON document | A class that extends `EqualableType`, or `ComparableType` if the database can order it | With the [conversion registered](../advanced/data-types/own-data-types.md#its-conversions-a-type-adapter-in-the-class). |
 
@@ -117,6 +117,22 @@ abstract class UnitsType extends IntegersType<Units, 'Units'> {
 
 stock = this.column('stock', UnitsType)
 ```
+
+A value of a fixed list, like the status of an issue, is a class that extends `EnumType`, with the union of the values as its TypeScript type:
+
+```typescriptreact
+import { EnumType } from 'ts-sql-query'
+
+type IssueStatus = 'open' | 'in_progress' | 'closed'
+
+abstract class IssueStatusType extends EnumType<IssueStatus, 'IssueStatus'> {
+    static override readonly type = 'IssueStatus'
+}
+
+status = this.column('status', IssueStatusType)
+```
+
+A column of `IssueStatusType` takes and gives only values of `IssueStatus`, and is compared for equality: `equals`, `notEquals`, `in`, `notIn`, `isNull` and the rest, without an order. Its values are sent and read as they are, with no conversion, so the column keeps the same values as your code, like the text `'open'`; for values kept in another form, like a number for each status, give the class its conversion (see [its conversions](../advanced/data-types/own-data-types.md#its-conversions-a-type-adapter-in-the-class)).
 
 A column of `UnitsType` is compared, computed and assigned only with values of `Units`. Its class also says, as statics, [its type in the database](../advanced/data-types/own-data-types.md#its-type-in-the-database), by default the one of its family (an integer of 4 bytes here), and [how its values are converted](../advanced/data-types/own-data-types.md#its-conversions-a-type-adapter-in-the-class), like a type adapter of the whole type. What else a type of yours can do:
 

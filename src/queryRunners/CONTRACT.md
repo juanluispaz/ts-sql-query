@@ -146,7 +146,7 @@ the other databases.
 
 The connection converts a value by the class of its requested type: a data type of the user is converted as its family
 says, whatever its type name (an `IntegersType` as an `int`, or as a `bigint` when the SQL data type of its class
-doesn't fit in a number; a `RealsType` as a `double`; a `DecimalsType` as a `stringDecimal`, and a `DnumDecimalsType` as a `dnumDecimal`; a `UuidsType` as a `uuid`;
+doesn't fit in a number; a `RealsType` as a `double`; a `DecimalsType` as a `stringDecimal`, a `DnumDecimalsType` as a `dnumDecimal`, and a `ScaledBigIntsType` as an exact decimal kept as a bigint at the scale of its class; a `UuidsType` as a `uuid`;
 a `LocalDatesType`, `LocalTimesType` or `LocalDateTimesType` as a `localDate`, `localTime` or `localDateTime`), and a
 built-in one by its type. A data type of the user whose family converts nothing (`EnumType`, `EqualableType`,
 `ComparableType`, `AdditiveType`, `MultipliableType`, `DivisibleType`) and a value without a built-in type pass
@@ -166,7 +166,8 @@ Every rejection is `INVALID_VALUE_TO_SEND_TO_DATABASE`.
 | `bigint` | `bigint` | anything else (a `number` too) | the bigint. SQLite: the text of a bigint of a type whose SQL data type is wider than 64 bits (an exact number, computed with the decimal strategy) |
 | `double` | any `number` (`NaN`, `Infinity` included) | non-number | the number |
 | `stringDecimal`, `DecimalsType` | a string matching `^-?(\d+(\.\d+)?\|\.\d+)$` (point separator, no exponent) | other strings, non-strings | the text |
-| `dnumDecimal`, `DnumDecimalsType` | a dnum: an array of a `bigint` and a number of decimals that is a safe integer, 0 or more | anything else (a text too) | its text with all its decimals: `[150n, 2]` → `'1.50'`, `[-5n, 3]` → `'-0.005'`, `[12n, 0]` → `'12'` |
+| `dnumDecimal`, `DnumDecimalsType` | a dnum: an array of a `bigint` and a number of decimals that is a safe integer (a negative one is a number of zeros at the end) | anything else (a text too) | its text with all its decimals: `[150n, 2]` → `'1.50'`, `[-5n, 3]` → `'-0.005'`, `[12n, 0]` → `'12'`, `[123n, -2]` → `'12300'` |
+| `ScaledBigIntsType` | a `bigint` | anything else | the text of its decimal at the scale of its class: `150n` of the scale 2 → `'1.50'`, `123n` of the scale -2 → `'12300'` |
 | `string` | `string` | non-string | the string |
 | `uuid` | `string` (format not checked) | non-string | the string; in lower case with the uuid strategy `'string'` (MariaDB, MySQL, Oracle, SQLite) and on SQL Server unless `useUpperCaseUuid` |
 | `localDate` | a valid `Date` | invalid `Date`, non-Date | the `Date` as given (its UTC day is the value) |
@@ -313,7 +314,7 @@ After `transformValueToDB` without adapter, `addParam` and the work of execution
 | int, IntegersType that fits in a number | number; forced: `int4` | number | `Int` | number; null → `DB_TYPE_NUMBER` | number (wasm: beyond 64 bits as `cast(text as real)`) |
 | bigint, IntegersType wider than a number | bigint; forced: `int8` | bigint | `BigInt` | bigint; null → `DB_TYPE_NUMBER` | bigint |
 | double, RealsType | number; forced: `float8` | number | `Float` | number; null → `DB_TYPE_NUMBER` | number |
-| stringDecimal, dnumDecimal, DecimalsType | text; forced: `numeric` | text, `cast(? as decimal(p,s))` outside a column value | `NVarChar`, `cast(@N as decimal(p,s))` outside a column value | text; null → `DB_TYPE_NUMBER` | text (the SQL around it per `decimalStrategy`) |
+| stringDecimal, dnumDecimal, DecimalsType, ScaledBigIntsType | text; forced: `numeric` | text, `cast(? as decimal(p,s))` outside a column value | `NVarChar`, `cast(@N as decimal(p,s))` outside a column value | text; null → `DB_TYPE_NUMBER` | text (the SQL around it per `decimalStrategy`) |
 | string | text; forced: `text` | text | `NVarChar` | text | text |
 | uuid, UuidsType | text; forced: `uuid` | text | `UniqueIdentifier` | text | text |
 | localDate | `YYYY-MM-DD` (UTC day); forced: `date` | `YYYY-MM-DD` (UTC day) | the Date, `Date` | `DATE` of the UTC day | per `SqliteDateTimeFormat` |
@@ -426,7 +427,7 @@ themselves is in the `DeliveredValues` tests of `test/runners/<db>/` and in the 
 | int | number; text (int8, count) | number; text (mysql2 BIGINT); bigint (mariadb BIGINT) | number; text (BIGINT) | number; text from an OUT bind | number, bigint |
 | bigint | text (int8) | text (mysql2); bigint (mariadb) | text | text (fetched as VARCHAR) | number, bigint |
 | double | number; text (numeric) | number; text (DECIMAL) | number | number | number |
-| stringDecimal, dnumDecimal, DecimalsType | text | text | text (`convert(nvarchar(41))`) | text, possibly `.5` / `-.5`; a column with the scale of its `NUMBER(p, s)`; a computed value and an OUT bind (`returning`) with the scale of the SQL data type of the column, or without the zeros at the end of its decimals | text per `decimalStrategy` |
+| stringDecimal, dnumDecimal, DecimalsType, ScaledBigIntsType | text | text | text (`convert(nvarchar(41))`) | text, possibly `.5` / `-.5`; a column with the scale of its `NUMBER(p, s)`; a computed value and an OUT bind (`returning`) with the scale of the SQL data type of the column, or without the zeros at the end of its decimals | text per `decimalStrategy` |
 | string, uuid | text | text | text | text | text |
 | localDate | Date (`date` parsed as UTC) | text `YYYY-MM-DD` (mysql2/mariadb); Date (Bun SQL) | Date | Date (rebuilt as UTC) | per format |
 | localTime | text `HH:MM:SS[.ffffff]`; `timetz` text with its offset | text `HH:MM:SS[.ffffff]` | Date | Date | per format |
@@ -449,7 +450,7 @@ silent.
 
 Common: `undefined` and `null` → `null`; `''` → `null` unless `allowEmptyString`. Tests:
 `marshalling.transform-validation.test.ts` (`from-db-validation/*`), `select.string-decimal.test.ts`,
-`select.own-decimal.test.ts`, `select.dnum-decimal.test.ts` in each cell.
+`select.own-decimal.test.ts`, `select.dnum-decimal.test.ts`, `select.scaled-bigint.test.ts` in each cell.
 
 | Conversion type | Accepts → result | `PRECISION_LOST` | Rejects |
 |---|---|---|---|
@@ -458,6 +459,7 @@ Common: `undefined` and `null` → `null`; `''` → `null` unless `allowEmptyStr
 | `bigint` | safe integer number → bigint; text → `BigInt(text without a trailing .0+)` (`BigInt()` also takes `0x1f` and blanks, which no database delivers); bigint | integer number not safe | non-integer number, text `BigInt` refuses, other types |
 | `double` | number; text `^(-?(\d+(\.\d+)?\|\.\d+)([eE][-+]?\d+)?\|NaN\|-?Infinity)$` → `+v`; bigint → `Number(v)` (a `double` is approximate by definition: rounding a bigint is not a loss to report) | — | other text, other types |
 | `stringDecimal`, `dnumDecimal`, `DecimalsType` | text `^-?(\d+(\.\d+)?\|\.\d+)$` (`.5` → `0.5`, `-.5` → `-0.5`); bigint → its text; a dnum → its text. Then its decimals: the ones the database gives, in the text (MariaDB, MySQL, PostgreSQL, SQL Server) or by the query runner (Oracle, every column of the result); where it doesn't give them (SQLite; on Oracle a value inside an aggregated array), the scale of its SQL data type when it says one (zeros added or removed at the end, never another digit), else the ones received; a `dnumDecimal` gives the dnum of that text (`'1.50'` → `[150n, 2]`) | any number | other text (an exponent too), other types |
+| `ScaledBigIntsType` | text `^-?(\d+(\.\d+)?\|\.\d+)$`, bigint, a dnum → the integer of its digits at the scale of its class (`'1.5'`, `'1.50'` and `'1.5000'` of the scale 2 → `150n`; `'12300'` of the scale -2 → `123n`) | any number; a value with a digit other than a zero beyond the scale (`'1.234'` of the scale 2, `'12350'` of the scale -2) | other text (an exponent too), other types |
 | `string`, `uuid` | text, unchanged; a `uuid` in lower case with the uuid strategy `'string'` and on SQL Server unless `useUpperCaseUuid`; on SQL Server also the text of a uuid (`asString()`) in a column of the result | — | non-text |
 | `localDate` | valid Date, read with its UTC getters, or temporal text (§3.4) → a new Date at 10:00 UTC of the UTC day of the received one | — | anything else, invalid Date, unparsable text, text outside the calendar |
 | `localTime` | same inputs → a Date on 1970-01-01 with the UTC time of the received one; with a database outside UTC, the instant read, on its own day (§7.3) | — | same |

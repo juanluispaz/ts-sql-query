@@ -1,5 +1,5 @@
 import type { NAggregate, NConnection, NNotNestedAggregate, NSource } from '../utils/sourceName.js'
-import { argumentNumber, nativeNameFor, nativeTypeParts } from '../utils/sqlDataTypeNames.js'
+import { argumentNumber, signedArgumentNumber, nativeNameFor, nativeTypeParts } from '../utils/sqlDataTypeNames.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import { PostgreSqlSqlBuilder, postgreSqlZonedValueSql } from '../sqlBuilders/PostgreSqlSqlBuilder.js'
 import type { IntervalSqlDataTypeFields, SqlDataType, SqlDataTypeNative, TypeAdapterProjectionContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
@@ -235,13 +235,13 @@ function postgreSqlFamilyOf(nativeName: string): SqlDataType {
         return { family: 'collection', kind: 'array', of }
     }
     const n0 = argumentNumber(args[0])
-    const n1 = argumentNumber(args[1])
     switch (key) {
         case 'smallint': case 'int2': return { family: 'exact numeric', scale: 0, bytes: 2 }
         case 'integer': case 'int': case 'int4': return { family: 'exact numeric', scale: 0, bytes: 4 }
         case 'bigint': case 'int8': return { family: 'exact numeric', scale: 0, bytes: 8 }
         case 'numeric': case 'decimal':
-            return { family: 'exact numeric', precision: n0, scale: n0 === undefined ? undefined : n1 ?? 0 }
+            // The scale can be negative: `numeric(5, -2)` keeps multiples of 100
+            return { family: 'exact numeric', precision: n0, scale: n0 === undefined ? undefined : signedArgumentNumber(args[1]) ?? 0 }
         case 'real': case 'float4': return { family: 'approximate numeric', precision: 24 }
         case 'double precision': case 'float8': return { family: 'approximate numeric', precision: 53 }
         case 'float': return { family: 'approximate numeric', precision: n0 !== undefined && n0 <= 24 ? 24 : 53 }

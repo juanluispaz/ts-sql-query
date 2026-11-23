@@ -4,6 +4,7 @@ import { BooleanType } from './logical.js'
 import { DoubleType, IntType } from './number.js'
 import { IntegersType, RealsType } from './numeric.js'
 import { DecimalsType, DnumDecimalsType } from './decimals.js'
+import { ScaledBigIntsType } from './scaledBigInts.js'
 import { StringType } from './strings.js'
 import { UuidsType } from './uuids.js'
 import { LocalDatesType, LocalDateTimesType, LocalTimesType } from './localDates.js'
@@ -48,11 +49,19 @@ export function __isDoubleClass(typeClass: DataTypeClass): boolean {
     return isOf(typeClass, DoubleType) || isOf(typeClass, RealsType)
 }
 /**
- * An exact decimal: a stringDecimal, a dnumDecimal or a decimal of the user; its value is its text, or a dnum for the
- * ones of the dnum family (__isDnumDecimalClass)
+ * An exact decimal: a stringDecimal, a dnumDecimal, a decimal of the user or a scaled bigint; its value is its text, a
+ * dnum for the ones of the dnum family (__isDnumDecimalClass), or a bigint for a scaled bigint
+ * (__scaleOfScaledBigIntClass)
  */
 export function __isExactDecimalClass(typeClass: DataTypeClass): boolean {
-    return isOf(typeClass, DecimalsType)
+    return isOf(typeClass, DecimalsType) || isOf(typeClass, ScaledBigIntsType)
+}
+/**
+ * The scale of an exact decimal whose value is a scaled bigint (a class of the family ScaledBigIntsType), or undefined
+ * for any other class
+ */
+export function __scaleOfScaledBigIntClass(typeClass: DataTypeClass): number | undefined {
+    return isOf(typeClass, ScaledBigIntsType) ? (typeClass as unknown as typeof ScaledBigIntsType).scale : undefined
 }
 /** An exact decimal whose value is a dnum: a dnumDecimal or a decimal of the user of the dnum family */
 export function __isDnumDecimalClass(typeClass: DataTypeClass): boolean {

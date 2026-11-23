@@ -16,6 +16,8 @@ const introspection = new IntrospectionConnection(new NoExecutionQueryRunner())
 
 const cases: CatalogCase[] = [
     { ddl: 'number(18, 4)', family: { family: 'exact numeric', precision: 18, scale: 4 }, canonical: 'NUMBER(18, 4)' },
+    // A negative scale keeps multiples of a power of 10
+    { ddl: 'number(7, -2)', family: { family: 'exact numeric', precision: 7, scale: -2 }, canonical: 'NUMBER(7, -2)' },
     { ddl: 'number(10)', family: { family: 'exact numeric', precision: 10, scale: 0 }, canonical: 'NUMBER(10, 0)' },
     { ddl: 'number', family: { family: 'exact numeric' }, canonical: 'NUMBER' },
     // As Oracle keeps it: a NUMBER(38, 0)

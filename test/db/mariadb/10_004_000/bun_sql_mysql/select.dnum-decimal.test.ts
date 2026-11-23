@@ -18,6 +18,7 @@ const tExactAmount = new class TExactAmount extends Table<DBConnection, 'TExactA
     id     = this.primaryKey('id', 'int')
     amount = this.optionalColumn('amount', 'dnumDecimal')
     price  = this.optionalColumn('price', 'dnumDecimal')
+    hundreds = this.optionalColumn('hundreds', 'dnumDecimal')
     constructor() { super('exact_amount') }
 }()
 
@@ -113,6 +114,28 @@ describe(ctx.label, () => {
           ]
         `)
         expect(exactIds).toEqual([1])
+    })
+
+    test('dnum-decimal/a-negative-number-of-decimals-is-a-number-of-zeros-at-the-end', async () => {
+        // [123n, -2] is 12300, the hundreds of row 1; the functions of dnum don't accept a negative number of decimals.
+        // The value read has the decimals the database gives, none
+        ctx.mockNext([1])
+        ctx.mockNext({ hundreds: '12300' })
+        const ids = await ctx.conn.selectFrom(tExactAmount)
+            .where(tExactAmount.hundreds.equals([123n, -2]))
+            .selectOneColumn(tExactAmount.id)
+            .executeSelectMany()
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "12300",
+          ]
+        `)
+        expect(ids).toEqual([1])
+        const row = await ctx.conn.selectFrom(tExactAmount)
+            .where(tExactAmount.id.equals(1))
+            .select({ hundreds: tExactAmount.hundreds })
+            .executeSelectOne()
+        expect(row).toEqual({ hundreds: [12300n, 0] })
     })
 
     test('dnum-decimal/an-in-list-and-a-between-compare-every-digit', async () => {
@@ -319,16 +342,7 @@ describe(ctx.label, () => {
         expect(ids).toEqual([1])
     })
 
-    test('dnum-decimal/a-dnum-with-decimals-that-are-not-a-whole-number-is-rejected', async () => {
-        let negative: unknown
-        try {
-            await ctx.conn.selectFrom(tExactAmount)
-                .where(tExactAmount.price.equals([15n, -1]))
-                .selectOneColumn(tExactAmount.id)
-                .executeSelectMany()
-        } catch (e) {
-            negative = e
-        }
+    test('dnum-decimal/a-dnum-with-a-fraction-of-decimals-is-rejected', async () => {
         let fraction: unknown
         try {
             await ctx.conn.selectFrom(tExactAmount)
@@ -338,7 +352,6 @@ describe(ctx.label, () => {
         } catch (e) {
             fraction = e
         }
-        expect(negative instanceof TsSqlError ? negative.errorReason : undefined).toEqual({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value: [15n, -1], typeName: 'dnumDecimal', paramIndex: 0 })
         expect(fraction instanceof TsSqlError ? fraction.errorReason : undefined).toEqual({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value: [15n, 0.5], typeName: 'dnumDecimal', paramIndex: 0 })
     })
 

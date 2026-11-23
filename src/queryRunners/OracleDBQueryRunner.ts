@@ -618,7 +618,9 @@ function sqlDataTypeOfColumn(column: QueryResultColumn): SqlDataType | undefined
 function textFetchTypeOf(metadata: Metadata<any>, decimalsOfSqlDataType: number | undefined): FetchTypeResponse {
     const precision = metadata.precision
     const scale = metadata.scale
-    const decimals = metadata.dbType === oracleDb.DB_TYPE_NUMBER && precision !== undefined && precision > 0 && scale !== undefined && Number.isSafeInteger(scale) && scale >= 0 ? scale : decimalsOfSqlDataType
+    // A NUMBER(p, s) says its scale, from -84 (a negative one has no decimals: NUMBER(5, -2) keeps multiples of 100); a
+    // FLOAT says -127, and a NUMBER without a precision (a computed value) says nothing
+    const decimals = metadata.dbType === oracleDb.DB_TYPE_NUMBER && precision !== undefined && precision > 0 && scale !== undefined && Number.isSafeInteger(scale) && scale > -127 ? Math.max(scale, 0) : decimalsOfSqlDataType
     if (decimals !== undefined && decimals > 0) {
         return { type: oracleDb.DB_TYPE_VARCHAR, converter: decimalsTextConverterOf(decimals) }
     }

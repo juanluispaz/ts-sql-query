@@ -85,6 +85,17 @@ export function argumentNumber(arg: string | undefined): number | undefined {
     return Number(arg.trim())
 }
 
+/**
+ * The number of an argument of a type name that can be negative, like the scale of a `numeric(5, -2)` on PostgreSQL
+ * and Oracle (its values are multiples of 100); undefined when it isn't an integer
+ */
+export function signedArgumentNumber(arg: string | undefined): number | undefined {
+    if (arg === undefined || !/^-?\d+$/.test(arg.trim())) {
+        return undefined
+    }
+    return Number(arg.trim())
+}
+
 /** The text of a quoted argument (`'a'` gives `a`, `'it''s'` gives `it's`) */
 export function unquotedArgument(arg: string): string {
     const text = arg.trim()

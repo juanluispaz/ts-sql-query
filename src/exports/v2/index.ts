@@ -119,6 +119,17 @@ export {
     StringDecimalType,
     type Dnum,
 } from '../../typeSystem/decimals.js'
+export {
+    ScaledBigIntsType,
+    scaledBigInt,
+    scaledBigIntsType,
+    scaledBigIntType,
+    type ScaledBigInt,
+    type ScaledBigIntType,
+    type ScaledBigIntTypeClass,
+    type ScaledBigIntsTypeOfScale,
+    type ScaleOf,
+} from '../../typeSystem/scaledBigInts.js'
 
 export {
     StringType,

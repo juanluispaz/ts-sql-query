@@ -137,7 +137,8 @@ CREATE TABLE exact_amount (
     id INTEGER PRIMARY KEY,
     amount NUMERIC(38,10),
     price NUMERIC(10,2),
-    units NUMERIC(30,0)
+    units NUMERIC(30,0),
+    hundreds NUMERIC(7,-2)
 );
 
 -- Int caller-provided PK carrying a scaling TypeAdapter (invoice_no stored x10).

@@ -144,7 +144,8 @@ CREATE TABLE exact_amount (
     id INTEGER PRIMARY KEY,
     amount TEXT,
     price TEXT,
-    units TEXT
+    units TEXT,
+    hundreds TEXT
 ) STRICT;
 
 -- Int caller-provided PK carrying a scaling TypeAdapter (invoice_no stored x10).

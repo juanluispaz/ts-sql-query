@@ -19,6 +19,8 @@ const cases: CatalogCase[] = [
     { ddl: 'int', family: { family: 'exact numeric', scale: 0, bytes: 4 }, canonical: 'int4' },
     { ddl: 'bigint', family: { family: 'exact numeric', scale: 0, bytes: 8 }, canonical: 'int8' },
     { ddl: 'numeric(18, 4)', family: { family: 'exact numeric', precision: 18, scale: 4 }, canonical: 'numeric(18, 4)' },
+    // A negative scale keeps multiples of a power of 10 (PostgreSQL 15 and later)
+    { ddl: 'numeric(7, -2)', family: { family: 'exact numeric', precision: 7, scale: -2 }, canonical: 'numeric(7, -2)' },
     { ddl: 'numeric', family: { family: 'exact numeric' }, canonical: 'numeric' },
     { ddl: 'real', family: { family: 'approximate numeric', precision: 24 }, canonical: 'float4' },
     { ddl: 'float8', family: { family: 'approximate numeric', precision: 53 }, canonical: 'float8' },

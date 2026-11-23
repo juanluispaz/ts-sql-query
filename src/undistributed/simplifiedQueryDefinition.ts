@@ -398,6 +398,37 @@ interface DecimalsValueSource<T, TYPE_NAME extends string> extends MultipliableV
     atan2(value: number | NumberValueSource): NumberValueSource
 }
 
+/** A bigint with its scale in its type: `ScaledBigInt<2>` keeps cents, and `12345n` is 123.45 */
+type ScaledBigInt<SCALE extends number> = bigint & { readonly __scale: SCALE }
+
+/**
+ * Represents an exact decimal number kept as a ScaledBigInt, of a type that extends ScaledBigIntsType
+ * (`scaledBigIntType(2)`), sent to and received from the database as its text; it has no multiply nor divide, whose
+ * result would have another scale. The functions whose result can't be exact return a double
+ */
+interface ScaledBigIntsValueSource<T extends ScaledBigInt<number>, TYPE_NAME extends string> extends AdditiveValueSource<T, TYPE_NAME> {
+    ceil(): this
+    floor(): this
+    round(): this
+    /** The number of decimals is a number, or a value source of one */
+    roundn(value: number | NumberValueSource): this
+    exp(): NumberValueSource
+    ln(): NumberValueSource
+    log10(): NumberValueSource
+    sqrt(): NumberValueSource
+    cbrt(): NumberValueSource
+    acos(): NumberValueSource
+    asin(): NumberValueSource
+    atan(): NumberValueSource
+    cos(): NumberValueSource
+    cot(): NumberValueSource
+    sin(): NumberValueSource
+    tan(): NumberValueSource
+    power(value: number | NumberValueSource): NumberValueSource
+    logn(value: number | NumberValueSource): NumberValueSource
+    atan2(value: number | NumberValueSource): NumberValueSource
+}
+
 /**
  * Represents a number of a type of yours that extends `DivisibleType`: it is also divided
  */
@@ -2707,4 +2738,4 @@ interface ValueSource<T, TYPE_NAME extends string = string> {
     makeCompilerHappy_typeName: TYPE_NAME
 }
 // The value sources of the data types, each one given by the methods that take a data type (see ValueSource<T>)
-void function (_uuid: UuidValueSource, _integers: IntegersValueSource<any, any>, _decimals: DecimalsValueSource<any, any>, _reals: RealsValueSource<any, any>, _uuids: UuidsValueSource<any, any>, _localDates: LocalDatesValueSource<any, any>, _localTimes: LocalTimesValueSource<any, any>, _localDateTimes: LocalDateTimesValueSource<any, any>) { return null }
+void function (_uuid: UuidValueSource, _integers: IntegersValueSource<any, any>, _decimals: DecimalsValueSource<any, any>, _scaledBigInts: ScaledBigIntsValueSource<any, any>, _reals: RealsValueSource<any, any>, _uuids: UuidsValueSource<any, any>, _localDates: LocalDatesValueSource<any, any>, _localTimes: LocalTimesValueSource<any, any>, _localDateTimes: LocalDateTimesValueSource<any, any>) { return null }

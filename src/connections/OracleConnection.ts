@@ -1,7 +1,7 @@
 import { dateOfStoredTimesOf } from '../utils/temporalReference.js'
 import { isKeptInADateClass } from '../utils/plainTemporalValues.js'
 import type { NAggregate, NConnection, NSource } from '../utils/sourceName.js'
-import { argumentNumber, integerDigits, nativeNameFor, nativeTypeParts } from '../utils/sqlDataTypeNames.js'
+import { argumentNumber, signedArgumentNumber, integerDigits, nativeNameFor, nativeTypeParts } from '../utils/sqlDataTypeNames.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import { OracleSqlBuilder, oracleZonedValueSql } from '../sqlBuilders/OracleSqlBuilder.js'
 import { oracleUtcOfInstantOfUtc } from '../utils/oracle/oracleInstantSql.js'
@@ -334,10 +334,10 @@ function oracleFamilyOf(nativeName: string): SqlDataType {
     // A type of a schema, like SYS.XMLTYPE or MDSYS.SDO_GEOMETRY
     const key = fullKey.replace(/^(sys|mdsys|public)\./, '')
     const n0 = argumentNumber(args[0])
-    const n1 = argumentNumber(args[1])
     switch (key) {
         case 'number': case 'numeric': case 'decimal': case 'dec':
-            return { family: 'exact numeric', precision: n0, scale: n0 === undefined ? undefined : n1 ?? 0 }
+            // The scale can be negative: `numeric(5, -2)` keeps multiples of 100
+            return { family: 'exact numeric', precision: n0, scale: n0 === undefined ? undefined : signedArgumentNumber(args[1]) ?? 0 }
         case 'integer': case 'int': case 'smallint': return { family: 'exact numeric', precision: 38, scale: 0 }
         case 'float': return { family: 'approximate numeric', precision: n0 ?? 126 }
         case 'real': return { family: 'approximate numeric', precision: 63 }

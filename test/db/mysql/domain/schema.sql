@@ -135,7 +135,8 @@ CREATE TABLE exact_amount (
     id INT PRIMARY KEY,
     amount DECIMAL(38,10),
     price DECIMAL(10,2),
-    units DECIMAL(30,0)
+    units DECIMAL(30,0),
+    hundreds DECIMAL(9,0)
 );
 
 -- Int caller-provided PK carrying a scaling TypeAdapter (invoice_no stored x10).

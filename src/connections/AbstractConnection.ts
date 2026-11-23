@@ -29,7 +29,7 @@ import type { NAggregate, NDB, NNoTableOrViewRequired, NNotNestedAggregate, NSou
 import type { DataToProject, GetDataToProjectSource } from '../complexProjections/dataToProject.js'
 import type { ResultObjectValuesForAggregatedArray } from '../complexProjections/resultWithOptionalsAsUndefined.js'
 import type { ResultObjectValuesProjectedAsNullableForAggregatedArray } from '../complexProjections/resultWithOptionalsAsNull.js'
-import { __isAggregatedArrayClass, __isBigintClass, __isBooleanClass, __isDoubleClass, __isDnumDecimalClass, __isExactDecimalClass, __isIntClass, __isLocalDateClass, __isLocalDateTimeClass, __isLocalTimeClass, __isPlainDateClass, __isPlainMonthDayClass, __isPlainYearMonthClass, __isPlainDateTimeClass, __isPlainTimeClass, __isStringClass, __isDurationClass, __isInstantClass, __isUuidClass, __isZonedDateTimeClass } from '../typeSystem/dataTypeQuestions.js'
+import { __isAggregatedArrayClass, __isBigintClass, __isBooleanClass, __isDoubleClass, __isDnumDecimalClass, __isExactDecimalClass, __scaleOfScaledBigIntClass, __isIntClass, __isLocalDateClass, __isLocalDateTimeClass, __isLocalTimeClass, __isPlainDateClass, __isPlainMonthDayClass, __isPlainYearMonthClass, __isPlainDateTimeClass, __isPlainTimeClass, __isStringClass, __isDurationClass, __isInstantClass, __isUuidClass, __isZonedDateTimeClass } from '../typeSystem/dataTypeQuestions.js'
 import { __durationSqlDataTypeOf } from '../typeSystem/dataTypes.js'
 import { parseUtcDateTimeText } from '../utils/utcDateTimeText.js'
 import type { CombinedOptionalityOfUnion, OptionalType } from '../typeSystem/valueSource.js'
@@ -66,7 +66,7 @@ import { __adaptedTypeClassOf, __keptClassOf, __computedClassOf } from '../nodes
 import { NextTypeAdapter } from '../internal/TypeAdapterContextImpl.js'
 import { __asTableOrViewRoot } from '../internal/TableOrViewRoot.js'
 import { __inCreation } from '../utils/inCreation.js'
-import { decimalsOfSqlDataType, dnumOfText, exactDecimalTextWithDecimals, isDnumValue, textOfDnum } from '../utils/exactDecimalValues.js'
+import { decimalsOfSqlDataType, dnumOfText, exactDecimalTextWithDecimals, isDnumValue, scaledDigitsOfText, textOfDnum, textOfScaledDigits } from '../utils/exactDecimalValues.js'
 
 export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements IConnection<DB> {
     [connection]!: DB
@@ -1214,6 +1214,28 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             }
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid double value received from the db: ' + String(value))
         }
+        const scale = __scaleOfScaledBigIntClass(context.requestedType)
+        if (scale !== undefined) {
+            // The value of a scaled bigint is the integer of its digits at the scale of its data type: the decimals
+            // the database gives don't matter, only that the value keeps every digit
+            let text: string
+            if (typeof value === 'string' && /^-?(\d+(\.\d+)?|\.\d+)$/.test(value)) {
+                text = value.startsWith('.') ? '0' + value : value.startsWith('-.') ? '-0' + value.substring(1) : value
+            } else if (typeof value === 'bigint') {
+                text = '' + value
+            } else if (isDnumValue(value)) {
+                text = textOfDnum(value)
+            } else if (typeof value === 'number') {
+                throw new TsSqlProcessingError({ reason: 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE', value, typeName: type }, 'Precision lost reading a decimal value from the db: the driver returned ' + value + ' as a JavaScript number')
+            } else {
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid decimal value received from the db: ' + String(value))
+            }
+            const digits = scaledDigitsOfText(text, scale)
+            if (digits === undefined) {
+                throw new TsSqlProcessingError({ reason: 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE', value, typeName: type }, 'Precision lost reading a decimal value from the db: ' + text + ' has a digit beyond the scale ' + scale + ' of ' + type)
+            }
+            return digits
+        }
         if (__isExactDecimalClass(context.requestedType)) {
             let text: string
             if (typeof value === 'string') {
@@ -1467,6 +1489,15 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 return value
             }
             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid double value to send to the db: ' + String(value))
+        }
+        const scale = __scaleOfScaledBigIntClass(context.requestedType)
+        if (scale !== undefined) {
+            // A scaled bigint is sent as the text of its decimal, at the scale of its data type (`12345n` with the
+            // scale 2 is `123.45`)
+            if (typeof value === 'bigint') {
+                return textOfScaledDigits(value, scale)
+            }
+            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid scaled bigint value to send to the db: ' + String(value))
         }
         if (__isDnumDecimalClass(context.requestedType)) {
             // A dnum is sent as its text, with all its decimals (`[1250n, 2]` is `12.50`), as any exact decimal

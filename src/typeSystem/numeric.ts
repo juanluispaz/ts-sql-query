@@ -19,6 +19,7 @@ import { doubleSqlDataType, intSqlDataType } from './numericSqlDataTypes.js'
  * ArithmeticType
  * ├── NumberType (number.ts)        the numbers of JavaScript: int and double work together
  * └── AdditiveType                  added and subtracted (a sum of money)
+ *     ├── ScaledBigIntsType         the exact decimals kept as a bigint with its scale (scaledBigInts.ts)
  *     └── MultipliableType          multiplied
  *         ├── IntegersType          the integers: BigintType (bigint.ts)
  *         ├── DecimalsType          the exact decimals (decimals.ts): StringDecimalType, DnumDecimalsType (DnumDecimalType)

@@ -20,9 +20,14 @@ The same types are used for a [constant](../queries/basic-query-structure.md) an
 | `uuid`                          | `string`             | UUID value                                                        |
 | `stringDecimal`                 | `string`             | Exact decimal number, sent and read as its text                   |
 | `dnumDecimal`                   | `Dnum`               | Exact decimal number, as a [dnum](https://github.com/bpierre/dnum) |
+| `ScaledBigInt<2>`, of any scale of 0 or more | `ScaledBigInt<2>` | Exact decimal number of a fixed scale, as a `bigint`: `150n` is `1.50` (see [Scaled bigints](#scaled-bigints)) |
 | `plainDate`                     | `Temporal.PlainDate` | Date without time, as a Temporal value                            |
 | `plainTime`                     | `Temporal.PlainTime` | Time without date, as a Temporal value                            |
 | `plainDateTime`                 | `Temporal.PlainDateTime` | Date with time, as a Temporal value                           |
+| `plainYearMonth`                | `Temporal.PlainYearMonth` | Month of a year, as a Temporal value                         |
+| `plainMonthDay`                 | `Temporal.PlainMonthDay` | Day of a month, as a Temporal value                           |
+| `instant`                       | `Temporal.Instant`   | Exact moment, as a Temporal value                                 |
+| `zonedDateTime`                 | `Temporal.ZonedDateTime` | Moment in a time zone, as a Temporal value                    |
 | `duration`                      | `Temporal.Duration`  | Length of time, as a Temporal value                               |
 | `localDate`                     | `Date`               | Date without time, as a `Date`                                    |
 | `localTime`                     | `Date`               | Time without date, as a `Date`                                    |
@@ -40,9 +45,14 @@ this.column('ColumnName', 'string')
 this.column('ColumnName', 'uuid')
 this.column('ColumnName', 'stringDecimal')
 this.column('ColumnName', 'dnumDecimal')
+this.column('ColumnName', 'ScaledBigInt<2>')
 this.column('ColumnName', 'plainDate')
 this.column('ColumnName', 'plainTime')
 this.column('ColumnName', 'plainDateTime')
+this.column('ColumnName', 'plainYearMonth')
+this.column('ColumnName', 'plainMonthDay')
+this.column('ColumnName', 'instant')
+this.column('ColumnName', 'zonedDateTime')
 this.column('ColumnName', 'duration')
 this.column('ColumnName', 'localDate')
 this.column('ColumnName', 'localTime')
@@ -50,7 +60,7 @@ this.column('ColumnName', 'localDateTime')
 this.column('ColumnName', UnitsType)
 ```
 
-The types of the library have a class too, `BooleanType`, `IntType`, `BigintType`, `DoubleType`, `StringType`, `UuidType`, `StringDecimalType`, `PlainDateType`, `PlainTimeType`, `PlainDateTimeType`, `DurationType`, `LocalDateType`, `LocalTimeType` and `LocalDateTimeType`, exported by `ts-sql-query`. A method that takes a type takes its class too, so `this.column('ColumnName', IntType)` is the same column as `this.column('ColumnName', 'int')`.
+The types of the library have a class too, `BooleanType`, `IntType`, `BigintType`, `DoubleType`, `StringType`, `UuidType`, `StringDecimalType`, `DnumDecimalType`, `PlainDateType`, `PlainTimeType`, `PlainDateTimeType`, `PlainYearMonthType`, `PlainMonthDayType`, `DurationType`, `InstantType`, `ZonedDateTimeType`, `LocalDateType`, `LocalTimeType` and `LocalDateTimeType`, exported by `ts-sql-query`, and the one of a scaled bigint of a scale is `scaledBigIntType(2)`. A method that takes a type takes its class too, so `this.column('ColumnName', IntType)` is the same column as `this.column('ColumnName', 'int')`, and `this.column('ColumnName', scaledBigIntType(2))` the same as `this.column('ColumnName', 'ScaledBigInt<2>')`.
 
 !!! tip "Generating UUIDs"
 

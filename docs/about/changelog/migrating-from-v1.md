@@ -153,9 +153,7 @@ The family of each custom type, all of them exported by `ts-sql-query` (see [You
 | v1 | v2 |
 |---|---|
 | `'customInt', 'Name'` | `IntegersType.of<T, 'Name'>('Name')` |
-| `'customBigint', 'Name'` | A class that extends `IntegersType<T, 'Name'>`, with `static override readonly sqlDataType: SqlDataType = { family: 'exact numeric', scale: 0, bytes: 8 }` and `T` a `bigint` |
 | `'customDouble', 'Name'` | `RealsType.of<T, 'Name'>('Name')` |
-| `'customDecimal', 'Name'` | `DecimalsType.of<T, 'Name'>('Name')` |
 | `'customUuid', 'Name'` | `UuidsType.of<T, 'Name'>('Name')` |
 | `'customLocalDate', 'Name'` | `LocalDatesType.of<T, 'Name'>('Name')` |
 | `'customLocalTime', 'Name'` | `LocalTimesType.of<T, 'Name'>('Name')` |

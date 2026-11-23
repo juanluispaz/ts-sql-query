@@ -295,6 +295,10 @@ With `returning` or `returningOneColumn` you execute the query with one of these
 
 `min` and `max` in `executeUpdateMany` work as in [`executeUpdate`](#the-number-of-updated-rows). All these errors arrive when the database has already executed the update.
 
+!!! warning "MariaDB returns only the rows that change"
+
+    On MariaDB, `returning` gives only the rows whose values the update changes: a row the `where` matches that already had the new values isn't returned. With `set({ priority: 2 })` on two rows, one of them already with the priority `2`, MariaDB returns one row and the other databases return both; `executeUpdateOne` fails with `NO_RESULT` when its only row doesn't change.
+
 ## Update returning old values
 
 `returning` gives the values after the update. To also get the value a row had before it, without a select first, create a reference to the old values of the table by calling `myTable.oldValues()`, and use it in `returning`. It's useful, for example, to record what has changed. It's the only place that accepts it.

@@ -5,24 +5,24 @@ import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { Table } from '../../../../../src/Table.js'
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-import { ComparableType, IntegersType, IntType } from '../../../../../src/exports/v2/index.js'
-import type { CombinedOptionality, DataTypeOf, DefaultTypeAdapter, OperandOf, OptionalityOf, SourceOf, SqlDataType, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext, ValueSource } from '../../../../../src/exports/v2/index.js'
+import { ComparableType, IntegersType, IntType, scaledBigInt, scaledBigIntType } from '../../../../../src/exports/v2/index.js'
+import type { CombinedOptionality, DataTypeOf, DefaultTypeAdapter, OperandOf, OptionalityOf, ScaledBigInt, SourceOf, SqlDataType, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext, ValueSource } from '../../../../../src/exports/v2/index.js'
 
-// An amount of cents, branded with a symbol of its own, also multiplied by a plain number or an int
-declare const centsBrand: unique symbol
-type Cents = number & { readonly [centsBrand]: true }
+// A number of units in stock, branded with a symbol of its own, also multiplied by a plain number or an int
+declare const unitsBrand: unique symbol
+type Units = number & { readonly [unitsBrand]: true }
 
-function cents(value: number): Cents {
+function units(value: number): Units {
     if (!Number.isInteger(value)) {
-        throw new Error('An amount of cents is an integer: ' + value)
+        throw new Error('A number of units is an integer: ' + value)
     }
     // tests-audit-disable-next-line type-cast -- a brand is given by a cast, in the one function that checks the value
-    return value as Cents
+    return value as Units
 }
 
-abstract class CentsType extends IntegersType<Cents, 'Cents'> {
-    static override readonly type = 'Cents'
-    override multiply(value: Cents | number): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
+abstract class UnitsType extends IntegersType<Units, 'Units'> {
+    static override readonly type = 'Units'
+    override multiply(value: Units | number): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     override multiply<VALUE extends OperandOf<this> | OperandOf<IntType>>(value: VALUE): ValueSource<SourceOf<this> | SourceOf<VALUE>, DataTypeOf<this>, CombinedOptionality<OptionalityOf<this>, OptionalityOf<VALUE>>>
     // tests-audit-disable-next-line any-type -- the implementation signature of the overloads, which TypeScript requires to accept all of them
     override multiply(value: any): any {
@@ -30,40 +30,40 @@ abstract class CentsType extends IntegersType<Cents, 'Cents'> {
     }
 }
 
-const tIssueCents = new class TIssueCents extends Table<DBConnection, 'TIssueCents'> {
+const tIssueUnits = new class TIssueUnits extends Table<DBConnection, 'TIssueUnits'> {
     id = this.primaryKey('id', 'int')
-    priority = this.column('priority', CentsType)
-    number = this.column('number', 'int')
+    stock = this.column('priority', UnitsType)
+    packs = this.column('number', 'int')
     constructor() {
         super('issue')
     }
 }()
 
-// A value of a class of the user, kept in an integer column
+// A value of a class of the user, kept in a decimal column of 2 decimals
 class Money {
-    constructor(readonly cents: bigint) {}
+    constructor(readonly amount: ScaledBigInt<2>) {}
 }
 
 abstract class MoneyType extends ComparableType<Money, 'Money'> {
     static override readonly type = 'Money'
-    static override readonly sqlDataType: SqlDataType = { family: 'exact numeric', scale: 0, bytes: 8 }
+    static override readonly sqlDataType: SqlDataType = { family: 'exact numeric', precision: 10, scale: 2 }
 
     static override transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
-        context.setRequestedType('bigint')
-        return next.transformValueToDB(value instanceof Money ? value.cents : value, context)
+        context.setRequestedType(scaledBigIntType(2))
+        return next.transformValueToDB(value instanceof Money ? value.amount : value, context)
     }
     static override transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
-        context.setRequestedType('bigint')
+        context.setRequestedType(scaledBigIntType(2))
         const result = next.transformValueFromDB(value, context)
-        return typeof result === 'bigint' ? new Money(result) : result
+        return typeof result === 'bigint' ? new Money(scaledBigInt(result, 2)) : result
     }
 }
 
-const tIssueMoney = new class TIssueMoney extends Table<DBConnection, 'TIssueMoney'> {
+const tAmountMoney = new class TAmountMoney extends Table<DBConnection, 'TAmountMoney'> {
     id = this.primaryKey('id', 'int')
-    budget = this.column('priority', MoneyType)
+    total = this.column('price', MoneyType)
     constructor() {
-        super('issue')
+        super('exact_amount')
     }
 }()
 
@@ -73,66 +73,65 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('docs:branded-and-opaque-types/a-brand-with-a-symbol', async () => {
-        const expected = [{ id: 2, priority: 1 }]
+        const expected = [{ id: 2, stock: 1 }]
         ctx.mockNext(expected)
-        const rows = await ctx.conn.selectFrom(tIssueCents)
-            .where(tIssueCents.priority.lessThan(cents(2)))
-            .select({ id: tIssueCents.id, priority: tIssueCents.priority })
+        const rows = await ctx.conn.selectFrom(tIssueUnits)
+            .where(tIssueUnits.stock.lessThan(units(2)))
+            .select({ id: tIssueUnits.id, stock: tIssueUnits.stock })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority as priority from issue where priority < $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority as stock from issue where priority < $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
           ]
         `)
-        assertType<Exact<typeof rows, { id: number; priority: Cents }[]>>()
+        assertType<Exact<typeof rows, { id: number; stock: Units }[]>>()
         expect(rows).toEqual(expected)
-        expect(() => cents(1.5)).toThrow('An amount of cents is an integer: 1.5')
+        expect(() => units(1.5)).toThrow('A number of units is an integer: 1.5')
     })
 
     test('docs:branded-and-opaque-types/a-value-of-a-class-of-yours', async () => {
-        ctx.mockNext([{ id: 1, budget: 2 }, { id: 4, budget: 2 }, { id: 3, budget: 3 }])
-        const rows = await ctx.conn.selectFrom(tIssueMoney)
-            .where(tIssueMoney.budget.greaterOrEqual(new Money(2n)))
-            .select({ id: tIssueMoney.id, budget: tIssueMoney.budget })
-            .orderBy('budget')
+        ctx.mockNext([{ id: 1, total: '1.50' }, { id: 5, total: '1234.56' }])
+        const rows = await ctx.conn.selectFrom(tAmountMoney)
+            .where(tAmountMoney.total.greaterOrEqual(new Money(scaledBigInt(150n, 2))))
+            .select({ id: tAmountMoney.id, total: tAmountMoney.total })
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority as budget from issue where priority >= $1 order by budget, id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, price as total from exact_amount where price >= $1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            2n,
+            "1.50",
           ]
         `)
-        assertType<Exact<typeof rows, { id: number; budget: Money }[]>>()
-        expect(rows).toEqual([{ id: 1, budget: new Money(2n) }, { id: 4, budget: new Money(2n) }, { id: 3, budget: new Money(3n) }])
-        expect(rows[0]?.budget).toBeInstanceOf(Money)
+        assertType<Exact<typeof rows, { id: number; total: Money }[]>>()
+        expect(rows).toEqual([{ id: 1, total: new Money(scaledBigInt(150n, 2)) }, { id: 5, total: new Money(scaledBigInt(123456n, 2)) }])
+        expect(rows[0]?.total).toBeInstanceOf(Money)
     })
 
     test('docs:branded-and-opaque-types/combining-your-type-with-other-values', async () => {
-        ctx.mockNext([{ id: 1, tripled: 6, byNumber: 2 }, { id: 2, tripled: 3, byNumber: 2 }])
+        ctx.mockNext([{ id: 1, inPacksOf3: 6, inPacks: 2 }, { id: 2, inPacksOf3: 3, inPacks: 2 }])
         const connection = ctx.conn
         // doc-start
-        const rows = await connection.selectFrom(tIssueCents)
-            .where(tIssueCents.id.lessOrEqual(2))
+        const rows = await connection.selectFrom(tIssueUnits)
+            .where(tIssueUnits.id.lessOrEqual(2))
             .select({
-                id: tIssueCents.id,
-                tripled: tIssueCents.priority.multiply(3),
-                byNumber: tIssueCents.priority.multiply(tIssueCents.number),
+                id: tIssueUnits.id,
+                inPacksOf3: tIssueUnits.stock.multiply(3),
+                inPacks: tIssueUnits.stock.multiply(tIssueUnits.packs),
             })
             .orderBy('id')
             .executeSelectMany()
         // doc-end
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority * $1 as tripled, priority * number as "byNumber" from issue where id <= $2 order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority * $1 as "inPacksOf3", priority * number as "inPacks" from issue where id <= $2 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
             2,
           ]
         `)
-        assertType<Exact<typeof rows, { id: number; tripled: Cents; byNumber: Cents }[]>>()
-        expect(rows).toEqual([{ id: 1, tripled: 6, byNumber: 2 }, { id: 2, tripled: 3, byNumber: 2 }])
+        assertType<Exact<typeof rows, { id: number; inPacksOf3: Units; inPacks: Units }[]>>()
+        expect(rows).toEqual([{ id: 1, inPacksOf3: 6, inPacks: 2 }, { id: 2, inPacksOf3: 3, inPacks: 2 }])
     })
 })

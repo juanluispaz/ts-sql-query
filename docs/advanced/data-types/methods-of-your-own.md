@@ -4,7 +4,7 @@ search:
 ---
 # Methods of your own
 
-A [data type of yours](own-data-types.md) has the operations of its family, and its class can add methods of its own: a method that writes its SQL, like the value of an amount of cents in euros, and a method that a dynamic filter can call by its name, like whether a birthday falls on 29 February. To give a method of the family another signature, like multiplying cents by a plain number, see [Combining your type with other values](branded-and-opaque-types.md#combining-your-type-with-other-values), which also has the types `ts-sql-query` exports to write the signatures.
+A [data type of yours](own-data-types.md) has the operations of its family, and its class can add methods of its own: a method that writes its SQL, like a number of milliseconds in seconds, and a method that a dynamic filter can call by its name, like whether a birthday falls on 29 February. To give a method of the family another signature, like multiplying milliseconds by a plain number, see [Combining your type with other values](branded-and-opaque-types.md#combining-your-type-with-other-values), which also has the types `ts-sql-query` exports to write the signatures.
 
 ## SQL of your own in a method
 
@@ -13,33 +13,33 @@ A method of your type can write its SQL, with `this.fragmentWithType`, as `fragm
 ```ts
 import { IntegersType, Table } from "ts-sql-query"
 
-declare const centsBrand: unique symbol
-type Cents = number & { readonly [centsBrand]: true }
+declare const millisecondsBrand: unique symbol
+type Milliseconds = number & { readonly [millisecondsBrand]: true }
 
-abstract class CentsType extends IntegersType<Cents, 'Cents'> {
-    static override readonly type = 'Cents'
+abstract class MillisecondsType extends IntegersType<Milliseconds, 'Milliseconds'> {
+    static override readonly type = 'Milliseconds'
 
-    // The value in euros
-    inEuros() {
-        return this.fragmentWithType('double', 'required').sql`${this} / 100.0`
+    // The value in seconds
+    inSeconds() {
+        return this.fragmentWithType('double', 'required').sql`${this} / 1000.0`
     }
-    // Whether it is more than the euros given
-    exceedsEuros(euros: number) {
-        return this.fragmentWithType('boolean', 'required').sql`${this} > ${this.const(euros, 'double')} * 100`
+    // Whether it is longer than the seconds given
+    exceedsSeconds(seconds: number) {
+        return this.fragmentWithType('boolean', 'required').sql`${this} > ${this.const(seconds, 'double')} * 1000`
     }
 }
 
-const tAccount = new class TAccount extends Table<DBConnection, 'TAccount'> {
+const tCall = new class TCall extends Table<DBConnection, 'TCall'> {
     id = this.primaryKey('id', 'int')
-    balance = this.column('balance_cents', CentsType)
+    duration = this.column('duration_ms', MillisecondsType)
     constructor() {
-        super('account')
+        super('phone_call')
     }
 }()
 
-const accounts = await connection.selectFrom(tAccount)
-    .where(tAccount.balance.exceedsEuros(10))
-    .select({ id: tAccount.id, euros: tAccount.balance.inEuros() })
+const calls = await connection.selectFrom(tCall)
+    .where(tCall.duration.exceedsSeconds(10))
+    .select({ id: tCall.id, seconds: tCall.duration.inSeconds() })
     .executeSelectMany()
 ```
 
@@ -49,49 +49,49 @@ The executed query is:
     ```mariadb
     select 
         id as id, 
-        balance_cents / 100.0 as euros 
-    from account 
-    where balance_cents > ? * 100
+        duration_ms / 1000.0 as seconds 
+    from phone_call 
+    where duration_ms > ? * 1000
     ```
 === "MySQL"
     ```mysql
     select 
         id as id, 
-        balance_cents / 100.0 as euros 
-    from account 
-    where balance_cents > ? * 100
+        duration_ms / 1000.0 as seconds 
+    from phone_call 
+    where duration_ms > ? * 1000
     ```
 === "Oracle"
     ```oracle
     select 
         id as "id", 
-        balance_cents / 100.0 as "euros" 
-    from account 
-    where balance_cents > :0 * 100
+        duration_ms / 1000.0 as "seconds" 
+    from phone_call 
+    where duration_ms > :0 * 1000
     ```
 ===+ "PostgreSQL"
     ```postgresql
     select 
         id as id, 
-        balance_cents / 100.0 as euros 
-    from account 
-    where balance_cents > $1 * 100
+        duration_ms / 1000.0 as seconds 
+    from phone_call 
+    where duration_ms > $1 * 1000
     ```
 === "SQLite"
     ```sqlite
     select 
         id as id, 
-        balance_cents / 100.0 as euros 
-    from account 
-    where balance_cents > ?1 * 100
+        duration_ms / 1000.0 as seconds 
+    from phone_call 
+    where duration_ms > ?1 * 1000
     ```
 === "SQL Server"
     ```sqlserver
     select 
         id as id, 
-        balance_cents / 100.0 as euros 
-    from account 
-    where balance_cents > @0 * 100
+        duration_ms / 1000.0 as seconds 
+    from phone_call 
+    where duration_ms > @0 * 1000
     ```
 
 The parameters are: `[ 10 ]`

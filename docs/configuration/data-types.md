@@ -47,7 +47,7 @@ this.column('ColumnName', 'duration')
 this.column('ColumnName', 'localDate')
 this.column('ColumnName', 'localTime')
 this.column('ColumnName', 'localDateTime')
-this.column('ColumnName', MyCentsType)
+this.column('ColumnName', UnitsType)
 ```
 
 The types of the library have a class too, `BooleanType`, `IntType`, `BigintType`, `DoubleType`, `StringType`, `UuidType`, `StringDecimalType`, `PlainDateType`, `PlainTimeType`, `PlainDateTimeType`, `DurationType`, `LocalDateType`, `LocalTimeType` and `LocalDateTimeType`, exported by `ts-sql-query`. A method that takes a type takes its class too, so `this.column('ColumnName', IntType)` is the same column as `this.column('ColumnName', 'int')`.
@@ -71,6 +71,7 @@ Choose by the values your code handles, not only by the type of the column in th
 | A number with decimals, when a JavaScript `number` is enough | `double` | The value becomes a `number`, whatever the column is. A `decimal` column with more digits than a `number` holds loses them. |
 | A decimal number that must stay exact, like money | `stringDecimal` | The value is a `string` with all its digits; what each database keeps is in [Exact decimals](#exact-decimals). |
 | The same, to compute with it in your code with the [dnum](https://github.com/bpierre/dnum) library | `dnumDecimal` | The value is a `Dnum`, the integer of its digits and the number of its decimals: `[150n, 2]` is `1.50`. |
+| The same, with the decimals of the column fixed, like money in a `decimal(10, 2)`, to compute with integers in your code | `scaledBigIntType(2)` | The value is a `ScaledBigInt<2>`, a `bigint` with the scale in its type: `150n` is `1.50`. See [Scaled bigints](#scaled-bigints). |
 | The same, with your own type for it, like the one of a decimal library | A class that extends `DecimalsType`, or `DnumDecimalsType` for a dnum | Your type, with a [conversion](../advanced/data-types/branded-and-opaque-types.md#a-value-of-a-class-of-yours) from and to the text of the number, or a dnum of your own. |
 | Text | `string` | An empty string [has no value](connection.md#allowing-empty-string) by default. |
 | True or false | `boolean` | Oracle and SQL Server store it as a number or a bit, with `0` and `1`. For other representations, like `'Y'` and `'N'`, see [Custom booleans values](../advanced/data-types/custom-booleans-values.md). |
@@ -92,35 +93,36 @@ On SQLite, with a `localdate` [strategy of dates](../databases/sqlite/index.md#w
 
 ## Your own types
 
-A type of yours gives a column your own TypeScript type, like an amount of cents that your code doesn't mix with other numbers. It is a class that extends a family of the library, which says the operations its values offer in a query and how they are converted. An integer with a TypeScript brand needs nothing else; its values are checked and converted as those of an `int`:
+A type of yours gives a column your own TypeScript type, like a number of units in stock that your code doesn't mix with other numbers. It is a class that extends a family of the library, which says the operations its values offer in a query and how they are converted. An integer with a TypeScript brand needs nothing else; its values are checked and converted as those of an `int`:
 
 ```typescriptreact
 import { IntegersType } from 'ts-sql-query'
 
-declare const centsBrand: unique symbol
-type Cents = number & { readonly [centsBrand]: true }
+declare const unitsBrand: unique symbol
+type Units = number & { readonly [unitsBrand]: true }
 
-abstract class MyCentsType extends IntegersType<Cents, 'Cents'> {
-    static override readonly type = 'Cents'
+abstract class UnitsType extends IntegersType<Units, 'Units'> {
+    static override readonly type = 'Units'
 }
 
-costCents = this.column('cost_cents', MyCentsType)
+stock = this.column('stock', UnitsType)
 ```
 
-A column of `MyCentsType` is compared, computed and assigned only with values of `Cents`. Its class also says, as statics, [its type in the database](../advanced/data-types/own-data-types.md#its-type-in-the-database), by default the one of its family (an integer of 4 bytes here), and [how its values are converted](../advanced/data-types/own-data-types.md#its-conversions-a-type-adapter-in-the-class), like a type adapter of the whole type. What else a type of yours can do:
+A column of `UnitsType` is compared, computed and assigned only with values of `Units`. Its class also says, as statics, [its type in the database](../advanced/data-types/own-data-types.md#its-type-in-the-database), by default the one of its family (an integer of 4 bytes here), and [how its values are converted](../advanced/data-types/own-data-types.md#its-conversions-a-type-adapter-in-the-class), like a type adapter of the whole type. What else a type of yours can do:
 
-- [Data types of your own](../advanced/data-types/own-data-types.md): the class, the families and what each one does, its type in the database, its conversions as a type adapter in the class, and giving the type by its name, like `'Cents'`.
-- [Branded and opaque types](../advanced/data-types/branded-and-opaque-types.md): branding a type with a `unique symbol`, a value of a class of yours, and combining your type with other values, like multiplying cents by a plain number.
+- [Data types of your own](../advanced/data-types/own-data-types.md): the class, the families and what each one does, its type in the database, its conversions as a type adapter in the class, and giving the type by its name, like `'Units'`.
+- [Branded and opaque types](../advanced/data-types/branded-and-opaque-types.md): branding a type with a `unique symbol`, a value of a class of yours, and combining your type with other values, like multiplying units by a plain number.
 - [Methods of your own](../advanced/data-types/methods-of-your-own.md): a method with SQL of your own, and the operations of your type in a dynamic filter.
 - [Type adapters](../advanced/data-types/type-adapters.md): converting the values in your own way, for every column of a type or for one.
 - [Data types API](../api/data-types.md): every static, method and type a class of a data type has.
 
 ## Exact decimals
 
-JavaScript has no decimal type yet (there is a [proposal](https://github.com/tc39/proposal-decimal) to add one), and a `number` keeps about 16 significant digits. An exact decimal keeps all the digits and the decimals, like the `0` of `1.50`. There are three types for it, and everything this section says applies to all of them:
+JavaScript has no decimal type yet (there is a [proposal](https://github.com/tc39/proposal-decimal) to add one), and a `number` keeps about 16 significant digits. An exact decimal keeps all the digits and the decimals, like the `0` of `1.50`. There are four types for it, and everything this section says applies to all of them:
 
 - `stringDecimal`: the value is the text of the number, a `string` like `'12345678901234567890.1234567891'`. Choose it when a string is enough in your code.
 - `dnumDecimal`: the value is a `Dnum`, the representation of the [dnum](https://github.com/bpierre/dnum) library, `readonly [value: bigint, decimals: number]`: the integer of its digits and the number of its decimals, so `[150n, 2]` is `1.50` and `[-5n, 3]` is `-0.005`. Choose it to compute with dnum in your code. The library exports the type `Dnum` and doesn't depend on dnum: the values of dnum are of this type, so they go to the queries and come from them as they are.
+- `ScaledBigInt<S>`, the data type `scaledBigIntType(S)`: the value is a `bigint` with the scale of the column in its type, so `ScaledBigInt<2>` keeps cents and `150n` is `1.50`. Choose it for a column whose decimals are fixed, like an amount of money in a `decimal(10, 2)`, to compute with integers in your code. At run time the value is a plain `bigint`: the scale is only in its type and in the class of the column. See [Scaled bigints](#scaled-bigints).
 - A class of yours that extends `DecimalsType`: the value has your own TypeScript type, like a branded string or the decimal type of a library of your choice. The conversion from and to the text, if your type isn't a string, goes in the class, as in [a value of a class of yours](../advanced/data-types/branded-and-opaque-types.md#a-value-of-a-class-of-yours), or in a [type adapter](../advanced/data-types/type-adapters.md). A class that extends `DnumDecimalsType` has a dnum as its value, like `dnumDecimal`, with a type of yours, like a branded `Dnum`.
 
 ```typescriptreact
@@ -139,13 +141,15 @@ abstract class CostType extends DnumDecimalsType<Cost, 'Cost'> {
     static override readonly type = 'Cost'
 }
 cost = this.optionalColumn('cost', CostType)
+
+fee = this.optionalColumn('fee', scaledBigIntType(2))
 ```
 
-A `stringDecimal` is compared and computed only with another `stringDecimal` or a string, a `dnumDecimal` only with another `dnumDecimal` or a `Dnum`, and a decimal of yours only with values of its own type, so they don't mix.
+A `stringDecimal` is compared and computed only with another `stringDecimal` or a string, a `dnumDecimal` only with another `dnumDecimal` or a `Dnum`, a `ScaledBigInt<2>` only with another `ScaledBigInt<2>` (not one of another scale, nor a plain `bigint`), and a decimal of yours only with values of its own type, so they don't mix.
 
-The text sent to the database uses a point as the decimal separator and has no exponent, like `'-0.25'`; another text, like `'1,50'` or `'1e3'`, is rejected with `INVALID_VALUE_TO_SEND_TO_DATABASE`. A dnum is sent as its text with all its decimals: `[150n, 2]` as `'1.50'`; a dnum whose decimals aren't a whole number of 0 or more, like `[15n, -1]`, is rejected with `INVALID_VALUE_TO_SEND_TO_DATABASE`. In the database, a value is its number, whatever its decimals: `price.equals([15n, 1])` is true for the price `1.50`. A text read from the database keeps all its digits, with a `0` added before a leading point (`.5` is `'0.5'`); its decimals are the ones of [The decimals of a value read](#the-decimals-of-a-value-read).
+The text sent to the database uses a point as the decimal separator and has no exponent, like `'-0.25'`; another text, like `'1,50'` or `'1e3'`, is rejected with `INVALID_VALUE_TO_SEND_TO_DATABASE`. A dnum is sent as its text with all its decimals: `[150n, 2]` as `'1.50'`. A negative number of decimals is a number of zeros at the end: `[123n, -2]` is sent as `'12300'`; the functions of the dnum library don't accept it (they fail with `dnum: decimals cannot be negative`), so it's only useful to write a value. A dnum whose decimals have a fraction, like `[15n, 0.5]`, is rejected with `INVALID_VALUE_TO_SEND_TO_DATABASE`. In the database, a value is its number, whatever its decimals: `price.equals([15n, 1])` is true for the price `1.50`. A text read from the database keeps all its digits, with a `0` added before a leading point (`.5` is `'0.5'`); its decimals are the ones of [The decimals of a value read](#the-decimals-of-a-value-read).
 
-The operations that keep the value exact return the same type, `stringDecimal`, `dnumDecimal` or yours: `add`, `subtract`, `multiply`, `modulo`, `abs`, `ceil`, `floor`, `round`, `roundn`, `minValue`, `maxValue` and `sum`. There is no `divide`: the division of two decimals isn't exact, and each database rounds it its own way. The ones whose result can't be exact return a `double`: `power`, `sqrt`, `cbrt`, `exp`, `ln`, `log10`, `logn`, the trigonometric functions and `average`.
+The operations that keep the value exact return the same type, `stringDecimal`, `dnumDecimal`, `ScaledBigInt` or yours: `add`, `subtract`, `multiply`, `modulo`, `abs`, `ceil`, `floor`, `round`, `roundn`, `minValue`, `maxValue` and `sum`. A `ScaledBigInt` has no `multiply`: the product of two values of the scale 2 has 4 decimals, which its type can't keep. There is no `divide`: the division of two decimals isn't exact, and each database rounds it its own way. The ones whose result can't be exact return a `double`: `power`, `sqrt`, `cbrt`, `exp`, `ln`, `log10`, `logn`, the trigonometric functions and `average`.
 
 A query with a decimal column of yours, here `tExactAmount` with `amount` as a `decimal(38, 10)` and `price` as a `decimal(10, 2)`:
 
@@ -318,6 +322,118 @@ The executed query is:
 The parameters are: `[ '2', '1.5' ]`
 
 For the rows with the prices `1.50` and `1234.56`, the rows read are `[{ id: 1, price: [150n, 2], twice: [300n, 2] }, { id: 5, price: [123456n, 2], twice: [246912n, 2] }]`. On Oracle the computed value has the decimals it needs (`[3n, 0]` and `[246912n, 2]`). On SQLite every value has its canonical text (`[15n, 1]` and `[3n, 0]`); a price whose column declares the SQL data type `numeric(10, 2)` is `[150n, 2]` there too.
+
+### Scaled bigints
+
+A `ScaledBigInt<S>` is a `bigint` with its scale in its type: `ScaledBigInt<2>` keeps cents (`150n` is `1.50`), and `ScaledBigInt<-2>` keeps hundreds (`123n` is `12300`). The column says its scale with the class of its data type, `scaledBigIntType(2)`, made once for each scale; its type name is the one TypeScript writes, `'ScaledBigInt<2>'`, and its SQL data type is `{ family: 'exact numeric', scale: 2 }`. `scaledBigInt(150n, 2)` gives a `bigint` the type `ScaledBigInt<2>`, and `ScaleOf<T>` is the scale of a type.
+
+```typescriptreact
+import { scaledBigInt, scaledBigIntsType, scaledBigIntType, type ScaledBigInt, type ScaleOf } from "ts-sql-query"
+
+price = this.optionalColumn('price', scaledBigIntType(2))
+
+// A type of yours, of the scale 2: it extends the family of that scale
+type Fee = ScaledBigInt<2> & { readonly __brand: 'Fee' }
+const ScaledBigIntsOf2 = scaledBigIntsType(2)
+abstract class FeeType extends ScaledBigIntsOf2<Fee, 'Fee'> {
+    static override readonly type = 'Fee'
+}
+fee = this.optionalColumn('fee', FeeType)
+```
+
+The family of a scale only accepts values of that scale: `ScaledBigIntsOf2<ScaledBigInt<3>, 'Fee'>` doesn't compile.
+
+A value is sent as the text of its decimal at its scale: `150n` of the scale 2 is `'1.50'`, and `123n` of the scale -2 is `'12300'`. It's read at its scale whatever the decimals the database gives: `1.5`, `1.50` and `1.5000` are `150n`. A value with a digit other than a zero beyond its scale, like `1.234` read as a `ScaledBigInt<2>`, or `12350` as a `ScaledBigInt<-2>`, is rejected with `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE`: the value is never cut. The operations of [Exact decimals](#exact-decimals) keep the scale, except `multiply` and `divide`, which a `ScaledBigInt` doesn't have; to multiply, compute it in your code, or in the query with another exact decimal type.
+
+A negative scale keeps multiples of a power of 10. PostgreSQL 15 and later and Oracle have columns of a negative scale, like `numeric(7, -2)` and `NUMBER(7, -2)`, which round what they store to hundreds; on MariaDB, MySQL, SQL Server and SQLite, which don't, the value goes in a column without decimals, like a `decimal(9, 0)`, which stores it as it is.
+
+A query with the columns of `tScaledAmount`, `price` of the scale 2 and `hundreds` of the scale -2:
+
+```ts
+const rows = await connection.selectFrom(tScaledAmount)
+    .where(tScaledAmount.price.greaterOrEqual(scaledBigInt(150n, 2)))
+    .select({
+        id: tScaledAmount.id,
+        price: tScaledAmount.price,
+        next: tScaledAmount.price.add(scaledBigInt(1n, 2)),
+        hundreds: tScaledAmount.hundreds,
+    })
+    .orderBy('id')
+    .executeSelectMany()
+```
+
+The executed query is:
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        price as price, 
+        price + cast(? as decimal(3, 2)) as next, 
+        hundreds as hundreds 
+    from exact_amount 
+    where price >= cast(? as decimal(3, 2)) 
+    order by id
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        price as price, 
+        price + cast(? as decimal(3, 2)) as next, 
+        hundreds as hundreds 
+    from exact_amount 
+    where price >= cast(? as decimal(3, 2)) 
+    order by id
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        price as "price", 
+        price + :0 as "next", 
+        hundreds as "hundreds" 
+    from exact_amount 
+    where price >= :1 
+    order by "id"
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        price as price, 
+        price + $1 as next, 
+        hundreds as hundreds 
+    from exact_amount 
+    where price >= $2 
+    order by id
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        price as price, 
+        (select case when typeof(tsq_v) <> 'text' then tsq_v when instr(tsq_v, '.') = 0 then (case when tsq_v = '-0' then '0' else tsq_v end) when rtrim(rtrim(tsq_v, '0'), '.') in ('-0', '-', '') then '0' else rtrim(rtrim(tsq_v, '0'), '.') end from (select case when price is null then null else decimal_add(price, ?1) end as tsq_v)) as next, 
+        hundreds as hundreds 
+    from exact_amount 
+    where decimal_cmp(price, ?2) >= 0 
+    order by id
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        convert(nvarchar(41), price) as price, 
+        convert(nvarchar(41), price + cast(@0 as decimal(3, 2))) as next, 
+        convert(nvarchar(41), hundreds) as hundreds 
+    from exact_amount 
+    where price >= cast(@1 as decimal(3, 2)) 
+    order by id
+    ```
+
+The parameters are: `[ '0.01', '1.50' ]` (on SQLite: `[ '0.01', '1.5' ]`)
+
+For the rows with the prices `1.50` and `1234.56` and the hundreds `12300` and `999900`, the rows read are `[{ id: 1, price: 150n, next: 151n, hundreds: 123n }, { id: 5, price: 123456n, next: 123457n, hundreds: 9999n }]`, on every database.
 
 ### What each database keeps
 

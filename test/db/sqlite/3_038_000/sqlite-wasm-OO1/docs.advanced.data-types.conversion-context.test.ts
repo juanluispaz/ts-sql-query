@@ -6,8 +6,8 @@ import { Table } from '../../../../../src/Table.js'
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import { getQueryContext } from '../../../../../src/QueryContext.js'
-import { BigintType, ComparableType } from '../../../../../src/exports/v2/index.js'
-import type { DefaultTypeAdapter, TypeAdapter, TypeAdapterContext, TypeAdapterPlaceholderContext, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../../../../../src/exports/v2/index.js'
+import { ComparableType, scaledBigIntType } from '../../../../../src/exports/v2/index.js'
+import type { DefaultTypeAdapter, SqlDataType, TypeAdapter, TypeAdapterContext, TypeAdapterPlaceholderContext, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../../../../../src/exports/v2/index.js'
 
 // What each step of the conversion of a value sees: its original and its requested type
 const seen: string[] = []
@@ -15,22 +15,26 @@ function typesOf(context: TypeAdapterContext): string {
     return context.originalType.type + '/' + context.requestedType.type
 }
 
-// A value of a class of the user, kept in an integer column as its number of cents
+// A value of a class of the user, kept in a decimal column with 2 decimals as the scaled bigint of its cents
 class Money {
     constructor(readonly cents: bigint) {}
 }
 
+const MoneyDecimal = scaledBigIntType(2)
+
 abstract class MoneyType extends ComparableType<Money, 'Money'> {
     static override readonly type = 'Money'
+    // The column is a decimal(10, 2)
+    static override readonly sqlDataType: SqlDataType = { family: 'exact numeric', precision: 10, scale: 2 }
 
     static override transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
         seen.push('class sends ' + typesOf(context))
-        context.setRequestedType('bigint')
+        context.setRequestedType(MoneyDecimal)
         return next.transformValueToDB(value instanceof Money ? value.cents : value, context)
     }
     static override transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
         seen.push('class reads ' + typesOf(context))
-        context.setRequestedType('bigint')
+        context.setRequestedType(MoneyDecimal)
         const result = next.transformValueFromDB(value, context)
         return typeof result === 'bigint' ? new Money(result) : result
     }
@@ -65,11 +69,12 @@ const withItsType: TypeAdapter = {
     },
 }
 
-const tIssueMoney = new class TIssueMoney extends Table<DBConnection, 'TIssueMoney'> {
+// exact_amount.price is a decimal(10, 2): row 1 has the price 1.50 and row 5 1234.56
+const tAmountMoney = new class TAmountMoney extends Table<DBConnection, 'TAmountMoney'> {
     id = this.primaryKey('id', 'int')
-    budget = this.column('priority', MoneyType, columnAdapter)
+    price = this.column('price', MoneyType, columnAdapter)
     constructor() {
-        super('issue')
+        super('exact_amount')
     }
 }()
 
@@ -87,32 +92,36 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset(); seen.length = 0 })
 
     test('docs:conversion-context/the-steps-and-what-each-one-sees', async () => {
-        ctx.mockNext([{ id: 3, budget: 3 }])
-        const rows = await ctx.conn.selectFrom(tIssueMoney)
-            .where(tIssueMoney.budget.greaterOrEqual(new Money(3n)))
-            .select({ id: tIssueMoney.id, budget: tIssueMoney.budget })
+        ctx.mockNext([{ id: 1, price: '1.50' }, { id: 5, price: '1234.56' }])
+        const rows = await ctx.conn.selectFrom(tAmountMoney)
+            .where(tAmountMoney.price.greaterOrEqual(new Money(150n)))
+            .select({ id: tAmountMoney.id, price: tAmountMoney.price })
+            .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority as budget from issue where priority >= ?1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, price as price from exact_amount where decimal_cmp(price, ?1) >= 0 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            3n,
+            "1.5",
           ]
         `)
-        assertType<Exact<typeof rows, { id: number; budget: Money }[]>>()
-        expect(rows).toEqual([{ id: 3, budget: new Money(3n) }])
+        assertType<Exact<typeof rows, { id: number; price: Money }[]>>()
+        expect(rows).toEqual([{ id: 1, price: new Money(150n) }, { id: 5, price: new Money(123456n) }])
         expect(seen).toMatchInlineSnapshot(`
           [
             "column sends Money/Money",
             "class sends Money/Money",
-            "placeholder Money/bigint index 0 value 3",
+            "placeholder Money/ScaledBigInt<2> index 0 value 1.5",
             "column reads before next Money/Money",
             "class reads Money/Money",
-            "column reads after next Money/bigint",
+            "column reads after next Money/ScaledBigInt<2>",
+            "column reads before next Money/Money",
+            "class reads Money/Money",
+            "column reads after next Money/ScaledBigInt<2>",
           ]
         `)
         // The query runner sends the parameter as the type the class requested
-        expect(getQueryContext(ctx.lastSql, ctx.lastParams).getParam(0)?.requestedType).toBe(BigintType)
+        expect(getQueryContext(ctx.lastSql, ctx.lastParams).getParam(0)?.requestedType).toBe(MoneyDecimal)
     })
 
     test('docs:conversion-context/asking-the-database-for-the-type-of-a-parameter', async () => {

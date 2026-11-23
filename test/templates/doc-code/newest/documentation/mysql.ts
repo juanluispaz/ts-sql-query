@@ -34,7 +34,7 @@ import { deepPick, deepOmit, type DeepPick, type DeepOmit, type DeepPickPaths } 
 import { getQueryContext, type QueryContext, type QueryParamContext } from '../../../../../src/QueryContext.js'
 import { fromRef, type TableOrViewLeftJoinOf, type TableOrViewOf, type UpdatableValuesShapedAs } from '../../../../../src/extras/types.js'
 import { EnumType } from '../../../../../src/exports/v2/index.js'
-import { DecimalsType } from '../../../../../src/exports/v2/index.js'
+import { DecimalsType, scaledBigInt, scaledBigIntType, type ScaledBigInt } from '../../../../../src/exports/v2/index.js'
 
 // The data types of the values of the user, each one a class of the family of its values
 abstract class AmountType extends DecimalsType<string, 'Amount'> { static override readonly type = 'Amount' }
@@ -185,6 +185,17 @@ const tDnumAmount = new class TDnumAmount extends Table<DBConnection, 'TDnumAmou
     }
 }()
 void tDnumAmount
+const tScaledAmount = new class TScaledAmount extends Table<DBConnection, 'TScaledAmount'> {
+    id = this.primaryKey('id', 'int')
+    price = this.optionalColumn('price', scaledBigIntType(2))
+    hundreds = this.optionalColumn('hundreds', scaledBigIntType(-2))
+    constructor() {
+        super('exact_amount')
+    }
+}()
+void tScaledAmount
+void scaledBigInt
+void function (_scaled: ScaledBigInt<2>) {}
 
 // The releases of a project, with their dates and times as Temporal values (docs/configuration/dates-and-times.md)
 const tRelease = new class TRelease extends Table<DBConnection, 'TRelease'> {

@@ -4,7 +4,7 @@ search:
 ---
 # Data types of your own
 
-A data type of yours gives a column your own TypeScript type, like an amount of cents that your code doesn't mix with other numbers, or a value only your code understands, like a JSON document. It is a class that extends a family of the library, declared once and used wherever a value of that type goes: in each column, [constant](../../queries/basic-query-structure.md), [SQL fragment](../../queries/sql-fragments.md) and argument of a fragment. The family says which operations the values offer in a query, their type in the database and how they are converted.
+A data type of yours gives a column your own TypeScript type, like a number of units in stock that your code doesn't mix with other numbers, or a value only your code understands, like a JSON document. It is a class that extends a family of the library, declared once and used wherever a value of that type goes: in each column, [constant](../../queries/basic-query-structure.md), [SQL fragment](../../queries/sql-fragments.md) and argument of a fragment. The family says which operations the values offer in a query, their type in the database and how they are converted.
 
 This page has the class, the families, its type in the database, its conversions and giving the type by its name; every static, method and type a class of a data type has is listed in the [Data types API](../../api/data-types.md). The TypeScript types that suit a data type of yours are in [Branded and opaque types](branded-and-opaque-types.md), methods with SQL of your own in [Methods of your own](methods-of-your-own.md), and converting the values in your own way in [Type adapters](type-adapters.md). For the types the library has, see [Data types](../../configuration/data-types.md).
 
@@ -47,6 +47,7 @@ The family the class extends says which operations the column offers in a query,
 | `IntegersType` | An integer: added, subtracted, multiplied, compared | An `int`, or a `bigint` when its SQL data type doesn't fit in a `number` (see below) |
 | `DecimalsType` | An exact decimal: also rounded; what can't be exact gives a `double` | A decimal number as text: see [Exact decimals](../../configuration/data-types.md#exact-decimals) |
 | `DnumDecimalsType` | The same as `DecimalsType` | A decimal number as a dnum (`Dnum`): see [Exact decimals](../../configuration/data-types.md#exact-decimals) |
+| `ScaledBigIntsType`, of a scale with `scaledBigIntsType(scale)` | An exact decimal of a fixed scale: added, subtracted and rounded, not multiplied; what can't be exact gives a `double` | A decimal number as a `ScaledBigInt`: see [Scaled bigints](../../configuration/data-types.md#scaled-bigints) |
 | `RealsType` | A floating point number: also divided and rounded, with the mathematical functions | `double` |
 | `AdditiveType` | A number only added and subtracted, like a sum of money | Not converted |
 | `MultipliableType` | Also multiplied | Not converted |
@@ -61,24 +62,24 @@ The family the class extends says which operations the column offers in a query,
 | `EqualableType` | Compared for equality | Not converted |
 | `ComparableType` | Also ordered, like `lessThan` and `between` | Not converted |
 
-A type of yours works only with values of its own type: `add`, `equals`, `minValue` and the rest take and give that type. To combine it with other values, like multiplying cents by a plain number, see [Combining your type with other values](branded-and-opaque-types.md#combining-your-type-with-other-values).
+A type of yours works only with values of its own type: `add`, `equals`, `minValue` and the rest take and give that type. To combine it with other values, like multiplying units by a plain number, see [Combining your type with other values](branded-and-opaque-types.md#combining-your-type-with-other-values).
 
 So an int with a TypeScript brand needs nothing else; its values are checked and converted as those of an `int`:
 
 ```typescriptreact
-declare const centsBrand: unique symbol
-type Cents = number & { readonly [centsBrand]: true }
+declare const unitsBrand: unique symbol
+type Units = number & { readonly [unitsBrand]: true }
 
-abstract class CentsType extends IntegersType<Cents, 'Cents'> {
-    static override readonly type = 'Cents'
+abstract class UnitsType extends IntegersType<Units, 'Units'> {
+    static override readonly type = 'Units'
 }
 
-costCents = this.column('cost_cents', CentsType)
+stock = this.column('stock', UnitsType)
 ```
 
 ## Its type in the database
 
-Each class has a type in the database by default, its SQL data type, which says what its values are there: the one of its family, in its static `sqlDataType`. An integer of yours is an integer of 4 bytes, like an `int`, a `RealsType` a floating point number, a `UuidsType` a uuid; a family whose values only you know, like `EqualableType`, `ComparableType` or `AdditiveType`, has none, and its values are sent as their value in JavaScript. The query runners send and read every value of the type by it, also a constant or a computed value like `cost.add(1)`. The SQL data type of each family is in [The SQL data type of a data type](sql-data-types.md#the-sql-data-type-of-a-data-type).
+Each class has a type in the database by default, its SQL data type, which says what its values are there: the one of its family, in its static `sqlDataType`. An integer of yours is an integer of 4 bytes, like an `int`, a `RealsType` a floating point number, a `UuidsType` a uuid; a family whose values only you know, like `EqualableType`, `ComparableType` or `AdditiveType`, has none, and its values are sent as their value in JavaScript. The query runners send and read every value of the type by it, also a constant or a computed value like `stock.add(stock)`. The SQL data type of each family is in [The SQL data type of a data type](sql-data-types.md#the-sql-data-type-of-a-data-type).
 
 A class of yours says another one with `static override readonly sqlDataType`. For an integer, the size decides the value in your code: one that fits in a `number` (up to 6 bytes, or 15 digits) is a `number`, and a wider one a `bigint`, which keeps every digit:
 
@@ -113,19 +114,19 @@ A column takes your type by its class. It can take it by its type name too, as a
 ```typescriptreact
 import { IntegersType, registerDataType } from 'ts-sql-query'
 
-export abstract class CentsType extends IntegersType<Cents, 'Cents'> {
-    static override readonly type = 'Cents'
+export abstract class UnitsType extends IntegersType<Units, 'Units'> {
+    static override readonly type = 'Units'
 }
 
-registerDataType(CentsType)
+registerDataType(UnitsType)
 
 declare module 'ts-sql-query' {
     interface DataTypes {
-        Cents: CentsType
+        Units: UnitsType
     }
 }
 ```
 
-Then the name goes wherever a type goes: a column, `this.column('cost_cents', 'Cents')`, a constant, `connection.const(price, 'Cents')`, a fragment, an argument, the type a type adapter requests, `setRequestedType('Cents')`, and a field of a [dynamic condition](../../dynamic/helper-types/conditions.md), `DynamicCondition<{ cost: 'Cents' }>`. A column given the name is the one given the class: the same type, the same SQL and the same parameters.
+Then the name goes wherever a type goes: a column, `this.column('stock', 'Units')`, a constant, `connection.const(quantity, 'Units')`, a fragment, an argument, the type a type adapter requests, `setRequestedType('Units')`, and a field of a [dynamic condition](../../dynamic/helper-types/conditions.md), `DynamicCondition<{ stock: 'Units' }>`. A column given the name is the one given the class: the same type, the same SQL and the same parameters.
 
 The name is the `static type` of the class, which the class must say: without it, the class is named after the name of its class, which a minifier can change, and registering it is an error, `DATA_TYPE_WITHOUT_TYPE_NAME`. A name is registered once: registering the same class again does nothing, and another class with a name already registered, also the name of a type of the library, is an error, `DATA_TYPE_ALREADY_REGISTERED`. A name that isn't in `DataTypes` doesn't compile, and one that is but nobody registered is an error when it is used, `UNKNOWN_DATA_TYPE`.

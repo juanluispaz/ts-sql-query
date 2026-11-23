@@ -8,23 +8,23 @@ import { ctx } from './setup.js'
 import { IntegersType, LocalDatesType, exposeFilterOperations, filterOperation } from '../../../../../src/exports/v2/index.js'
 import type { DynamicCondition } from '../../../../../src/exports/v2/index.js'
 
-declare const centsBrand: unique symbol
-type Cents = number & { readonly [centsBrand]: true }
+declare const millisecondsBrand: unique symbol
+type Milliseconds = number & { readonly [millisecondsBrand]: true }
 
 // A number of the user with SQL of its own in its methods
-abstract class BalanceType extends IntegersType<Cents, 'Balance'> {
-    static override readonly type = 'Balance'
-    inEuros() {
-        return this.fragmentWithType('double', 'required').sql`${this} / 100.0`
+abstract class MillisecondsType extends IntegersType<Milliseconds, 'Milliseconds'> {
+    static override readonly type = 'Milliseconds'
+    inSeconds() {
+        return this.fragmentWithType('double', 'required').sql`${this} / 1000.0`
     }
-    exceedsEuros(euros: number) {
-        return this.fragmentWithType('boolean', 'required').sql`${this} > ${this.const(euros, 'double')} * 100`
+    exceedsSeconds(seconds: number) {
+        return this.fragmentWithType('boolean', 'required').sql`${this} > ${this.const(seconds, 'double')} * 1000`
     }
 }
 
-const tIssueBalance = new class TIssueBalance extends Table<DBConnection, 'TIssueBalance'> {
+const tIssueDuration = new class TIssueDuration extends Table<DBConnection, 'TIssueDuration'> {
     id = this.primaryKey('id', 'int')
-    balance = this.column('priority', BalanceType)
+    duration = this.column('priority', MillisecondsType)
     constructor() {
         super('issue')
     }
@@ -59,28 +59,28 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('docs:methods-of-your-own/sql-of-your-own-in-a-method', async () => {
-        // The priority of the issues as cents: 2, 1, 3 and 2
-        ctx.mockNext([{ id: 1, euros: 0.02 }, { id: 3, euros: 0.03 }, { id: 4, euros: 0.02 }])
+        // The priority of the issues as milliseconds: 2, 1, 3 and 2
+        ctx.mockNext([{ id: 1, seconds: 0.002 }, { id: 3, seconds: 0.003 }, { id: 4, seconds: 0.002 }])
         const connection = ctx.conn
         // doc-start
-        const accounts = await connection.selectFrom(tIssueBalance)
-            .where(tIssueBalance.balance.exceedsEuros(0))
-            .and(tIssueBalance.balance.inEuros().greaterThan(0.015))
-            .select({ id: tIssueBalance.id, euros: tIssueBalance.balance.inEuros() })
+        const calls = await connection.selectFrom(tIssueDuration)
+            .where(tIssueDuration.duration.exceedsSeconds(0))
+            .and(tIssueDuration.duration.inSeconds().greaterThan(0.0015))
+            .select({ id: tIssueDuration.id, seconds: tIssueDuration.duration.inSeconds() })
             .orderBy('id')
             .executeSelectMany()
         // doc-end
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", priority / 100.0 as "euros" from issue where priority > :0 * 100 and (priority / 100.0) > :1 order by "id""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", priority / 1000.0 as "seconds" from issue where priority > :0 * 1000 and (priority / 1000.0) > :1 order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
-            0.015,
+            0.0015,
           ]
         `)
-        assertType<Exact<typeof accounts, { id: number; euros: number }[]>>()
-        expect(accounts).toEqual([{ id: 1, euros: 0.02 }, { id: 3, euros: 0.03 }, { id: 4, euros: 0.02 }])
+        assertType<Exact<typeof calls, { id: number; seconds: number }[]>>()
+        expect(calls).toEqual([{ id: 1, seconds: 0.002 }, { id: 3, seconds: 0.003 }, { id: 4, seconds: 0.002 }])
         // @ts-expect-error the fragments of a data type exist only inside its class
-        tIssueBalance.balance.fragmentWithType('int', 'required')
+        tIssueDuration.duration.fragmentWithType('int', 'required')
     })
 
     test('docs:methods-of-your-own/operations-of-your-own-in-a-dynamic-filter', async () => {

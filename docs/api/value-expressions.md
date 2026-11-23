@@ -737,6 +737,37 @@ interface DecimalsValueSource<T, TYPE_NAME extends string> extends MultipliableV
 
 ```typescript
 /**
+ * Represents an exact decimal number kept as a `ScaledBigInt`, a bigint with its scale in its type, of a type that
+ * extends `ScaledBigIntsType` (`scaledBigIntType(2)`, or a type of yours of the family `scaledBigIntsType(2)`), sent to
+ * and received from the database as its text, so it keeps every digit. It has no multiply nor divide: the result
+ * would have another scale. The functions whose result can't be exact return a double
+ */
+interface ScaledBigIntsValueSource<T, TYPE_NAME extends string> extends AdditiveValueSource<T, TYPE_NAME> {
+    ceil(): this
+    floor(): this
+    round(): this
+    /** The number of decimals is a number, or a value source of one */
+    roundn(value: number | NumberValueSource): this
+    exp(): NumberValueSource
+    ln(): NumberValueSource
+    log10(): NumberValueSource
+    sqrt(): NumberValueSource
+    cbrt(): NumberValueSource
+    acos(): NumberValueSource
+    asin(): NumberValueSource
+    atan(): NumberValueSource
+    cos(): NumberValueSource
+    cot(): NumberValueSource
+    sin(): NumberValueSource
+    tan(): NumberValueSource
+    power(value: number | NumberValueSource): NumberValueSource
+    logn(value: number | NumberValueSource): NumberValueSource
+    atan2(value: number | NumberValueSource): NumberValueSource
+}
+```
+
+```typescript
+/**
  * Represents a number of a type of yours that extends `DivisibleType`: it is also divided
  */
 interface DivisibleValueSource<T, TYPE_NAME extends string> extends MultipliableValueSource<T, TYPE_NAME> {

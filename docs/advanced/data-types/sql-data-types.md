@@ -122,6 +122,7 @@ The class of a data type says what its values are in the database, in its static
 | `bigint` | `{ family: 'exact numeric', scale: 0, bytes: 8 }` |
 | `double`, `RealsType` | `{ family: 'approximate numeric', precision: 53 }` |
 | `stringDecimal`, `dnumDecimal`, `DecimalsType` | `{ family: 'exact numeric' }` |
+| `ScaledBigIntsType` of a scale, like `scaledBigIntType(2)` | `{ family: 'exact numeric', scale: 2 }` |
 | `string` | `{ family: 'character string' }` |
 | `uuid`, `UuidsType` | `{ family: 'uuid' }` |
 | `localDate`, `LocalDatesType` | `{ family: 'datetime', fields: 'date' }` |
@@ -147,7 +148,7 @@ Each parameter of a query goes with its type, the one requested for it: by defau
 | `int`, `IntegersType` of 4 bytes, its default | `int4` | `int` |
 | `bigint`, `IntegersType` of 8 bytes | `int8` | `bigint` |
 | `double`, `RealsType` | `float8` | `float` |
-| `stringDecimal`, `dnumDecimal`, `DecimalsType` | `numeric` | `nvarchar`, the text |
+| `stringDecimal`, `dnumDecimal`, `DecimalsType`, `ScaledBigIntsType` | `numeric` | `nvarchar`, the text |
 | `string` | `text` | `nvarchar` |
 | `uuid`, `UuidsType` | `uuid` | `uniqueidentifier` |
 | `localDate`, `LocalDatesType` | `date` | `date` |

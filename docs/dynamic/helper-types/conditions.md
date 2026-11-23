@@ -254,7 +254,7 @@ Each operator of a filter is a method of the data type of the field, which the f
 | `'instant'`, `'zonedDateTime'` | `FilterOf<InstantType>`, `FilterOf<ZonedDateTimeType>` | Equality and comparison, with a `Temporal.Instant` or a `Temporal.ZonedDateTime` |
 | `'plainMonthDay'`, `'duration'` | `FilterOf<PlainMonthDayType>`, `FilterOf<DurationType>` | Equality, with a `Temporal.PlainMonthDay` or a `Temporal.Duration` |
 | A class that extends `EnumType`, `EqualableType`, `PlainMonthDaysType` or `DurationsType` | `FilterOf<YourType>` | Equality, with values of your type |
-| A class that extends `ComparableType`, one of the families of the numbers (`IntegersType`, `DecimalsType`, `DnumDecimalsType`, `RealsType`, `AdditiveType`, `MultipliableType`, `DivisibleType`) or of the dates (`LocalDatesType`, `LocalTimesType`, `LocalDateTimesType`, `PlainDatesType`, `PlainTimesType`, `PlainDateTimesType`, `PlainYearMonthsType`, `InstantsType`, `ZonedDateTimesType`) | `FilterOf<YourType>` | Equality and comparison, with values of your type |
+| A class that extends `ComparableType`, one of the families of the numbers (`IntegersType`, `DecimalsType`, `DnumDecimalsType`, `ScaledBigIntsType`, `RealsType`, `AdditiveType`, `MultipliableType`, `DivisibleType`) or of the dates (`LocalDatesType`, `LocalTimesType`, `LocalDateTimesType`, `PlainDatesType`, `PlainTimesType`, `PlainDateTimesType`, `PlainYearMonthsType`, `InstantsType`, `ZonedDateTimesType`) | `FilterOf<YourType>` | Equality and comparison, with values of your type |
 | A class that extends `UuidsType` | `FilterOf<YourType>` | Equality and comparison, with values of your type, and the text operators, with a `string`, applied to its text |
 | An aggregated array | None | None |
 
@@ -278,6 +278,7 @@ A class of yours can add operators of its own: see [Operations of your own in a 
 | `number` | `'int'` | `FilterOf<IntType>` |
 | `bigint` | `'bigint'` | `FilterOf<BigintType>` |
 | `Dnum` | `'dnumDecimal'` | `FilterOf<DnumDecimalType>` |
+| `ScaledBigInt<S>`, and a type of yours that is one | `ScaledBigIntsType<T, string>` | `FilterOf<ScaledBigIntsType<T, string>>`: equality and comparison |
 | `string` | `'string'` | `FilterOf<StringType>` |
 | `Date` | `'localDateTime'` | `FilterOf<LocalDateTimeType>`, with the same operators as the other dates |
 | `Temporal.PlainDate`, `Temporal.PlainTime`, `Temporal.PlainDateTime`, `Temporal.PlainYearMonth`, `Temporal.PlainMonthDay` | `'plainDate'`, `'plainTime'`, `'plainDateTime'`, `'plainYearMonth'`, `'plainMonthDay'` | `FilterOf<PlainDateType>` and the others of the table above |

@@ -91,7 +91,7 @@ import { PostgresQueryRunner } from '../../../../../src/queryRunners/PostgresQue
 
 import { TsSqlError, TsSqlQueryExecutionError } from '../../../../../src/TsSqlError.js'
 import { EnumType } from '../../../../../src/exports/v2/index.js'
-import { DecimalsType, LocalDatesType, RealsType } from '../../../../../src/exports/v2/index.js'
+import { DecimalsType, scaledBigInt, scaledBigIntType, type ScaledBigInt, LocalDatesType, RealsType } from '../../../../../src/exports/v2/index.js'
 // Extended by the classes of the types of the examples
 void RealsType
 
@@ -319,6 +319,17 @@ const tDnumAmount = new class TDnumAmount extends Table<DBConnection, 'TDnumAmou
     }
 }()
 void tDnumAmount
+const tScaledAmount = new class TScaledAmount extends Table<DBConnection, 'TScaledAmount'> {
+    id = this.primaryKey('id', 'int')
+    price = this.optionalColumn('price', scaledBigIntType(2))
+    hundreds = this.optionalColumn('hundreds', scaledBigIntType(-2))
+    constructor() {
+        super('exact_amount')
+    }
+}()
+void tScaledAmount
+void scaledBigInt
+void function (_scaled: ScaledBigInt<2>) {}
 
 // The releases of a project, with their dates and times as Temporal values (docs/configuration/dates-and-times.md)
 const tRelease = new class TRelease extends Table<DBConnection, 'TRelease'> {

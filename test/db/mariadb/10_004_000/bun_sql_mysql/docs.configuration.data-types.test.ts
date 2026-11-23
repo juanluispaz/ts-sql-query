@@ -5,7 +5,7 @@ import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { Table } from '../../../../../src/Table.js'
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-import { DecimalsType, type Dnum } from '../../../../../src/exports/v2/index.js'
+import { DecimalsType, type Dnum, scaledBigInt, scaledBigIntType, type ScaledBigInt } from '../../../../../src/exports/v2/index.js'
 
 // An exact decimal of the user
 abstract class AmountType extends DecimalsType<string, 'Amount'> { static override readonly type = 'Amount' }
@@ -23,6 +23,15 @@ const tDnumAmount = new class TDnumAmount extends Table<DBConnection, 'TDnumAmou
     id = this.primaryKey('id', 'int')
     amount = this.optionalColumn('amount', 'dnumDecimal')
     price = this.optionalColumn('price', 'dnumDecimal')
+    constructor() {
+        super('exact_amount')
+    }
+}()
+
+const tScaledAmount = new class TScaledAmount extends Table<DBConnection, 'TScaledAmount'> {
+    id = this.primaryKey('id', 'int')
+    price = this.optionalColumn('price', scaledBigIntType(2))
+    hundreds = this.optionalColumn('hundreds', scaledBigIntType(-2))
     constructor() {
         super('exact_amount')
     }
@@ -92,6 +101,38 @@ describe(ctx.label, () => {
         expect(rows).toEqual([
             { id: 1, price: [150n, 2], twice: [300n, 2] },
             { id: 5, price: [123456n, 2], twice: [246912n, 2] },
+        ])
+    })
+
+    test('docs:data-types/scaled-bigints', async () => {
+        ctx.mockNext([
+            { id: 1, price: '1.50', next: '1.51', hundreds: '12300' },
+            { id: 5, price: '1234.56', next: '1234.57', hundreds: '999900' },
+        ])
+        const connection = ctx.conn
+        // doc-start
+        const rows = await connection.selectFrom(tScaledAmount)
+            .where(tScaledAmount.price.greaterOrEqual(scaledBigInt(150n, 2)))
+            .select({
+                id: tScaledAmount.id,
+                price: tScaledAmount.price,
+                next: tScaledAmount.price.add(scaledBigInt(1n, 2)),
+                hundreds: tScaledAmount.hundreds,
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        // doc-end
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, price as price, price + cast(? as decimal(3, 2)) as next, hundreds as hundreds from exact_amount where price >= cast(? as decimal(3, 2)) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "0.01",
+            "1.50",
+          ]
+        `)
+        assertType<Exact<typeof rows, { id: number; price?: ScaledBigInt<2>; next?: ScaledBigInt<2>; hundreds?: ScaledBigInt<-2> }[]>>()
+        expect(rows).toEqual([
+            { id: 1, price: 150n, next: 151n, hundreds: 123n },
+            { id: 5, price: 123456n, next: 123457n, hundreds: 9999n },
         ])
     })
 })

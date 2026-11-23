@@ -53,8 +53,11 @@ export abstract class BaseType</*in|out*/ VALUE_TYPE> extends ValueSourceRuntime
      * The conversions of the values of the data type, with the names and the parameters of the methods of a type
      * adapter. A value goes to the database through the type adapter of the value, then these, then the connection
      * (`next`); a value read comes back the other way round. By default they convert nothing and pass the value to
-     * `next`; a class of a data type overrides the ones it needs (a class of an integer that the database gives as a
-     * bigint: `context.setRequestedType('bigint')` in `transformProjection`)
+     * `next`; a class of a data type overrides the ones it needs (a value converted as another type, like an integer
+     * read as a bigint: `context.setRequestedType('bigint')` in `transformValueFromDB` and `transformValueToDB`, and,
+     * so that the query runner reads it without loss when the SQL doesn't change, its SQL data type with
+     * `context.setRequestedSqlDataType(...)` in `transformProjection`, whose requested type counts only when it changes
+     * the SQL)
      */
 
     /** Converts a value read from the database; `next.transformValueFromDB(...)` applies the conversion of the connection */

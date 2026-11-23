@@ -146,10 +146,11 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select wall_at as wall, wall_at + $1::interval as later, floor(extract(epoch from wall_at) * 1000) as milliseconds from instant_value where id = $2"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
+        // A Temporal value as its text: the snapshot of the object itself depends on the test runner
+        expect(ctx.lastParams.map(String)).toMatchInlineSnapshot(`
           [
-            Duration {},
-            1,
+            "PT3600S",
+            "1",
           ]
         `)
         assertType<Exact<typeof instants, Array<{ wall?: Temporal.PlainDateTime; later?: Temporal.Instant; milliseconds?: number }>>>()

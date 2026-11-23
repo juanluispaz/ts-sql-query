@@ -18,8 +18,7 @@ import { MySql2QueryRunner } from '../../../../../src/queryRunners/MySql2QueryRu
 import { 
     extractColumnsFrom,
     extractWritableColumnsFrom,
-    extractWritableShapeFrom,
-} from '../../../../../src/extras/utils.js'
+    extractWritableShapeFrom } from '../../../../../src/extras/utils.js'
 import { type DynamicCondition, type DynamicConditionForModel, type DynamicDefinitionForModel } from '../../../../../src/dynamic/condition.js'
 import type { FilterOf, StringType } from '../../../../../src/exports/v2/index.js'
 import { IntegersType, LocalDatesType, exposeFilterOperations, filterOperation } from '../../../../../src/exports/v2/index.js'
@@ -28,13 +27,12 @@ void (null as unknown as [typeof IntegersType, typeof LocalDatesType, typeof exp
 import { dynamicPick, dynamicPickPaths, expandTypeFromDynamicPickPaths, type DynamicPickPaths, type PickValuesPath, type Pickable, type PickValuesPathProjectedAsNullable, type PickValuesPathWithAllPropertiesProjectedAsNullable, expandTypeProjectedAsNullableFromDynamicPickPaths, type PickValuesPathWithAllProperties } from '../../../../../src/dynamic/pick.js'
 import {
     type OrderByForModel,
-    type OrderByMode,
-} from '../../../../../src/dynamic/orderBy.js'
+    type OrderByMode } from '../../../../../src/dynamic/orderBy.js'
 import { deepPick, deepOmit, type DeepPick, type DeepOmit, type DeepPickPaths } from '../../../../../src/extras/deepUtilities.js'
 import { getQueryContext, type QueryContext, type QueryParamContext } from '../../../../../src/QueryContext.js'
 import { fromRef, type TableOrViewLeftJoinOf, type TableOrViewOf, type UpdatableValuesShapedAs } from '../../../../../src/extras/types.js'
 import { EnumType } from '../../../../../src/exports/v2/index.js'
-import { DecimalsType, scaledBigInt, scaledBigIntType, type ScaledBigInt } from '../../../../../src/exports/v2/index.js'
+import { DecimalsType, scaledBigInt, type ScaledBigInt } from '../../../../../src/exports/v2/index.js'
 
 // The data types of the values of the user, each one a class of the family of its values
 abstract class AmountType extends DecimalsType<string, 'Amount'> { static override readonly type = 'Amount' }
@@ -107,8 +105,7 @@ const tGroupedCompany = new class TGroupedCompany extends Table<DBConnection, 'T
     ubication = {
         latitude: this.optionalColumn('ubication_latitude', 'string').asRequiredInOptionalObject(),
         longitude: this.optionalColumn('ubication_longitude', 'string').asRequiredInOptionalObject(),
-        comment: this.optionalColumn('ubication_comment', 'string'),
-    };
+        comment: this.optionalColumn('ubication_comment', 'string') };
     constructor() {
         super('company');
     }
@@ -187,7 +184,7 @@ const tDnumAmount = new class TDnumAmount extends Table<DBConnection, 'TDnumAmou
 void tDnumAmount
 const tScaledAmount = new class TScaledAmount extends Table<DBConnection, 'TScaledAmount'> {
     id = this.primaryKey('id', 'int')
-    price = this.optionalColumn('price', scaledBigIntType(2))
+    price = this.optionalColumn('price', 'ScaledBigInt<2>')
     constructor() {
         super('exact_amount')
     }

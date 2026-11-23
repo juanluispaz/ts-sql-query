@@ -91,7 +91,7 @@ import { PostgresQueryRunner } from '../../../../../src/queryRunners/PostgresQue
 
 import { TsSqlError, TsSqlQueryExecutionError } from '../../../../../src/TsSqlError.js'
 import { EnumType } from '../../../../../src/exports/v2/index.js'
-import { DecimalsType, scaledBigInt, scaledBigIntType, type ScaledBigInt, LocalDatesType, RealsType } from '../../../../../src/exports/v2/index.js'
+import { DecimalsType, scaledBigInt, type ScaledBigInt, LocalDatesType, RealsType } from '../../../../../src/exports/v2/index.js'
 // Extended by the classes of the types of the examples
 void RealsType
 
@@ -171,8 +171,7 @@ const tGroupedCompany = new class TGroupedCompany extends Table<DBConnection, 'T
     ubication = {
         latitude: this.optionalColumn('ubication_latitude', 'string').asRequiredInOptionalObject(),
         longitude: this.optionalColumn('ubication_longitude', 'string').asRequiredInOptionalObject(),
-        comment: this.optionalColumn('ubication_comment', 'string'),
-    };
+        comment: this.optionalColumn('ubication_comment', 'string') };
     constructor() {
         super('company');
     }
@@ -321,7 +320,7 @@ const tDnumAmount = new class TDnumAmount extends Table<DBConnection, 'TDnumAmou
 void tDnumAmount
 const tScaledAmount = new class TScaledAmount extends Table<DBConnection, 'TScaledAmount'> {
     id = this.primaryKey('id', 'int')
-    price = this.optionalColumn('price', scaledBigIntType(2))
+    price = this.optionalColumn('price', 'ScaledBigInt<2>')
     constructor() {
         super('exact_amount')
     }

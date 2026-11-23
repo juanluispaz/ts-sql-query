@@ -60,7 +60,7 @@ this.column('ColumnName', 'localDateTime')
 this.column('ColumnName', UnitsType)
 ```
 
-The types of the library have a class too, `BooleanType`, `IntType`, `BigintType`, `DoubleType`, `StringType`, `UuidType`, `StringDecimalType`, `DnumDecimalType`, `PlainDateType`, `PlainTimeType`, `PlainDateTimeType`, `PlainYearMonthType`, `PlainMonthDayType`, `DurationType`, `InstantType`, `ZonedDateTimeType`, `LocalDateType`, `LocalTimeType` and `LocalDateTimeType`, exported by `ts-sql-query`, and the one of a scaled bigint of a scale is `scaledBigIntType(2)`. A method that takes a type takes its class too, so `this.column('ColumnName', IntType)` is the same column as `this.column('ColumnName', 'int')`, and `this.column('ColumnName', scaledBigIntType(2))` the same as `this.column('ColumnName', 'ScaledBigInt<2>')`.
+The types of the library have a class too, `BooleanType`, `IntType`, `BigintType`, `DoubleType`, `StringType`, `UuidType`, `StringDecimalType`, `DnumDecimalType`, `PlainDateType`, `PlainTimeType`, `PlainDateTimeType`, `PlainYearMonthType`, `PlainMonthDayType`, `DurationType`, `InstantType`, `ZonedDateTimeType`, `LocalDateType`, `LocalTimeType` and `LocalDateTimeType`, exported by `ts-sql-query`, and the one of a scaled bigint of a scale is `ScaledBigIntType.of(2)`. A method that takes a type takes its class too, so `this.column('ColumnName', IntType)` is the same column as `this.column('ColumnName', 'int')`, and `this.column('ColumnName', 'ScaledBigInt<2>')` the same as `this.column('ColumnName', 'ScaledBigInt<2>')`.
 
 !!! tip "Generating UUIDs"
 
@@ -81,7 +81,7 @@ Choose by the values your code handles, not only by the type of the column in th
 | A number with decimals, when a JavaScript `number` is enough | `double` | The value becomes a `number`, whatever the column is. A `decimal` column with more digits than a `number` holds loses them. |
 | A decimal number that must stay exact, like money | `stringDecimal` | The value is a `string` with all its digits; what each database keeps is in [Exact decimals](#exact-decimals). |
 | The same, to compute with it in your code with the [dnum](https://github.com/bpierre/dnum) library | `dnumDecimal` | The value is a `Dnum`, the integer of its digits and the number of its decimals: `[150n, 2]` is `1.50`. |
-| The same, with the decimals of the column fixed, like money in a `decimal(10, 2)`, to compute with integers in your code | `scaledBigIntType(2)` | The value is a `ScaledBigInt<2>`, a `bigint` with the scale in its type: `150n` is `1.50`. See [Scaled bigints](#scaled-bigints). |
+| The same, with the decimals of the column fixed, like money in a `decimal(10, 2)`, to compute with integers in your code | `'ScaledBigInt<2>'` | The value is a `ScaledBigInt<2>`, a `bigint` with the scale in its type: `150n` is `1.50`. See [Scaled bigints](#scaled-bigints). |
 | The same, with your own type for it, like the one of a decimal library | A class that extends `DecimalsType`, or `DnumDecimalsType` for a dnum | Your type, with a [conversion](../advanced/data-types/branded-and-opaque-types.md#a-value-of-a-class-of-yours) from and to the text of the number, or a dnum of your own. |
 | Text | `string` | An empty string [has no value](connection.md#allowing-empty-string) by default. |
 | True or false | `boolean` | Oracle and SQL Server store it as a number or a bit, with `0` and `1`. For other representations, like `'Y'` and `'N'`, see [Custom booleans values](../advanced/data-types/custom-booleans-values.md). |
@@ -132,7 +132,7 @@ JavaScript has no decimal type yet (there is a [proposal](https://github.com/tc3
 
 - `stringDecimal`: the value is the text of the number, a `string` like `'12345678901234567890.1234567891'`. Choose it when a string is enough in your code.
 - `dnumDecimal`: the value is a `Dnum`, the representation of the [dnum](https://github.com/bpierre/dnum) library, `readonly [value: bigint, decimals: number]`: the integer of its digits and the number of its decimals, so `[150n, 2]` is `1.50` and `[-5n, 3]` is `-0.005`. Choose it to compute with dnum in your code. The library exports the type `Dnum` and doesn't depend on dnum: the values of dnum are of this type, so they go to the queries and come from them as they are.
-- `ScaledBigInt<S>`, the data type `scaledBigIntType(S)`: the value is a `bigint` with the scale of the column in its type, so `ScaledBigInt<2>` keeps cents and `150n` is `1.50`. Choose it for a column whose decimals are fixed, like an amount of money in a `decimal(10, 2)`, to compute with integers in your code. At run time the value is a plain `bigint`: the scale is only in its type and in the class of the column. See [Scaled bigints](#scaled-bigints).
+- `ScaledBigInt<S>`, the data type `'ScaledBigInt<S>'`: the value is a `bigint` with the scale of the column in its type, so `ScaledBigInt<2>` keeps cents and `150n` is `1.50`. Choose it for a column whose decimals are fixed, like an amount of money in a `decimal(10, 2)`, to compute with integers in your code. At run time the value is a plain `bigint`: the scale is only in its type and in the class of the column. See [Scaled bigints](#scaled-bigints).
 - A class of yours that extends `DecimalsType`: the value has your own TypeScript type, like a branded string or the decimal type of a library of your choice. The conversion from and to the text, if your type isn't a string, goes in the class, as in [a value of a class of yours](../advanced/data-types/branded-and-opaque-types.md#a-value-of-a-class-of-yours), or in a [type adapter](../advanced/data-types/type-adapters.md). A class that extends `DnumDecimalsType` has a dnum as its value, like `dnumDecimal`, with a type of yours, like a branded `Dnum`.
 
 ```typescriptreact
@@ -152,7 +152,7 @@ abstract class CostType extends DnumDecimalsType<Cost, 'Cost'> {
 }
 cost = this.optionalColumn('cost', CostType)
 
-fee = this.optionalColumn('fee', scaledBigIntType(2))
+fee = this.optionalColumn('fee', 'ScaledBigInt<2>')
 ```
 
 A `stringDecimal` is compared and computed only with another `stringDecimal` or a string, a `dnumDecimal` only with another `dnumDecimal` or a `Dnum`, a `ScaledBigInt<2>` only with another `ScaledBigInt<2>` (not one of another scale, nor a plain `bigint`), and a decimal of yours only with values of its own type, so they don't mix.
@@ -335,23 +335,23 @@ For the rows with the prices `1.50` and `1234.56`, the rows read are `[{ id: 1, 
 
 ### Scaled bigints
 
-A `ScaledBigInt<S>` is a `bigint` with its scale in its type: `ScaledBigInt<2>` keeps cents (`150n` is `1.50`). The scale is the number of decimals of the column; a column without decimals is a `bigint`. A negative scale, or one that isn't an integer, is rejected with `INVALID_CONFIGURATION`, and a negative literal doesn't compile. The column says its scale with the class of its data type, `scaledBigIntType(2)`, made once for each scale, or with its type name, the one TypeScript writes, `'ScaledBigInt<2>'`, which every scale has without registering it: `this.column('price', 'ScaledBigInt<2>')`, `connection.const(value, 'ScaledBigInt<2>')`, `DynamicCondition<{ price: 'ScaledBigInt<2>' }>`. Its SQL data type is `{ family: 'exact numeric', scale: 2 }`. A name with a negative scale, like `'ScaledBigInt<-2>'`, doesn't compile; one whose scale isn't an integer, like `'ScaledBigInt<1.5>'`, has no data type and is rejected with `UNKNOWN_DATA_TYPE`. `scaledBigInt(150n, 2)` gives a `bigint` the type `ScaledBigInt<2>`, and `ScaleOf<T>` is the scale of a type.
+A `ScaledBigInt<S>` is a `bigint` with its scale in its type: `ScaledBigInt<2>` keeps cents (`150n` is `1.50`). The scale is the number of decimals of the column; a column without decimals is a `bigint`. A negative scale, or one that isn't an integer, is rejected with `INVALID_CONFIGURATION`, and a negative literal doesn't compile. The column says its scale with the type name of its data type, the one TypeScript writes, `'ScaledBigInt<2>'`, which every scale has without registering it, or with its class, `ScaledBigIntType.of(2)`, made once for each scale: `this.column('price', 'ScaledBigInt<2>')`, `connection.const(value, 'ScaledBigInt<2>')`, `DynamicCondition<{ price: 'ScaledBigInt<2>' }>`. Its SQL data type is `{ family: 'exact numeric', scale: 2 }`. A name with a negative scale, like `'ScaledBigInt<-2>'`, doesn't compile; one whose scale isn't an integer, like `'ScaledBigInt<1.5>'`, has no data type and is rejected with `UNKNOWN_DATA_TYPE`. `scaledBigInt(150n, 2)` gives a `bigint` the type `ScaledBigInt<2>`, and `ScaleOf<T>` is the scale of a type.
 
 ```typescriptreact
-import { scaledBigInt, scaledBigIntsType, scaledBigIntType, type ScaledBigInt, type ScaleOf } from "ts-sql-query"
+import { ScaledBigIntsType, type ScaledBigInt, type SqlDataType } from "ts-sql-query"
 
-price = this.optionalColumn('price', scaledBigIntType(2))
+price = this.optionalColumn('price', 'ScaledBigInt<2>')
 
-// A type of yours, of the scale 2: it extends the family of that scale
+// A type of yours, of the scale 2: a class of the family, which says the scale in its SQL data type
 type Fee = ScaledBigInt<2> & { readonly __brand: 'Fee' }
-const ScaledBigIntsOf2 = scaledBigIntsType(2)
-abstract class FeeType extends ScaledBigIntsOf2<Fee, 'Fee'> {
+abstract class FeeType extends ScaledBigIntsType<Fee, 'Fee'> {
     static override readonly type = 'Fee'
+    static override readonly sqlDataType: SqlDataType = { family: 'exact numeric', scale: 2 }
 }
 fee = this.optionalColumn('fee', FeeType)
 ```
 
-The family of a scale only accepts values of that scale: `ScaledBigIntsOf2<ScaledBigInt<3>, 'Fee'>` doesn't compile.
+A type of yours of the family says its scale in its SQL data type, as an integer of yours says its size (see [Data types of your own](../advanced/data-types/own-data-types.md)); one that doesn't say it is rejected with `INVALID_CONFIGURATION` when a value is converted. The scale of its SQL data type and the one of its values (`ScaleOf<Fee>`) must be the same: the type of the values doesn't check it.
 
 A value is sent as the text of its decimal at its scale: `150n` of the scale 2 is `'1.50'`. It's read at its scale whatever the decimals the database gives: `1.5`, `1.50` and `1.5000` are `150n`. A value with a digit other than a zero beyond its scale, like `1.234` read as a `ScaledBigInt<2>`, is rejected with `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE`: the value is never cut. The operations of [Exact decimals](#exact-decimals) keep the scale, except `multiply` and `divide`, which a `ScaledBigInt` doesn't have; to multiply, compute it in your code, or in the query with another exact decimal type.
 

@@ -738,7 +738,7 @@ interface DecimalsValueSource<T, TYPE_NAME extends string> extends MultipliableV
 ```typescript
 /**
  * Represents an exact decimal number kept as a `ScaledBigInt`, a bigint with its scale in its type, of a type that
- * extends `ScaledBigIntsType` (`scaledBigIntType(2)`, or a type of yours of the family `scaledBigIntsType(2)`), sent to
+ * extends `ScaledBigIntsType` (`ScaledBigIntType.of(2)`, `'ScaledBigInt<2>'`, or a type of yours of the family), sent to
  * and received from the database as its text, so it keeps every digit. It has no multiply nor divide: the result
  * would have another scale. The functions whose result can't be exact return a double
  */

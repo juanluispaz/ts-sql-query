@@ -122,7 +122,7 @@ The class of a data type says what its values are in the database, in its static
 | `bigint` | `{ family: 'exact numeric', scale: 0, bytes: 8 }` |
 | `double`, `RealsType` | `{ family: 'approximate numeric', precision: 53 }` |
 | `stringDecimal`, `dnumDecimal`, `DecimalsType` | `{ family: 'exact numeric' }` |
-| `ScaledBigIntsType` of a scale, like `scaledBigIntType(2)` | `{ family: 'exact numeric', scale: 2 }` |
+| `ScaledBigIntsType` of a scale, like `'ScaledBigInt<2>'` | `{ family: 'exact numeric', scale: 2 }` |
 | `string` | `{ family: 'character string' }` |
 | `uuid`, `UuidsType` | `{ family: 'uuid' }` |
 | `localDate`, `LocalDatesType` | `{ family: 'datetime', fields: 'date' }` |

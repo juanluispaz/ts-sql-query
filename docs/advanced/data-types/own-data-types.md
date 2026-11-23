@@ -47,7 +47,7 @@ The family the class extends says which operations the column offers in a query,
 | `IntegersType` | An integer: added, subtracted, multiplied, compared | An `int`, or a `bigint` when its SQL data type doesn't fit in a `number` (see below) |
 | `DecimalsType` | An exact decimal: also rounded; what can't be exact gives a `double` | A decimal number as text: see [Exact decimals](../../configuration/data-types.md#exact-decimals) |
 | `DnumDecimalsType` | The same as `DecimalsType` | A decimal number as a dnum (`Dnum`): see [Exact decimals](../../configuration/data-types.md#exact-decimals) |
-| `ScaledBigIntsType`, of a scale with `scaledBigIntsType(scale)` | An exact decimal of a fixed scale: added, subtracted and rounded, not multiplied; what can't be exact gives a `double` | A decimal number as a `ScaledBigInt`: see [Scaled bigints](../../configuration/data-types.md#scaled-bigints) |
+| `ScaledBigIntsType`, with the scale in its SQL data type | An exact decimal of a fixed scale: added, subtracted and rounded, not multiplied; what can't be exact gives a `double` | A decimal number as a `ScaledBigInt`: see [Scaled bigints](../../configuration/data-types.md#scaled-bigints) |
 | `RealsType` | A floating point number: also divided and rounded, with the mathematical functions | `double` |
 | `AdditiveType` | A number only added and subtracted, like a sum of money | Not converted |
 | `MultipliableType` | Also multiplied | Not converted |

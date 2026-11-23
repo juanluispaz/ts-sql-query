@@ -15,7 +15,7 @@ Every context has `originalType`, the class of the type declared for the value (
 3. the type adapter of the requested type, when the type was requested with one (`setRequestedType(type, adapter)`);
 4. the connection.
 
-Reading a value, the calls go in the opposite order, and each step converts what `next` returns: the type adapter of the value calls the class, which calls the connection, which reads what the database gave. With a `MoneyType` whose values are objects of a class `Money`, as in [A value of a class of yours](branded-and-opaque-types.md#a-value-of-a-class-of-yours), kept in a `decimal(10, 2)` column as the `ScaledBigInt<2>` of their cents (the class calls `setRequestedType(scaledBigIntType(2))`, see [Scaled bigints](../../configuration/data-types.md#scaled-bigints)), and a column that has a type adapter too:
+Reading a value, the calls go in the opposite order, and each step converts what `next` returns: the type adapter of the value calls the class, which calls the connection, which reads what the database gave. With a `MoneyType` whose values are objects of a class `Money`, as in [A value of a class of yours](branded-and-opaque-types.md#a-value-of-a-class-of-yours), kept in a `decimal(10, 2)` column as the `ScaledBigInt<2>` of their cents (the class calls `setRequestedType('ScaledBigInt<2>')`, see [Scaled bigints](../../configuration/data-types.md#scaled-bigints)), and a column that has a type adapter too:
 
 | Step | `originalType` / `requestedType` it sees, sending | Reading, before `next` | Reading, after `next` |
 |---|---|---|---|
@@ -29,7 +29,7 @@ The requested type is also the type the query runner sends the parameter with, a
 
 ## Requesting another type
 
-A conversion that hands the value on as a value of another type says so with `context.setRequestedType(type)`, before calling `next`: a `Money` that goes and comes back as the `ScaledBigInt<2>` of its cents, a date sent and read as its text with `'string'`. The type goes by its name, like `'bigint'` or `'string'`, or by its class, like `StringType`, `scaledBigIntType(2)` or a class of yours. From then on, for the steps after it:
+A conversion that hands the value on as a value of another type says so with `context.setRequestedType(type)`, before calling `next`: a `Money` that goes and comes back as the `ScaledBigInt<2>` of its cents, a date sent and read as its text with `'string'`. The type goes by its name, like `'bigint'` or `'string'`, or by its class, like `StringType`, `ScaledBigIntType.of(2)` or a class of yours. From then on, for the steps after it:
 
 - The connection converts and checks the value as one of the requested type: it sends the `bigint` `150n` as the text of its decimal, `'1.50'`, and rejects what isn't a `bigint` with `INVALID_VALUE_TO_SEND_TO_DATABASE`.
 - The query runner sends the parameter with the requested type, like `$1::numeric` where PostgreSQL needs it, and reads the column of the result as it; it receives it in [the context of the query](../running-queries/query-execution-metadata.md#get-the-type-of-each-parameter).

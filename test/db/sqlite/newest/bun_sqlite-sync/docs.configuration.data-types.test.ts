@@ -6,7 +6,7 @@ import { Table } from '../../../../../src/Table.js'
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import { sync } from '../../../../../src/extras/sync.js'
-import { DecimalsType, type Dnum, scaledBigInt, scaledBigIntType, type ScaledBigInt } from '../../../../../src/exports/v2/index.js'
+import { DecimalsType, type Dnum, scaledBigInt, type ScaledBigInt } from '../../../../../src/exports/v2/index.js'
 
 // An exact decimal of the user
 abstract class AmountType extends DecimalsType<string, 'Amount'> { static override readonly type = 'Amount' }
@@ -31,7 +31,7 @@ const tDnumAmount = new class TDnumAmount extends Table<DBConnection, 'TDnumAmou
 
 const tScaledAmount = new class TScaledAmount extends Table<DBConnection, 'TScaledAmount'> {
     id = this.primaryKey('id', 'int')
-    price = this.optionalColumn('price', scaledBigIntType(2))
+    price = this.optionalColumn('price', 'ScaledBigInt<2>')
     constructor() {
         super('exact_amount')
     }
@@ -54,8 +54,7 @@ describe(ctx.label, () => {
             .select({
                 id: tExactAmount.id,
                 amount: tExactAmount.amount,
-                next: tExactAmount.amount.add('0.0000000001'),
-            })
+                next: tExactAmount.amount.add('0.0000000001') })
             .orderBy('id')
             .executeSelectMany())
         // doc-end
@@ -85,8 +84,7 @@ describe(ctx.label, () => {
             .select({
                 id: tDnumAmount.id,
                 price: tDnumAmount.price,
-                twice: tDnumAmount.price.multiply([2n, 0]),
-            })
+                twice: tDnumAmount.price.multiply([2n, 0]) })
             .orderBy('id')
             .executeSelectMany())
         // doc-end
@@ -117,8 +115,7 @@ describe(ctx.label, () => {
             .select({
                 id: tScaledAmount.id,
                 price: tScaledAmount.price,
-                next: tScaledAmount.price.add(scaledBigInt(1n, 2)),
-            })
+                next: tScaledAmount.price.add(scaledBigInt(1n, 2)) })
             .orderBy('id')
             .executeSelectMany())
         // doc-end

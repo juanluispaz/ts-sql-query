@@ -115,7 +115,7 @@ With either of them a value gets the brand by a cast (`value as Units`). Keep th
 When the value in your code is an object, like an amount of money that carries its own operations, the class of the data type converts it on its way to the database and back. Its family is the one of what the values can do in a query, and since a family whose values aren't numbers converts nothing, the class says how: with `transformValueToDB` and `transformValueFromDB`, statics with the parameters of a [type adapter](type-adapters.md), where `next` is the conversion of the library. Here the money is kept in a `decimal(10, 2)` column, and its amount in your code is a [scaled bigint](../../configuration/data-types.md#scaled-bigints) of 2 decimals, `ScaledBigInt<2>`:
 
 ```ts
-import { ComparableType, Table, scaledBigInt, scaledBigIntType, type DefaultTypeAdapter, type ScaledBigInt, type SqlDataType, type TypeAdapterValueFromDBContext, type TypeAdapterValueToDBContext } from "ts-sql-query"
+import { ComparableType, Table, scaledBigInt,  type DefaultTypeAdapter, type ScaledBigInt, type SqlDataType, type TypeAdapterValueFromDBContext, type TypeAdapterValueToDBContext } from "ts-sql-query"
 
 class Money {
     constructor(readonly amount: ScaledBigInt<2>) {}
@@ -126,11 +126,11 @@ abstract class MoneyType extends ComparableType<Money, 'Money'> {
     static override readonly sqlDataType: SqlDataType = { family: 'exact numeric', precision: 10, scale: 2 }
 
     static override transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
-        context.setRequestedType(scaledBigIntType(2))
+        context.setRequestedType('ScaledBigInt<2>')
         return next.transformValueToDB(value instanceof Money ? value.amount : value, context)
     }
     static override transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
-        context.setRequestedType(scaledBigIntType(2))
+        context.setRequestedType('ScaledBigInt<2>')
         const result = next.transformValueFromDB(value, context)
         return typeof result === 'bigint' ? new Money(scaledBigInt(result, 2)) : result
     }
@@ -203,7 +203,7 @@ The executed query is:
 
 The parameters are: `[ '100.00' ]`
 
-`bigOrders` is a `{ id: number, total: Money }[]`, and each `total` is an instance of `Money`. `setRequestedType(scaledBigIntType(2))` says that the value goes and comes back as a `ScaledBigInt<2>`: the library sends `10000n` as the text of the decimal, `'100.00'`, and converts what the database gives into a `bigint` of 2 decimals, like `150n` for `1.50`, and the class turns it into a `Money`. The SQL data type says what the column is in the database, a decimal of 10 digits with 2 decimals: see [The type of a column in the database](sql-data-types.md).
+`bigOrders` is a `{ id: number, total: Money }[]`, and each `total` is an instance of `Money`. `setRequestedType('ScaledBigInt<2>')` says that the value goes and comes back as a `ScaledBigInt<2>`: the library sends `10000n` as the text of the decimal, `'100.00'`, and converts what the database gives into a `bigint` of 2 decimals, like `150n` for `1.50`, and the class turns it into a `Money`. The SQL data type says what the column is in the database, a decimal of 10 digits with 2 decimals: see [The type of a column in the database](sql-data-types.md).
 
 `ComparableType` gives the column equality and order, like `greaterOrEqual` and `between`; arithmetic in the database, like adding two amounts, would need a family that has it, like `AdditiveType`.
 

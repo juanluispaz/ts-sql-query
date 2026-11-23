@@ -6,7 +6,7 @@ import { Table } from '../../../../../src/Table.js'
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import { sync } from '../../../../../src/extras/sync.js'
-import { ComparableType, IntegersType, IntType, scaledBigInt, scaledBigIntType } from '../../../../../src/exports/v2/index.js'
+import { ComparableType, IntegersType, IntType, scaledBigInt } from '../../../../../src/exports/v2/index.js'
 import type { CombinedOptionality, DataTypeOf, DefaultTypeAdapter, OperandOf, OptionalityOf, ScaledBigInt, SourceOf, SqlDataType, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext, ValueSource } from '../../../../../src/exports/v2/index.js'
 
 // A number of units in stock, branded with a symbol of its own, also multiplied by a plain number or an int
@@ -50,11 +50,11 @@ abstract class MoneyType extends ComparableType<Money, 'Money'> {
     static override readonly sqlDataType: SqlDataType = { family: 'exact numeric', precision: 10, scale: 2 }
 
     static override transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown {
-        context.setRequestedType(scaledBigIntType(2))
+        context.setRequestedType('ScaledBigInt<2>')
         return next.transformValueToDB(value instanceof Money ? value.amount : value, context)
     }
     static override transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
-        context.setRequestedType(scaledBigIntType(2))
+        context.setRequestedType('ScaledBigInt<2>')
         const result = next.transformValueFromDB(value, context)
         return typeof result === 'bigint' ? new Money(scaledBigInt(result, 2)) : result
     }
@@ -120,8 +120,7 @@ describe(ctx.label, () => {
             .select({
                 id: tIssueUnits.id,
                 inPacksOf3: tIssueUnits.stock.multiply(3),
-                inPacks: tIssueUnits.stock.multiply(tIssueUnits.packs),
-            })
+                inPacks: tIssueUnits.stock.multiply(tIssueUnits.packs) })
             .orderBy('id')
             .executeSelectMany())
         // doc-end

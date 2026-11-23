@@ -6,7 +6,7 @@ import { Table } from '../../../../../src/Table.js'
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import { getQueryContext } from '../../../../../src/QueryContext.js'
-import { ComparableType, scaledBigIntType } from '../../../../../src/exports/v2/index.js'
+import { ComparableType } from '../../../../../src/exports/v2/index.js'
 import type { DefaultTypeAdapter, SqlDataType, TypeAdapter, TypeAdapterContext, TypeAdapterPlaceholderContext, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../../../../../src/exports/v2/index.js'
 
 // What each step of the conversion of a value sees: its original and its requested type
@@ -20,7 +20,7 @@ class Money {
     constructor(readonly cents: bigint) {}
 }
 
-const MoneyDecimal = scaledBigIntType(2)
+const MoneyDecimal = 'ScaledBigInt<2>'
 
 abstract class MoneyType extends ComparableType<Money, 'Money'> {
     static override readonly type = 'Money'
@@ -55,8 +55,7 @@ const columnAdapter: TypeAdapter = {
         const result = next.transformValueFromDB(value, context)
         seen.push('column reads after next ' + typesOf(context))
         return result
-    },
-}
+    } }
 
 // Sends the value with its type, written as a cast where the query runner writes one
 const withItsType: TypeAdapter = {
@@ -66,8 +65,7 @@ const withItsType: TypeAdapter = {
     },
     transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown {
         return next.transformValueFromDB(value, context)
-    },
-}
+    } }
 
 // exact_amount.price is a decimal(10, 2): row 1 has the price 1.50 and row 5 1234.56
 const tAmountMoney = new class TAmountMoney extends Table<DBConnection, 'TAmountMoney'> {
@@ -123,7 +121,7 @@ describe(ctx.label, () => {
           ]
         `)
         // The query runner sends the parameter as the type the class requested
-        expect(getQueryContext(ctx.lastSql, ctx.lastParams).getParam(0)?.requestedType).toBe(MoneyDecimal)
+        expect(getQueryContext(ctx.lastSql, ctx.lastParams).getParam(0)?.requestedType?.type).toBe(MoneyDecimal)
     })
 
     test('docs:conversion-context/asking-the-database-for-the-type-of-a-parameter', async () => {

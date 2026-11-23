@@ -278,7 +278,7 @@ A class of yours can add operators of its own: see [Operations of your own in a 
 | `number` | `'int'` | `FilterOf<IntType>` |
 | `bigint` | `'bigint'` | `FilterOf<BigintType>` |
 | `Dnum` | `'dnumDecimal'` | `FilterOf<DnumDecimalType>` |
-| `ScaledBigInt<S>`, like `ScaledBigInt<2>` | `ScaledBigIntType<2>`, the data type of `scaledBigIntType(2)` | `FilterOf<ScaledBigIntType<2>>`: equality and comparison |
+| `ScaledBigInt<S>`, like `ScaledBigInt<2>` | `ScaledBigIntType<2>`, the data type `'ScaledBigInt<2>'` | `FilterOf<ScaledBigIntType<2>>`: equality and comparison |
 | A `ScaledBigInt` with a brand of yours, like `ScaledBigInt<2> & { readonly __brand: 'Fee' }` | `ScaledBigIntsType<T, string>`: the model doesn't say which type of yours the column has | `FilterOf<ScaledBigIntsType<T, string>>`: equality and comparison |
 | `string` | `'string'` | `FilterOf<StringType>` |
 | `Date` | `'localDateTime'` | `FilterOf<LocalDateTimeType>`, with the same operators as the other dates |

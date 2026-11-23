@@ -1,6 +1,6 @@
 import type { SqlDataType } from '../TypeAdapter.js'
 import { ComparableType } from './comparable.js'
-import type { OptionalityOf, SourceOf, ValueSource } from './base.js'
+import type { OptionalityOf, SourceOf, ValueSource, DataTypeOfClass } from './base.js'
 import type { IStringValue, StringType } from './strings.js'
 import type { BooleanType, IfValueSource } from './logical.js'
 import type { CombinedOptionality } from './valueSource.js'
@@ -18,6 +18,8 @@ export const uuidSqlDataType: SqlDataType = { family: 'uuid' }
  * `class CustomerIdType extends UuidsType<CustomerId, 'CustomerId'> { static override readonly type = 'CustomerId' }`
  */
 export abstract class UuidsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends ComparableType<VALUE_TYPE, TYPE_NAME> {
+    /** The data type of a value of a type of yours of this family, of that type name, for a specific use (see EqualableType.of) */
+    declare static readonly of: <VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME, ...options: never[]) => DataTypeOfClass<UuidsType<VALUE_TYPE, TYPE_NAME>>
     static override readonly sqlDataType: SqlDataType | undefined = uuidSqlDataType
     static override readonly [filterOperation] = exposeFilterOperations(this, ComparableType, [
         'equalsInsensitiveIfValue', 'equalsInsensitive', 'notEqualsInsensitiveIfValue', 'notEqualsInsensitive',
@@ -530,5 +532,7 @@ export abstract class UuidsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME exte
 
 /** A uuid, a JavaScript string */
 export abstract class UuidType extends UuidsType<string, 'uuid'> {
+    /** A data type has no `of`: it is made by a family (see EqualableType.of) */
+    declare static readonly of: never
     static override readonly type = 'uuid'
 }

@@ -14,7 +14,7 @@ import { ComparableType, EqualableType, IntegersType, LocalDateTimesType, LocalD
 // The data types of the values of the user, each one a class of the family of its values
 abstract class SemverType extends ComparableType<string, 'Semver'> { static override readonly type = 'Semver' }
 abstract class ReleaseChannelType extends EqualableType<ReleaseChannel, 'ReleaseChannel'> { static override readonly type = 'ReleaseChannel' }
-abstract class WorklogActivityType extends EnumType<WorklogActivity, 'WorklogActivity'> { static override readonly type = 'WorklogActivity' }
+abstract class WorklogActivityType extends EnumType<WorklogActivity, 'WorklogActivity'> { static override readonly type = 'WorklogActivity'; static override readonly values = ['coding', 'review', 'meeting'] as const }
 abstract class SigningKeyType extends UuidsType<string, 'SigningKey'> { static override readonly type = 'SigningKey' }
 abstract class MoneyType extends RealsType<number, 'Money'> { static override readonly type = 'Money' }
 abstract class CentsType extends IntegersType<number, 'Cents'> { static override readonly type = 'Cents' }
@@ -23,8 +23,8 @@ abstract class CutoffClockType extends LocalTimesType<Date, 'CutoffClock'> { sta
 abstract class SignOffStampType extends LocalDateTimesType<Date, 'SignOffStamp'> { static override readonly type = 'SignOffStamp' }
 abstract class PublishStampType extends LocalDateTimesType<Date, 'PublishStamp'> { static override readonly type = 'PublishStamp' }
 abstract class ReleaseTagType extends IntegersType<ReleaseTag, 'ReleaseTag'> { static override readonly type = 'ReleaseTag' }
-abstract class WebhookEventEnumType extends EnumType<WebhookEventType, 'WebhookEventType'> { static override readonly type = 'WebhookEventType' }
-abstract class ReleaseStageType extends EnumType<ReleaseStage, 'ReleaseStage'> { static override readonly type = 'ReleaseStage' }
+abstract class WebhookEventEnumType extends EnumType<WebhookEventType, 'WebhookEventType'> { static override readonly type = 'WebhookEventType'; static override readonly values = ['created', 'updated', 'deleted'] as const }
+abstract class ReleaseStageType extends EnumType<ReleaseStage, 'ReleaseStage'> { static override readonly type = 'ReleaseStage'; static override readonly values = ['draft', 'candidate', 'final'] as const }
 abstract class ReleaseTagIntegersType extends IntegersType<number, 'ReleaseTag'> { static override readonly type = 'ReleaseTag' }
 
 // Two separate `CustomBooleanTypeAdapter` mappings live on the shared
@@ -1107,7 +1107,7 @@ export const tColMatrixColumn = new class TColMatrixColumn extends Table<DBConne
     releaseDay  = this.column('m_date', ReleaseDayType)
     cutoffClock = this.column('m_time', CutoffClockType)
     signOff     = this.column('m_datetime', SignOffStampType)
-    activity    = this.column('m_str', WorklogActivityType)
+    activity    = this.column('m_activity', WorklogActivityType)
     constructor() { super('col_matrix') }
 }()
 
@@ -1132,7 +1132,7 @@ export const tColMatrixOptional = new class TColMatrixOptional extends Table<DBC
     releaseDay  = this.optionalColumn('m_date', ReleaseDayType)
     cutoffClock = this.optionalColumn('m_time', CutoffClockType)
     signOff     = this.optionalColumn('m_datetime', SignOffStampType)
-    activity    = this.optionalColumn('m_str', WorklogActivityType)
+    activity    = this.optionalColumn('m_activity', WorklogActivityType)
     constructor() { super('col_matrix') }
 }()
 
@@ -1156,7 +1156,7 @@ export const tColMatrixDefault = new class TColMatrixDefault extends Table<DBCon
     releaseDay  = this.columnWithDefaultValue('m_date', ReleaseDayType)
     cutoffClock = this.columnWithDefaultValue('m_time', CutoffClockType)
     signOff     = this.columnWithDefaultValue('m_datetime', SignOffStampType)
-    activity    = this.columnWithDefaultValue('m_str', WorklogActivityType)
+    activity    = this.columnWithDefaultValue('m_activity', WorklogActivityType)
     constructor() { super('col_matrix') }
 }()
 
@@ -1180,7 +1180,7 @@ export const tColMatrixOptionalDefault = new class TColMatrixOptionalDefault ext
     releaseDay  = this.optionalColumnWithDefaultValue('m_date', ReleaseDayType)
     cutoffClock = this.optionalColumnWithDefaultValue('m_time', CutoffClockType)
     signOff     = this.optionalColumnWithDefaultValue('m_datetime', SignOffStampType)
-    activity    = this.optionalColumnWithDefaultValue('m_str', WorklogActivityType)
+    activity    = this.optionalColumnWithDefaultValue('m_activity', WorklogActivityType)
     constructor() { super('col_matrix') }
 }()
 
@@ -1204,7 +1204,7 @@ export const tColMatrixComputed = new class TColMatrixComputed extends Table<DBC
     releaseDay  = this.computedColumn('m_date', ReleaseDayType)
     cutoffClock = this.computedColumn('m_time', CutoffClockType)
     signOff     = this.computedColumn('m_datetime', SignOffStampType)
-    activity    = this.computedColumn('m_str', WorklogActivityType)
+    activity    = this.computedColumn('m_activity', WorklogActivityType)
     constructor() { super('col_matrix') }
 }()
 
@@ -1228,7 +1228,7 @@ export const tColMatrixOptionalComputed = new class TColMatrixOptionalComputed e
     releaseDay  = this.optionalComputedColumn('m_date', ReleaseDayType)
     cutoffClock = this.optionalComputedColumn('m_time', CutoffClockType)
     signOff     = this.optionalComputedColumn('m_datetime', SignOffStampType)
-    activity    = this.optionalComputedColumn('m_str', WorklogActivityType)
+    activity    = this.optionalComputedColumn('m_activity', WorklogActivityType)
     constructor() { super('col_matrix') }
 }()
 
@@ -1265,7 +1265,7 @@ export const vColMatrix = new class VColMatrix extends View<DBConnection, 'VColM
     releaseDay   = this.column('m_date', ReleaseDayType)
     cutoffClock  = this.column('m_time', CutoffClockType)
     signOff      = this.column('m_datetime', SignOffStampType)
-    activity     = this.column('m_str', WorklogActivityType)
+    activity     = this.column('m_activity', WorklogActivityType)
     oInt         = this.optionalColumn('m_int', 'int')
     oBigint      = this.optionalColumn('m_bigint', 'bigint')
     oDouble      = this.optionalColumn('m_double', 'double')
@@ -1283,7 +1283,7 @@ export const vColMatrix = new class VColMatrix extends View<DBConnection, 'VColM
     oReleaseDay  = this.optionalColumn('m_date', ReleaseDayType)
     oCutoffClock = this.optionalColumn('m_time', CutoffClockType)
     oSignOff     = this.optionalColumn('m_datetime', SignOffStampType)
-    oActivity    = this.optionalColumn('m_str', WorklogActivityType)
+    oActivity    = this.optionalColumn('m_activity', WorklogActivityType)
     constructor() { super('col_matrix_view') }
 }()
 
@@ -1362,7 +1362,7 @@ export const tColMatrixColumnAdapter = new class TColMatrixColumnAdapter extends
     releaseDay  = this.column('m_date', ReleaseDayType, colMatrixShiftHour)
     cutoffClock = this.column('m_time', CutoffClockType, colMatrixShiftHour)
     signOff     = this.column('m_datetime', SignOffStampType, colMatrixShiftHour)
-    activity    = this.column('m_str', WorklogActivityType, colMatrixStringBracket)
+    activity    = this.column('m_activity', WorklogActivityType, colMatrixStringBracket)
     constructor() { super('col_matrix') }
 }()
 
@@ -1386,7 +1386,7 @@ export const tColMatrixOptionalAdapter = new class TColMatrixOptionalAdapter ext
     releaseDay  = this.optionalColumn('m_date', ReleaseDayType, colMatrixShiftHour)
     cutoffClock = this.optionalColumn('m_time', CutoffClockType, colMatrixShiftHour)
     signOff     = this.optionalColumn('m_datetime', SignOffStampType, colMatrixShiftHour)
-    activity    = this.optionalColumn('m_str', WorklogActivityType, colMatrixStringBracket)
+    activity    = this.optionalColumn('m_activity', WorklogActivityType, colMatrixStringBracket)
     constructor() { super('col_matrix') }
 }()
 
@@ -1415,7 +1415,7 @@ export const vColMatrixAdapter = new class VColMatrixAdapter extends View<DBConn
     releaseDay   = this.column('m_date', ReleaseDayType, colMatrixShiftHour)
     cutoffClock  = this.column('m_time', CutoffClockType, colMatrixShiftHour)
     signOff      = this.column('m_datetime', SignOffStampType, colMatrixShiftHour)
-    activity     = this.column('m_str', WorklogActivityType, colMatrixStringBracket)
+    activity     = this.column('m_activity', WorklogActivityType, colMatrixStringBracket)
     oInt         = this.optionalColumn('m_int', 'int', colMatrixNumberX10)
     oBigint      = this.optionalColumn('m_bigint', 'bigint', colMatrixBigintX10)
     oDouble      = this.optionalColumn('m_double', 'double', colMatrixNumberX10)
@@ -1433,7 +1433,7 @@ export const vColMatrixAdapter = new class VColMatrixAdapter extends View<DBConn
     oReleaseDay  = this.optionalColumn('m_date', ReleaseDayType, colMatrixShiftHour)
     oCutoffClock = this.optionalColumn('m_time', CutoffClockType, colMatrixShiftHour)
     oSignOff     = this.optionalColumn('m_datetime', SignOffStampType, colMatrixShiftHour)
-    oActivity    = this.optionalColumn('m_str', WorklogActivityType, colMatrixStringBracket)
+    oActivity    = this.optionalColumn('m_activity', WorklogActivityType, colMatrixStringBracket)
     constructor() { super('col_matrix_view') }
 }()
 
@@ -1455,6 +1455,7 @@ export const tColMatrixVirtualAdapter = new class TColMatrixVirtualAdapter exten
     bTime        = this.column('m_time', 'localTime')
     bDatetime    = this.column('m_datetime', 'localDateTime')
     bStr         = this.column('m_str', 'string')
+    bActivity    = this.column('m_activity', 'string')
     mInt         = this.virtualColumnFromFragment('int', (fragment) => fragment.sql`${this.bInt}`, colMatrixNumberX10)
     mBigint      = this.virtualColumnFromFragment('bigint', (fragment) => fragment.sql`${this.bBigint}`, colMatrixBigintX10)
     mDouble      = this.virtualColumnFromFragment('double', (fragment) => fragment.sql`${this.bDouble}`, colMatrixNumberX10)
@@ -1472,7 +1473,7 @@ export const tColMatrixVirtualAdapter = new class TColMatrixVirtualAdapter exten
     releaseDay   = this.virtualColumnFromFragment(ReleaseDayType, (fragment) => fragment.sql`${this.bDate}`, colMatrixShiftHour)
     cutoffClock  = this.virtualColumnFromFragment(CutoffClockType, (fragment) => fragment.sql`${this.bTime}`, colMatrixShiftHour)
     signOff      = this.virtualColumnFromFragment(SignOffStampType, (fragment) => fragment.sql`${this.bDatetime}`, colMatrixShiftHour)
-    activity     = this.virtualColumnFromFragment(WorklogActivityType, (fragment) => fragment.sql`${this.bStr}`, colMatrixStringBracket)
+    activity     = this.virtualColumnFromFragment(WorklogActivityType, (fragment) => fragment.sql`${this.bActivity}`, colMatrixStringBracket)
     oInt         = this.optionalVirtualColumnFromFragment('int', (fragment) => fragment.sql`${this.bInt}`, colMatrixNumberX10)
     oBigint      = this.optionalVirtualColumnFromFragment('bigint', (fragment) => fragment.sql`${this.bBigint}`, colMatrixBigintX10)
     oDouble      = this.optionalVirtualColumnFromFragment('double', (fragment) => fragment.sql`${this.bDouble}`, colMatrixNumberX10)
@@ -1490,7 +1491,7 @@ export const tColMatrixVirtualAdapter = new class TColMatrixVirtualAdapter exten
     oReleaseDay  = this.optionalVirtualColumnFromFragment(ReleaseDayType, (fragment) => fragment.sql`${this.bDate}`, colMatrixShiftHour)
     oCutoffClock = this.optionalVirtualColumnFromFragment(CutoffClockType, (fragment) => fragment.sql`${this.bTime}`, colMatrixShiftHour)
     oSignOff     = this.optionalVirtualColumnFromFragment(SignOffStampType, (fragment) => fragment.sql`${this.bDatetime}`, colMatrixShiftHour)
-    oActivity    = this.optionalVirtualColumnFromFragment(WorklogActivityType, (fragment) => fragment.sql`${this.bStr}`, colMatrixStringBracket)
+    oActivity    = this.optionalVirtualColumnFromFragment(WorklogActivityType, (fragment) => fragment.sql`${this.bActivity}`, colMatrixStringBracket)
     constructor() { super('col_matrix') }
 }()
 
@@ -1512,6 +1513,7 @@ export const vColMatrixVirtualAdapter = new class VColMatrixVirtualAdapter exten
     bTime        = this.column('m_time', 'localTime')
     bDatetime    = this.column('m_datetime', 'localDateTime')
     bStr         = this.column('m_str', 'string')
+    bActivity    = this.column('m_activity', 'string')
     mInt         = this.virtualColumnFromFragment('int', (fragment) => fragment.sql`${this.bInt}`, colMatrixNumberX10)
     mBigint      = this.virtualColumnFromFragment('bigint', (fragment) => fragment.sql`${this.bBigint}`, colMatrixBigintX10)
     mDouble      = this.virtualColumnFromFragment('double', (fragment) => fragment.sql`${this.bDouble}`, colMatrixNumberX10)
@@ -1529,7 +1531,7 @@ export const vColMatrixVirtualAdapter = new class VColMatrixVirtualAdapter exten
     releaseDay   = this.virtualColumnFromFragment(ReleaseDayType, (fragment) => fragment.sql`${this.bDate}`, colMatrixShiftHour)
     cutoffClock  = this.virtualColumnFromFragment(CutoffClockType, (fragment) => fragment.sql`${this.bTime}`, colMatrixShiftHour)
     signOff      = this.virtualColumnFromFragment(SignOffStampType, (fragment) => fragment.sql`${this.bDatetime}`, colMatrixShiftHour)
-    activity     = this.virtualColumnFromFragment(WorklogActivityType, (fragment) => fragment.sql`${this.bStr}`, colMatrixStringBracket)
+    activity     = this.virtualColumnFromFragment(WorklogActivityType, (fragment) => fragment.sql`${this.bActivity}`, colMatrixStringBracket)
     oInt         = this.optionalVirtualColumnFromFragment('int', (fragment) => fragment.sql`${this.bInt}`, colMatrixNumberX10)
     oBigint      = this.optionalVirtualColumnFromFragment('bigint', (fragment) => fragment.sql`${this.bBigint}`, colMatrixBigintX10)
     oDouble      = this.optionalVirtualColumnFromFragment('double', (fragment) => fragment.sql`${this.bDouble}`, colMatrixNumberX10)
@@ -1547,7 +1549,7 @@ export const vColMatrixVirtualAdapter = new class VColMatrixVirtualAdapter exten
     oReleaseDay  = this.optionalVirtualColumnFromFragment(ReleaseDayType, (fragment) => fragment.sql`${this.bDate}`, colMatrixShiftHour)
     oCutoffClock = this.optionalVirtualColumnFromFragment(CutoffClockType, (fragment) => fragment.sql`${this.bTime}`, colMatrixShiftHour)
     oSignOff     = this.optionalVirtualColumnFromFragment(SignOffStampType, (fragment) => fragment.sql`${this.bDatetime}`, colMatrixShiftHour)
-    oActivity    = this.optionalVirtualColumnFromFragment(WorklogActivityType, (fragment) => fragment.sql`${this.bStr}`, colMatrixStringBracket)
+    oActivity    = this.optionalVirtualColumnFromFragment(WorklogActivityType, (fragment) => fragment.sql`${this.bActivity}`, colMatrixStringBracket)
     constructor() { super('col_matrix_view') }
 }()
 
@@ -1570,7 +1572,7 @@ export const tColMatrixDefaultAdapter = new class TColMatrixDefaultAdapter exten
     releaseDay  = this.columnWithDefaultValue('m_date', ReleaseDayType, colMatrixShiftHour)
     cutoffClock = this.columnWithDefaultValue('m_time', CutoffClockType, colMatrixShiftHour)
     signOff     = this.columnWithDefaultValue('m_datetime', SignOffStampType, colMatrixShiftHour)
-    activity    = this.columnWithDefaultValue('m_str', WorklogActivityType, colMatrixStringBracket)
+    activity    = this.columnWithDefaultValue('m_activity', WorklogActivityType, colMatrixStringBracket)
     constructor() { super('col_matrix') }
 }()
 
@@ -1594,7 +1596,7 @@ export const tColMatrixOptionalDefaultAdapter = new class TColMatrixOptionalDefa
     releaseDay  = this.optionalColumnWithDefaultValue('m_date', ReleaseDayType, colMatrixShiftHour)
     cutoffClock = this.optionalColumnWithDefaultValue('m_time', CutoffClockType, colMatrixShiftHour)
     signOff     = this.optionalColumnWithDefaultValue('m_datetime', SignOffStampType, colMatrixShiftHour)
-    activity    = this.optionalColumnWithDefaultValue('m_str', WorklogActivityType, colMatrixStringBracket)
+    activity    = this.optionalColumnWithDefaultValue('m_activity', WorklogActivityType, colMatrixStringBracket)
     constructor() { super('col_matrix') }
 }()
 
@@ -1618,7 +1620,7 @@ export const tColMatrixComputedAdapter = new class TColMatrixComputedAdapter ext
     releaseDay  = this.computedColumn('m_date', ReleaseDayType, colMatrixShiftHour)
     cutoffClock = this.computedColumn('m_time', CutoffClockType, colMatrixShiftHour)
     signOff     = this.computedColumn('m_datetime', SignOffStampType, colMatrixShiftHour)
-    activity    = this.computedColumn('m_str', WorklogActivityType, colMatrixStringBracket)
+    activity    = this.computedColumn('m_activity', WorklogActivityType, colMatrixStringBracket)
     constructor() { super('col_matrix') }
 }()
 
@@ -1642,7 +1644,7 @@ export const tColMatrixOptionalComputedAdapter = new class TColMatrixOptionalCom
     releaseDay  = this.optionalComputedColumn('m_date', ReleaseDayType, colMatrixShiftHour)
     cutoffClock = this.optionalComputedColumn('m_time', CutoffClockType, colMatrixShiftHour)
     signOff     = this.optionalComputedColumn('m_datetime', SignOffStampType, colMatrixShiftHour)
-    activity    = this.optionalComputedColumn('m_str', WorklogActivityType, colMatrixStringBracket)
+    activity    = this.optionalComputedColumn('m_activity', WorklogActivityType, colMatrixStringBracket)
     constructor() { super('col_matrix') }
 }()
 

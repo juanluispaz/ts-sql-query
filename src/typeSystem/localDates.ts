@@ -1,6 +1,6 @@
 import type { SqlDataType } from '../TypeAdapter.js'
 import { ComparableType } from './comparable.js'
-import type { OptionalityOf, SourceOf, ValueSource } from './base.js'
+import type { OptionalityOf, SourceOf, ValueSource, DataTypeOfClass } from './base.js'
 import { __operation0 } from '../nodes/operations.js'
 import type { SqlFunction0 } from '../sqlBuilders/SqlBuilder.js'
 import { IntType } from './number.js'
@@ -31,6 +31,8 @@ function plainDateTimeOf(valueSource: unknown): any {
  * `class ReleaseDayType extends LocalDatesType<ReleaseDay, 'ReleaseDay'> { static override readonly type = 'ReleaseDay' }`
  */
 export abstract class LocalDatesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends ComparableType<VALUE_TYPE, TYPE_NAME> {
+    /** The data type of a value of a type of yours of this family, of that type name, for a specific use (see EqualableType.of) */
+    declare static readonly of: <VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME, ...options: never[]) => DataTypeOfClass<LocalDatesType<VALUE_TYPE, TYPE_NAME>>
     static override readonly sqlDataType: SqlDataType | undefined = localDateSqlDataType
 
     /** The day of the month, as an int from 1 to 31: what `getUTCDate()` of the Date read gives */
@@ -76,6 +78,8 @@ export abstract class LocalDatesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME
  * `class OpeningTimeType extends LocalTimesType<OpeningTime, 'OpeningTime'> { static override readonly type = 'OpeningTime' }`
  */
 export abstract class LocalTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends ComparableType<VALUE_TYPE, TYPE_NAME> {
+    /** The data type of a value of a type of yours of this family, of that type name, for a specific use (see EqualableType.of) */
+    declare static readonly of: <VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME, ...options: never[]) => DataTypeOfClass<LocalTimesType<VALUE_TYPE, TYPE_NAME>>
     static override readonly sqlDataType: SqlDataType | undefined = localTimeSqlDataType
 
     /** The hours, as an int from 0 to 23: what `getUTCHours()` of the Date read gives */
@@ -121,6 +125,8 @@ export abstract class LocalTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME
  * `class AuditStampType extends LocalDateTimesType<AuditStamp, 'AuditStamp'> { static override readonly type = 'AuditStamp' }`
  */
 export abstract class LocalDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends ComparableType<VALUE_TYPE, TYPE_NAME> {
+    /** The data type of a value of a type of yours of this family, of that type name, for a specific use (see EqualableType.of) */
+    declare static readonly of: <VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME, ...options: never[]) => DataTypeOfClass<LocalDateTimesType<VALUE_TYPE, TYPE_NAME>>
     static override readonly sqlDataType: SqlDataType | undefined = localDateTimeSqlDataType
 
     /** The day of the month, as an int from 1 to 31: what `getUTCDate()` of the Date read gives */
@@ -214,15 +220,21 @@ export abstract class LocalDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
 
 /** A date without a zone, a JavaScript Date */
 export abstract class LocalDateType extends LocalDatesType<Date, 'localDate'> {
+    /** A data type has no `of`: it is made by a family (see EqualableType.of) */
+    declare static readonly of: never
     static override readonly type = 'localDate'
 }
 
 /** A time of the day without a zone, a JavaScript Date */
 export abstract class LocalTimeType extends LocalTimesType<Date, 'localTime'> {
+    /** A data type has no `of`: it is made by a family (see EqualableType.of) */
+    declare static readonly of: never
     static override readonly type = 'localTime'
 }
 
 /** A date and a time of the day without a zone, a JavaScript Date */
 export abstract class LocalDateTimeType extends LocalDateTimesType<Date, 'localDateTime'> {
+    /** A data type has no `of`: it is made by a family (see EqualableType.of) */
+    declare static readonly of: never
     static override readonly type = 'localDateTime'
 }

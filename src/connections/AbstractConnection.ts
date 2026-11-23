@@ -29,7 +29,7 @@ import type { NAggregate, NDB, NNoTableOrViewRequired, NNotNestedAggregate, NSou
 import type { DataToProject, GetDataToProjectSource } from '../complexProjections/dataToProject.js'
 import type { ResultObjectValuesForAggregatedArray } from '../complexProjections/resultWithOptionalsAsUndefined.js'
 import type { ResultObjectValuesProjectedAsNullableForAggregatedArray } from '../complexProjections/resultWithOptionalsAsNull.js'
-import { __isAggregatedArrayClass, __isBigintClass, __isBooleanClass, __isDoubleClass, __isDnumDecimalClass, __isExactDecimalClass, __isScaledBigIntClass, __scaleOfScaledBigIntClass, __isIntClass, __isLocalDateClass, __isLocalDateTimeClass, __isLocalTimeClass, __isPlainDateClass, __isPlainMonthDayClass, __isPlainYearMonthClass, __isPlainDateTimeClass, __isPlainTimeClass, __isStringClass, __isDurationClass, __isInstantClass, __isUuidClass, __isZonedDateTimeClass } from '../typeSystem/dataTypeQuestions.js'
+import { __isAggregatedArrayClass, __isBigintClass, __isBooleanClass, __isDoubleClass, __isDnumDecimalClass, __isEnumClass, __valuesOfEnumClass, __isExactDecimalClass, __isScaledBigIntClass, __scaleOfScaledBigIntClass, __isIntClass, __isLocalDateClass, __isLocalDateTimeClass, __isLocalTimeClass, __isPlainDateClass, __isPlainMonthDayClass, __isPlainYearMonthClass, __isPlainDateTimeClass, __isPlainTimeClass, __isStringClass, __isDurationClass, __isInstantClass, __isUuidClass, __isZonedDateTimeClass } from '../typeSystem/dataTypeQuestions.js'
 import { __durationSqlDataTypeOf } from '../typeSystem/dataTypes.js'
 import { parseUtcDateTimeText } from '../utils/utcDateTimeText.js'
 import type { CombinedOptionalityOfUnion, OptionalType } from '../typeSystem/valueSource.js'
@@ -1100,6 +1100,9 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         if (value === '' && !this.allowEmptyString) {
             return null
         }
+        if (__isEnumClass(context.requestedType)) {
+            return this.__enumValueReceived(value, context.requestedType)
+        }
         if (__isBooleanClass(context.requestedType)) {
             if (typeof value === 'boolean') {
                 return value
@@ -1435,6 +1438,26 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         return value
     }
     /**
+     * The value of an enumeration received from the database: one of its values, also when the database gives it in
+     * another form, as the text of a number of the list (a number in JSON, an integer some drivers give as text); any
+     * value when its class says any value goes (values null)
+     */
+    private __enumValueReceived(value: unknown, typeClass: DataTypeClass): unknown {
+        const values = __valuesOfEnumClass(typeClass)
+        if (values === null || values.includes(value)) {
+            return value
+        }
+        if (typeof value === 'string' || typeof value === 'number' || typeof value === 'bigint') {
+            const text = String(value)
+            for (const enumValue of values) {
+                if ((typeof enumValue === 'string' || typeof enumValue === 'number' || typeof enumValue === 'bigint') && String(enumValue) === text) {
+                    return enumValue
+                }
+            }
+        }
+        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: typeClass.type }, 'Invalid ' + typeClass.type + ' value received from the db, not one of the values of the enumeration: ' + String(value))
+    }
+    /**
      * The Date of a localDate, a localTime or a localDateTime received from the database: a valid Date as it is, a text
      * read as UTC, or as its instant when it has an offset (see parseUtcDateTimeText); undefined for anything else
      */
@@ -1473,6 +1496,13 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         }
         if (value === '' && !this.allowEmptyString) {
             return null
+        }
+        if (__isEnumClass(context.requestedType)) {
+            const values = __valuesOfEnumClass(context.requestedType)
+            if (values !== null && !values.includes(value)) {
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid ' + type + ' value to send to the db, not one of the values of the enumeration: ' + String(value))
+            }
+            return value
         }
         if (__isBooleanClass(context.requestedType)) {
             if (typeof value === 'boolean') {

@@ -20,7 +20,7 @@ import { DecimalsType, EqualableType } from '../../../src/exports/v2/index.js'
 // The data types of the values of the user, each one a class of the family of its values
 abstract class PayloadType extends EqualableType<string, 'Payload'> { static override readonly type = 'Payload' }
 abstract class AddressType extends EqualableType<string, 'Address'> { static override readonly type = 'Address' }
-abstract class MoodType extends EnumType<string, 'Mood'> { static override readonly type = 'Mood' }
+abstract class MoodType extends EnumType<string, 'Mood'> { static override readonly type = 'Mood'; static override readonly values = null }
 abstract class PriceType extends DecimalsType<string, 'Price'> { static override readonly type = 'Price' }
 abstract class FlagsType extends EqualableType<string, 'Flags'> { static override readonly type = 'Flags' }
 

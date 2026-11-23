@@ -14,6 +14,8 @@ import { InstantsType } from './instants.js'
 import { ZonedDateTimesType } from './zonedDateTimes.js'
 import { PlainMonthDaysType, PlainYearMonthsType } from './plainYearMonths.js'
 import { AggregatedArraysType } from './aggregatedArrays.js'
+import { EnumType } from './enum.js'
+import { TsSqlProcessingError } from '../TsSqlError.js'
 
 /*
  * The questions the connections ask about the data type of a value, by its class: how the library converts the values
@@ -71,6 +73,21 @@ export function __scaleOfScaledBigIntClass(typeClass: DataTypeClass): number | u
     }
     const scale = sqlDataType.scale
     return scale !== undefined && Number.isSafeInteger(scale) && scale >= 0 ? scale : undefined
+}
+/** A value of an enumeration: a class of the family EnumType, whose values are the ones it says (__valuesOfEnumClass) */
+export function __isEnumClass(typeClass: DataTypeClass): boolean {
+    return isOf(typeClass, EnumType)
+}
+/**
+ * The values of an enumeration, the ones of its class (`static values`), or null when the class says any value goes; a
+ * class that says nothing is an error
+ */
+export function __valuesOfEnumClass(typeClass: DataTypeClass): readonly unknown[] | null {
+    const values = (typeClass as { readonly values?: unknown }).values
+    if (values === null || Array.isArray(values)) {
+        return values
+    }
+    throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'values', value: typeClass.type }, 'The enumeration ' + typeClass.type + " doesn't say its values: static override readonly values = [...] as const, or null for any value")
 }
 /** An exact decimal whose value is a dnum: a dnumDecimal or a decimal of the user of the dnum family */
 export function __isDnumDecimalClass(typeClass: DataTypeClass): boolean {

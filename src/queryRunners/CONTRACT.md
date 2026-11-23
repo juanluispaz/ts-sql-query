@@ -148,9 +148,9 @@ The connection converts a value by the class of its requested type: a data type 
 says, whatever its type name (an `IntegersType` as an `int`, or as a `bigint` when the SQL data type of its class
 doesn't fit in a number; a `RealsType` as a `double`; a `DecimalsType` as a `stringDecimal`, a `DnumDecimalsType` as a `dnumDecimal`, and a `ScaledBigIntsType` as an exact decimal kept as a bigint at the scale of its class; a `UuidsType` as a `uuid`;
 a `LocalDatesType`, `LocalTimesType` or `LocalDateTimesType` as a `localDate`, `localTime` or `localDateTime`), and a
-built-in one by its type. A data type of the user whose family converts nothing (`EnumType`, `EqualableType`,
-`ComparableType`, `AdditiveType`, `MultipliableType`, `DivisibleType`) and a value without a built-in type pass
-unconverted. The query runners decide the same way.
+built-in one by its type. A data type of the user whose family converts nothing (`EqualableType`, `ComparableType`,
+`AdditiveType`, `MultipliableType`, `DivisibleType`) and a value without a built-in type pass unconverted; an `EnumType`
+passes unconverted when it is one of the values of its class, or any value when its class says `values` null. The query runners decide the same way.
 
 ## 2. Sending
 
@@ -179,6 +179,7 @@ Every rejection is `INVALID_VALUE_TO_SEND_TO_DATABASE`.
 | `instant` | a `Temporal.Instant` | anything else (a `Date`, a text, a `Temporal.ZonedDateTime`) | the `Temporal.Instant` as given |
 | `zonedDateTime` | a `Temporal.ZonedDateTime` | anything else | on Oracle and PostgreSQL the `Temporal.ZonedDateTime` as given, and on PostgreSQL its RFC 9557 text for a column (which keeps it as text); on MariaDB, MySQL, SQLite and SQL Server, which keep it as text, its RFC 9557 text as Temporal's `toString` writes it (`2024-03-02T12:05:00+01:00[Europe/Madrid]`) |
 | `aggregatedArray` | — | always | — |
+| `EnumType` | one of the values of its class (`===`); anything when its class says `values` null | another value; a class without `values` → `INVALID_CONFIGURATION` | the value as given |
 | a type of the user whose family converts nothing, no built-in type | anything | — | the value as given |
 | SQLite temporal | a valid `Date` | invalid `Date`, non-Date | text or number per `SqliteDateTimeFormat` |
 | SQLite `plainDate`, `plainTime`, `plainDateTime` | its Temporal value | as above | text or number per `SqliteDateTimeFormat`: its digits, with the seconds or the milliseconds of the format (the digits below dropped) |
@@ -469,6 +470,7 @@ Common: `undefined` and `null` → `null`; `''` → `null` unless `allowEmptyStr
 | `duration` | a `Temporal.Duration` as it is; ISO 8601 text, also with a sign in each field (`P-1DT-2H`); the text of a PostgreSQL interval in its `postgres` style; the text of an interval of Oracle (`+000000003 04:05:06.789000000`, `-000000001-02`); an oracledb `IntervalDS` or `IntervalYM` | — | a number; fields of different signs (`-1 days +02:03:00`, `1 mon -1 days`), which a `Temporal.Duration` can't hold; out of its range; `P`, `PT`; anything else |
 | `instant` | a `Temporal.Instant` as it is; temporal text (§3.4) with every digit of its fraction up to the nanosecond: with an offset the instant it gives, without one the instant of its digits as a wall clock of the zone of the database (`databaseTimeZone`); a valid Date, its instant | — | anything else (a number, a `Temporal.PlainDateTime`), invalid Date, unparsable text, text outside the calendar or beyond the range of an instant |
 | `zonedDateTime` | a `Temporal.ZonedDateTime` as it is; the text of an instant with an offset or `Z` (§3.4) followed by the name of its zone in brackets, in any case (Oracle gives `...+02:00 AD[EUROPE/MADRID]`); on a database that keeps it as text, its RFC 9557 text, read as Temporal's `from` with `offset: 'prefer'` | — | anything else, a text without a zone or with a zone Temporal doesn't know |
+| `EnumType` | one of the values of its class as it is; a text, number or bigint whose text is the one of a value of the list → that value (`'2'` → `2`); anything when its class says `values` null | — | anything else; a class without `values` → `INVALID_CONFIGURATION` |
 | `aggregatedArray` | — (each leaf is converted by its own type, §1) | — | always |
 | other | as it is | — | — |
 | SQLite temporal | Date, text, number or bigint per `SqliteDateTimeFormat` and the `treatUnexpected*` options | — | other types, invalid result, text outside the calendar (§3.4) |

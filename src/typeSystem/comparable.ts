@@ -1,4 +1,4 @@
-import type { OptionalityOf, SourceOf, ValueSource, OperandOf } from './base.js'
+import type { OptionalityOf, SourceOf, ValueSource, OperandOf, DataTypeOfClass } from './base.js'
 import { EqualableType } from './equalable.js'
 import type { IfValueSource } from './logical.js'
 import type { CombinedOptionality } from './valueSource.js'
@@ -22,6 +22,8 @@ export interface IAnyComparableValueSource</*in|out*/ SOURCE extends NSource> ex
  * `class VersionType extends ComparableType<Version, 'Version'> { static override readonly type = 'Version' }`
  */
 export abstract class ComparableType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends EqualableType<VALUE_TYPE, TYPE_NAME> {
+    /** The data type of a value of a type of yours of this family, of that type name, for a specific use (see EqualableType.of) */
+    declare static readonly of: <VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME, ...options: never[]) => DataTypeOfClass<ComparableType<VALUE_TYPE, TYPE_NAME>>
     declare [comparableValueSource]: 'ComparableValueSource'
     static override readonly [filterOperation] = exposeFilterOperations(this, EqualableType, [
         'lessThanIfValue', 'lessThan', 'greaterThanIfValue', 'greaterThan', 'lessOrEqualIfValue', 'lessOrEqual',

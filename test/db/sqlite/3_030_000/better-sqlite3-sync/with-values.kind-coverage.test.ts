@@ -20,7 +20,7 @@ import { ComparableType, EqualableType, IntegersType, LocalDateTimesType, LocalD
 // The data types of the values of the user, each one a class of the family of its values
 abstract class SemverType extends ComparableType<string, 'Semver'> { static override readonly type = 'Semver' }
 abstract class ReleaseChannelType extends EqualableType<ReleaseChannel, 'ReleaseChannel'> { static override readonly type = 'ReleaseChannel' }
-abstract class WorklogActivityType extends EnumType<WorklogActivity, 'WorklogActivity'> { static override readonly type = 'WorklogActivity' }
+abstract class WorklogActivityType extends EnumType<WorklogActivity, 'WorklogActivity'> { static override readonly type = 'WorklogActivity'; static override readonly values = ['coding', 'review', 'meeting'] as const }
 abstract class NumericIdType extends ComparableType<string, 'NumericId'> { static override readonly type = 'NumericId' }
 abstract class ReleaseTagType extends IntegersType<ReleaseTag, 'ReleaseTag'> { static override readonly type = 'ReleaseTag' }
 abstract class SigningKeyType extends UuidsType<string, 'SigningKey'> { static override readonly type = 'SigningKey' }

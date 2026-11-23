@@ -16,7 +16,7 @@ import { ComparableType, EnumType, EqualableType } from '../../../src/exports/v2
 // The data types of the user the parameters are of, each one a class of the family of its values
 abstract class BigType extends EqualableType<unknown, 'Big'> { static override readonly type = 'Big' }
 abstract class RatioType extends ComparableType<unknown, 'Ratio'> { static override readonly type = 'Ratio' }
-abstract class StatusType extends EnumType<unknown, 'Status'> { static override readonly type = 'Status' }
+abstract class StatusType extends EnumType<unknown, 'Status'> { static override readonly type = 'Status'; static override readonly values = null }
 
 describe('NoopQueryRunner', () => {
     for (const { type, shape, call } of QUERY_CALLS) {

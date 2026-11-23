@@ -26,7 +26,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import type { TypeAdapter } from '../../../../../src/TypeAdapter.js'
-import { tIssue } from '../../domain/connection.js'
+import { tIssue, tIssueWorklog } from '../../domain/connection.js'
 import type { WorklogActivity, ReleaseChannel } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import { EnumType } from '../../../../../src/exports/v2/index.js'
@@ -36,7 +36,7 @@ import { ComparableType, EqualableType, IntegersType, LocalDateTimesType, LocalT
 abstract class MoneyType extends RealsType<number, 'Money'> { static override readonly type = 'Money' }
 abstract class CentsType extends IntegersType<number, 'Cents'> { static override readonly type = 'Cents' }
 abstract class SigningKeyType extends UuidsType<string, 'SigningKey'> { static override readonly type = 'SigningKey' }
-abstract class WorklogActivityType extends EnumType<WorklogActivity, 'WorklogActivity'> { static override readonly type = 'WorklogActivity' }
+abstract class WorklogActivityType extends EnumType<WorklogActivity, 'WorklogActivity'> { static override readonly type = 'WorklogActivity'; static override readonly values = ['coding', 'review', 'meeting'] as const }
 abstract class SemverType extends ComparableType<string, 'Semver'> { static override readonly type = 'Semver' }
 abstract class ReleaseChannelType extends EqualableType<ReleaseChannel, 'ReleaseChannel'> { static override readonly type = 'ReleaseChannel' }
 abstract class CutoffClockType extends LocalTimesType<Date, 'CutoffClock'> { static override readonly type = 'CutoffClock' }
@@ -1087,15 +1087,14 @@ describe(ctx.label, () => {
     })
 
     test('aggregate-fragment-with-type/enum-adapter-transforms-read-value', async () => {
-        ctx.mockNext('coding')
-        const v = await ctx.conn.selectFrom(tIssue)
-            .selectOneColumn(ctx.conn.aggregateFragmentWithType(WorklogActivityType, 'required', stringBracket).sql`max(${tIssue.title})`)
+        ctx.mockNext('review')
+        const v = await ctx.conn.selectFrom(tIssueWorklog)
+            .selectOneColumn(ctx.conn.aggregateFragmentWithType(WorklogActivityType, 'required', stringBracket).sql`max(${tIssueWorklog.activity})`)
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(title) as result from issue"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(activity) as result from issue_worklog"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, WorklogActivity>>()
-        if (!ctx.realDbEnabled) expect(v).toBe('[coding]')
-        else expect(typeof v).toBe('string')
+        expect(v).toBe('[review]')
     })
 
     test('aggregate-fragment-with-type/own-adapter-transforms-read-value', async () => {

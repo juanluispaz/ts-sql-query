@@ -77,8 +77,8 @@ INSERT INTO release_draft (id, title, stage, channel, min_version, budget, targe
 -- col_matrix: one driver-stable row. m_uuid TEXT (plain string, 'string'
 -- uuidStrategy), m_bool INTEGER (1). Temporal seeds mirror
 -- select.column-factory-types.test.ts.
-INSERT INTO col_matrix (id, m_int, m_bigint, m_double, m_bool, m_uuid, m_date, m_time, m_datetime, m_str) VALUES
-    (1, 42, 5000, 3.5, 1, '0a8f9c1e-1111-4222-8333-444455556666', '2024-03-04', '09:15:00.000', '2024-01-14 12:30:00.000', 'hello');
+INSERT INTO col_matrix (id, m_int, m_bigint, m_double, m_bool, m_uuid, m_date, m_time, m_datetime, m_str, m_activity) VALUES
+    (1, 42, 5000, 3.5, 1, '0a8f9c1e-1111-4222-8333-444455556666', '2024-03-04', '09:15:00.000', '2024-01-14 12:30:00.000', 'hello', 'coding');
 -- temporal_precision: a sub-millisecond instant a JS Date cannot express.
 -- getSeconds() reads 59, getMilliseconds() reads 999.
 INSERT INTO temporal_precision (id, micro_stamp) VALUES

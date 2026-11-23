@@ -66,6 +66,15 @@ they are kept in JavaScript, so a class of the user says 8 bytes to have a `bigi
 works only with itself: what it takes and what it gives is its data type (the exceptions: `sign` gives an int, an
 exact decimal gives a double for what can't be exact, and the number of decimals of `roundn` is a number).
 
+A data type of the user for a specific use (a column) is made by its family with `of`, without declaring a class:
+`IntegersType.of<Units, 'Units'>('Units')`. `EqualableType.of` is the only implementation (`dataTypeOfName.ts`): it makes
+a subclass of the family it's called on with the type name and the statics the family gives for its options
+(`[ofStatics]`: the values of `EnumType`, the SQL data type of the scale of `ScaledBigIntsType`), once for each type
+name, kept on the family under a symbol. Each family redeclares `of` only for TypeScript (`declare static readonly
+of`), so that it gives its own data type; a data type of the library declares it `never`, and a class with a type name
+of its own is rejected at run time. `ScaledBigIntType.of(scale)` is the data type of the library of a scale, with an
+overload that is only there to extend the one of its family.
+
 A method that applies to several data types is declared once, in the class they share. The methods are `this`
 relative, so a method of a base gives back the data type of the value source it is called on:
 

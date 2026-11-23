@@ -405,7 +405,8 @@ CREATE TABLE col_matrix (
     m_date DATE NOT NULL,
     m_time TIME NOT NULL,
     m_datetime DATETIME NOT NULL,
-    m_str VARCHAR(64) NOT NULL
+    m_str VARCHAR(64) NOT NULL,
+    m_activity VARCHAR(64) DEFAULT 'coding' NOT NULL
 );
 GO
 
@@ -472,7 +473,7 @@ CREATE TABLE flight_leg (
 GO
 
 CREATE VIEW col_matrix_view AS
-SELECT id, m_int, m_bigint, m_double, m_bool, m_uuid, m_date, m_time, m_datetime, m_str
+SELECT id, m_int, m_bigint, m_double, m_bool, m_uuid, m_date, m_time, m_datetime, m_str, m_activity
 FROM col_matrix;
 GO
 
@@ -490,6 +491,7 @@ IF OBJECT_ID('cm_date',     'FN') IS NOT NULL DROP FUNCTION cm_date;
 IF OBJECT_ID('cm_time',     'FN') IS NOT NULL DROP FUNCTION cm_time;
 IF OBJECT_ID('cm_datetime', 'FN') IS NOT NULL DROP FUNCTION cm_datetime;
 IF OBJECT_ID('cm_str',      'FN') IS NOT NULL DROP FUNCTION cm_str;
+IF OBJECT_ID('cm_activity', 'FN') IS NOT NULL DROP FUNCTION cm_activity;
 GO
 CREATE FUNCTION cm_int() RETURNS INT AS BEGIN RETURN (SELECT m_int FROM col_matrix WHERE id = 1) END;
 GO
@@ -508,6 +510,8 @@ GO
 CREATE FUNCTION cm_datetime() RETURNS DATETIME AS BEGIN RETURN (SELECT m_datetime FROM col_matrix WHERE id = 1) END;
 GO
 CREATE FUNCTION cm_str() RETURNS VARCHAR(64) AS BEGIN RETURN (SELECT m_str FROM col_matrix WHERE id = 1) END;
+GO
+CREATE FUNCTION cm_activity() RETURNS VARCHAR(64) AS BEGIN RETURN (SELECT m_activity FROM col_matrix WHERE id = 1) END;
 GO
 GO
 -- service_plan: a system-versioned temporal table, every change of a row leaves

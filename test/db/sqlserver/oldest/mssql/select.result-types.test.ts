@@ -40,7 +40,7 @@ describe(ctx.label, () => {
                 cutoffClock: t.cutoffClock, signOff: t.signOff, activity: t.activity,
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, m_int as mInt, m_bigint as mBigint, m_double as mDouble, m_bool as mBool, m_uuid as mUuid, m_date as mDate, m_time as mTime, m_datetime as mDatetime, m_str as mStr, m_int as cents, m_double as money, m_uuid as signingKey, m_str as semver, m_str as channel, m_date as releaseDay, m_time as cutoffClock, m_datetime as signOff, m_str as activity from col_matrix where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, m_int as mInt, m_bigint as mBigint, m_double as mDouble, m_bool as mBool, m_uuid as mUuid, m_date as mDate, m_time as mTime, m_datetime as mDatetime, m_str as mStr, m_int as cents, m_double as money, m_uuid as signingKey, m_str as semver, m_str as channel, m_date as releaseDay, m_time as cutoffClock, m_datetime as signOff, m_activity as activity from col_matrix where id = @0"`)
         expect(resultColumns()).toMatchInlineSnapshot(`
           [
             {

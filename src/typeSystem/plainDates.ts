@@ -4,7 +4,7 @@ import { localDateSqlDataType, localDateTimeSqlDataType, localTimeSqlDataType } 
 import { LocalDateTimeType, LocalDateType, LocalTimeType } from './localDates.js'
 import type { TemporalDateUnit, TemporalDifferenceOptions, TemporalDisambiguationOptions, TemporalDuration, TemporalDurationLike, TemporalPlainDate, TemporalPlainDateFields, TemporalPlainDateTime, TemporalPlainTime, TemporalPlainTimeFields, TemporalOverflowOptions, TemporalRoundingOptions, TemporalTimeUnit, IntOfQuery, TemporalDurationLikeOfQuery, TemporalPlainDateFieldsOfQuery, TemporalPlainTimeFieldsOfQuery } from './temporal.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
-import type { DataTypeOf, IValueWithType, OptionalityOf, SourceOf, ValueSource, OperandOf } from './base.js'
+import type { DataTypeOf, IValueWithType, OptionalityOf, SourceOf, ValueSource, OperandOf, DataTypeOfClass } from './base.js'
 import type { CombinedOptionality, CombinedOptionalityOfUnion, OptionalType } from './valueSource.js'
 import type { NSource } from '../utils/sourceName.js'
 import type { SqlFunction0 } from '../sqlBuilders/SqlBuilder.js'
@@ -89,6 +89,8 @@ function partOf(valueSource: unknown, operation: keyof SqlFunction0): any {
  * `class DueDayType extends PlainDatesType<DueDay, 'DueDay'> { static override readonly type = 'DueDay' }`
  */
 export abstract class PlainDatesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends ComparableType<VALUE_TYPE, TYPE_NAME> {
+    /** The data type of a value of a type of yours of this family, of that type name, for a specific use (see EqualableType.of) */
+    declare static readonly of: <VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME, ...options: never[]) => DataTypeOfClass<PlainDatesType<VALUE_TYPE, TYPE_NAME>>
     static override readonly sqlDataType: SqlDataType | undefined = localDateSqlDataType
 
     /** The year, as an int: Temporal's `year` */
@@ -243,6 +245,8 @@ export abstract class PlainDatesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME
  * `class ShiftStartType extends PlainTimesType<ShiftStart, 'ShiftStart'> { static override readonly type = 'ShiftStart' }`
  */
 export abstract class PlainTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends ComparableType<VALUE_TYPE, TYPE_NAME> {
+    /** The data type of a value of a type of yours of this family, of that type name, for a specific use (see EqualableType.of) */
+    declare static readonly of: <VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME, ...options: never[]) => DataTypeOfClass<PlainTimesType<VALUE_TYPE, TYPE_NAME>>
     static override readonly sqlDataType: SqlDataType | undefined = localTimeSqlDataType
 
     /**
@@ -362,6 +366,8 @@ export abstract class PlainTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME
  * `class MeterReadingType extends PlainDateTimesType<MeterReading, 'MeterReading'> { static override readonly type = 'MeterReading' }`
  */
 export abstract class PlainDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends ComparableType<VALUE_TYPE, TYPE_NAME> {
+    /** The data type of a value of a type of yours of this family, of that type name, for a specific use (see EqualableType.of) */
+    declare static readonly of: <VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME, ...options: never[]) => DataTypeOfClass<PlainDateTimesType<VALUE_TYPE, TYPE_NAME>>
     static override readonly sqlDataType: SqlDataType | undefined = localDateTimeSqlDataType
 
     /** The year, as an int: Temporal's `year` */
@@ -569,15 +575,21 @@ export abstract class PlainDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
 
 /** A date without a zone, a Temporal.PlainDate */
 export abstract class PlainDateType extends PlainDatesType<TemporalPlainDate, 'plainDate'> {
+    /** A data type has no `of`: it is made by a family (see EqualableType.of) */
+    declare static readonly of: never
     static override readonly type = 'plainDate'
 }
 
 /** A time of the day without a zone, a Temporal.PlainTime */
 export abstract class PlainTimeType extends PlainTimesType<TemporalPlainTime, 'plainTime'> {
+    /** A data type has no `of`: it is made by a family (see EqualableType.of) */
+    declare static readonly of: never
     static override readonly type = 'plainTime'
 }
 
 /** A date and a time of the day without a zone, a Temporal.PlainDateTime */
 export abstract class PlainDateTimeType extends PlainDateTimesType<TemporalPlainDateTime, 'plainDateTime'> {
+    /** A data type has no `of`: it is made by a family (see EqualableType.of) */
+    declare static readonly of: never
     static override readonly type = 'plainDateTime'
 }

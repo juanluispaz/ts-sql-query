@@ -1,4 +1,4 @@
-import type { SqlDataType, DefaultTypeAdapter, TypeAdapterPlaceholderContext, TypeAdapterProjectionContext, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
+import type { DataTypeClass, SqlDataType, DefaultTypeAdapter, TypeAdapterPlaceholderContext, TypeAdapterProjectionContext, TypeAdapterValueFromDBContext, TypeAdapterValueToDBContext } from '../TypeAdapter.js'
 import type { NSource } from '../utils/sourceName.js'
 import type { HasSource } from '../utils/ITableOrView.js'
 import { operandTypeName, optionalType, source, typeName, unadaptedClass, valueSourceType, valueType } from '../utils/symbols.js'
@@ -112,6 +112,9 @@ export type TypeNameOf<TYPE> = TYPE extends { [typeName]: `type:${infer NAME}:${
 
 /** Any class of a data type */
 export type AnyTypeClass = TypeClass<AnyType>
+
+/** The class of a data type a family makes with `of`, with its statics: its type name and its SQL data type */
+export type DataTypeOfClass<TYPE extends AnyType> = TypeClass<TYPE> & DataTypeClass
 
 /** What a value source adds to its data type: its source and its optionality */
 export interface ValueSourceOfType</*in|out*/ SOURCE extends NSource, /*in|out*/ TYPE extends AnyType, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends TypedValueSource<SOURCE, TYPE[typeof valueType], OPTIONAL_TYPE> {

@@ -442,52 +442,50 @@ describe(ctx.label, () => {
     })
     */
 
-    // ── enum (cm_str, WorklogActivity) ──────────────────────────────────
-    // The identity enum read passes the raw 'hello' through — not a declared
-    // WorklogActivity member, but the library does not validate enum values, so
-    // the marshalled string reaches the caller unchanged.
+    // ── enum (cm_activity, WorklogActivity) ──────────────────────────────────
+    // The enum read gives the seeded 'coding', one of the values of WorklogActivity.
     // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('enum-required', async () => {
-        ctx.mockNext('hello')
+        ctx.mockNext('coding')
         const v = await ctx.conn.callCmEnum()
         expect(ctx.lastSql).toMatchInlineSnapshot()
         expect(ctx.lastParams).toMatchInlineSnapshot()
         assertType<Exact<typeof v, WorklogActivity>>()
-        expect(v).toBe('hello')
+        expect(v).toBe('coding')
     })
     */
     // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('enum-optional', async () => {
-        ctx.mockNext('hello')
+        ctx.mockNext('coding')
         const v = await ctx.conn.callCmEnumOpt()
         expect(ctx.lastSql).toMatchInlineSnapshot()
         expect(ctx.lastParams).toMatchInlineSnapshot()
         assertType<Exact<typeof v, WorklogActivity | null>>()
-        expect(v).toBe('hello')
+        expect(v).toBe('coding')
     })
     */
     // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('enum-required-adapter', async () => {
-        ctx.mockNext('hello')
+        ctx.mockNext('coding')
         const v = await ctx.conn.callCmEnumAdapter()
         expect(ctx.lastSql).toMatchInlineSnapshot()
         expect(ctx.lastParams).toMatchInlineSnapshot()
         assertType<Exact<typeof v, WorklogActivity>>()
-        expect(v).toBe('[hello]')
+        expect(v).toBe('[coding]')
     })
     */
     // NOT-SUPPORTED: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts
     /*
     test('enum-optional-adapter', async () => {
-        ctx.mockNext('hello')
+        ctx.mockNext('coding')
         const v = await ctx.conn.callCmEnumOptAdapter()
         expect(ctx.lastSql).toMatchInlineSnapshot()
         expect(ctx.lastParams).toMatchInlineSnapshot()
         assertType<Exact<typeof v, WorklogActivity | null>>()
-        expect(v).toBe('[hello]')
+        expect(v).toBe('[coding]')
     })
     */
 

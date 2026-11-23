@@ -329,7 +329,8 @@ CREATE TABLE col_matrix (
     m_date DATE NOT NULL,
     m_time TIME NOT NULL,
     m_datetime DATETIME NOT NULL,
-    m_str VARCHAR(64) NOT NULL
+    m_str VARCHAR(64) NOT NULL,
+    m_activity VARCHAR(64) DEFAULT 'coding' NOT NULL
 );
 
 -- temporal_precision: a microsecond-precision localDateTime column (DATETIME(6))
@@ -381,7 +382,7 @@ CREATE TABLE instant_value (
 );
 
 CREATE VIEW col_matrix_view AS
-SELECT id, m_int, m_bigint, m_double, m_bool, m_uuid, m_date, m_time, m_datetime, m_str
+SELECT id, m_int, m_bigint, m_double, m_bool, m_uuid, m_date, m_time, m_datetime, m_str, m_activity
 FROM col_matrix;
 
 -- Zero-arg function per base value kind, each returning the col_matrix row-1
@@ -398,6 +399,7 @@ DROP FUNCTION IF EXISTS cm_date;
 DROP FUNCTION IF EXISTS cm_time;
 DROP FUNCTION IF EXISTS cm_datetime;
 DROP FUNCTION IF EXISTS cm_str;
+DROP FUNCTION IF EXISTS cm_activity;
 CREATE FUNCTION cm_int() RETURNS INT DETERMINISTIC RETURN (SELECT m_int FROM col_matrix WHERE id = 1);
 CREATE FUNCTION cm_bigint() RETURNS BIGINT DETERMINISTIC RETURN (SELECT m_bigint FROM col_matrix WHERE id = 1);
 CREATE FUNCTION cm_double() RETURNS DOUBLE DETERMINISTIC RETURN (SELECT m_double FROM col_matrix WHERE id = 1);
@@ -407,6 +409,7 @@ CREATE FUNCTION cm_date() RETURNS DATE DETERMINISTIC RETURN (SELECT m_date FROM 
 CREATE FUNCTION cm_time() RETURNS TIME DETERMINISTIC RETURN (SELECT m_time FROM col_matrix WHERE id = 1);
 CREATE FUNCTION cm_datetime() RETURNS DATETIME DETERMINISTIC RETURN (SELECT m_datetime FROM col_matrix WHERE id = 1);
 CREATE FUNCTION cm_str() RETURNS VARCHAR(64) DETERMINISTIC RETURN (SELECT m_str FROM col_matrix WHERE id = 1);
+CREATE FUNCTION cm_activity() RETURNS VARCHAR(64) DETERMINISTIC RETURN (SELECT m_activity FROM col_matrix WHERE id = 1);
 -- service_plan: a system-versioned table, every change of a row leaves its
 -- previous version in the same table, visible only through FOR SYSTEM_TIME.
 CREATE TABLE service_plan (

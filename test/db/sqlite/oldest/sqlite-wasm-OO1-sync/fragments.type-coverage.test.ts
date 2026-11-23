@@ -14,7 +14,7 @@ import { EnumType } from '../../../../../src/exports/v2/index.js'
 import { ComparableType, EqualableType, IntegersType, LocalDateTimesType, LocalDatesType, LocalTimesType, RealsType, UuidsType } from '../../../../../src/exports/v2/index.js'
 
 // The data types of the values of the user, each one a class of the family of its values
-abstract class WorklogActivityType extends EnumType<WorklogActivity, 'WorklogActivity'> { static override readonly type = 'WorklogActivity' }
+abstract class WorklogActivityType extends EnumType<WorklogActivity, 'WorklogActivity'> { static override readonly type = 'WorklogActivity'; static override readonly values = ['coding', 'review', 'meeting'] as const }
 abstract class ReleaseChannelType extends EqualableType<ReleaseChannel, 'ReleaseChannel'> { static override readonly type = 'ReleaseChannel' }
 abstract class SigningKeyType extends UuidsType<string, 'SigningKey'> { static override readonly type = 'SigningKey' }
 abstract class ReleaseDayType extends LocalDatesType<Date, 'ReleaseDay'> { static override readonly type = 'ReleaseDay' }

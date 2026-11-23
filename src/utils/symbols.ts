@@ -46,6 +46,11 @@ export const valueOperandClass: unique symbol = Symbol('valueOperandClass')
 // For a number given to an arithmetic operation (`add`, `minValue`, `power`, the decimals of `roundn`, ...):
 export const arithmeticOperandClass: unique symbol = Symbol('arithmeticOperandClass')
 
+// The data types `of` makes (see typeSystem/dataTypeOfName.ts): the statics a family gives the class it makes for its
+// options (the values of an enum, the scale of a scaled bigint), and the classes made on a family, by their type name
+export const ofStatics: unique symbol = Symbol('ofStatics')
+export const typesOfName: unique symbol = Symbol('typesOfName')
+
 // Opaque types
 export const dontCallConstructor: unique symbol = Symbol('dontCallConstructor')
 

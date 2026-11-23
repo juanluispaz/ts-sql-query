@@ -23,6 +23,8 @@ export const stringSqlDataType: SqlDataType = { family: 'character string' }
 
 /** The family of the texts: what every text offers. Its only data type is StringType; a data type of the user doesn't extend it */
 export abstract class StringsType</*in|out*/ VALUE_TYPE> extends ComparableType<VALUE_TYPE, string> {
+    /** A data type has no `of`: it is made by a family (see EqualableType.of) */
+    declare static readonly of: never
     static override readonly [filterOperation] = exposeFilterOperations(this, ComparableType, [
         'equalsInsensitiveIfValue', 'equalsInsensitive', 'notEqualsInsensitiveIfValue', 'notEqualsInsensitive',
         'likeIfValue', 'like', 'notLikeIfValue', 'notLike', 'likeInsensitiveIfValue', 'likeInsensitive',

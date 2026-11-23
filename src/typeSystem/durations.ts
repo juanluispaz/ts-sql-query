@@ -1,7 +1,7 @@
 import type { SqlDataType } from '../TypeAdapter.js'
 import { EqualableType } from './equalable.js'
 import type { IntOfQuery, TemporalDurationLikeOfQuery, TemporalDayOrTimeUnit, TemporalDuration, TemporalDurationLike, TemporalPlainDate, TemporalPlainDateTime, TemporalRelativeTotalOptions, TemporalTotalOptions } from './temporal.js'
-import type { DataTypeOf, IValueWithType, OptionalityOf, SourceOf, ValueSource } from './base.js'
+import type { DataTypeOf, IValueWithType, OptionalityOf, SourceOf, ValueSource, DataTypeOfClass } from './base.js'
 import type { CombinedOptionality, CombinedOptionalityOfUnion, OptionalType } from './valueSource.js'
 import type { NSource } from '../utils/sourceName.js'
 import { __newSqlOperation2ValueSource, __operation0, __operation1 } from '../nodes/operations.js'
@@ -97,6 +97,8 @@ export const durationSqlDataType: SqlDataType = { family: 'interval' }
  * `class LeadTimeType extends DurationsType<LeadTime, 'LeadTime'> { static override readonly type = 'LeadTime' }`
  */
 export abstract class DurationsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends EqualableType<VALUE_TYPE, TYPE_NAME> {
+    /** The data type of a value of a type of yours of this family, of that type name, for a specific use (see EqualableType.of) */
+    declare static readonly of: <VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME, ...options: never[]) => DataTypeOfClass<DurationsType<VALUE_TYPE, TYPE_NAME>>
     static override readonly sqlDataType: SqlDataType | undefined = durationSqlDataType
 
     /** The years, as an int with the sign of the duration: Temporal's `years` of the duration as it is kept */
@@ -217,5 +219,7 @@ export abstract class DurationsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME 
 
 /** A duration, a Temporal.Duration */
 export abstract class DurationType extends DurationsType<TemporalDuration, 'duration'> {
+    /** A data type has no `of`: it is made by a family (see EqualableType.of) */
+    declare static readonly of: never
     static override readonly type = 'duration'
 }

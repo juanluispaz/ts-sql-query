@@ -365,7 +365,8 @@ CREATE TABLE col_matrix (
     m_date DATE NOT NULL,
     m_time TIMESTAMP NOT NULL,
     m_datetime TIMESTAMP NOT NULL,
-    m_str VARCHAR2(64) NOT NULL
+    m_str VARCHAR2(64) NOT NULL,
+    m_activity VARCHAR2(64) DEFAULT 'coding' NOT NULL
 );
 
 -- temporal_precision: a microsecond-precision localDateTime column (TIMESTAMP)
@@ -417,7 +418,7 @@ CREATE TABLE zoned_value (
 );
 
 CREATE OR REPLACE VIEW col_matrix_view AS
-SELECT id, m_int, m_bigint, m_double, m_bool, m_uuid, m_date, m_time, m_datetime, m_str
+SELECT id, m_int, m_bigint, m_double, m_bool, m_uuid, m_date, m_time, m_datetime, m_str, m_activity
 FROM col_matrix;
 
 -- Zero-arg function per base value kind. Custom kinds reuse the
@@ -442,6 +443,8 @@ CREATE OR REPLACE FUNCTION cm_time RETURN TIMESTAMP AS v TIMESTAMP; BEGIN SELECT
 CREATE OR REPLACE FUNCTION cm_datetime RETURN TIMESTAMP AS v TIMESTAMP; BEGIN SELECT m_datetime INTO v FROM col_matrix WHERE id = 1; RETURN v; END;
 
 CREATE OR REPLACE FUNCTION cm_str RETURN VARCHAR2 AS v VARCHAR2(64); BEGIN SELECT m_str INTO v FROM col_matrix WHERE id = 1; RETURN v; END;
+
+CREATE OR REPLACE FUNCTION cm_activity RETURN VARCHAR2 AS v VARCHAR2(64); BEGIN SELECT m_activity INTO v FROM col_matrix WHERE id = 1; RETURN v; END;
 
 -- service_plan: read through a flashback version query, which sees every change the
 -- undo still holds, the delete and insert of each reseed included: how many versions

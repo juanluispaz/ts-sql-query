@@ -42,7 +42,7 @@ import { IntegersType, RealsType, UuidsType } from '../../../../../src/exports/v
 // The data types of the values of the user, each one a class of the family of its values
 abstract class IssueIdType extends IntegersType<IssueId, 'IssueId'> { static override readonly type = 'IssueId' }
 abstract class MoneyType extends RealsType<Money, 'Money'> { static override readonly type = 'Money' }
-abstract class OrderStateType extends EnumType<OrderState, 'OrderState'> { static override readonly type = 'OrderState' }
+abstract class OrderStateType extends EnumType<OrderState, 'OrderState'> { static override readonly type = 'OrderState'; static override readonly values = ['open', 'paid', 'void'] as const }
 abstract class BillingRefType extends UuidsType<string, 'BillingRef'> { static override readonly type = 'BillingRef' }
 
 class VProjectPatch extends Values<DBConnection, 'projectPatch'> {

@@ -25,7 +25,7 @@ import { ComparableType, EqualableType, IntegersType, LocalDateTimesType, LocalT
 import type { SqlDataType } from '../../../../../src/exports/v2/index.js'
 
 // The data types of the values of the user, each one a class of the family of its values
-abstract class WorklogActivityType extends EnumType<WorklogActivity, 'WorklogActivity'> { static override readonly type = 'WorklogActivity' }
+abstract class WorklogActivityType extends EnumType<WorklogActivity, 'WorklogActivity'> { static override readonly type = 'WorklogActivity'; static override readonly values = ['coding', 'review', 'meeting'] as const }
 abstract class ReleaseChannelType extends EqualableType<ReleaseChannel, 'ReleaseChannel'> { static override readonly type = 'ReleaseChannel' }
 abstract class SemverType extends ComparableType<string, 'Semver'> { static override readonly type = 'Semver' }
 abstract class ReleaseTagType extends IntegersType<number, 'ReleaseTag'> { static override readonly type = 'ReleaseTag' }

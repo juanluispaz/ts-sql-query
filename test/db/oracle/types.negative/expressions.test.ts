@@ -28,8 +28,8 @@ abstract class MoneyType extends RealsType<number, 'Money'> { static override re
 abstract class AmountType extends DecimalsType<string, 'Amount'> { static override readonly type = 'Amount' }
 abstract class CentsType extends IntegersType<number, 'Cents'> { static override readonly type = 'Cents' }
 abstract class OtherType extends IntegersType<number, 'Other'> { static override readonly type = 'Other' }
-abstract class WorklogActivityType extends EnumType<string, 'WorklogActivity'> { static override readonly type = 'WorklogActivity' }
-abstract class ReleaseChannelType extends EnumType<string, 'ReleaseChannel'> { static override readonly type = 'ReleaseChannel' }
+abstract class WorklogActivityType extends EnumType<string, 'WorklogActivity'> { static override readonly type = 'WorklogActivity'; static override readonly values = null }
+abstract class ReleaseChannelType extends EnumType<string, 'ReleaseChannel'> { static override readonly type = 'ReleaseChannel'; static override readonly values = null }
 
 // A second connection with its own table: value sources of a different
 // connection must not mix with the ones of `DBConnection`.

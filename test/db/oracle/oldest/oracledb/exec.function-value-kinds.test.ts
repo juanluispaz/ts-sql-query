@@ -347,41 +347,39 @@ describe(ctx.label, () => {
         expect(v).toBe('[hello]')
     })
 
-    // ── enum (cm_str, WorklogActivity) ──────────────────────────────────
-    // The identity enum read passes the raw 'hello' through — not a declared
-    // WorklogActivity member, but the library does not validate enum values, so
-    // the marshalled string reaches the caller unchanged.
+    // ── enum (cm_activity, WorklogActivity) ──────────────────────────────────
+    // The enum read gives the seeded 'coding', one of the values of WorklogActivity.
     test('enum-required', async () => {
-        ctx.mockNext('hello')
+        ctx.mockNext('coding')
         const v = await ctx.conn.callCmEnum()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cm_str() from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cm_activity() from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, WorklogActivity>>()
-        expect(v).toBe('hello')
+        expect(v).toBe('coding')
     })
     test('enum-optional', async () => {
-        ctx.mockNext('hello')
+        ctx.mockNext('coding')
         const v = await ctx.conn.callCmEnumOpt()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cm_str() from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cm_activity() from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, WorklogActivity | null>>()
-        expect(v).toBe('hello')
+        expect(v).toBe('coding')
     })
     test('enum-required-adapter', async () => {
-        ctx.mockNext('hello')
+        ctx.mockNext('coding')
         const v = await ctx.conn.callCmEnumAdapter()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cm_str() from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cm_activity() from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, WorklogActivity>>()
-        expect(v).toBe('[hello]')
+        expect(v).toBe('[coding]')
     })
     test('enum-optional-adapter', async () => {
-        ctx.mockNext('hello')
+        ctx.mockNext('coding')
         const v = await ctx.conn.callCmEnumOptAdapter()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cm_str() from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cm_activity() from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof v, WorklogActivity | null>>()
-        expect(v).toBe('[hello]')
+        expect(v).toBe('[coding]')
     })
 
     // ── custom (cm_str, ReleaseChannel) ─────────────────────────────────

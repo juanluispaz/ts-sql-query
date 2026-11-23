@@ -27,7 +27,7 @@ type Status = 'open' | 'closed'
 abstract class MoneyType extends IntegersType<Money, 'Money'> { static override readonly type = 'Money' }
 abstract class OtherType extends IntegersType<number, 'Other'> { static override readonly type = 'Other' }
 abstract class PriceType extends DecimalsType<string, 'Price'> { static override readonly type = 'Price' }
-abstract class StatusType extends EnumType<Status, 'Status'> { static override readonly type = 'Status' }
+abstract class StatusType extends EnumType<Status, 'Status'> { static override readonly type = 'Status'; static override readonly values = ['open', 'closed'] as const }
 abstract class VersionType extends ComparableType<string, 'Version'> { static override readonly type = 'Version' }
 // Another declaration with the same type name and family: another class
 abstract class AnotherMoneyType extends IntegersType<Money, 'Money'> { static override readonly type = 'Money' }

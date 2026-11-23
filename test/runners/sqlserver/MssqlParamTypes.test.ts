@@ -34,7 +34,7 @@ abstract class SemverType extends ComparableType<unknown, 'Semver'> { static ove
 abstract class SignOffStampType extends LocalDateTimesType<Date, 'SignOffStamp'> { static override readonly type = 'SignOffStamp' }
 abstract class SigningKeyType extends UuidsType<string, 'SigningKey'> { static override readonly type = 'SigningKey' }
 abstract class WideType extends RealsType<number, 'Wide'> { static override readonly type = 'Wide' }
-abstract class StageType extends EnumType<unknown, 'Stage'> { static override readonly type = 'Stage' }
+abstract class StageType extends EnumType<unknown, 'Stage'> { static override readonly type = 'Stage'; static override readonly values = null }
 
 describe.skipIf(!isRealDbEnabled('sqlserver', 'docker', 'newest', 'mssql'))('MssqlPoolQueryRunner: parameter types', () => {
     let db: Awaited<ReturnType<typeof acquireRunnerTestDatabase>> | undefined

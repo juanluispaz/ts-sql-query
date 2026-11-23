@@ -2,6 +2,9 @@ import { describe, test } from '../../../../lib/testRunner.js'
 import type { DynamicCondition, DynamicConditionForModel, DynamicDefinitionForModel } from "../../../../../src/dynamic/condition.js"
 import type { OrderByForModel, OrderByMode } from "../../../../../src/dynamic/orderBy.js"
 import type { ConnectionConfiguration } from '../../../../../src/queryRunners/QueryRunner.js'
+// The data types the API of `of` names
+import type { DataTypeOfClass, EnumType, IntegersType, ScaledBigInt, ScaledBigIntsType, ScaledBigIntTypeClass } from '../../../../../src/exports/v2/index.js'
+void function(_dtoc: DataTypeOfClass<any>, _et: EnumType<any, any>, _it: IntegersType<any, any>, _sb: ScaledBigInt<2>, _sbt: ScaledBigIntsType<any, any>, _sbtc: ScaledBigIntTypeClass<2>) {}
 // The configuration of a connection, which the API of the type adapters names
 void function(_configuration: ConnectionConfiguration) {}
 

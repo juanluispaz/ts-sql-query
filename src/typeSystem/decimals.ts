@@ -3,7 +3,7 @@ import { MultipliableType } from './numeric.js'
 import { decimalSqlDataType } from './numericSqlDataTypes.js'
 import { __typeClassOf } from '../nodes/dataTypeClassOf.js'
 import { __operation0, __operation1 } from '../nodes/operations.js'
-import type { INumberValue, OptionalityOf, SourceOf, DataTypeOf, ValueSource } from './base.js'
+import type { INumberValue, OptionalityOf, SourceOf, DataTypeOf, ValueSource, DataTypeOfClass } from './base.js'
 import type { CombinedOptionality } from './valueSource.js'
 import { arithmeticOperandClass } from '../utils/symbols.js'
 import { DoubleType, IntType } from './number.js'
@@ -21,6 +21,8 @@ import { __computedClassOf } from '../nodes/adaptedTypeClass.js'
  * `class PriceType extends DecimalsType<Price, 'Price'> { static override readonly type = 'Price' }`
  */
 export abstract class DecimalsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends MultipliableType<VALUE_TYPE, TYPE_NAME> {
+    /** The data type of a value of a type of yours of this family, of that type name, for a specific use (see EqualableType.of) */
+    declare static readonly of: <VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME, ...options: never[]) => DataTypeOfClass<DecimalsType<VALUE_TYPE, TYPE_NAME>>
     static override readonly sqlDataType: SqlDataType | undefined = decimalSqlDataType
 
     /**
@@ -174,6 +176,8 @@ export abstract class DecimalsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME e
 
 /** An exact decimal number that the library delivers as its text, a JavaScript string */
 export abstract class StringDecimalType extends DecimalsType<string, 'stringDecimal'> {
+    /** A data type has no `of`: it is made by a family (see EqualableType.of) */
+    declare static readonly of: never
     static override readonly type = 'stringDecimal'
 }
 
@@ -191,9 +195,17 @@ export type Dnum = readonly [value: bigint, decimals: number]
  * `class PriceType extends DnumDecimalsType<Price, 'Price'> { static override readonly type = 'Price' }`
  */
 export abstract class DnumDecimalsType</*in|out*/ VALUE_TYPE extends Dnum, /*in|out*/ TYPE_NAME extends string> extends DecimalsType<VALUE_TYPE, TYPE_NAME> {
+    /** The data type of a value of a type of yours of this family, of that type name, for a specific use (see EqualableType.of) */
+    declare static readonly of: {
+        <VALUE_TYPE extends Dnum, TYPE_NAME extends string>(typeName: TYPE_NAME, ...options: never[]): DataTypeOfClass<DnumDecimalsType<VALUE_TYPE, TYPE_NAME>>
+        /** Only so that the family extends DecimalsType, whose values can be of any type: it can't be called */
+        (typeName: never, ...options: never[]): never
+    }
 }
 
 /** An exact decimal number that the library delivers as a dnum (`Dnum`): the integer of its digits and its decimals */
 export abstract class DnumDecimalType extends DnumDecimalsType<Dnum, 'dnumDecimal'> {
+    /** A data type has no `of`: it is made by a family (see EqualableType.of) */
+    declare static readonly of: never
     static override readonly type = 'dnumDecimal'
 }

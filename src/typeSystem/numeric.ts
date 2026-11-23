@@ -1,7 +1,7 @@
 import type { SqlDataType } from '../TypeAdapter.js'
 import { ComparableType } from './comparable.js'
 import type { IntType } from './number.js'
-import type { INumberValue, OptionalityOf, SourceOf, DataTypeOf, ValueSource, OperandOf } from './base.js'
+import type { INumberValue, OptionalityOf, SourceOf, DataTypeOf, ValueSource, OperandOf, DataTypeOfClass } from './base.js'
 import type { CombinedOptionality } from './valueSource.js'
 import type { additiveValueSource } from '../utils/symbols.js'
 import type { NSource } from '../utils/sourceName.js'
@@ -37,6 +37,8 @@ export interface IAnyAdditiveValueSource</*in|out*/ SOURCE extends NSource> exte
 
 /** A number: the root of the numbers */
 export abstract class ArithmeticType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends ComparableType<VALUE_TYPE, TYPE_NAME> {
+    /** The data type of a value of a type of yours of this family, of that type name, for a specific use (see EqualableType.of) */
+    declare static readonly of: <VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME, ...options: never[]) => DataTypeOfClass<ArithmeticType<VALUE_TYPE, TYPE_NAME>>
 }
 
 /**
@@ -45,6 +47,8 @@ export abstract class ArithmeticType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME
  * `class MoneyType extends AdditiveType<Money, 'Money'> { static override readonly type = 'Money' }`
  */
 export abstract class AdditiveType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends ArithmeticType<VALUE_TYPE, TYPE_NAME> {
+    /** The data type of a value of a type of yours of this family, of that type name, for a specific use (see EqualableType.of) */
+    declare static readonly of: <VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME, ...options: never[]) => DataTypeOfClass<AdditiveType<VALUE_TYPE, TYPE_NAME>>
     declare [additiveValueSource]: 'AdditiveValueSource'
 
     /** The absolute value of the number, `abs(x)`, of the same data type */
@@ -114,6 +118,8 @@ export abstract class AdditiveType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME e
 
 /** A number that is also multiplied by itself; a data type of the user extends it as AdditiveType */
 export abstract class MultipliableType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends AdditiveType<VALUE_TYPE, TYPE_NAME> {
+    /** The data type of a value of a type of yours of this family, of that type name, for a specific use (see EqualableType.of) */
+    declare static readonly of: <VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME, ...options: never[]) => DataTypeOfClass<MultipliableType<VALUE_TYPE, TYPE_NAME>>
     /** The product of the number and the one given, `x * value`, of the same data type; null when either is null */
     multiply(value: VALUE_TYPE): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     /** The product of the number and the one given, `x * value`, of the same data type; null when either is null */
@@ -129,11 +135,15 @@ export abstract class MultipliableType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NA
  * another conversion: `class QuantityType extends IntegersType<number, 'Quantity'> { static override readonly type = 'Quantity' }`
  */
 export abstract class IntegersType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends MultipliableType<VALUE_TYPE, TYPE_NAME> {
+    /** The data type of a value of a type of yours of this family, of that type name, for a specific use (see EqualableType.of) */
+    declare static readonly of: <VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME, ...options: never[]) => DataTypeOfClass<IntegersType<VALUE_TYPE, TYPE_NAME>>
     static override readonly sqlDataType: SqlDataType | undefined = intSqlDataType
 }
 
 /** A number that is also divided by itself; a data type of the user extends it as AdditiveType */
 export abstract class DivisibleType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends MultipliableType<VALUE_TYPE, TYPE_NAME> {
+    /** The data type of a value of a type of yours of this family, of that type name, for a specific use (see EqualableType.of) */
+    declare static readonly of: <VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME, ...options: never[]) => DataTypeOfClass<DivisibleType<VALUE_TYPE, TYPE_NAME>>
     /** The number divided by the one given, `x / value`, of the same data type; null when either is null */
     divide(value: VALUE_TYPE): ValueSource<SourceOf<this>, DataTypeOf<this>, OptionalityOf<this>>
     /** The number divided by the one given, `x / value`, of the same data type; null when either is null */
@@ -149,6 +159,8 @@ export abstract class DivisibleType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME 
  * `class RatioType extends RealsType<number, 'Ratio'> { static override readonly type = 'Ratio' }`
  */
 export abstract class RealsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends DivisibleType<VALUE_TYPE, TYPE_NAME> {
+    /** The data type of a value of a type of yours of this family, of that type name, for a specific use (see EqualableType.of) */
+    declare static readonly of: <VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME, ...options: never[]) => DataTypeOfClass<RealsType<VALUE_TYPE, TYPE_NAME>>
     static override readonly sqlDataType: SqlDataType | undefined = doubleSqlDataType
 
     /**

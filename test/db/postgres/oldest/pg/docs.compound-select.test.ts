@@ -7,7 +7,7 @@ import { ctx } from './setup.js'
 import { EnumType } from '../../../../../src/exports/v2/index.js'
 
 // The data types of the values of the user, each one a class of the family of its values
-abstract class OrgOrProjectType extends EnumType<'organization' | 'project', 'orgOrProject'> { static override readonly type = 'orgOrProject' }
+abstract class OrgOrProjectType extends EnumType<'organization' | 'project', 'orgOrProject'> { static override readonly type = 'orgOrProject'; static override readonly values = ['organization', 'project'] as const }
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)

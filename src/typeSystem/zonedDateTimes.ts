@@ -1,7 +1,7 @@
 import type { DataTypeClass, SqlDataType } from '../TypeAdapter.js'
 import { ComparableType } from './comparable.js'
 import { __temporal, type TemporalDateUnit, type TemporalDifferenceOptions, type TemporalDisambiguation, type TemporalDuration, type TemporalDurationLike, type TemporalOffsetOption, type TemporalOverflowOptions, type TemporalPlainDateFields, type TemporalPlainTime, type TemporalPlainTimeFields, type TemporalRoundingOptions, type TemporalTimeUnit, type TemporalZonedDateTime, type IntOfQuery, type TemporalDurationLikeOfQuery, type TemporalPlainDateFieldsOfQuery, type TemporalPlainTimeFieldsOfQuery } from './temporal.js'
-import type { DataTypeOf, IValueWithType, OptionalityOf, SourceOf, ValueSource, OperandOf } from './base.js'
+import type { DataTypeOf, IValueWithType, OptionalityOf, SourceOf, ValueSource, OperandOf, DataTypeOfClass } from './base.js'
 import type { CombinedOptionality, CombinedOptionalityOfUnion, OptionalType } from './valueSource.js'
 import type { NSource } from '../utils/sourceName.js'
 import type { HasSource } from '../utils/ITableOrView.js'
@@ -142,6 +142,8 @@ export function __zonedOfWallClock(wallClock: unknown, timeZone: unknown, option
  * `class MeetingStartType extends ZonedDateTimesType<MeetingStart, 'MeetingStart'> { static override readonly type = 'MeetingStart' }`
  */
 export abstract class ZonedDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends ComparableType<VALUE_TYPE, TYPE_NAME> {
+    /** The data type of a value of a type of yours of this family, of that type name, for a specific use (see EqualableType.of) */
+    declare static readonly of: <VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME, ...options: never[]) => DataTypeOfClass<ZonedDateTimesType<VALUE_TYPE, TYPE_NAME>>
     static override readonly sqlDataType: SqlDataType | undefined = zonedDateTimeSqlDataType
 
     /** The instant of the zoned date and time: Temporal's `toInstant` */
@@ -371,5 +373,7 @@ export abstract class ZonedDateTimesType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
 
 /** An exact moment in a time zone, a Temporal.ZonedDateTime */
 export abstract class ZonedDateTimeType extends ZonedDateTimesType<TemporalZonedDateTime, 'zonedDateTime'> {
+    /** A data type has no `of`: it is made by a family (see EqualableType.of) */
+    declare static readonly of: never
     static override readonly type = 'zonedDateTime'
 }

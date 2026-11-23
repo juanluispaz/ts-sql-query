@@ -81,6 +81,7 @@ export {
     type OptionalityOf,
     type DataTypeOf,
     type OperandOf,
+    type DataTypeOfClass,
 } from '../../typeSystem/base.js'
 
 export {
@@ -179,6 +180,7 @@ export {
 
 export {
     EnumType,
+    type EnumTypeClass,
 } from '../../typeSystem/enum.js'
 
 export {

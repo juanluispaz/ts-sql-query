@@ -17,6 +17,7 @@ import { tIssue, tIssueWorklog, tProject, tProjectRelease } from '../domain/conn
 // A data type of the user, given to a definition as its class
 abstract class StateType extends EnumType<'open' | 'closed', 'State'> {
     static override readonly type = 'State'
+    static override readonly values = ['open', 'closed'] as const
 }
 
 declare const connection: DBConnection

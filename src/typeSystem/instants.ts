@@ -1,7 +1,7 @@
 import type { SqlDataType } from '../TypeAdapter.js'
 import { ComparableType } from './comparable.js'
 import { __temporal, type TemporalDifferenceOptions, type TemporalDuration, type TemporalInstant, type TemporalRoundingOptions, type TemporalTimeDurationLike, type TemporalTimeUnit, type IntOfQuery, type TemporalTimeDurationLikeOfQuery } from './temporal.js'
-import type { DataTypeOf, IValueWithType, OptionalityOf, SourceOf, ValueSource, OperandOf } from './base.js'
+import type { DataTypeOf, IValueWithType, OptionalityOf, SourceOf, ValueSource, OperandOf, DataTypeOfClass } from './base.js'
 import type { CombinedOptionality, CombinedOptionalityOfUnion, OptionalType } from './valueSource.js'
 import type { NSource } from '../utils/sourceName.js'
 import { __newSqlOperation2ValueSource, __operation0, __operation1 } from '../nodes/operations.js'
@@ -96,6 +96,8 @@ export const instantSqlDataType: SqlDataType = { family: 'datetime', fields: 'ti
  * `class PaymentInstantType extends InstantsType<PaymentInstant, 'PaymentInstant'> { static override readonly type = 'PaymentInstant' }`
  */
 export abstract class InstantsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends ComparableType<VALUE_TYPE, TYPE_NAME> {
+    /** The data type of a value of a type of yours of this family, of that type name, for a specific use (see EqualableType.of) */
+    declare static readonly of: <VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME, ...options: never[]) => DataTypeOfClass<InstantsType<VALUE_TYPE, TYPE_NAME>>
     static override readonly sqlDataType: SqlDataType | undefined = instantSqlDataType
 
     /** The milliseconds since 1970-01-01T00:00Z, as an int, rounded down: Temporal's `epochMilliseconds` */
@@ -206,5 +208,7 @@ export abstract class InstantsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME e
 
 /** An exact moment, a Temporal.Instant */
 export abstract class InstantType extends InstantsType<TemporalInstant, 'instant'> {
+    /** A data type has no `of`: it is made by a family (see EqualableType.of) */
+    declare static readonly of: never
     static override readonly type = 'instant'
 }

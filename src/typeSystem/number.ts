@@ -33,6 +33,8 @@ export type PromotedNumberType<RECEIVER, OPERAND> =
 
 /** The int and the double, the numbers of JavaScript */
 export abstract class NumberType extends ArithmeticType<number, string> {
+    /** A data type has no `of`: it is made by a family (see EqualableType.of) */
+    declare static readonly of: never
     /**
      * A number given to an arithmetic operation of a number is an int when it is an integer and a double otherwise, as
      * TypeScript can't tell 2 from 2.5; a bigint is a bigint

@@ -11,7 +11,7 @@ import { ctx } from './setup.js'
 import { EnumType } from '../../../../../src/exports/v2/index.js'
 
 // The data types of the values of the user, each one a class of the family of its values
-abstract class SizeGroupType extends EnumType<'first' | 'other', 'sizeGroup'> { static override readonly type = 'sizeGroup' }
+abstract class SizeGroupType extends EnumType<'first' | 'other', 'sizeGroup'> { static override readonly type = 'sizeGroup'; static override readonly values = ['first', 'other'] as const }
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)

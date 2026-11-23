@@ -389,7 +389,8 @@ CREATE TABLE col_matrix (
     m_date DATE NOT NULL,
     m_time TIME NOT NULL,
     m_datetime TIMESTAMP NOT NULL,
-    m_str VARCHAR(64) NOT NULL
+    m_str VARCHAR(64) NOT NULL,
+    m_activity VARCHAR(64) DEFAULT 'coding' NOT NULL
 );
 
 -- temporal_precision: a single microsecond-precision localDateTime column. Its
@@ -446,7 +447,7 @@ CREATE TABLE zoned_value (
 -- View side of col_matrix — surfaces the same per-kind read marshalling through
 -- the View column / optionalColumn factories (vColMatrix).
 CREATE VIEW col_matrix_view AS
-SELECT id, m_int, m_bigint, m_double, m_bool, m_uuid, m_date, m_time, m_datetime, m_str
+SELECT id, m_int, m_bigint, m_double, m_bool, m_uuid, m_date, m_time, m_datetime, m_str, m_activity
 FROM col_matrix;
 
 -- One zero-arg function per base value kind, each returning the col_matrix row-1
@@ -466,6 +467,7 @@ DROP FUNCTION IF EXISTS cm_date();
 DROP FUNCTION IF EXISTS cm_time();
 DROP FUNCTION IF EXISTS cm_datetime();
 DROP FUNCTION IF EXISTS cm_str();
+DROP FUNCTION IF EXISTS cm_activity();
 
 CREATE FUNCTION cm_int() RETURNS integer
 LANGUAGE sql AS $$ SELECT m_int FROM col_matrix WHERE id = 1 $$;
@@ -493,6 +495,9 @@ LANGUAGE sql AS $$ SELECT m_datetime FROM col_matrix WHERE id = 1 $$;
 
 CREATE FUNCTION cm_str() RETURNS varchar
 LANGUAGE sql AS $$ SELECT m_str FROM col_matrix WHERE id = 1 $$;
+
+CREATE FUNCTION cm_activity() RETURNS varchar
+LANGUAGE sql AS $$ SELECT m_activity FROM col_matrix WHERE id = 1 $$;
 
 -- tsq_duration_part: a part of the ISO 8601 text of a duration (Temporal.Duration), the function of the library that
 -- reads a duration kept as text: 'M' the months (its years too), 'D' the days (its weeks too), 'S' the whole seconds of

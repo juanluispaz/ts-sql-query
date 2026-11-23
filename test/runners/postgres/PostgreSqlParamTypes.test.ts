@@ -28,15 +28,17 @@ import { ComparableType, EnumType, EqualableType, IntegersType, LocalDateType } 
 // The data types of the user the parameters are of, each one a class of the family of its values
 abstract class BigType extends EqualableType<unknown, 'Big'> { static override readonly type = 'Big' }
 abstract class CentsType extends IntegersType<number, 'Cents'> { static override readonly type = 'Cents' }
-abstract class MoodType extends EnumType<'happy' | 'sad', 'Mood'> { static override readonly type = 'Mood' }
-// An enum of the database whose class says its SQL data type: the native name of a type the library doesn't know
+abstract class MoodType extends EnumType<'happy' | 'sad', 'Mood'> { static override readonly type = 'Mood'; static override readonly values = ['happy', 'sad'] as const }
+// An enum of the database whose class says its SQL data type: the native name of a type the library doesn't know. It
+// takes any value (values null), so a value the enum of the database doesn't have reaches the database
 abstract class FeelingType extends EnumType<'happy' | 'sad', 'Feeling'> {
     static override readonly type = 'Feeling'
+    static override readonly values = null
     static override readonly sqlDataType: SqlDataType = { family: 'user-defined', name: 'rt_feeling' }
 }
 class FeelingConnection extends PostgreSqlConnection<'FeelingConnection'> {}
 abstract class RatioType extends ComparableType<unknown, 'Ratio'> { static override readonly type = 'Ratio' }
-abstract class StatusType extends EnumType<unknown, 'Status'> { static override readonly type = 'Status' }
+abstract class StatusType extends EnumType<unknown, 'Status'> { static override readonly type = 'Status'; static override readonly values = null }
 
 const isBun = typeof globalThis.Bun !== 'undefined'
 

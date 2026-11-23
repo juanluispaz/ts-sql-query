@@ -49,6 +49,7 @@ abstract class RatioType extends RealsType<number, 'Ratio'> {
 }
 abstract class StatusType extends EnumType<Status, 'Status'> {
     static override readonly type = 'Status'
+    static override readonly values = ['a', 'b'] as const
 }
 // Another data type with the same type name
 abstract class OwnStatusType extends EqualableType<Status, 'Status'> { }

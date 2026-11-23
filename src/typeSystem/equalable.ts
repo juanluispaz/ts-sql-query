@@ -1,10 +1,13 @@
-import type { OptionalityOf, SourceOf, ValueSource, OperandOf } from './base.js'
+import type { OptionalityOf, SourceOf, ValueSource, OperandOf, DataTypeOfClass } from './base.js'
 import { NullableType } from './nullable.js'
 import type { BooleanType, IfValueSource } from './logical.js'
 import type { IExecutableSelectQuery, CombinedOptionality, CombinedOptionalityOfUnion, OptionalType } from './valueSource.js'
 import type { NSource } from '../utils/sourceName.js'
 import type { optionalType, source } from '../utils/symbols.js'
 import type { operandTypeName, typeName } from '../utils/symbols.js'
+import { ofStatics } from '../utils/symbols.js'
+import { TsSqlProcessingError } from '../TsSqlError.js'
+import { __dataTypeOfName, type OfStatics } from './dataTypeOfName.js'
 import { exposeFilterOperations, filterOperation } from './filterOperations.js'
 import { __newSqlOperation1ValueSourceIfValueOrNoop, __newSqlOperationInValueSourceIfValueOrNoop } from '../nodes/ifValue.js'
 import { getOptionalType2, getOptionalTypeN, getOptionalTypeOfIn } from '../nodes/operands.js'
@@ -24,6 +27,24 @@ export abstract class EqualableType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME 
         'inIfValue', 'in', 'notInIfValue', 'notIn',
     ])
     declare [filterOperation]: (typeof EqualableType)[typeof filterOperation]
+
+    /**
+     * The data type of a value of a type of yours that is only compared for equality, of that type name, for a
+     * specific use, like a column: `this.column('color', EqualableType.of<Color, 'Color'>('Color'))`. Each family has
+     * it, with what its data type needs (`EnumType.of` takes its values too); it gives the same class each time for the
+     * same type name. A data type, like `IntType` or a class of yours, has no `of`
+     */
+    static of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME, ...options: never[]): DataTypeOfClass<EqualableType<VALUE_TYPE, TYPE_NAME>>
+    static of(typeName: string, ...options: unknown[]): unknown {
+        return __dataTypeOfName(this, typeName, options)
+    }
+    /** The statics of the data type `of` makes for its options: a family without options takes none */
+    static [ofStatics](options: readonly unknown[]): OfStatics | undefined {
+        if (options.length) {
+            throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'of', value: options }, 'The data types of ' + this.name + ' take no options, only their type name')
+        }
+        return undefined
+    }
 
     /**
      * As `equals`, but the condition disappears when the value is missing: null, undefined, an empty string (unless the

@@ -3,7 +3,7 @@ import { ComparableType } from './comparable.js'
 import { EqualableType } from './equalable.js'
 import { localDateSqlDataType } from './dateTimeSqlDataTypes.js'
 import type { TemporalDifferenceOptions, TemporalDuration, TemporalOverflowOptions, TemporalPlainMonthDay, TemporalPlainMonthDayFields, TemporalPlainYearMonth, TemporalPlainYearMonthFields, TemporalYearMonthDurationLike, TemporalYearMonthUnit, IntOfQuery, TemporalYearMonthDurationLikeOfQuery, TemporalPlainMonthDayFieldsOfQuery, TemporalPlainYearMonthFieldsOfQuery } from './temporal.js'
-import type { DataTypeOf, IValueWithType, OptionalityOf, SourceOf, ValueSource, OperandOf } from './base.js'
+import type { DataTypeOf, IValueWithType, OptionalityOf, SourceOf, ValueSource, OperandOf, DataTypeOfClass } from './base.js'
 import type { CombinedOptionality, CombinedOptionalityOfUnion, OptionalType } from './valueSource.js'
 import type { NSource } from '../utils/sourceName.js'
 import type { SqlFunction0 } from '../sqlBuilders/SqlBuilder.js'
@@ -83,6 +83,8 @@ function partOf(valueSource: unknown, operation: keyof SqlFunction0): any {
  * `class BillingMonthType extends PlainYearMonthsType<BillingMonth, 'BillingMonth'> { static override readonly type = 'BillingMonth' }`
  */
 export abstract class PlainYearMonthsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends ComparableType<VALUE_TYPE, TYPE_NAME> {
+    /** The data type of a value of a type of yours of this family, of that type name, for a specific use (see EqualableType.of) */
+    declare static readonly of: <VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME, ...options: never[]) => DataTypeOfClass<PlainYearMonthsType<VALUE_TYPE, TYPE_NAME>>
     static override readonly sqlDataType: SqlDataType | undefined = localDateSqlDataType
 
     /** The year, as an int: Temporal's `year` */
@@ -207,6 +209,8 @@ export abstract class PlainYearMonthsType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE
  * `class AnniversaryType extends PlainMonthDaysType<Anniversary, 'Anniversary'> { static override readonly type = 'Anniversary' }`
  */
 export abstract class PlainMonthDaysType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_NAME extends string> extends EqualableType<VALUE_TYPE, TYPE_NAME> {
+    /** The data type of a value of a type of yours of this family, of that type name, for a specific use (see EqualableType.of) */
+    declare static readonly of: <VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME, ...options: never[]) => DataTypeOfClass<PlainMonthDaysType<VALUE_TYPE, TYPE_NAME>>
     static override readonly sqlDataType: SqlDataType | undefined = localDateSqlDataType
 
     /** The code of the month, `'M01'` to `'M12'`: Temporal's `monthCode` (a Temporal.PlainMonthDay has no `month`) */
@@ -267,10 +271,14 @@ export abstract class PlainMonthDaysType</*in|out*/ VALUE_TYPE, /*in|out*/ TYPE_
 
 /** A month of a year, a Temporal.PlainYearMonth */
 export abstract class PlainYearMonthType extends PlainYearMonthsType<TemporalPlainYearMonth, 'plainYearMonth'> {
+    /** A data type has no `of`: it is made by a family (see EqualableType.of) */
+    declare static readonly of: never
     static override readonly type = 'plainYearMonth'
 }
 
 /** A day of a month, a Temporal.PlainMonthDay */
 export abstract class PlainMonthDayType extends PlainMonthDaysType<TemporalPlainMonthDay, 'plainMonthDay'> {
+    /** A data type has no `of`: it is made by a family (see EqualableType.of) */
+    declare static readonly of: never
     static override readonly type = 'plainMonthDay'
 }

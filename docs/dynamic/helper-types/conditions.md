@@ -250,8 +250,11 @@ Each operator of a filter is a method of the data type of the field, which the f
 | `'string'` | `FilterOf<StringType>` | Equality, comparison and the text operators |
 | `'uuid'` | `FilterOf<UuidType>` | Equality, comparison and the text operators, applied to its text |
 | `'localDate'`, `'localTime'`, `'localDateTime'` | `FilterOf<LocalDateType>`, `FilterOf<LocalTimeType>`, `FilterOf<LocalDateTimeType>` | Equality and comparison, with a `Date` |
-| A class that extends `EnumType` or `EqualableType` | `FilterOf<YourType>` | Equality, with values of your type |
-| A class that extends `ComparableType`, one of the families of the numbers (`IntegersType`, `DecimalsType`, `RealsType`, `AdditiveType`, `MultipliableType`, `DivisibleType`) or of the dates (`LocalDatesType`, `LocalTimesType`, `LocalDateTimesType`) | `FilterOf<YourType>` | Equality and comparison, with values of your type |
+| `'plainDate'`, `'plainTime'`, `'plainDateTime'`, `'plainYearMonth'` | `FilterOf<PlainDateType>`, `FilterOf<PlainTimeType>`, `FilterOf<PlainDateTimeType>`, `FilterOf<PlainYearMonthType>` | Equality and comparison, with the Temporal value of its type, like a `Temporal.PlainDate` |
+| `'instant'`, `'zonedDateTime'` | `FilterOf<InstantType>`, `FilterOf<ZonedDateTimeType>` | Equality and comparison, with a `Temporal.Instant` or a `Temporal.ZonedDateTime` |
+| `'plainMonthDay'`, `'duration'` | `FilterOf<PlainMonthDayType>`, `FilterOf<DurationType>` | Equality, with a `Temporal.PlainMonthDay` or a `Temporal.Duration` |
+| A class that extends `EnumType`, `EqualableType`, `PlainMonthDaysType` or `DurationsType` | `FilterOf<YourType>` | Equality, with values of your type |
+| A class that extends `ComparableType`, one of the families of the numbers (`IntegersType`, `DecimalsType`, `DnumDecimalsType`, `RealsType`, `AdditiveType`, `MultipliableType`, `DivisibleType`) or of the dates (`LocalDatesType`, `LocalTimesType`, `LocalDateTimesType`, `PlainDatesType`, `PlainTimesType`, `PlainDateTimesType`, `PlainYearMonthsType`, `InstantsType`, `ZonedDateTimesType`) | `FilterOf<YourType>` | Equality and comparison, with values of your type |
 | A class that extends `UuidsType` | `FilterOf<YourType>` | Equality and comparison, with values of your type, and the text operators, with a `string`, applied to its text |
 | An aggregated array | None | None |
 
@@ -277,7 +280,10 @@ A class of yours can add operators of its own: see [Operations of your own in a 
 | `Dnum` | `'dnumDecimal'` | `FilterOf<DnumDecimalType>` |
 | `string` | `'string'` | `FilterOf<StringType>` |
 | `Date` | `'localDateTime'` | `FilterOf<LocalDateTimeType>`, with the same operators as the other dates |
+| `Temporal.PlainDate`, `Temporal.PlainTime`, `Temporal.PlainDateTime`, `Temporal.PlainYearMonth`, `Temporal.PlainMonthDay` | `'plainDate'`, `'plainTime'`, `'plainDateTime'`, `'plainYearMonth'`, `'plainMonthDay'` | `FilterOf<PlainDateType>` and the others of the table above |
+| `Temporal.Duration`, `Temporal.Instant`, `Temporal.ZonedDateTime` | `'duration'`, `'instant'`, `'zonedDateTime'` | `FilterOf<DurationType>`, `FilterOf<InstantType>`, `FilterOf<ZonedDateTimeType>` |
 | A union of texts or numbers, like `'active' \| 'inactive'` | `EnumType<T, string>` | `FilterOf<EnumType<T, string>>` |
+| A branded text or number, like `string & { readonly __brand: 'Code' }` | `ComparableType<T, string>` | `FilterOf<ComparableType<T, string>>`: equality and comparison |
 | A nested object | A nested definition | A nested filter |
 
 A property can be optional or nullable: the filter is the same.

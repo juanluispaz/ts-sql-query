@@ -31,9 +31,18 @@ type FilterType = DynamicCondition<{
     myString: 'string'
     myUuid: 'uuid'
     myStringDecimal: 'stringDecimal'
+    myDnumDecimal: 'dnumDecimal'
     myLocalDate: 'localDate'
     myLocalTime: 'localTime'
     myLocalDateTime: 'localDateTime'
+    myPlainDate: 'plainDate'
+    myPlainTime: 'plainTime'
+    myPlainDateTime: 'plainDateTime'
+    myPlainYearMonth: 'plainYearMonth'
+    myPlainMonthDay: 'plainMonthDay'
+    myDuration: 'duration'
+    myInstant: 'instant'
+    myZonedDateTime: 'zonedDateTime'
     myEnum: MyEnumType
     myEqualable: MyEqualableType
     myComparable: MyComparableType
@@ -59,9 +68,18 @@ type FilterType = {
     myString?: FilterOf<StringType>
     myUuid?: FilterOf<UuidType>
     myStringDecimal?: FilterOf<StringDecimalType>
+    myDnumDecimal?: FilterOf<DnumDecimalType>
     myLocalDate?: FilterOf<LocalDateType>
     myLocalTime?: FilterOf<LocalTimeType>
     myLocalDateTime?: FilterOf<LocalDateTimeType>
+    myPlainDate?: FilterOf<PlainDateType>
+    myPlainTime?: FilterOf<PlainTimeType>
+    myPlainDateTime?: FilterOf<PlainDateTimeType>
+    myPlainYearMonth?: FilterOf<PlainYearMonthType>
+    myPlainMonthDay?: FilterOf<PlainMonthDayType>
+    myDuration?: FilterOf<DurationType>
+    myInstant?: FilterOf<InstantType>
+    myZonedDateTime?: FilterOf<ZonedDateTimeType>
     myEnum?: FilterOf<MyEnumType>
     myEqualable?: FilterOf<MyEqualableType>
     myComparable?: FilterOf<MyComparableType>
@@ -104,7 +122,7 @@ Equality, of every data type but an aggregated array:
 }
 ```
 
-Also comparison (the numbers, the dates, the texts, the uuids, and a class that extends `ComparableType` or one of the families of the numbers or of the dates):
+Also comparison (the numbers, the dates and times, the texts, the uuids, and a class that extends `ComparableType` or one of the families of the numbers or of the dates; not a day of a month, `plainMonthDay`, nor a `duration`, which only compare for equality):
 
 ```tsx
 {

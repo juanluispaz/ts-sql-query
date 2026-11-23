@@ -22,6 +22,7 @@ A type adapter has four transformations. Each one receives what it transforms an
 
 ```typescript
 interface TypeAdapter {
+    readonly sqlDataType?: SqlDataType | undefined
     transformValueFromDB(value: unknown, context: TypeAdapterValueFromDBContext, next: DefaultTypeAdapter): unknown
     transformValueToDB(value: unknown, context: TypeAdapterValueToDBContext, next: DefaultTypeAdapter): unknown
     transformPlaceholder?(placeholder: string, context: TypeAdapterPlaceholderContext, next: DefaultTypeAdapter): string
@@ -33,6 +34,7 @@ type ProjectionOutput = 'resultColumn' | 'aggregatedArrayValue'
 type ProjectionComparison = 'value' | 'equality' | 'columnEquality' | 'none'
 ```
 
+- `sqlDataType` is the type the value has in the database: the query runner receives it with each parameter converted with the adapter and with each column of the result. It is set with `withSqlDataType` (see [SQL data types](../advanced/data-types/sql-data-types.md)).
 - `transformValueFromDB` converts a value read from the database, and `transformValueToDB` a value before it is sent.
 - `transformPlaceholder` receives the placeholder as the query runner wrote it, like `$1` or `$1::int4`, and returns the one written in the SQL.
 - `transformProjection` receives the SQL of a value as it leaves the database, as the library writes it, and returns the SQL to write. Where the value leaves is the `output` of its context: `'resultColumn'` is a column of the result of the query (a column of the select that is executed or of the `returning` of an insert, an update or a delete, or the value of a function called), and `'aggregatedArrayValue'` is a value inside the JSON of an aggregated array, where it returns the SQL of a value of any type the JSON function of the database takes, and `transformValueFromDB` receives its text. `transformValueFromDB` reads what it gives. `next.transformProjection` writes the conversion of the library: on SQL Server a decimal of a column of the result as its text, and on PostgreSQL and Oracle, with a database outside UTC, a `localDateTime` or a `localTime` with its zone. It adds no parameter, and when it doesn't convert the value it returns the SQL it receives. See [The SQL of a value read from the database](../advanced/data-types/type-adapters.md#the-sql-of-a-value-read-from-the-database).
@@ -105,17 +107,20 @@ Each transformation receives the context of what it works on. What each one has,
 | `originalType` | reads | reads | reads | reads |
 | `requestedType` | reads | reads | reads | reads |
 | `setRequestedType`, `resetRequestedType` | changes | — | changes | changes |
+| `originalSqlDataType`, `requestedSqlDataType` | reads | reads | reads | reads |
+| `setRequestedSqlDataType`, `resetRequestedSqlDataType` | changes | — | changes | changes |
 | `forceTypeCast` | reads and changes | reads | — | — |
 | `index`, `valueSentToDB` | — | reads | — | — |
 | `setMetadata`, `getMetadata`, of the parameter | writes and reads | writes and reads | — | — |
 | `setQueryMetadata`, `getQueryMetadata`, of the query | writes and reads | writes and reads | writes and reads | — |
-| `output` | — | — | reads | — |
+| `output` | — | — | reads | reads |
 | `comparison` | — | — | reads and changes | — |
 
 ### In every context
 
 - `connectionConfiguration` is the configuration of the connection, the same the [context of the query](../advanced/running-queries/query-execution-metadata.md#get-the-configuration-of-the-connection) has.
-- `originalType` is the class of the type declared for the value; `requestedType`, the class of the one requested for it, which `setRequestedType` changes and `resetRequestedType` takes back to the original: see [The original and the requested type](#the-original-and-the-requested-type).
+- `originalType` is the class of the type declared for the value; `requestedType`, the class of the one requested for it, which `setRequestedType` changes and `resetRequestedType` takes back to the original: see [The original and the requested type](#the-original-and-the-requested-type). `setRequestedType` takes the class or the name of the type (`DataTypeName`: a built-in one, like `'string'`, or one of yours [registered by its name](data-types.md#registering-a-type-by-its-name)).
+- `originalSqlDataType` is the type of the value in the database that its type adapter says (`withSqlDataType`), `undefined` when it says none; `requestedSqlDataType`, the one requested for it, which `setRequestedSqlDataType` changes and `resetRequestedSqlDataType` takes back to the original. See [SQL data types](../advanced/data-types/sql-data-types.md).
 
 ### Of a parameter
 
@@ -129,7 +134,7 @@ Each transformation receives the context of what it works on. What each one has,
 
 ### Of a projection
 
-- `output` is where the value leaves the database: `'resultColumn'` or `'aggregatedArrayValue'` (see above).
+- `output` is where the value leaves the database: `'resultColumn'` or `'aggregatedArrayValue'` (see above). `transformValueFromDB` has it too, for the value it reads.
 - `comparison` says how the SQL returned compares with the value: `'value'` (the default) compares and orders like the value; `'equality'` compares like it but orders otherwise; `'columnEquality'`, as `'equality'` but only among the values of one column; `'none'` neither compares nor orders like it. The conversion of the library says `'columnEquality'` for a decimal of a column of the result on SQL Server. It's read only when the SQL is converted. See [How the converted SQL compares](../advanced/data-types/type-adapters.md#how-the-converted-sql-compares).
 - `setRequestedType` says the SQL returned gives a value of another type, like `setRequestedType('string')` for the text of a date: the query runner receives it in the [context of the query](../advanced/running-queries/query-execution-metadata.md#get-the-type-of-each-column-of-the-result), and on Oracle the out parameter of the `returning` of the column is of that type.
 
@@ -144,12 +149,16 @@ interface TypeAdapterContext {
     readonly connectionConfiguration: ConnectionConfiguration
     readonly originalType: DataTypeClass
     readonly requestedType: DataTypeClass
+    readonly originalSqlDataType: SqlDataType | undefined
+    readonly requestedSqlDataType: SqlDataType | undefined
 }
 
 interface TypeAdapterValueToDBContext extends TypeAdapterContext {
-    setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'dnumDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime' | DataTypeClass): void
-    setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'dnumDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime' | DataTypeClass, typeAdapter: TypeAdapter): void
+    setRequestedType(type: DataTypeName | DataTypeClass): void
+    setRequestedType(type: DataTypeName | DataTypeClass, typeAdapter: TypeAdapter): void
     resetRequestedType(): void
+    setRequestedSqlDataType(sqlDataType: SqlDataType | undefined): void
+    resetRequestedSqlDataType(): void
     forceTypeCast: boolean
     setMetadata(key: symbol, value: unknown): void
     getMetadata(key: symbol): unknown
@@ -168,9 +177,11 @@ interface TypeAdapterPlaceholderContext extends TypeAdapterContext {
 }
 
 interface TypeAdapterProjectionContext extends TypeAdapterContext {
-    setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'dnumDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime' | DataTypeClass): void
-    setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'dnumDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime' | DataTypeClass, typeAdapter: TypeAdapter): void
+    setRequestedType(type: DataTypeName | DataTypeClass): void
+    setRequestedType(type: DataTypeName | DataTypeClass, typeAdapter: TypeAdapter): void
     resetRequestedType(): void
+    setRequestedSqlDataType(sqlDataType: SqlDataType | undefined): void
+    resetRequestedSqlDataType(): void
     readonly output: ProjectionOutput
     comparison: ProjectionComparison
     setQueryMetadata(key: symbol, value: unknown): void
@@ -180,9 +191,11 @@ interface TypeAdapterProjectionContext extends TypeAdapterContext {
 interface TypeAdapterValueFromDBContext extends TypeAdapterContext {
     /** Where the value left the database: a column of the result, or a value inside an aggregated array */
     readonly output: ProjectionOutput
-    setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'dnumDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime' | DataTypeClass): void
-    setRequestedType(type: 'boolean' | 'int' | 'bigint' | 'double' | 'stringDecimal' | 'dnumDecimal' | 'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime' | DataTypeClass, typeAdapter: TypeAdapter): void
+    setRequestedType(type: DataTypeName | DataTypeClass): void
+    setRequestedType(type: DataTypeName | DataTypeClass, typeAdapter: TypeAdapter): void
     resetRequestedType(): void
+    setRequestedSqlDataType(sqlDataType: SqlDataType | undefined): void
+    resetRequestedSqlDataType(): void
 }
 ```
 

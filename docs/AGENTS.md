@@ -70,7 +70,7 @@ Start with the file of the area of your task. These files are written for you: o
 | To | Read | Tokens |
 |---|---|---|
 | Let the caller choose columns, filters and order, fill a table or offer a query API from a request, hide or refuse values, or write values with a shape | [`llms-extreme-dynamic-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-extreme-dynamic-postgresql.txt) | 14k |
-| Write a function that returns a dynamic select, and type it | [`llms-dynamic-functions-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-dynamic-functions-postgresql.txt) | 21k |
+| Write a function that returns a dynamic select, and type it | [`llms-dynamic-functions-<database>.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-dynamic-functions-postgresql.txt) | 22k |
 | Type a row of a table | [`llms-types.txt`](https://ts-sql-query.readthedocs.io/en/latest/llms-types.txt) | 6k |
 
 **When the library does not write your SQL**

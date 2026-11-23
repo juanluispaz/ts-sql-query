@@ -137,6 +137,7 @@ type Feeling = 'happy' | 'sad'
 
 abstract class FeelingType extends EnumType<Feeling, 'Feeling'> {
     static override readonly type = 'Feeling'
+    static override readonly values = ['happy', 'sad'] as const
     // create type feeling as enum ('happy', 'sad')
     static override readonly sqlDataType: SqlDataType = { family: 'user-defined', name: 'feeling' }
 }

@@ -20,6 +20,7 @@ abstract class MyIntDataType extends IntegersType<MyIntType, 'MyIntTypeName'> {
 }
 abstract class MyEnumDataType extends EnumType<MyEnumType, 'MyEnumTypeName'> {
     static override readonly type = 'MyEnumTypeName'
+    static override readonly values = ['first', 'second'] as const
 }
 ```
 
@@ -29,6 +30,10 @@ A column takes the class where it takes the name of a type of the library:
 this.column('ColumnName', MyIntDataType)
 this.column('ColumnName', MyEnumDataType)
 ```
+
+An enumeration says its values in `values`: only they are sent and read, and `null` says that any value goes (see [Your own types](../../configuration/data-types.md#your-own-types)).
+
+For a type used in a single column, the family makes the class with `of`, without declaring it apart: `this.column('ColumnName', IntegersType.of<MyIntType, 'MyIntTypeName'>('MyIntTypeName'))`, `EnumType.of('MyEnumTypeName', ['first', 'second'])`. Every family has it, with what it needs (the values of an enumeration, the scale of a `ScaledBigIntsType`), and gives the same class each time for the same type name; a data type, like `IntType` or a class of yours, has none (see [A type for a specific use](../../configuration/data-types.md#a-type-for-a-specific-use)).
 
 The type name in the generic is the one TypeScript uses; `type` is the one the library uses when the query runs: in the messages of the errors, in [its name as a type](#giving-your-type-by-its-name) and in what a [type adapter](type-adapters.md) and a query runner receive. Without `type`, it's the name of the class (`MyIntDataType`). The class is `abstract`, as its family is. Declare it once and import it where you use it: each declaration is a class of its own, and `is` says yes only to the values of its own class.
 

@@ -115,6 +115,7 @@ type Feeling = 'happy' | 'sad'
 
 abstract class FeelingType extends EnumType<Feeling, 'Feeling'> {
     static override readonly type = 'Feeling'
+    static override readonly values = ['happy', 'sad'] as const
 }
 
 const sql = postgres(/* configuration */);

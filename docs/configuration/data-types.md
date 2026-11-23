@@ -118,7 +118,7 @@ abstract class UnitsType extends IntegersType<Units, 'Units'> {
 stock = this.column('stock', UnitsType)
 ```
 
-A value of a fixed list, like the status of an issue, is a class that extends `EnumType`, with the union of the values as its TypeScript type:
+A value of a fixed list, like the status of an issue, is a class that extends `EnumType`, with the union of the values as its TypeScript type and the values themselves in `values`:
 
 ```typescriptreact
 import { EnumType } from 'ts-sql-query'
@@ -127,12 +127,28 @@ type IssueStatus = 'open' | 'in_progress' | 'closed'
 
 abstract class IssueStatusType extends EnumType<IssueStatus, 'IssueStatus'> {
     static override readonly type = 'IssueStatus'
+    static override readonly values = ['open', 'in_progress', 'closed'] as const
 }
 
 status = this.column('status', IssueStatusType)
 ```
 
 A column of `IssueStatusType` takes and gives only values of `IssueStatus`, and is compared for equality: `equals`, `notEquals`, `in`, `notIn`, `isNull` and the rest, without an order. Its values are sent and read as they are, with no conversion, so the column keeps the same values as your code, like the text `'open'`; for values kept in another form, like a number for each status, give the class its conversion (see [its conversions](../advanced/data-types/own-data-types.md#its-conversions-a-type-adapter-in-the-class)).
+
+Only the values of `values` are sent and read. A value to send that isn't one of them, like one that came from JSON, is rejected with `INVALID_VALUE_TO_SEND_TO_DATABASE`, and nothing is sent to the database; a value read that isn't one of them, like a status added to the table and not to your code, is rejected with `INVALID_VALUE_RECEIVED_FROM_DATABASE`. A value read in another form, like the text `'2'` of an enumeration of numbers, is given as the value of the list, `2`. `values = null` says that any value goes, with nothing checked; a class without `values` is rejected with `INVALID_CONFIGURATION` when a value of it is sent or read. `IssueStatusType.values` gives the list to your code, like to fill a select of a form.
+
+### A type for a specific use
+
+A type used in a single column doesn't need a class declared apart: its family makes it with `of`, given the type name and what the family needs:
+
+```typescriptreact
+import { EnumType, IntegersType } from 'ts-sql-query'
+
+activity = this.column('activity', EnumType.of('WorklogActivity', ['coding', 'review', 'meeting']))
+stock = this.column('stock', IntegersType.of<Units, 'Units'>('Units'))
+```
+
+`EnumType.of` takes the values, and its TypeScript type is their union, here `'coding' | 'review' | 'meeting'`; with a type of yours and `null` instead of the values, `EnumType.of<IssueStatus, 'IssueStatus'>('IssueStatus', null)`, any value goes. `ScaledBigIntsType.of<Price, 'Price'>('Price', 2)` takes the scale (see [Scaled bigints](#scaled-bigints)), and the other families only the type name. A family gives the same class each time for the same type name, wherever it's written, so two columns with `EnumType.of('WorklogActivity', [...])` have the same type; the same type name with other values or another scale is rejected with `INVALID_CONFIGURATION`. A data type, like `IntType`, has no `of`. A type used in many places is better a class declared once, imported where it's used.
 
 A column of `UnitsType` is compared, computed and assigned only with values of `Units`. Its class also says, as statics, [its type in the database](../advanced/data-types/own-data-types.md#its-type-in-the-database), by default the one of its family (an integer of 4 bytes here), and [how its values are converted](../advanced/data-types/own-data-types.md#its-conversions-a-type-adapter-in-the-class), like a type adapter of the whole type. What else a type of yours can do:
 
@@ -367,7 +383,7 @@ abstract class FeeType extends ScaledBigIntsType<Fee, 'Fee'> {
 fee = this.optionalColumn('fee', FeeType)
 ```
 
-A type of yours of the family says its scale in its SQL data type, as an integer of yours says its size (see [Data types of your own](../advanced/data-types/own-data-types.md)); one that doesn't say it is rejected with `INVALID_CONFIGURATION` when a value is converted. The scale of its SQL data type and the one of its values (`ScaleOf<Fee>`) must be the same: the type of the values doesn't check it.
+A type of yours of the family says its scale in its SQL data type, as an integer of yours says its size (see [Data types of your own](../advanced/data-types/own-data-types.md)); one that doesn't say it is rejected with `INVALID_CONFIGURATION` when a value is converted. For a single column, the family makes it with its scale: `this.optionalColumn('fee', ScaledBigIntsType.of<Fee, 'Fee'>('Fee', 2))` (see [A type for a specific use](#a-type-for-a-specific-use)). The scale of its SQL data type and the one of its values (`ScaleOf<Fee>`) must be the same: the type of the values doesn't check it.
 
 A value is sent as the text of its decimal at its scale: `150n` of the scale 2 is `'1.50'`. It's read at its scale whatever the decimals the database gives: `1.5`, `1.50` and `1.5000` are `150n`. A value with a digit other than a zero beyond its scale, like `1.234` read as a `ScaledBigInt<2>`, is rejected with `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE`: the value is never cut. The operations of [Exact decimals](#exact-decimals) keep the scale, except `multiply` and `divide`, which a `ScaledBigInt` doesn't have; to multiply, compute it in your code, or in the query with another exact decimal type.
 

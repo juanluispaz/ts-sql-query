@@ -36,6 +36,7 @@ All the customers and all the companies in a single list. A customer and a compa
 ```ts
 abstract class CustomerOrCompanyType extends EnumType<'customer' | 'company', 'customerOrCompany'> {
     static override readonly type = 'customerOrCompany'
+    static override readonly values = ['customer', 'company'] as const
 }
 
 const allDataWithName = connection.selectFrom(tCustomer)

@@ -8,7 +8,7 @@ This page documents what a class of a data type has and what a data type of your
 
 !!! info
 
-    The families, the classes of the types of the library, `registerDataType`, `exposeFilterOperations`, `filterOperation` and the types of this page (`DataTypes`, `DataTypeName`, `FilterOf`, `ValueSource`, `SourceOf`, `OptionalityOf`, `DataTypeOf`, `CombinedOptionality`, `OperandOf`, `IfValueSource`) are exported from `ts-sql-query`.
+    The families, the classes of the types of the library, `registerDataType`, `exposeFilterOperations`, `filterOperation` and the types of this page (`DataTypes`, `DataTypeName`, `FilterOf`, `ValueSource`, `SourceOf`, `OptionalityOf`, `DataTypeOf`, `CombinedOptionality`, `OperandOf`, `IfValueSource`, `DataTypeOfClass`, `EnumTypeClass`) are exported from `ts-sql-query`.
 
 ## The families
 
@@ -17,7 +17,7 @@ A data type of yours extends one of these classes, with two generic arguments: t
 | Family | Extends | What it adds |
 |---|---|---|
 | `EqualableType<VALUE_TYPE, TYPE_NAME>` | | Equality: `equals`, `notEquals`, `is`, `isNot`, `in`, `notIn`, and what every value has, like `isNull` and `valueWhenNull` |
-| `EnumType<VALUE_TYPE, TYPE_NAME>` | `EqualableType` | Nothing: one of a list of values |
+| `EnumType<VALUE_TYPE, TYPE_NAME>` | `EqualableType` | Nothing: one of the list of values of its class (`static values`), the only ones sent and read |
 | `ComparableType<VALUE_TYPE, TYPE_NAME>` | `EqualableType` | Order: `lessThan`, `greaterOrEqual`, `between`, ... |
 | `ArithmeticType<VALUE_TYPE, TYPE_NAME>` | `ComparableType` | Nothing: the root of the numbers, for `ArithmeticType.is(value)` |
 | `AdditiveType<VALUE_TYPE, TYPE_NAME>` | `ArithmeticType` | `add`, `subtract`, `abs`, `sign`, `minValue`, `maxValue`, `modulo`; its columns can be summed and averaged (`sum`, `average` of the connection) |
@@ -68,6 +68,35 @@ interface DataTypeClassStatics {
 - `sqlDataType`: the family gives one (an integer of 4 bytes for `IntegersType`, a `double` for `RealsType`, ...), and a class of yours can say another with `static override readonly sqlDataType: SqlDataType = { ... }`. The ones of each family are in [The SQL data type of a data type](../advanced/data-types/sql-data-types.md#the-sql-data-type-of-a-data-type), and the shape of the object in the [SQL data types API](sql-data-types.md).
 - `is(value)`: a type guard. It says yes to the value sources of the class and of the classes that extend it: `IntegersType.is(value)` is true for a `bigint` and for every integer of yours. The value source keeps its source and its optionality. See [The class](../advanced/data-types/own-data-types.md#the-class).
 - The conversions: a class of yours overrides the ones it needs with `static override`. Where each one goes in the chain of conversions of a value, and what `next` is, are in [The conversion of the class of a data type](type-adapters.md#the-conversion-of-the-class-of-a-data-type); what each context has, in [What each context has](type-adapters.md#what-each-context-has).
+
+## The data type a family makes: of
+
+```typescript
+// The of of a family, here IntegersType: every family from EqualableType down has it, with only the type name, except
+// EnumType and ScaledBigIntsType; a data type (IntType, a class of yours) has none
+interface IntegersTypeStatics {
+    /** A data type of the family, of that type name, for a specific use; the same class each time for the same type name */
+    of<VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME): DataTypeOfClass<IntegersType<VALUE_TYPE, TYPE_NAME>>
+}
+interface EnumTypeStatics {
+    /** An enumeration of those values, whose union is its type; null instead of the values for any value */
+    of<const VALUE_TYPE, TYPE_NAME extends string>(typeName: TYPE_NAME, values: readonly VALUE_TYPE[] | null): EnumTypeClass<VALUE_TYPE, TYPE_NAME>
+}
+interface ScaledBigIntsTypeStatics {
+    /** A scaled bigint of yours of that scale, an integer of 0 or more */
+    of<VALUE_TYPE extends ScaledBigInt<number>, TYPE_NAME extends string>(typeName: TYPE_NAME, scale: number): DataTypeOfClass<ScaledBigIntsType<VALUE_TYPE, TYPE_NAME>>
+}
+interface ScaledBigIntTypeStatics {
+    /** The data type of the library of ScaledBigInt<SCALE>, 'ScaledBigInt<2>' */
+    of<SCALE extends number>(scale: SCALE): ScaledBigIntTypeClass<SCALE>
+}
+
+// The class of the data type `of` gives, with its statics type and sqlDataType, and the one of an enumeration, with its values
+type EnumTypeClass<VALUE_TYPE, TYPE_NAME extends string> = DataTypeOfClass<EnumType<VALUE_TYPE, TYPE_NAME>> & { readonly values: readonly VALUE_TYPE[] | null }
+```
+
+- `of` makes the class of a data type of the family for a column, a constant or an argument, without declaring it apart: `this.column('stock', IntegersType.of<Units, 'Units'>('Units'))`. It's made the first time and given again for the same type name; the same type name with other values or another scale is rejected with `INVALID_CONFIGURATION`, as is `of` called on a data type, which isn't a family. See [A type for a specific use](../configuration/data-types.md#a-type-for-a-specific-use).
+- `EnumType.of('Status', ['open', 'closed'])` gives a data type whose values are `'open' | 'closed'`; `values` reads them. A class of yours that extends `EnumType` says them in `static override readonly values = ['open', 'closed'] as const`, or `null` for any value; without them, a value of the type is rejected with `INVALID_CONFIGURATION`. A value sent or read that isn't one of them is rejected (`INVALID_VALUE_TO_SEND_TO_DATABASE`, `INVALID_VALUE_RECEIVED_FROM_DATABASE`).
 
 ## The methods for the methods of your own
 

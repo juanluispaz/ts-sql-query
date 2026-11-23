@@ -136,7 +136,7 @@ const customers = await connection.selectFrom(tCustomer)
     .executeSelectMany()
 ```
 
-**A custom type is a class.** A custom type isn't given by its names any more (`'custom', 'RgbColor'`): it is a class of yours that extends the family of what its values can do, with your TypeScript type and its type name as generic arguments and the type name in its static `type`, declared once and given where the names went. This applies to columns, constants, fragments, arguments, function results and sequences. The form with one generic argument, deprecated in v1.69.0, is gone with it:
+**A custom type is a data type of its family.** A custom type isn't given by its names any more (`'custom', 'RgbColor'`): it is a data type of the family of what its values can do, which the family makes with `of`, with your TypeScript type and its type name, written where the names went. This applies to columns, constants, fragments, arguments, function results and sequences. The form with one generic argument, deprecated in v1.69.0, is gone with it:
 
 ```typescriptreact
 import { EqualableType } from 'ts-sql-query'
@@ -145,27 +145,35 @@ import { EqualableType } from 'ts-sql-query'
 this.column<RgbColor>('ColumnName', 'custom', 'RgbColor')
 this.column<RgbColor, 'RgbColor'>('ColumnName', 'custom', 'RgbColor')
 // v2
+this.column('ColumnName', EqualableType.of<RgbColor, 'RgbColor'>('RgbColor'))
+```
+
+The family of each custom type, all of them exported by `ts-sql-query` (see [Your own types](../../advanced/data-types/own-data-types.md#the-families)):
+
+| v1 | v2 |
+|---|---|
+| `'customInt', 'Name'` | `IntegersType.of<T, 'Name'>('Name')` |
+| `'customBigint', 'Name'` | A class that extends `IntegersType<T, 'Name'>`, with `static override readonly sqlDataType: SqlDataType = { family: 'exact numeric', scale: 0, bytes: 8 }` and `T` a `bigint` |
+| `'customDouble', 'Name'` | `RealsType.of<T, 'Name'>('Name')` |
+| `'customDecimal', 'Name'` | `DecimalsType.of<T, 'Name'>('Name')` |
+| `'customUuid', 'Name'` | `UuidsType.of<T, 'Name'>('Name')` |
+| `'customLocalDate', 'Name'` | `LocalDatesType.of<T, 'Name'>('Name')` |
+| `'customLocalTime', 'Name'` | `LocalTimesType.of<T, 'Name'>('Name')` |
+| `'customLocalDateTime', 'Name'` | `LocalDateTimesType.of<T, 'Name'>('Name')` |
+| `'enum', 'Name'` | `EnumType.of<T, 'Name'>('Name', null)`, or with its values instead of `null` |
+| `'custom', 'Name'` | `EqualableType.of<T, 'Name'>('Name')` |
+| `'customComparable', 'Name'` | `ComparableType.of<T, 'Name'>('Name')` |
+
+`of` gives the same class each time for the same type name, so the same type written in several places is one type. An enumeration takes its values, and v2 sends and reads only them: `null` keeps what v1 did, any value goes, and with the values, a value that isn't one of them is rejected (see [Your own types](../../configuration/data-types.md#your-own-types)). A type used in many places can also be a class declared once, imported where it's used:
+
+```typescriptreact
+import { EqualableType } from 'ts-sql-query'
+
 abstract class RgbColorType extends EqualableType<RgbColor, 'RgbColor'> {
     static override readonly type = 'RgbColor'
 }
 this.column('ColumnName', RgbColorType)
 ```
-
-The family each custom type extends, all of them exported by `ts-sql-query` (see [Your own types](../../advanced/data-types/own-data-types.md#the-families)):
-
-| v1 | v2 |
-|---|---|
-| `'customInt', 'Name'` | `IntegersType<T, 'Name'>` |
-| `'customBigint', 'Name'` | `IntegersType<T, 'Name'>`, with `static override readonly sqlDataType: SqlDataType = { family: 'exact numeric', scale: 0, bytes: 8 }` and `T` a `bigint` |
-| `'customDouble', 'Name'` | `RealsType<T, 'Name'>` |
-| `'customDecimal', 'Name'` | `DecimalsType<T, 'Name'>` |
-| `'customUuid', 'Name'` | `UuidsType<T, 'Name'>` |
-| `'customLocalDate', 'Name'` | `LocalDatesType<T, 'Name'>` |
-| `'customLocalTime', 'Name'` | `LocalTimesType<T, 'Name'>` |
-| `'customLocalDateTime', 'Name'` | `LocalDateTimesType<T, 'Name'>` |
-| `'enum', 'Name'` | `EnumType<T, 'Name'>` |
-| `'custom', 'Name'` | `EqualableType<T, 'Name'>` |
-| `'customComparable', 'Name'` | `ComparableType<T, 'Name'>` |
 
 A type adapter receives the class of the type, with the type name in `type`, `'RgbColor'`.
 

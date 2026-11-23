@@ -209,6 +209,7 @@ A typed fragment is a value like any other: you can select it, compare it and ca
 ```ts
 abstract class AgeGroupType extends EnumType<'adult' | 'minor', 'ageGroup'> {
     static override readonly type = 'ageGroup'
+    static override readonly values = ['adult', 'minor'] as const
 }
 
 const customersWithAgeGroup = connection.selectFrom(tCustomer)

@@ -147,7 +147,7 @@ fee = this.optionalColumn('fee', scaledBigIntType(2))
 
 A `stringDecimal` is compared and computed only with another `stringDecimal` or a string, a `dnumDecimal` only with another `dnumDecimal` or a `Dnum`, a `ScaledBigInt<2>` only with another `ScaledBigInt<2>` (not one of another scale, nor a plain `bigint`), and a decimal of yours only with values of its own type, so they don't mix.
 
-The text sent to the database uses a point as the decimal separator and has no exponent, like `'-0.25'`; another text, like `'1,50'` or `'1e3'`, is rejected with `INVALID_VALUE_TO_SEND_TO_DATABASE`. A dnum is sent as its text with all its decimals: `[150n, 2]` as `'1.50'`. A negative number of decimals is a number of zeros at the end: `[123n, -2]` is sent as `'12300'`; the functions of the dnum library don't accept it (they fail with `dnum: decimals cannot be negative`), so it's only useful to write a value. A dnum whose decimals have a fraction, like `[15n, 0.5]`, is rejected with `INVALID_VALUE_TO_SEND_TO_DATABASE`. In the database, a value is its number, whatever its decimals: `price.equals([15n, 1])` is true for the price `1.50`. A text read from the database keeps all its digits, with a `0` added before a leading point (`.5` is `'0.5'`); its decimals are the ones of [The decimals of a value read](#the-decimals-of-a-value-read).
+The text sent to the database uses a point as the decimal separator and has no exponent, like `'-0.25'`; another text, like `'1,50'` or `'1e3'`, is rejected with `INVALID_VALUE_TO_SEND_TO_DATABASE`. A dnum is sent as its text with all its decimals: `[150n, 2]` as `'1.50'`. A dnum whose decimals aren't a whole number of 0 or more, like `[15n, -1]` or `[15n, 0.5]`, is rejected with `INVALID_VALUE_TO_SEND_TO_DATABASE`, as the functions of dnum reject a negative number of decimals. In the database, a value is its number, whatever its decimals: `price.equals([15n, 1])` is true for the price `1.50`. A text read from the database keeps all its digits, with a `0` added before a leading point (`.5` is `'0.5'`); its decimals are the ones of [The decimals of a value read](#the-decimals-of-a-value-read).
 
 The operations that keep the value exact return the same type, `stringDecimal`, `dnumDecimal`, `ScaledBigInt` or yours: `add`, `subtract`, `multiply`, `modulo`, `abs`, `ceil`, `floor`, `round`, `roundn`, `minValue`, `maxValue` and `sum`. A `ScaledBigInt` has no `multiply`: the product of two values of the scale 2 has 4 decimals, which its type can't keep. There is no `divide`: the division of two decimals isn't exact, and each database rounds it its own way. The ones whose result can't be exact return a `double`: `power`, `sqrt`, `cbrt`, `exp`, `ln`, `log10`, `logn`, the trigonometric functions and `average`.
 
@@ -325,7 +325,7 @@ For the rows with the prices `1.50` and `1234.56`, the rows read are `[{ id: 1, 
 
 ### Scaled bigints
 
-A `ScaledBigInt<S>` is a `bigint` with its scale in its type: `ScaledBigInt<2>` keeps cents (`150n` is `1.50`), and `ScaledBigInt<-2>` keeps hundreds (`123n` is `12300`). The column says its scale with the class of its data type, `scaledBigIntType(2)`, made once for each scale; its type name is the one TypeScript writes, `'ScaledBigInt<2>'`, and its SQL data type is `{ family: 'exact numeric', scale: 2 }`. `scaledBigInt(150n, 2)` gives a `bigint` the type `ScaledBigInt<2>`, and `ScaleOf<T>` is the scale of a type.
+A `ScaledBigInt<S>` is a `bigint` with its scale in its type: `ScaledBigInt<2>` keeps cents (`150n` is `1.50`). The scale is 0 or more: a negative one, or one that isn't an integer, is rejected with `INVALID_CONFIGURATION`, and a negative literal doesn't compile. The column says its scale with the class of its data type, `scaledBigIntType(2)`, made once for each scale; its type name is the one TypeScript writes, `'ScaledBigInt<2>'`, and its SQL data type is `{ family: 'exact numeric', scale: 2 }`. `scaledBigInt(150n, 2)` gives a `bigint` the type `ScaledBigInt<2>`, and `ScaleOf<T>` is the scale of a type.
 
 ```typescriptreact
 import { scaledBigInt, scaledBigIntsType, scaledBigIntType, type ScaledBigInt, type ScaleOf } from "ts-sql-query"
@@ -343,11 +343,11 @@ fee = this.optionalColumn('fee', FeeType)
 
 The family of a scale only accepts values of that scale: `ScaledBigIntsOf2<ScaledBigInt<3>, 'Fee'>` doesn't compile.
 
-A value is sent as the text of its decimal at its scale: `150n` of the scale 2 is `'1.50'`, and `123n` of the scale -2 is `'12300'`. It's read at its scale whatever the decimals the database gives: `1.5`, `1.50` and `1.5000` are `150n`. A value with a digit other than a zero beyond its scale, like `1.234` read as a `ScaledBigInt<2>`, or `12350` as a `ScaledBigInt<-2>`, is rejected with `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE`: the value is never cut. The operations of [Exact decimals](#exact-decimals) keep the scale, except `multiply` and `divide`, which a `ScaledBigInt` doesn't have; to multiply, compute it in your code, or in the query with another exact decimal type.
+A value is sent as the text of its decimal at its scale: `150n` of the scale 2 is `'1.50'`. It's read at its scale whatever the decimals the database gives: `1.5`, `1.50` and `1.5000` are `150n`. A value with a digit other than a zero beyond its scale, like `1.234` read as a `ScaledBigInt<2>`, is rejected with `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE`: the value is never cut. The operations of [Exact decimals](#exact-decimals) keep the scale, except `multiply` and `divide`, which a `ScaledBigInt` doesn't have; to multiply, compute it in your code, or in the query with another exact decimal type.
 
-A negative scale keeps multiples of a power of 10. PostgreSQL 15 and later and Oracle have columns of a negative scale, like `numeric(7, -2)` and `NUMBER(7, -2)`, which round what they store to hundreds; on MariaDB, MySQL, SQL Server and SQLite, which don't, the value goes in a column without decimals, like a `decimal(9, 0)`, which stores it as it is.
+A column of a negative scale, like `numeric(7, -2)` on PostgreSQL 15 and later and `NUMBER(7, -2)` on Oracle, keeps multiples of a power of 10: it rounds what it stores to hundreds (`12345` is stored as `12300`), to save space. Its values are integers, which the database writes with their zeros (`12300`) and without decimals, so the value of such a column is of the scale 0: a `bigint`, a `ScaledBigInt<0>` (`12300n`), a `stringDecimal` (`'12300'`) or a `dnumDecimal` (`[12300n, 0]`). `sqlDataTypeFrom('numeric(7, -2)')` reads its scale, -2, and a value of a column that declares it has no decimals. MariaDB, MySQL, SQL Server and SQLite have no negative scale.
 
-A query with the columns of `tScaledAmount`, `price` of the scale 2 and `hundreds` of the scale -2:
+A query with the column `price` of `tScaledAmount`, of the scale 2:
 
 ```ts
 const rows = await connection.selectFrom(tScaledAmount)
@@ -356,7 +356,6 @@ const rows = await connection.selectFrom(tScaledAmount)
         id: tScaledAmount.id,
         price: tScaledAmount.price,
         next: tScaledAmount.price.add(scaledBigInt(1n, 2)),
-        hundreds: tScaledAmount.hundreds,
     })
     .orderBy('id')
     .executeSelectMany()
@@ -369,8 +368,7 @@ The executed query is:
     select 
         id as id, 
         price as price, 
-        price + cast(? as decimal(3, 2)) as next, 
-        hundreds as hundreds 
+        price + cast(? as decimal(3, 2)) as next 
     from exact_amount 
     where price >= cast(? as decimal(3, 2)) 
     order by id
@@ -380,8 +378,7 @@ The executed query is:
     select 
         id as id, 
         price as price, 
-        price + cast(? as decimal(3, 2)) as next, 
-        hundreds as hundreds 
+        price + cast(? as decimal(3, 2)) as next 
     from exact_amount 
     where price >= cast(? as decimal(3, 2)) 
     order by id
@@ -391,8 +388,7 @@ The executed query is:
     select 
         id as "id", 
         price as "price", 
-        price + :0 as "next", 
-        hundreds as "hundreds" 
+        price + :0 as "next" 
     from exact_amount 
     where price >= :1 
     order by "id"
@@ -402,8 +398,7 @@ The executed query is:
     select 
         id as id, 
         price as price, 
-        price + $1 as next, 
-        hundreds as hundreds 
+        price + $1 as next 
     from exact_amount 
     where price >= $2 
     order by id
@@ -413,8 +408,7 @@ The executed query is:
     select 
         id as id, 
         price as price, 
-        (select case when typeof(tsq_v) <> 'text' then tsq_v when instr(tsq_v, '.') = 0 then (case when tsq_v = '-0' then '0' else tsq_v end) when rtrim(rtrim(tsq_v, '0'), '.') in ('-0', '-', '') then '0' else rtrim(rtrim(tsq_v, '0'), '.') end from (select case when price is null then null else decimal_add(price, ?1) end as tsq_v)) as next, 
-        hundreds as hundreds 
+        (select case when typeof(tsq_v) <> 'text' then tsq_v when instr(tsq_v, '.') = 0 then (case when tsq_v = '-0' then '0' else tsq_v end) when rtrim(rtrim(tsq_v, '0'), '.') in ('-0', '-', '') then '0' else rtrim(rtrim(tsq_v, '0'), '.') end from (select case when price is null then null else decimal_add(price, ?1) end as tsq_v)) as next 
     from exact_amount 
     where decimal_cmp(price, ?2) >= 0 
     order by id
@@ -424,8 +418,7 @@ The executed query is:
     select 
         id as id, 
         convert(nvarchar(41), price) as price, 
-        convert(nvarchar(41), price + cast(@0 as decimal(3, 2))) as next, 
-        convert(nvarchar(41), hundreds) as hundreds 
+        convert(nvarchar(41), price + cast(@0 as decimal(3, 2))) as next 
     from exact_amount 
     where price >= cast(@1 as decimal(3, 2)) 
     order by id
@@ -433,7 +426,7 @@ The executed query is:
 
 The parameters are: `[ '0.01', '1.50' ]` (on SQLite: `[ '0.01', '1.5' ]`)
 
-For the rows with the prices `1.50` and `1234.56` and the hundreds `12300` and `999900`, the rows read are `[{ id: 1, price: 150n, next: 151n, hundreds: 123n }, { id: 5, price: 123456n, next: 123457n, hundreds: 9999n }]`, on every database.
+For the rows with the prices `1.50` and `1234.56`, the rows read are `[{ id: 1, price: 150n, next: 151n }, { id: 5, price: 123456n, next: 123457n }]`, on every database.
 
 ### What each database keeps
 

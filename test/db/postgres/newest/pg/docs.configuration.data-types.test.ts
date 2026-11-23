@@ -23,7 +23,6 @@ const tDnumAmount = new class TDnumAmount extends Table<DBConnection, 'TDnumAmou
 const tScaledAmount = new class TScaledAmount extends Table<DBConnection, 'TScaledAmount'> {
     id = this.primaryKey('id', 'int')
     price = this.optionalColumn('price', scaledBigIntType(2))
-    hundreds = this.optionalColumn('hundreds', scaledBigIntType(-2))
     constructor() {
         super('exact_amount')
     }
@@ -107,8 +106,8 @@ describe(ctx.label, () => {
 
     test('docs:data-types/scaled-bigints', async () => {
         ctx.mockNext([
-            { id: 1, price: '1.50', next: '1.51', hundreds: '12300' },
-            { id: 5, price: '1234.56', next: '1234.57', hundreds: '999900' },
+            { id: 1, price: '1.50', next: '1.51' },
+            { id: 5, price: '1234.56', next: '1234.57' },
         ])
         const connection = ctx.conn
         // doc-start
@@ -118,22 +117,21 @@ describe(ctx.label, () => {
                 id: tScaledAmount.id,
                 price: tScaledAmount.price,
                 next: tScaledAmount.price.add(scaledBigInt(1n, 2)),
-                hundreds: tScaledAmount.hundreds,
             })
             .orderBy('id')
             .executeSelectMany()
         // doc-end
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, price as price, price + $1 as next, hundreds as hundreds from exact_amount where price >= $2 order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, price as price, price + $1 as next from exact_amount where price >= $2 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "0.01",
             "1.50",
           ]
         `)
-        assertType<Exact<typeof rows, { id: number; price?: ScaledBigInt<2>; next?: ScaledBigInt<2>; hundreds?: ScaledBigInt<-2> }[]>>()
+        assertType<Exact<typeof rows, { id: number; price?: ScaledBigInt<2>; next?: ScaledBigInt<2> }[]>>()
         expect(rows).toEqual([
-            { id: 1, price: 150n, next: 151n, hundreds: 123n },
-            { id: 5, price: 123456n, next: 123457n, hundreds: 9999n },
+            { id: 1, price: 150n, next: 151n },
+            { id: 5, price: 123456n, next: 123457n },
         ])
     })
 })

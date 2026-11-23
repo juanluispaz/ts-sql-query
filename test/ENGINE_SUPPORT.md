@@ -741,7 +741,8 @@ An `UPDATE … RETURNING` returns only the rows whose values change: a row the
 `update t set price = 2.00 where id in (1, 2) returning id` with the row 2 already
 at `2.00`, MariaDB returns the row 1 alone; PostgreSQL, Oracle, SQL Server and
 SQLite return both (measured on MariaDB 13.0.2 with SQL written by hand in the
-client and with the mariadb driver, with `foundRows` on and off). No SQL makes
+client and with the mariadb driver, with `foundRows` on and off; by hand, the same
+on 13.1.1-rc and on the development build 13.1.2, so no release changes it yet). No SQL makes
 MariaDB return the unchanged rows, and reading them would need another query, so
 the library leaves it as MariaDB gives it: `executeUpdateOne` gives `NO_RESULT`
 and `executeUpdateMany` misses the row. The test is `update.returning` →

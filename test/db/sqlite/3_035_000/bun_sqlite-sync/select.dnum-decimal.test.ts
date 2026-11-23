@@ -24,12 +24,14 @@ const tExactAmount = new class TExactAmount extends Table<DBConnection, 'TExactA
     constructor() { super('exact_amount') }
 }()
 
-// The same table, declaring the SQL data type of its columns with 2 decimals for amount and 3 for price
+// The same table, declaring the SQL data type of its columns with 2 decimals for amount and 3 for price, and the scale
+// -2 for hundreds
 const tDeclaredExactAmount = new class TDeclaredExactAmount extends Table<DBConnection, 'TDeclaredExactAmount'> {
     id        = this.primaryKey('id', 'int')
     amount    = this.optionalColumn('amount', 'dnumDecimal', withSqlDataType({ family: 'exact numeric', precision: 38, scale: 2 }))
     price     = this.optionalColumn('price', 'dnumDecimal', withSqlDataType({ family: 'exact numeric', precision: 10, scale: 3 }))
     priceText = this.optionalColumn('price', 'stringDecimal', withSqlDataType({ family: 'exact numeric', precision: 10, scale: 3 }))
+    hundreds  = this.optionalColumn('hundreds', 'dnumDecimal', withSqlDataType({ family: 'exact numeric', precision: 7, scale: -2 }))
     constructor() { super('exact_amount') }
 }()
 
@@ -118,13 +120,14 @@ describe(ctx.label, () => {
         expect(exactIds).toEqual([1])
     })
 
-    test('dnum-decimal/a-negative-number-of-decimals-is-a-number-of-zeros-at-the-end', async () => {
-        // [123n, -2] is 12300, the hundreds of row 1; the functions of dnum don't accept a negative number of decimals.
-        // The value read has the decimals the database gives, none
+    test('dnum-decimal/a-column-of-a-negative-scale-is-read-as-an-integer', async () => {
+        // The hundreds of row 1 are 12300: a column of a negative scale keeps multiples of 100, an integer the database
+        // writes with its zeros, with no decimals, also when its SQL data type says the scale -2
         ctx.mockNext([1])
         ctx.mockNext({ hundreds: '12300' })
+        ctx.mockNext({ hundreds: '12300' })
         const ids = sync(ctx.conn.selectFrom(tExactAmount)
-            .where(tExactAmount.hundreds.equals([123n, -2]))
+            .where(tExactAmount.hundreds.equals([12300n, 0]))
             .selectOneColumn(tExactAmount.id)
             .executeSelectMany())
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -137,7 +140,12 @@ describe(ctx.label, () => {
             .where(tExactAmount.id.equals(1))
             .select({ hundreds: tExactAmount.hundreds })
             .executeSelectOne())
+        const declared = sync(ctx.conn.selectFrom(tDeclaredExactAmount)
+            .where(tDeclaredExactAmount.id.equals(1))
+            .select({ hundreds: tDeclaredExactAmount.hundreds })
+            .executeSelectOne())
         expect(row).toEqual({ hundreds: [12300n, 0] })
+        expect(declared).toEqual({ hundreds: [12300n, 0] })
     })
 
     test('dnum-decimal/an-in-list-and-a-between-compare-every-digit', async () => {
@@ -341,7 +349,17 @@ describe(ctx.label, () => {
         expect(ids).toEqual([1])
     })
 
-    test('dnum-decimal/a-dnum-with-a-fraction-of-decimals-is-rejected', async () => {
+    test('dnum-decimal/a-dnum-with-decimals-that-are-not-a-whole-number-is-rejected', async () => {
+        // A negative number of decimals, as the functions of dnum, and a fraction
+        let negative: unknown
+        try {
+            sync(ctx.conn.selectFrom(tExactAmount)
+                .where(tExactAmount.price.equals([15n, -1]))
+                .selectOneColumn(tExactAmount.id)
+                .executeSelectMany())
+        } catch (e) {
+            negative = e
+        }
         let fraction: unknown
         try {
             sync(ctx.conn.selectFrom(tExactAmount)
@@ -351,6 +369,7 @@ describe(ctx.label, () => {
         } catch (e) {
             fraction = e
         }
+        expect(negative instanceof TsSqlError ? negative.errorReason : undefined).toEqual({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value: [15n, -1], typeName: 'dnumDecimal', paramIndex: 0 })
         expect(fraction instanceof TsSqlError ? fraction.errorReason : undefined).toEqual({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value: [15n, 0.5], typeName: 'dnumDecimal', paramIndex: 0 })
     })
 

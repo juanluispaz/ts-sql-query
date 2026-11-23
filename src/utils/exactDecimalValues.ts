@@ -4,20 +4,18 @@ import type { SqlDataType } from '../TypeAdapter.js'
  * The values of an exact decimal: its text, with a point as the decimal separator and without an exponent
  * (`-12.50`); a dnum, the tuple of the integer of its digits and the number of its decimals (`[-1250n, 2]`,
  * https://github.com/bpierre/dnum); and a scaled bigint, the integer of its digits with the scale of its data type
- * (`-1250n` with the scale 2). They keep the decimals as given: `1.50` has 2, `1.5` has 1. A negative number of
- * decimals is a number of zeros at the end: `[123n, -2]` is `12300`.
+ * (`-1250n` with the scale 2). They keep the decimals as given: `1.50` has 2, `1.5` has 1. The number of decimals is
+ * 0 or more, as dnum has it: an integer is its digits, also of a column of a negative scale (`numeric(7, -2)` gives
+ * `12300`), as the database writes it.
  */
 
-/**
- * Whether the value is a dnum: a bigint and a number of decimals that is a safe integer; a negative one is a number of
- * zeros at the end (the functions of dnum don't accept it)
- */
+/** Whether the value is a dnum: a bigint and a number of decimals that is a safe integer, 0 or more */
 export function isDnumValue(value: unknown): value is readonly [bigint, number] {
     if (!Array.isArray(value) || value.length !== 2) {
         return false
     }
     const decimals: unknown = value[1]
-    return typeof value[0] === 'bigint' && typeof decimals === 'number' && Number.isSafeInteger(decimals)
+    return typeof value[0] === 'bigint' && typeof decimals === 'number' && Number.isSafeInteger(decimals) && decimals >= 0
 }
 
 /** The text of a dnum, with all its decimals: `[-1250n, 2]` is `-12.50`, `[5n, 3]` is `0.005`, `[12n, 0]` is `12` */
@@ -26,12 +24,12 @@ export function textOfDnum(value: readonly [bigint, number]): string {
 }
 
 /**
- * The text of the integer of the digits of an exact decimal with that scale: `-1250n` with 2 is `-12.50`, `5n` with 3
- * is `0.005`, `123n` with -2 is `12300`
+ * The text of the integer of the digits of an exact decimal with that scale, 0 or more: `-1250n` with 2 is `-12.50`,
+ * `5n` with 3 is `0.005`, `12n` with 0 is `12`
  */
 export function textOfScaledDigits(digits: bigint, decimals: number): string {
-    if (decimals <= 0) {
-        return (decimals === 0 ? digits : digits * 10n ** BigInt(-decimals)).toString()
+    if (decimals === 0) {
+        return digits.toString()
     }
     const negative = digits < 0n
     let text = (negative ? -digits : digits).toString()
@@ -43,32 +41,23 @@ export function textOfScaledDigits(digits: bigint, decimals: number): string {
 }
 
 /**
- * The integer of the digits of the text of an exact decimal with that scale (`-12.50` with 2 is `-1250n`, `12300` with
- * -2 is `123n`), or undefined when the text has a digit other than a zero beyond the scale, which the value can't keep
+ * The integer of the digits of the text of an exact decimal with that scale, 0 or more (`-12.50` with 2 is `-1250n`,
+ * `1.5` with 2 is `150n`), or undefined when the text has a digit other than a zero beyond the scale, which the value
+ * can't keep
  */
 export function scaledDigitsOfText(text: string, scale: number): bigint | undefined {
     const point = text.indexOf('.')
     const integerPart = point < 0 ? text : text.substring(0, point)
     const fraction = point < 0 ? '' : text.substring(point + 1)
-    if (scale >= 0) {
-        if (fraction.length <= scale) {
-            return BigInt(integerPart + fraction + '0'.repeat(scale - fraction.length))
-        }
-        for (let i = scale, length = fraction.length; i < length; i++) {
-            if (fraction.charCodeAt(i) !== 48 /* 0 */) {
-                return undefined
-            }
-        }
-        return BigInt(integerPart + fraction.substring(0, scale))
+    if (fraction.length <= scale) {
+        return BigInt(integerPart + fraction + '0'.repeat(scale - fraction.length))
     }
-    for (let i = 0, length = fraction.length; i < length; i++) {
+    for (let i = scale, length = fraction.length; i < length; i++) {
         if (fraction.charCodeAt(i) !== 48 /* 0 */) {
             return undefined
         }
     }
-    const digits = BigInt(integerPart)
-    const divisor = 10n ** BigInt(-scale)
-    return digits % divisor === 0n ? digits / divisor : undefined
+    return BigInt(integerPart + fraction.substring(0, scale))
 }
 
 /** The dnum of the text of an exact decimal (`-12.50` is `[-1250n, 2]`), with as many decimals as the text has */

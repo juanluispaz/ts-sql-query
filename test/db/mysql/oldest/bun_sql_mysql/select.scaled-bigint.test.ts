@@ -1,7 +1,7 @@
 // A column of a scaled bigint: a decimal number whose value is a bigint with its scale in its type, ScaledBigInt<2>
 // keeps cents (150n is 1.50), sent and read as the text of the decimal, so it keeps every digit.
 // exact_amount.amount has 10 decimals and room for 38 digits, exact_amount.price 2 decimals and exact_amount.hundreds
-// no decimals and keeps multiples of 100 (the database has no negative scale); row 1 has the price 1.50 and the hundreds 12300, row 4 has none.
+// no decimals and keeps multiples of 100 (the database has no negative scale), read at the scale 0; row 1 has the price 1.50 and the hundreds 12300, row 4 has none.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -16,7 +16,7 @@ const tScaledAmount = new class TScaledAmount extends Table<DBConnection, 'TScal
     id       = this.primaryKey('id', 'int')
     amount   = this.optionalColumn('amount', scaledBigIntType(10))
     price    = this.optionalColumn('price', scaledBigIntType(2))
-    hundreds = this.optionalColumn('hundreds', scaledBigIntType(-2))
+    hundreds = this.optionalColumn('hundreds', scaledBigIntType(0))
     constructor() { super('exact_amount') }
 }()
 
@@ -33,7 +33,6 @@ const tPricedAmount = new class TPricedAmount extends Table<DBConnection, 'TPric
     // The same columns read at another scale than the one of their values
     amountInCents   = this.optionalColumn('amount', scaledBigIntType(2))
     priceInTenths   = this.optionalColumn('price', scaledBigIntType(4))
-    hundredsInThousands = this.optionalColumn('hundreds', scaledBigIntType(-3))
     constructor() { super('exact_amount') }
 }()
 
@@ -60,13 +59,13 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, amount as amount, price as price, hundreds as hundreds from exact_amount order by id"`)
-        assertType<Exact<typeof rows, { id: number; amount?: ScaledBigInt<10>; price?: ScaledBigInt<2>; hundreds?: ScaledBigInt<-2> }[]>>()
+        assertType<Exact<typeof rows, { id: number; amount?: ScaledBigInt<10>; price?: ScaledBigInt<2>; hundreds?: ScaledBigInt<0> }[]>>()
         expect(rows).toEqual([
-            { id: 1, amount: 123456789012345678901234567891n, price: 150n, hundreds: 123n },
-            { id: 2, amount: -2500000000n, price: -25n, hundreds: -5n },
+            { id: 1, amount: 123456789012345678901234567891n, price: 150n, hundreds: 12300n },
+            { id: 2, amount: -2500000000n, price: -25n, hundreds: -500n },
             { id: 3, amount: 0n, price: 0n, hundreds: 0n },
             { id: 4 },
-            { id: 5, amount: 987654321098765432109876543210n, price: 123456n, hundreds: 9999n },
+            { id: 5, amount: 987654321098765432109876543210n, price: 123456n, hundreds: 999900n },
         ])
     })
 
@@ -85,7 +84,7 @@ describe(ctx.label, () => {
           ]
         `)
         const byHundreds = await ctx.conn.selectFrom(tScaledAmount)
-            .where(tScaledAmount.hundreds.in([scaledBigInt(123n, -2), scaledBigInt(1n, -2)]))
+            .where(tScaledAmount.hundreds.in([scaledBigInt(12300n, 0), scaledBigInt(100n, 0)]))
             .selectOneColumn(tScaledAmount.id)
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as result from exact_amount where hundreds in (cast(? as decimal(5, 0)), cast(? as decimal(3, 0)))"`)
@@ -119,7 +118,7 @@ describe(ctx.label, () => {
             .where(tScaledAmount.id.equals(1))
             .select({
                 next: tScaledAmount.price.add(scaledBigInt(1n, 2)),
-                less: tScaledAmount.hundreds.subtract(scaledBigInt(1n, -2)),
+                less: tScaledAmount.hundreds.subtract(scaledBigInt(100n, 0)),
                 abs: tScaledAmount.price.subtract(scaledBigInt(175n, 2)).abs(),
             })
             .executeSelectOne()
@@ -132,8 +131,8 @@ describe(ctx.label, () => {
             1,
           ]
         `)
-        assertType<Exact<typeof row, { next?: ScaledBigInt<2>; less?: ScaledBigInt<-2>; abs?: ScaledBigInt<2> }>>()
-        expect(row).toEqual({ next: 151n, less: 122n, abs: 25n })
+        assertType<Exact<typeof row, { next?: ScaledBigInt<2>; less?: ScaledBigInt<0>; abs?: ScaledBigInt<2> }>>()
+        expect(row).toEqual({ next: 151n, less: 12200n, abs: 25n })
         const sums = await ctx.conn.selectFrom(tScaledAmount)
             .select({
                 prices: ctx.conn.sum(tScaledAmount.price),
@@ -142,9 +141,9 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(price) as prices, sum(hundreds) as hundreds, avg((price * 1.0e0)) as average from exact_amount"`)
-        assertType<Exact<typeof sums, { prices?: ScaledBigInt<2>; hundreds?: ScaledBigInt<-2>; average?: number }>>()
+        assertType<Exact<typeof sums, { prices?: ScaledBigInt<2>; hundreds?: ScaledBigInt<0>; average?: number }>>()
         expect(sums.prices).toBe(123581n)
-        expect(sums.hundreds).toBe(10117n)
+        expect(sums.hundreds).toBe(1011700n)
         if (ctx.realDbEnabled) {
             // The average is a double, computed by the database
             expect(sums.average).toBeCloseTo(308.9525, 6)
@@ -155,11 +154,10 @@ describe(ctx.label, () => {
 
     test('scaled-bigint/reads-a-column-of-another-scale-without-losing-a-digit', async () => {
         // The price has 2 decimals, read with 4; the amount has 10 decimals, read with 2: a digit beyond them is lost,
-        // and the value is rejected; the hundreds of row 1, 12300, aren't a multiple of 1000
+        // and the value is rejected
         ctx.mockNext({ priceInTenths: '1.50' })
         ctx.mockNext({ amountInCents: '12345678901234567890.1234567891' })
-        ctx.mockNext({ hundredsInThousands: '12300' })
-        ctx.mockNext({ amountInCents: '0.0000000000', hundredsInThousands: '0' })
+        ctx.mockNext({ amountInCents: '0.0000000000' })
         const wider = await ctx.conn.selectFrom(tPricedAmount)
             .where(tPricedAmount.id.equals(1))
             .select({ priceInTenths: tPricedAmount.priceInTenths })
@@ -174,23 +172,13 @@ describe(ctx.label, () => {
         } catch (e) {
             narrower = e
         }
-        let thousands: unknown
-        try {
-            await ctx.conn.selectFrom(tPricedAmount)
-                .where(tPricedAmount.id.equals(1))
-                .select({ hundredsInThousands: tPricedAmount.hundredsInThousands })
-                .executeSelectOne()
-        } catch (e) {
-            thousands = e
-        }
         // Zeros beyond the scale aren't a digit lost
         const zeros = await ctx.conn.selectFrom(tPricedAmount)
             .where(tPricedAmount.id.equals(3))
-            .select({ amountInCents: tPricedAmount.amountInCents, hundredsInThousands: tPricedAmount.hundredsInThousands })
+            .select({ amountInCents: tPricedAmount.amountInCents })
             .executeSelectOne()
         expect(narrower instanceof TsSqlError ? narrower.errorReason : undefined).toEqual({ reason: 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE', value: '12345678901234567890.1234567891', typeName: 'ScaledBigInt<2>', columnPath: 'amountInCents' })
-        expect(thousands instanceof TsSqlError ? thousands.errorReason : undefined).toEqual({ reason: 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE', value: '12300', typeName: 'ScaledBigInt<-3>', columnPath: 'hundredsInThousands' })
-        expect(zeros).toEqual({ amountInCents: 0n, hundredsInThousands: 0n })
+        expect(zeros).toEqual({ amountInCents: 0n })
     })
 
     test('scaled-bigint/an-insert-sends-the-text-and-reads-it-back', async () => {
@@ -198,7 +186,7 @@ describe(ctx.label, () => {
         ctx.mockNext({ amount: '-98765432109876543210.0000000001', price: '0.10', hundreds: '-700' })
         await ctx.withRollback(async () => {
             const inserted = await ctx.conn.insertInto(tScaledAmount)
-                .set({ id: 6, amount: scaledBigInt(-987654321098765432100000000001n, 10), price: scaledBigInt(10n, 2), hundreds: scaledBigInt(-7n, -2) })
+                .set({ id: 6, amount: scaledBigInt(-987654321098765432100000000001n, 10), price: scaledBigInt(10n, 2), hundreds: scaledBigInt(-700n, 0) })
                 .executeInsert()
             expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into exact_amount (id, amount, price, hundreds) values (?, ?, ?, ?)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -215,7 +203,7 @@ describe(ctx.label, () => {
                 .where(tScaledAmount.id.equals(6))
                 .select({ amount: tScaledAmount.amount, price: tScaledAmount.price, hundreds: tScaledAmount.hundreds })
                 .executeSelectOne()
-            expect(row).toEqual({ amount: -987654321098765432100000000001n, price: 10n, hundreds: -7n })
+            expect(row).toEqual({ amount: -987654321098765432100000000001n, price: 10n, hundreds: -700n })
         })
     })
 
@@ -248,10 +236,9 @@ describe(ctx.label, () => {
     test('scaled-bigint/the-classes-of-a-scale', () => {
         // One class for each scale, with its type name and its SQL data type
         expect(scaledBigIntType(2)).toBe(scaledBigIntType(2))
-        expect(scaledBigIntsType(-2)).toBe(scaledBigIntsType(-2))
+        expect(scaledBigIntsType(4)).toBe(scaledBigIntsType(4))
         expect(scaledBigIntType(2).type).toBe('ScaledBigInt<2>')
-        expect(scaledBigIntType(-2).type).toBe('ScaledBigInt<-2>')
-        expect(scaledBigIntType(-2).scale).toBe(-2)
+        expect(scaledBigIntType(4).scale).toBe(4)
         expect(scaledBigIntType(2).sqlDataType).toEqual({ family: 'exact numeric', scale: 2 })
         assertType<Exact<InstanceType<ReturnType<typeof scaledBigIntType<2>>>, ScaledBigIntType<2>>>()
         let fraction: unknown
@@ -260,7 +247,16 @@ describe(ctx.label, () => {
         } catch (e) {
             fraction = e
         }
+        // A scale is 0 or more: an integer of a column of a negative scale is of the scale 0
+        const scaleOfAColumn: number = -2
+        let negative: unknown
+        try {
+            scaledBigIntsType(scaleOfAColumn)
+        } catch (e) {
+            negative = e
+        }
         expect(fraction instanceof TsSqlError ? fraction.errorReason : undefined).toEqual({ reason: 'INVALID_CONFIGURATION', name: 'scale', value: 1.5 })
+        expect(negative instanceof TsSqlError ? negative.errorReason : undefined).toEqual({ reason: 'INVALID_CONFIGURATION', name: 'scale', value: -2 })
     })
 
     test('scaled-bigint/a-dynamic-condition-and-a-model', async () => {

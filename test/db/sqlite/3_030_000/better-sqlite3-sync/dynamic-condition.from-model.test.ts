@@ -275,7 +275,7 @@ describe(ctx.label, () => {
             code:     Code
             price:    Cents
             amount:   ScaledBigInt<2>
-            hundreds: ScaledBigInt<-2>
+            units:    ScaledBigInt<0>
             fee:      Fee
             day:      Temporal.PlainDate
             time:     Temporal.PlainTime
@@ -292,7 +292,7 @@ describe(ctx.label, () => {
             code:     ComparableType<Code, string>
             price:    ComparableType<Cents, string>
             amount:   ScaledBigIntType<2>
-            hundreds: ScaledBigIntType<-2>
+            units:    ScaledBigIntType<0>
             fee:      ScaledBigIntsType<Fee, string>
             day:      'plainDate'
             time:     'plainTime'
@@ -303,7 +303,7 @@ describe(ctx.label, () => {
             at:       'instant'
             zoned:    'zonedDateTime'
         }>>()
-        type Leaves = 'id' | 'code' | 'price' | 'amount' | 'hundreds' | 'fee' | 'day' | 'time' | 'dayTime' | 'month' | 'birthday' | 'took' | 'at' | 'zoned'
+        type Leaves = 'id' | 'code' | 'price' | 'amount' | 'units' | 'fee' | 'day' | 'time' | 'dayTime' | 'month' | 'birthday' | 'took' | 'at' | 'zoned'
         assertType<Exact<Extract<OrderByForModel<CalendarModel>, Leaves>, Leaves>>()
         assertType<Exact<Extract<OrderByForModel<CalendarModel>, `${string}.${string}`>, never>>()
         assertType<Exact<DeepPickPaths<CalendarModel>, Leaves>>()

@@ -40,6 +40,18 @@ const tExactUnits = new class TExactUnits extends Table<DBConnection, 'TExactUni
     constructor() { super('exact_amount') }
 }()
 
+// An integer of a negative scale: 14 digits and 2 zeros at the end, 16 digits, wider than a number
+abstract class HundredsType extends IntegersType<bigint, 'Hundreds'> {
+    static override readonly type = 'Hundreds'
+    static override readonly sqlDataType: SqlDataType = { family: 'exact numeric', precision: 14, scale: -2 }
+}
+
+const tExactHundreds = new class TExactHundreds extends Table<DBConnection, 'TExactHundreds'> {
+    id       = this.primaryKey('id', 'int')
+    hundreds = this.optionalColumn('hundreds', HundredsType)
+    constructor() { super('exact_amount') }
+}()
+
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
@@ -118,6 +130,18 @@ describe(ctx.label, () => {
             assertType<Exact<typeof downloads, Downloads | null>>()
             expect(downloads).toBe(9999999999n)
         })
+    })
+
+    test('own-bigint/an-integer-of-a-negative-scale-counts-its-zeros-as-digits', async () => {
+        // exact_amount.hundreds keeps multiples of 100: row 1 has 12300, read as a bigint
+        ctx.mockNext({ hundreds: '12300' })
+        const row = await ctx.conn.selectFrom(tExactHundreds)
+            .where(tExactHundreds.id.equals(1))
+            .select({ hundreds: tExactHundreds.hundreds })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select convert(nvarchar(41), hundreds) as hundreds from exact_amount where id = @0"`)
+        assertType<Exact<typeof row, { hundreds?: bigint }>>()
+        expect(row).toEqual({ hundreds: 12300n })
     })
 
     test('own-bigint/an-integer-of-30-digits-is-read-compared-and-computed-with-every-digit', async () => {

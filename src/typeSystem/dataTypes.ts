@@ -96,7 +96,9 @@ export function __fitsInANumberSql(typeClass: DataTypeClass | undefined): boolea
     if (sqlDataType.bytes !== undefined) {
         return sqlDataType.bytes <= 6
     }
-    return sqlDataType.precision !== undefined && sqlDataType.precision <= 15
+    // The digits of a number of a negative scale are its precision and its zeros at the end: a numeric(15, -5) has 20
+    const scale = sqlDataType.scale
+    return sqlDataType.precision !== undefined && sqlDataType.precision - (scale !== undefined && scale < 0 ? scale : 0) <= 15
 }
 
 /** Whether a data type is a JSON document, by its SQL data type: an aggregated array */

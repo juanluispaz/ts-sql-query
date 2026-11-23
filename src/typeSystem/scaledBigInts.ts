@@ -16,9 +16,10 @@ import { __computedClassOf } from '../nodes/adaptedTypeClass.js'
  */
 
 /**
- * A `bigint` with its scale in its type: `ScaledBigInt<2>` keeps cents, and `12345n` is 123.45; `ScaledBigInt<-2>`
- * keeps hundreds, and `123n` is 12300. At run time it is a plain `bigint`: whoever writes it also receives its scale,
- * and the type checks it is the one of the value. It is created with `scaledBigInt`
+ * A `bigint` with its scale in its type: `ScaledBigInt<2>` keeps cents, and `12345n` is 123.45. At run time it is a
+ * plain `bigint`: whoever writes it also receives its scale, and the type checks it is the one of the value. It is
+ * created with `scaledBigInt`. The scale is 0 or more: an integer, also of a column of a negative scale (as
+ * `numeric(7, -2)`, whose values are multiples of 100), is the bigint itself, of the scale 0
  */
 export type ScaledBigInt<SCALE extends number> = bigint & { readonly __scale: SCALE }
 
@@ -43,7 +44,7 @@ export function scaledBigInt<SCALE extends number>(value: bigint, scale: SCALE):
  */
 export abstract class ScaledBigIntsType</*in|out*/ VALUE_TYPE extends ScaledBigInt<number>, /*in|out*/ TYPE_NAME extends string> extends AdditiveType<VALUE_TYPE, TYPE_NAME> {
     static override readonly sqlDataType: SqlDataType | undefined = decimalSqlDataType
-    /** The scale of the values of the data type: the number of its decimals, or of zeros at the end when it is negative */
+    /** The scale of the values of the data type: the number of its decimals, 0 or more */
     static readonly scale: number = 0
 
     /**
@@ -204,31 +205,29 @@ export type ScaledBigIntType<SCALE extends number> = ScaledBigIntsType<ScaledBig
 /** The class of the data type of the values `ScaledBigInt<SCALE>` (see scaledBigIntType) */
 export type ScaledBigIntTypeClass<SCALE extends number> = ScaledBigIntsTypeStatics<SCALE> & { readonly prototype: ScaledBigIntType<SCALE> } & (abstract new (...args: any[]) => ScaledBigIntType<SCALE>)
 
-/** The families of the scaled bigints, by their scale: those of a scale of 0 or more, and those of a negative one */
+/** The families of the scaled bigints, by their scale */
 const familiesOfScale: Array<ScaledBigIntsTypeOfScale<number> | undefined> = []
-const familiesOfNegativeScale: Array<ScaledBigIntsTypeOfScale<number> | undefined> = []
 /** The classes of the data type of the scaled bigints, by their scale */
 const typesOfScale: Array<ScaledBigIntTypeClass<number> | undefined> = []
-const typesOfNegativeScale: Array<ScaledBigIntTypeClass<number> | undefined> = []
 
-/** Rejects a scale that isn't an integer */
+/** A scale literal that is negative is never: a scale is 0 or more */
+type NonNegativeScale<SCALE extends number> = `${SCALE}` extends `-${string}` ? never : unknown
+
+/** Rejects a scale that isn't an integer of 0 or more */
 function checkScale(scale: number): void {
-    if (!Number.isSafeInteger(scale)) {
-        throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'scale', value: scale }, 'Invalid scale of a scaled bigint: ' + scale + ' is not an integer')
+    if (!Number.isSafeInteger(scale) || scale < 0) {
+        throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'scale', value: scale }, 'Invalid scale of a scaled bigint: ' + scale + ' is not an integer of 0 or more')
     }
 }
 
 /**
  * The family of the scaled bigints of that scale, created once for each scale, to extend for a type of yours:
  * `const Cents2 = scaledBigIntsType(2)`, `class PriceType extends Cents2<Price, 'Price'> { static override readonly
- * type = 'Price' }`. The scale is an integer: a negative one keeps zeros at the end (`-2`, hundreds), where the
- * database has them
+ * type = 'Price' }`. The scale is an integer of 0 or more
  */
-export function scaledBigIntsType<SCALE extends number>(scale: SCALE): ScaledBigIntsTypeOfScale<SCALE> {
+export function scaledBigIntsType<SCALE extends number>(scale: SCALE & NonNegativeScale<SCALE>): ScaledBigIntsTypeOfScale<SCALE> {
     checkScale(scale)
-    const cache = scale < 0 ? familiesOfNegativeScale : familiesOfScale
-    const index = scale < 0 ? -scale : scale
-    let result = cache[index]
+    let result = familiesOfScale[scale]
     if (!result) {
         const sqlDataType: SqlDataType = { family: 'exact numeric', scale }
         abstract class ScaledBigIntsTypeOfThatScale extends ScaledBigIntsType<ScaledBigInt<SCALE>, string> {
@@ -236,7 +235,7 @@ export function scaledBigIntsType<SCALE extends number>(scale: SCALE): ScaledBig
             static override readonly scale: number = scale
         }
         result = ScaledBigIntsTypeOfThatScale as unknown as ScaledBigIntsTypeOfScale<number>
-        cache[index] = result
+        familiesOfScale[scale] = result
     }
     return result as unknown as ScaledBigIntsTypeOfScale<SCALE>
 }
@@ -245,19 +244,17 @@ export function scaledBigIntsType<SCALE extends number>(scale: SCALE): ScaledBig
  * The class of the data type of the values `ScaledBigInt<SCALE>`, of the type name `ScaledBigInt<SCALE>`, created once
  * for each scale: `this.column('price', scaledBigIntType(2))`, whose values are `ScaledBigInt<2>`
  */
-export function scaledBigIntType<SCALE extends number>(scale: SCALE): ScaledBigIntTypeClass<SCALE> {
+export function scaledBigIntType<SCALE extends number>(scale: SCALE & NonNegativeScale<SCALE>): ScaledBigIntTypeClass<SCALE> {
     checkScale(scale)
-    const cache = scale < 0 ? typesOfNegativeScale : typesOfScale
-    const index = scale < 0 ? -scale : scale
-    let result = cache[index]
+    let result = typesOfScale[scale]
     if (!result) {
-        const family = scaledBigIntsType(scale) as unknown as abstract new () => ScaledBigIntsType<ScaledBigInt<number>, string>
+        const family = scaledBigIntsType<number>(scale) as unknown as abstract new () => ScaledBigIntsType<ScaledBigInt<number>, string>
         const type = 'ScaledBigInt<' + scale + '>'
         abstract class ScaledBigIntTypeOfThatScale extends family {
             static readonly type: string = type
         }
         result = ScaledBigIntTypeOfThatScale as unknown as ScaledBigIntTypeClass<number>
-        cache[index] = result
+        typesOfScale[scale] = result
     }
     return result as unknown as ScaledBigIntTypeClass<SCALE>
 }

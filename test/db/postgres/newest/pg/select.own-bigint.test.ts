@@ -3,6 +3,7 @@
 // exact_amount.units, wider than any integer type of a database (rows 1, 2, 3 and 5 have 123456789012345678901234567890,
 // -987654321098765432109876543210, 0 and 999999999999999999999999999999; row 4 null). Their values are read from a
 // column, from the JSON of an array aggregate and back after an update, compared, computed and summed with every digit.
+// exact_amount.hundreds keeps multiples of 100 (a negative scale where the database has it).
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -26,6 +27,18 @@ abstract class UnitsType extends IntegersType<bigint, 'Units'> {
     static override readonly type = 'Units'
     static override readonly sqlDataType: SqlDataType = { family: 'exact numeric', precision: 30, scale: 0 }
 }
+
+// An integer of a negative scale: 14 digits and 2 zeros at the end, 16 digits, wider than a number
+abstract class HundredsType extends IntegersType<bigint, 'Hundreds'> {
+    static override readonly type = 'Hundreds'
+    static override readonly sqlDataType: SqlDataType = { family: 'exact numeric', precision: 14, scale: -2 }
+}
+
+const tExactHundreds = new class TExactHundreds extends Table<DBConnection, 'TExactHundreds'> {
+    id       = this.primaryKey('id', 'int')
+    hundreds = this.optionalColumn('hundreds', HundredsType)
+    constructor() { super('exact_amount') }
+}()
 
 const tExactUnits = new class TExactUnits extends Table<DBConnection, 'TExactUnits'> {
     id    = this.primaryKey('id', 'int')
@@ -118,6 +131,18 @@ describe(ctx.label, () => {
             assertType<Exact<typeof downloads, Downloads | null>>()
             expect(downloads).toBe(9999999999n)
         })
+    })
+
+    test('own-bigint/an-integer-of-a-negative-scale-counts-its-zeros-as-digits', async () => {
+        // exact_amount.hundreds keeps multiples of 100: row 1 has 12300, read as a bigint
+        ctx.mockNext({ hundreds: '12300' })
+        const row = await ctx.conn.selectFrom(tExactHundreds)
+            .where(tExactHundreds.id.equals(1))
+            .select({ hundreds: tExactHundreds.hundreds })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select hundreds as hundreds from exact_amount where id = $1"`)
+        assertType<Exact<typeof row, { hundreds?: bigint }>>()
+        expect(row).toEqual({ hundreds: 12300n })
     })
 
     test('own-bigint/an-integer-of-30-digits-is-read-compared-and-computed-with-every-digit', async () => {

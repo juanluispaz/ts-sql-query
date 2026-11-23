@@ -1,5 +1,5 @@
 // Compile-time negative tests for the scaled bigints on the sqlite dialect: a ScaledBigInt has its scale in its type,
-// so a value of another scale, a plain bigint, a product of two of them and a type of yours of another scale than the
+// so a negative scale, a value of another scale, a plain bigint, a product of two of them and a type of yours of another scale than the
 // family it extends are rejected. These never execute any SQL: `validate:tests` (tsc) rejects each
 // `@ts-expect-error` line.
 
@@ -31,6 +31,10 @@ const plainBigint = tScaledAmount.price.equals(150n)
 // @ts-expect-error the sum of a value of another scale
 const otherScaleSum = tScaledAmount.price.add(scaledBigInt(1n, 3))
 
+// Rule: a scale is 0 or more (a function never called: the call throws).
+// @ts-expect-error a negative scale
+const negativeScale = () => scaledBigIntType(-2)
+
 // Rule: two scaled bigints aren't multiplied nor divided: the product has another scale (functions never called:
 // the methods don't exist).
 // @ts-expect-error a scaled bigint has no multiply
@@ -41,6 +45,6 @@ const quotient = () => tScaledAmount.price.divide(scaledBigInt(2n, 2))
 test('compile-time-only', () => {
     void PriceType
     void OtherScaleType
-    void [sameScale, otherScale, plainBigint, otherScaleSum, product, quotient]
+    void [sameScale, otherScale, plainBigint, otherScaleSum, product, quotient, negativeScale]
     expect(true).toBe(true)
 })

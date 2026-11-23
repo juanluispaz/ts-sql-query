@@ -369,6 +369,19 @@ For the rows with the prices `1.50` and `1234.56`, the rows read are `[{ id: 1, 
 
 A `ScaledBigInt<S>` is a `bigint` with its scale in its type: `ScaledBigInt<2>` keeps cents (`150n` is `1.50`). The scale is the number of decimals of the column; a column without decimals is a `bigint`. A negative scale, or one that isn't an integer, is rejected with `INVALID_CONFIGURATION`, and a negative literal doesn't compile. The column says its scale with the type name of its data type, the one TypeScript writes, `'ScaledBigInt<2>'`, which every scale has without registering it, or with its class, `ScaledBigIntType.of(2)`, made once for each scale: `this.column('price', 'ScaledBigInt<2>')`, `connection.const(value, 'ScaledBigInt<2>')`, `DynamicCondition<{ price: 'ScaledBigInt<2>' }>`. Its SQL data type is `{ family: 'exact numeric', scale: 2 }`. A name with a negative scale, like `'ScaledBigInt<-2>'`, doesn't compile; one whose scale isn't an integer, like `'ScaledBigInt<1.5>'`, has no data type and is rejected with `UNKNOWN_DATA_TYPE`. `scaledBigInt(150n, 2)` gives a `bigint` the type `ScaledBigInt<2>`, and `ScaleOf<T>` is the scale of a type.
 
+Any scale works, by its name, so the scale is the one of the column. Some usual ones, as examples:
+
+| Scale | Usual for |
+|---|---|
+| 2 | Money in most currencies, in cents: `decimal(10, 2)` |
+| 3 | The currencies with thousandths, like the Kuwaiti and the Bahraini dinar |
+| 4 | Unit prices and exchange rates; the `money` of SQL Server |
+| 6 | Coordinates in degrees, to about 10 cm; the USDC token |
+| 8 | Bitcoin, in satoshis |
+| 18 | Ether, in wei, in a column wide enough, like `decimal(38, 18)` |
+
+A currency without decimals, like the yen, is a `bigint`.
+
 ```typescriptreact
 import { ScaledBigIntsType, type ScaledBigInt, type SqlDataType } from "ts-sql-query"
 

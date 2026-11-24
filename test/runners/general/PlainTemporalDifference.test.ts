@@ -98,7 +98,9 @@ describe('PlainTemporalDifference', () => {
             [1, 0, 0, 0, 0, 0, 0n, 'second', { years: 1 }],
         ]
         expect(given.map(([years, months, weeks, days, hours, minutes, nanoseconds, unit]) => durationText(years, months, weeks, days, hours, minutes, nanoseconds, unit)))
-            .toEqual(given.map(fields => Temporal.Duration.from(fields[8]).toString()))
+            // The text Temporal writes, as the specification says (Bun gives it; Node 26.1 drops the nanosecond of
+            // -PT25H0.000000001S): written here, not taken from the Temporal of the runtime
+            .toEqual(['PT1H90M5.5S', 'P2DT90M', '-PT25H0.000000001S', 'P1Y'])
         expect(durationText(0, 0, 0, 0, 1, 0, 3_600_000_000_000n, 'hour')).toBe('PT2H')
         expect(durationText(0, 0, 0, 0, 0, 59, 120_000_000_000n, 'minute')).toBe('PT61M')
         expect(durationText(0, 0, 0, 0, null, 0, 0, 'hour')).toBeNull()

@@ -1,8 +1,8 @@
 /**
  * Whether the Temporal of the runtime gives the values of the specification in the cases where an implementation was
  * seen to give others: a test that takes Temporal as the reference of exact values compares with it only then. Bun's
- * Temporal gives them; Node 26.1's adds and subtracts durations, totals them and computes until wrongly, the Node 26
- * of the CI of GitHub (later than 26.1) rounds until and since to a calendar unit one unit up (3 years and 4 days
+ * Temporal gives them; Node 26.1's adds and subtracts durations, totals them and computes until wrongly, Node 26.13.1
+ * (the one of the CI of GitHub) rounds until and since to a calendar unit one unit up (3 years and 4 days
  * rounded half down to the month is P3Y1M, 45 months exactly rounded to the week P45M1W), and the polyfill of Node 22
  * and 24 (temporal-polyfill) rounds a total one unit off its last digit and accepts `smallestUnit: 'auto'` in until.
  */

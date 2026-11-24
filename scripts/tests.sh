@@ -36,6 +36,7 @@ Usage:
                    [--timeout <ms>]
                    [--no-color]
                    [--sqlite-extensions]
+                   [--trace-files]
                    # Listing (enumerate, don't run):
                    [--list-cells]
                    [--list-cells-with-mode [running|all|real|mock|skipped]]
@@ -194,6 +195,7 @@ Defaults
   --timeout          60000 (ms; the value baked into the runner config)
   --no-color         off (colors kept when stdout is a TTY)
   --sqlite-extensions off (the tests of the extensions of SQLite are skipped)
+  --trace-files      off
   --isolate          off (bun: one global per worker across files, --no-isolate)
   --list-cells       off
   --list-cells-with-mode off (when set: running — show cells that will run;
@@ -461,6 +463,13 @@ Narrowing flags (runtime-agnostic — translated for you)
         headers of SQLite 3.53 or later, and they are slow, so neither the
         usual runs nor the CI run them. Example:
         bun run tests runners/sqlite --sqlite-extensions
+  --trace-files
+        vitest only. Write a line to the standard error when each test file
+        starts and ends, with the process that runs it ([trace-files] <time>
+        pid <pid> start|end <file>), straight to the stream so it is in the log
+        even when the process hangs: the files that started and didn't end are
+        the ones each worker was running. The CI runs its shards with it.
+        bun:test prints the name of each file it runs.
   --isolate
         bun only. Run every test file in a fresh global (bun's default
         --parallel behaviour) instead of letting each worker keep one global
@@ -663,6 +672,7 @@ TEST_NAME_PATTERN=
 BAIL=
 NO_COLOR_FLAG=off
 SQLITE_EXTENSIONS=off
+TRACE_FILES=off
 BUN_ISOLATE=off
 LIST_CELLS=off
 LIST_FILES=off
@@ -755,6 +765,7 @@ while [ $# -gt 0 ]; do
         --shard=*)              SHARD_MODE=on; SHARD_ONLY="${1#--shard=}"; shift ;;
         --no-color)             NO_COLOR_FLAG=on; shift ;;
         --sqlite-extensions)    SQLITE_EXTENSIONS=on; shift ;;
+        --trace-files)          TRACE_FILES=on; shift ;;
         --all-versions)         ALL_VERSIONS=on; shift ;;
         --isolate)              BUN_ISOLATE=on; shift ;;
         --list-cells)           LIST_CELLS=on; shift ;;
@@ -1064,6 +1075,8 @@ if [ "$NO_COLOR_FLAG" = "on" ]; then export NO_COLOR=1; fi
 # --sqlite-extensions: the query-runner tests that build the extensions of SQLite with the C compiler read it
 # (test/runners/sqlite/sqliteExtensions.ts); off, they are skipped without compiling
 export TS_SQL_QUERY_SQLITE_EXTENSIONS="$SQLITE_EXTENSIONS"
+# --trace-files: the setup file of vitest that traces when each test file starts and ends (test/lib/setupTraceFiles.ts)
+export TS_SQL_QUERY_TRACE_FILES="$TRACE_FILES"
 
 # Per-kind env strings the runtime gate (backends.ts) reads: all|none|newest
 # or a comma list of <db>/<version>/<connector> cell keys. docker + native

@@ -36,10 +36,12 @@ jobs:
       # fits the 16 GB runner (a single whole-matrix program OOMs past ~17 GB).
       - name: Validate tests
         run: npm run validate:tests
+        timeout-minutes: 30
 
       # Symmetry audit (DESIGN §4) — structural check of test/db/.
       - name: Audit test symmetry
         run: npm run tests:audit
+        timeout-minutes: 30
 
       # New test suite — full matrix mocked + real WASM (no docker), split
       # into 4 memory-bounded shards. Run as one process the matrix peaks
@@ -49,14 +51,23 @@ jobs:
       # exactly one shard. Shard 1 (wasm) runs the WASM cells real+sequential;
       # shards 2-4 run parallel with WASM mocked. Separate steps so each shard
       # has its own readable log. See `scripts/tests.sh --help` (Sharding).
+      # --trace-files writes a line when each test file starts and ends, with
+      # the process that runs it ([trace-files] ... start|end <file>): when a
+      # shard hangs, the files that started and didn't end are the ones it was
+      # running (see test/CLI.md). A shard takes a few minutes: the timeout
+      # makes a hung one fail in 15 minutes instead of the job's limit.
       - name: New test suite — shard 1 (wasm, real)
-        run: npm run test:no-docker:shard -- 1
+        run: npm run test:no-docker:shard -- 1 --trace-files
+        timeout-minutes: 15
       - name: New test suite — shard 2 (sqlite-A)
-        run: npm run test:no-docker:shard -- 2
+        run: npm run test:no-docker:shard -- 2 --trace-files
+        timeout-minutes: 15
       - name: New test suite — shard 3 (sqlite-B)
-        run: npm run test:no-docker:shard -- 3
+        run: npm run test:no-docker:shard -- 3 --trace-files
+        timeout-minutes: 15
       - name: New test suite — shard 4 (rest)
-        run: npm run test:no-docker:shard -- 4
+        run: npm run test:no-docker:shard -- 4 --trace-files
+        timeout-minutes: 15
 
   # Documentation build in strict mode (a broken link, anchor or nav entry
   # fails), installed like Read the Docs does (.readthedocs.yaml).
@@ -102,19 +113,25 @@ jobs:
       # fits the 16 GB runner (a single whole-matrix program OOMs past ~17 GB).
       - name: Bun validate tests
         run: bun run validate:tests
+        timeout-minutes: 30
 
       # Symmetry audit (DESIGN §4) — structural check of test/db/.
       - name: Bun audit test symmetry
         run: bun run tests:audit
+        timeout-minutes: 30
 
       # New test suite — full matrix mocked + real WASM (no docker), split
       # into 4 memory-bounded shards (same partition as the node job; see the
       # comment there). Separate steps so each shard has its own readable log.
       - name: Bun new test suite — shard 1 (wasm, real)
         run: bun run test:no-docker:shard 1
+        timeout-minutes: 15
       - name: Bun new test suite — shard 2 (sqlite-A)
         run: bun run test:no-docker:shard 2
+        timeout-minutes: 15
       - name: Bun new test suite — shard 3 (sqlite-B)
         run: bun run test:no-docker:shard 3
+        timeout-minutes: 15
       - name: Bun new test suite — shard 4 (rest)
         run: bun run test:no-docker:shard 4
+        timeout-minutes: 15

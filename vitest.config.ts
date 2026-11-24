@@ -7,7 +7,8 @@ export default defineConfig({
         // test/lib/setupTimezone.ts). Mirrored as a bun `preload` in
         // bunfig.toml so both runners marshal localDateTime identically.
         // Temporal from a polyfill where the runtime has none (test/lib/setupTemporal.ts); Bun has its own.
-        setupFiles: ['./test/lib/setupTimezone.ts', './test/lib/setupTemporal.ts'],
+        // With --trace-files, a line when each test file starts and ends (test/lib/setupTraceFiles.ts).
+        setupFiles: ['./test/lib/setupTimezone.ts', './test/lib/setupTemporal.ts', './test/lib/setupTraceFiles.ts'],
         // Per-test timeout. The default 5s is too tight for the
         // docker-backed cells under heavy parallel load (an Oracle
         // `withReseed` drops + recreates the schema and can spike

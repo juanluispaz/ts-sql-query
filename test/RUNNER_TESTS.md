@@ -167,6 +167,7 @@ the runner tests build the params the library would with `addParam` and
 bun run tests:runners                 # all of them (docker and WASM runners skipped)
 bun run tests:runners --docker --wasm # every runner against its engine (seconds, warm)
 bun run tests runners/postgres --docker
+bun run tests runners/sqlite --sqlite-extensions  # also the tests that build the extensions of SQLite
 bun run validate:tests runners        # type-check them (part of the full validate:tests)
 ```
 
@@ -176,6 +177,12 @@ tests with a WASM engine real, in their sequential unit with docker and native
 off; the main pass and shard 4 have WASM off, skip those and run the others, so
 nothing runs twice. `--run-versions newest` and `--run-connectors` without a
 `runners` coord leave them out.
+
+The tests that load the extensions of SQLite built from `sqlite/extensions/` (`SqliteDecimalFunctions`,
+`SqliteUuidFunctions` and the loading tests of `SqliteExtensionsPage`) run only with `--sqlite-extensions`: they compile
+the C sources with the compiler of the machine, which is slow and needs the headers of SQLite 3.53 or later, so the
+usual runs and the CI skip them without compiling anything. Run them when the decimal or uuid functions of the library
+for SQLite, or the page of the extensions, change (see [`sqlite/extensions/README.md`](sqlite/extensions/README.md)).
 
 ## Adding a runner
 

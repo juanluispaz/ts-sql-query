@@ -35,6 +35,7 @@ Usage:
                    [--bail [<N>]]
                    [--timeout <ms>]
                    [--no-color]
+                   [--sqlite-extensions]
                    # Listing (enumerate, don't run):
                    [--list-cells]
                    [--list-cells-with-mode [running|all|real|mock|skipped]]
@@ -192,6 +193,7 @@ Defaults
   --bail             off (no bail; bare --bail means 1)
   --timeout          60000 (ms; the value baked into the runner config)
   --no-color         off (colors kept when stdout is a TTY)
+  --sqlite-extensions off (the tests of the extensions of SQLite are skipped)
   --isolate          off (bun: one global per worker across files, --no-isolate)
   --list-cells       off
   --list-cells-with-mode off (when set: running — show cells that will run;
@@ -451,6 +453,14 @@ Narrowing flags (runtime-agnostic — translated for you)
         both runtimes). Keeps agent transcripts and `grep`/`tail`
         pipelines clean; also suppresses the color re-injection the
         WASM-phase replay would otherwise do on a TTY.
+  --sqlite-extensions
+        Build the loadable extensions of SQLite (decimal.c, uuid.c of
+        test/runners/sqlite/extensions/) with the C compiler of the machine
+        and run the query-runner tests that load them. Off, those tests are
+        skipped without compiling anything: they need a compiler and the
+        headers of SQLite 3.53 or later, and they are slow, so neither the
+        usual runs nor the CI run them. Example:
+        bun run tests runners/sqlite --sqlite-extensions
   --isolate
         bun only. Run every test file in a fresh global (bun's default
         --parallel behaviour) instead of letting each worker keep one global
@@ -652,6 +662,7 @@ TEST_NAME_PATTERN=
 # `--bail` alone resolves to 1 below.
 BAIL=
 NO_COLOR_FLAG=off
+SQLITE_EXTENSIONS=off
 BUN_ISOLATE=off
 LIST_CELLS=off
 LIST_FILES=off
@@ -743,6 +754,7 @@ while [ $# -gt 0 ]; do
             esac ;;
         --shard=*)              SHARD_MODE=on; SHARD_ONLY="${1#--shard=}"; shift ;;
         --no-color)             NO_COLOR_FLAG=on; shift ;;
+        --sqlite-extensions)    SQLITE_EXTENSIONS=on; shift ;;
         --all-versions)         ALL_VERSIONS=on; shift ;;
         --isolate)              BUN_ISOLATE=on; shift ;;
         --list-cells)           LIST_CELLS=on; shift ;;
@@ -1048,6 +1060,10 @@ fi
 # CLICOLOR_FORCE re-injection in the WASM tee below is gated on this so
 # the two don't fight.
 if [ "$NO_COLOR_FLAG" = "on" ]; then export NO_COLOR=1; fi
+
+# --sqlite-extensions: the query-runner tests that build the extensions of SQLite with the C compiler read it
+# (test/runners/sqlite/sqliteExtensions.ts); off, they are skipped without compiling
+export TS_SQL_QUERY_SQLITE_EXTENSIONS="$SQLITE_EXTENSIONS"
 
 # Per-kind env strings the runtime gate (backends.ts) reads: all|none|newest
 # or a comma list of <db>/<version>/<connector> cell keys. docker + native

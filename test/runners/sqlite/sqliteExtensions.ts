@@ -8,7 +8,9 @@
 //   builds while the others wait for it (a lock file), and they skip if it takes too long.
 // - A build that fails is remembered too (a .failed file with the reason, same key): a machine without a compiler or
 //   headers gets the reason at once, without trying again.
-// - It never throws: what can't be built gives the reason, and the tests that need it are skipped with it (on CI too).
+// - Only with --sqlite-extensions of the tests (TS_SQL_QUERY_SQLITE_EXTENSIONS): without it nothing is compiled, and
+//   the tests that need it are skipped, in the usual runs and on CI, which don't run them.
+// - It never throws: what can't be built gives the reason, and the tests that need it are skipped with it.
 // - Headers older than the SQLite version of the sources (3.53.0) give a reason too: the extension would be built
 //   against an older SQLite than the one its source belongs to, so its results aren't the ones to compare with.
 
@@ -56,6 +58,10 @@ export function sqliteExtensionCompileCommand(platform: NodeJS.Platform, include
 
 /** The path of the built library, or why it can't be used */
 export function buildSqliteExtension(name: SqliteExtensionName): { path: string } | { reason: string } {
+    // Building needs a compiler and takes its time: only when the run asks for it (tests.sh --sqlite-extensions)
+    if (process.env['TS_SQL_QUERY_SQLITE_EXTENSIONS'] !== 'on') {
+        return { reason: 'the extensions of SQLite are built only with --sqlite-extensions' }
+    }
     try {
         const include = sqliteHeaderFolders.find(folder => existsSync(join(folder, 'sqlite3ext.h')))
         if (!include) {
